@@ -12,7 +12,7 @@ export function ChatPanel({ profileId, profileName }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [model, setModel] = useState("llama3.1:8b");
+  const [model, setModel] = useState("deepseek-r1:8b");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
