@@ -86,11 +86,11 @@ export async function fetchPanchangam(
     const moonData = planets.find((pl) => pl.name === "Moon");
     const moonLong = moonData?.longitude ?? 0;
 
-    // Birth time as Unix ms (using UTC hour derived from local time - offset)
-    const birthDate = new Date(
-      Date.UTC(year, month - 1, day, Math.floor(hourUtc), Math.round((hourUtc % 1) * 60))
-    );
-    const birthTimeMs = birthDate.getTime();
+    // Birth time as Unix ms — compute via offset subtraction to avoid
+    // negative-minute underflow from fractional hourUtc
+    const localMs =
+      new Date(`${input.date_of_birth}T${input.time_of_birth}:00`).getTime();
+    const birthTimeMs = localMs - input.timezone_offset * 3_600_000;
     const currentTimeMs = Date.now();
 
     const dasha = p.calculate_vimshottari(moonLong, birthTimeMs, currentTimeMs);
