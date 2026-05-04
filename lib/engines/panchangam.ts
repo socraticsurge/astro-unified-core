@@ -76,14 +76,38 @@ export async function fetchPanchangam(
     // Build Location (altitude = 0 m by default)
     const location = new p.Location(input.latitude, input.longitude, 0);
 
-    // --- Daily Panchangam for the birth date ---
+    // --- Julian Day for the birth moment (includes time) ---
+    const jd = p.p_julday(year, month, day, hourUtc, 1);
+
+    // --- Daily Panchangam for the birth date (used for sunrise/sunset/muhurats) ---
     const panchang = p.calculate_daily_panchang(year, month, day, location, 1);
 
+    // --- Per-element panchang at birth-time JD ---
+    const AYANAMSHA = 1; // Lahiri
+    const JD_UNIX_EPOCH = 2440587.5;
+    const MS_PER_DAY = 86400000;
+    // Helper: convert Julian Day number → Unix milliseconds
+    const jdToMs = (jdVal: number): number =>
+      (jdVal - JD_UNIX_EPOCH) * MS_PER_DAY;
+
+    const nakshatra   = p.calculate_nakshatra(jd, AYANAMSHA);
+    const tithi       = p.calculate_tithi(jd);
+    const yoga        = p.calculate_yoga(jd, AYANAMSHA);
+    const karana      = p.calculate_karana(jd);
+    const vara        = p.calculate_vara(jd);
+    const birthPlanets = p.calculate_planets(jd, AYANAMSHA);
+
+    const nakshatra_s = serializeWasm(nakshatra) as Record<string, unknown>;
+    const tithi_s     = serializeWasm(tithi)     as Record<string, unknown>;
+    const yoga_s      = serializeWasm(yoga)       as Record<string, unknown>;
+    const karana_s    = serializeWasm(karana)     as Record<string, unknown>;
+    const vara_s      = serializeWasm(vara)       as Record<string, unknown>;
+
     // --- Vimshottari Dasha ---
-    // Moon longitude comes from the birth-day panchang planets array
-    const planets: Array<{ name: string; longitude: number }> =
-      panchang.planets ?? [];
-    const moonData = planets.find((pl) => pl.name === "Moon");
+    // Use birth-time Moon longitude (not sunrise-time) for accurate dasha calculation
+    const moonData = birthPlanets.find(
+      (pl: { name: string; longitude: number }) => pl.name === "Moon"
+    );
     const moonLong = moonData?.longitude ?? 0;
 
     // Birth time as Unix ms — compute via offset subtraction to avoid
@@ -95,9 +119,6 @@ export async function fetchPanchangam(
 
     const dasha = p.calculate_vimshottari(moonLong, birthTimeMs, currentTimeMs);
 
-    // --- Julian Day for the birth moment (for granular calculations) ---
-    const jd = p.p_julday(year, month, day, hourUtc, 1);
-
     // --- Houses at birth moment ---
     const houses = p.calculate_houses(
       jd,
@@ -108,8 +129,42 @@ export async function fetchPanchangam(
     );
 
     // Serialize all WASM objects into plain JSON-serializable structures
+    // Start from daily panchang (keeps sunrise, sunset, ascendant, mc, muhurats, ayanamsha_value)
+    const panchangSerialized = serializeWasm(panchang) as Record<string, unknown>;
+
+    // Override the per-element fields with birth-time-accurate values
+    const panchangOverridden = {
+      ...panchangSerialized,
+      // Nakshatra
+      nakshatra_index:      nakshatra_s.index,
+      nakshatra_name:       nakshatra_s.name,
+      nakshatra_pada:       nakshatra_s.pada,
+      nakshatra_start_time: jdToMs(p.nakshatra_start_time(jd, AYANAMSHA)),
+      nakshatra_end_time:   jdToMs(p.nakshatra_end_time(jd, AYANAMSHA)),
+      // Tithi
+      tithi_index:          tithi_s.index,
+      tithi_name:           tithi_s.name,
+      paksha:               tithi_s.paksha,
+      tithi_start_time:     jdToMs(p.tithi_start_time(jd)),
+      tithi_end_time:       jdToMs(p.tithi_end_time(jd)),
+      // Yoga
+      yoga_index:           yoga_s.index,
+      yoga_name:            yoga_s.name,
+      yoga_start_time:      jdToMs(p.yoga_start_time(jd, AYANAMSHA)),
+      yoga_end_time:        jdToMs(p.yoga_end_time(jd, AYANAMSHA)),
+      // Karana
+      karana_index:         karana_s.index,
+      karana_name:          karana_s.name,
+      karana_start_time:    jdToMs(p.karana_start_time(jd)),
+      karana_end_time:      jdToMs(p.karana_end_time(jd)),
+      // Vara (weekday)
+      vara_name:            vara_s.name,
+      // Planets at birth time
+      planets:              birthPlanets,
+    };
+
     const result = {
-      panchang: serializeWasm(panchang),
+      panchang: panchangOverridden,
       dasha: serializeWasm(dasha),
       houses: serializeWasm(houses),
       birth_julian_day: jd,
