@@ -233,6 +233,132 @@ def calculate_hellenistic(data: BirthData):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _chaldean_calculate(full_name: str, birthdate: str) -> dict:
+    """Compute Chaldean key figures.
+
+    Chaldean alphabet mapping (1-8 only; 9 is considered sacred):
+      1: A I J Q Y
+      2: B K R
+      3: C G L S
+      4: D M T
+      5: E H N X
+      6: U V W
+      7: O Z
+      8: F P
+    """
+    CHALDEAN = {
+        "a": 1, "i": 1, "j": 1, "q": 1, "y": 1,
+        "b": 2, "k": 2, "r": 2,
+        "c": 3, "g": 3, "l": 3, "s": 3,
+        "d": 4, "m": 4, "t": 4,
+        "e": 5, "h": 5, "n": 5, "x": 5,
+        "u": 6, "v": 6, "w": 6,
+        "o": 7, "z": 7,
+        "f": 8, "p": 8,
+    }
+    VOWELS = set("aeiou")
+
+    def reduce(n: int) -> int:
+        """Reduce to single digit (keep master numbers 11, 22, 33)."""
+        while n > 9 and n not in (11, 22, 33):
+            n = sum(int(d) for d in str(n))
+        return n
+
+    letters = [c.lower() for c in full_name if c.isalpha()]
+    values = [CHALDEAN.get(c, 0) for c in letters]
+
+    vowel_sum = sum(CHALDEAN.get(c, 0) for c in letters if c in VOWELS)
+    consonant_sum = sum(CHALDEAN.get(c, 0) for c in letters if c not in VOWELS)
+    total_sum = sum(values)
+
+    # Birthdate numbers
+    year, month, day = [int(x) for x in birthdate.split("-")]
+    day_num = reduce(day)
+    month_num = reduce(month)
+    year_num = reduce(sum(int(d) for d in str(year)))
+
+    # Life path = reduce(day + month + year)
+    life_path = reduce(day_num + month_num + year_num)
+
+    hearth_desire = reduce(vowel_sum)
+    personality = reduce(consonant_sum)
+    destiny = reduce(total_sum)
+    expression = destiny  # same as destiny in Chaldean
+    power = reduce(life_path + destiny)
+
+    # Name number frequencies (digits 1-8 in Chaldean)
+    from collections import Counter
+    freq: dict[str, int] = {}
+    for d in range(1, 9):
+        freq[str(d)] = 0
+    for v in values:
+        if v > 0:
+            freq[str(v)] = freq.get(str(v), 0) + 1
+    missing = [d for d in range(1, 9) if freq[str(d)] == 0]
+
+    return {
+        "key_figures": {
+            "hearth_desire_number": hearth_desire,
+            "personality_number": personality,
+            "destiny_number": destiny,
+            "expression_number": expression,
+            "full_name_numbers": freq,
+            "full_name_missing_numbers": missing,
+            "birthdate": birthdate,
+            "life_path_number": life_path,
+            "birthdate_day_num": day_num,
+            "birthdate_month_num": month_num,
+            "birthdate_year_num": year_num,
+            "power_number": power,
+        },
+        "interpretations": {
+            "life_path_number": None,
+        },
+    }
+
+
+@app.post("/calculate/numerology")
+def calculate_numerology(data: BirthData):
+    try:
+        from numerology import Pythagorean
+
+        # Split name into first_name, last_name
+        name = (data.name or "Native").strip()
+        parts = name.split(None, 1)
+        first_name = parts[0]
+        last_name = parts[1] if len(parts) > 1 else ""
+
+        py = Pythagorean(first_name=first_name, last_name=last_name, birthdate=data.date_of_birth)
+
+        def serialize_pythagorean(p):
+            kf = dict(p.key_figures)
+            # full_name_missing_numbers is a tuple — convert to list for JSON
+            if "full_name_missing_numbers" in kf and isinstance(kf["full_name_missing_numbers"], tuple):
+                kf["full_name_missing_numbers"] = list(kf["full_name_missing_numbers"])
+            # full_name_numbers has int keys — convert to string keys for clean JSON
+            if "full_name_numbers" in kf and isinstance(kf["full_name_numbers"], dict):
+                kf["full_name_numbers"] = {str(k): v for k, v in kf["full_name_numbers"].items()}
+            return {
+                "key_figures": kf,
+                "interpretations": p.interpretations,
+            }
+
+        full_name = f"{first_name} {last_name}".strip()
+        ch_result = _chaldean_calculate(full_name, data.date_of_birth)
+
+        return {
+            "status": "ok",
+            "data": {
+                "name": {"first_name": first_name, "last_name": last_name, "full_name": name},
+                "birthdate": data.date_of_birth,
+                "pythagorean": serialize_pythagorean(py),
+                "chaldean": ch_result,
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
