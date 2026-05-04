@@ -51,6 +51,7 @@ function initSchema(db: Database.Database) {
 
     CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings(profile_id);
     CREATE INDEX IF NOT EXISTS idx_readings_engine ON readings(engine);
+    CREATE INDEX IF NOT EXISTS idx_readings_profile_engine ON readings(profile_id, engine, created_at);
     CREATE INDEX IF NOT EXISTS idx_chat_profile ON chat_messages(profile_id);
   `);
 }

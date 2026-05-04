@@ -43,6 +43,11 @@ export function ChatPanel({ profileId, profileName }: Props) {
         body: JSON.stringify({ profile_id: profileId, message: userMsg, model }),
       });
 
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        setMessages((m) => [...m.slice(0, -1), { role: "assistant", content: `[Error: ${err.error ?? "Ollama unavailable"}]` }]);
+        return;
+      }
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
 

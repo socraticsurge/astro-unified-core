@@ -31,8 +31,6 @@ export async function POST(req: NextRequest) {
     content: m.content,
   }));
 
-  db.chat.save({ profile_id, role: "user", content: message, context_engines });
-
   const systemPrompt = buildSystemPrompt(profile.name, engines);
   const messages: OllamaMessage[] = [
     { role: "system", content: systemPrompt },
@@ -40,7 +38,10 @@ export async function POST(req: NextRequest) {
     { role: "user", content: message },
   ];
 
+  // Only save the user message after confirming Ollama is reachable,
+  // so a failed stream doesn't leave an orphaned user message in history.
   const ollamaStream = await ollamaChat(messages, model ?? "llama3.1:8b");
+  db.chat.save({ profile_id, role: "user", content: message, context_engines });
 
   let fullResponse = "";
   const encoder = new TextEncoder();
