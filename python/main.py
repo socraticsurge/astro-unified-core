@@ -359,6 +359,23 @@ def calculate_numerology(data: BirthData):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/calculate/dashaflow")
+def calculate_dashaflow_endpoint(data: BirthData):
+    try:
+        import dashaflow
+
+        chart = dashaflow.calculate_vedic_chart(
+            data.date_of_birth,
+            data.time_of_birth,
+            data.latitude,
+            data.longitude,
+            data.timezone,
+        )
+        return {"status": "ok", "data": chart}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
