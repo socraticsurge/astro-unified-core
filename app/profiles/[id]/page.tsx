@@ -5,6 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VedAstroView } from "@/components/engines/VedAstroView";
 import { PanchangamView } from "@/components/engines/PanchangamView";
 import { JyotishganitView } from "@/components/engines/JyotishganitView";
+import { WesternView } from "@/components/engines/WesternView";
+import { HellenisticView } from "@/components/engines/HellenisticView";
+import { BaziView } from "@/components/engines/BaziView";
 import { ComparePanel } from "@/components/ComparePanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +19,12 @@ type EngineState = { output: unknown; loading: boolean; error?: string };
 const DEFAULT_ENGINE: EngineState = { output: null, loading: false };
 
 const ENGINE_ACCENTS: Record<string, string> = {
-  vedastro: "text-blue-700",
-  panchangam: "text-amber-700",
-  jyotishganit: "text-green-700",
+  vedastro: "text-blue-400",
+  panchangam: "text-amber-400",
+  jyotishganit: "text-green-400",
+  western: "text-indigo-400",
+  hellenistic: "text-purple-400",
+  bazi: "text-red-400",
 };
 
 function EngineTab({
@@ -62,7 +68,7 @@ function EngineTab({
       </div>
 
       {state.error && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 mb-4">{state.error}</div>
+        <div className="text-sm text-red-400 bg-red-950/30 border border-red-800/50 rounded-lg p-3 mb-4">{state.error}</div>
       )}
 
       {!state.output && !state.error && !state.loading && (
@@ -75,11 +81,14 @@ function EngineTab({
         engine === "vedastro" ? <VedAstroView output={state.output as Record<string, unknown>} /> :
         engine === "panchangam" ? <PanchangamView output={state.output as Record<string, unknown>} /> :
         engine === "jyotishganit" ? <JyotishganitView output={state.output as Record<string, unknown>} /> :
+        engine === "western" ? <WesternView output={state.output as Record<string, unknown>} /> :
+        engine === "hellenistic" ? <HellenisticView output={state.output as Record<string, unknown>} /> :
+        engine === "bazi" ? <BaziView output={state.output as Record<string, unknown>} /> :
         null
       )}
 
       {!!state.output && showRaw && (
-        <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all bg-gray-50 border rounded-lg p-4">
+        <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all bg-white/5 border border-white/10 rounded-lg p-4">
           {JSON.stringify(state.output, null, 2)}
         </pre>
       )}
@@ -94,10 +103,13 @@ export default function ProfileDetailPage() {
     vedastro: DEFAULT_ENGINE,
     panchangam: DEFAULT_ENGINE,
     jyotishganit: DEFAULT_ENGINE,
+    western: DEFAULT_ENGINE,
+    hellenistic: DEFAULT_ENGINE,
+    bazi: DEFAULT_ENGINE,
   });
 
   const fetchEngine = useCallback(
-    async (engine: "vedastro" | "panchangam" | "jyotishganit") => {
+    async (engine: "vedastro" | "panchangam" | "jyotishganit" | "western" | "hellenistic" | "bazi") => {
       setEngines(e => ({ ...e, [engine]: { output: null, loading: true } }));
       try {
         const res = await fetch(`/api/readings/${engine}`, {
@@ -126,6 +138,9 @@ export default function ProfileDetailPage() {
         fetchEngine("vedastro");
         fetchEngine("panchangam");
         fetchEngine("jyotishganit");
+        fetchEngine("western");
+        fetchEngine("hellenistic");
+        fetchEngine("bazi");
       });
   }, [id, fetchEngine]);
 
@@ -149,6 +164,9 @@ export default function ProfileDetailPage() {
           <TabsTrigger value="vedastro" className="text-blue-700">VedAstro</TabsTrigger>
           <TabsTrigger value="panchangam" className="text-amber-700">Panchangam</TabsTrigger>
           <TabsTrigger value="jyotishganit" className="text-green-700">Jyotishganit</TabsTrigger>
+          <TabsTrigger value="western" className="text-indigo-400">Western</TabsTrigger>
+          <TabsTrigger value="hellenistic" className="text-purple-400">Hellenistic</TabsTrigger>
+          <TabsTrigger value="bazi" className="text-red-400">Ba Zi</TabsTrigger>
           <TabsTrigger value="consolidated">Consolidated</TabsTrigger>
           <TabsTrigger value="chat">Chat (Ollama)</TabsTrigger>
         </TabsList>
@@ -161,6 +179,16 @@ export default function ProfileDetailPage() {
         </TabsContent>
         <TabsContent value="jyotishganit">
           <EngineTab engine="jyotishganit" label="Jyotishganit" state={engines.jyotishganit} onRefresh={() => fetchEngine("jyotishganit")} />
+        </TabsContent>
+
+        <TabsContent value="western">
+          <EngineTab engine="western" label="Western (Kerykeion)" state={engines.western} onRefresh={() => fetchEngine("western")} />
+        </TabsContent>
+        <TabsContent value="hellenistic">
+          <EngineTab engine="hellenistic" label="Hellenistic (flatlib)" state={engines.hellenistic} onRefresh={() => fetchEngine("hellenistic")} />
+        </TabsContent>
+        <TabsContent value="bazi">
+          <EngineTab engine="bazi" label="Chinese Ba Zi" state={engines.bazi} onRefresh={() => fetchEngine("bazi")} />
         </TabsContent>
 
         <TabsContent value="consolidated">
