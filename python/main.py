@@ -6,6 +6,17 @@ import jyotishganit
 
 app = FastAPI(title="Astrology Sidecar")
 
+PLANET_KEYS = [
+    "sun", "moon", "mercury", "venus", "mars",
+    "jupiter", "saturn", "uranus", "neptune", "pluto",
+    "mean_node", "true_node", "chiron",
+]
+HOUSE_KEYS = [
+    "first_house", "second_house", "third_house", "fourth_house",
+    "fifth_house", "sixth_house", "seventh_house", "eighth_house",
+    "ninth_house", "tenth_house", "eleventh_house", "twelfth_house",
+]
+
 
 class BirthData(BaseModel):
     date_of_birth: str   # YYYY-MM-DD
@@ -58,21 +69,10 @@ def calculate_western(data: BirthData):
                 "p2": a.p2_name,
                 "aspect": a.aspect,
                 "orbit": round(a.orbit, 4),
-                "movement": a.aspect_movement,
-                "aspect_degrees": a.aspect_degrees,
+                "movement": getattr(a, "aspect_movement", None),
+                "aspect_degrees": getattr(a, "aspect_degrees", None),
             }
             for a in aspects.all_aspects
-        ]
-
-        PLANET_KEYS = [
-            "sun", "moon", "mercury", "venus", "mars",
-            "jupiter", "saturn", "uranus", "neptune", "pluto",
-            "mean_node", "true_node", "chiron",
-        ]
-        HOUSE_KEYS = [
-            "first_house", "second_house", "third_house", "fourth_house",
-            "fifth_house", "sixth_house", "seventh_house", "eighth_house",
-            "ninth_house", "tenth_house", "eleventh_house", "twelfth_house",
         ]
 
         planets = {k: subject_data[k] for k in PLANET_KEYS if k in subject_data}
