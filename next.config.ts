@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["better-sqlite3", "@fusionstrings/panchangam"],
+  serverExternalPackages: [
+    "better-sqlite3",
+    "@fusionstrings/panchangam",
+    "bazi-calculator-by-alvamind",
+  ],
   turbopack: {},
   webpack: (config) => {
     config.experiments = { ...config.experiments, asyncWebAssembly: true };
