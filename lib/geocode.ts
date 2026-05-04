@@ -32,7 +32,8 @@ export async function geocodePlace(place: string): Promise<GeoResult> {
   });
   const parts = formatter.formatToParts(now);
   const offsetPart = parts.find((p) => p.type === "timeZoneName")?.value ?? "UTC+0";
-  const match = offsetPart.match(/UTC([+-]\d+(?::\d+)?)/);
+  // Intl.DateTimeFormat may return "GMT+5:30" or "UTC+5:30" depending on the runtime
+  const match = offsetPart.match(/(?:UTC|GMT)([+-]\d+(?::\d+)?)/);
   let timezone_offset = 0;
   if (match) {
     const offsetParts = match[1].split(":");

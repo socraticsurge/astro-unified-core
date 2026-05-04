@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+astrounified.db
+astrounified.db-shm
+astrounified.db-wal
+python/hip_main.dat
+python/de421.bsp

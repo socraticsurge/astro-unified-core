@@ -1,4 +1,4 @@
-const BASE = process.env.VEDASTRO_API_URL ?? "https://api.vedastro.org";
+const BASE = process.env.VEDASTRO_API_URL ?? "https://api.vedastro.org/api";
 
 export type VedAstroInput = {
   date_of_birth: string;
@@ -13,7 +13,8 @@ export type VedAstroOutput = {
 };
 
 function formatOffset(offset: number): string {
-  const sign = offset >= 0 ? "+" : "-";
+  // Use %2B instead of + so the offset survives as a URL path segment
+  const sign = offset >= 0 ? "%2B" : "-";
   const abs = Math.abs(offset);
   const h = Math.floor(abs).toString().padStart(2, "0");
   const m = Math.round((abs % 1) * 60).toString().padStart(2, "0");
