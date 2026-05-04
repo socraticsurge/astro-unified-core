@@ -45,10 +45,10 @@ export async function fetchVedAstro(input: VedAstroInput): Promise<VedAstroOutpu
 
   const calcs = [
     { key: "planetary_positions", path: `AllPlanetLongitude/${locTime}` },
-    { key: "house_cusps",         path: `AllHouseLongitude/${locTime}` },
-    { key: "rising_sign",         path: `RisingSign/${locTime}` },
-    { key: "dasha",               path: `CurrentDasaCountFromMoon/${locTime}` },
-    { key: "ashtakavarga",        path: `AshtakvargaChart/${locTime}` },
+    { key: "house_cusps",         path: `AllHouseLongitudes/${locTime}` },
+    { key: "rising_sign",         path: `LagnaSignName/${locTime}` },
+    { key: "dasha",               path: `DasaForNow/${locTime}` },
+    { key: "ashtakavarga",        path: `BhinnashtakavargaChart/${locTime}` },
     { key: "shadbala",            path: `PlanetShadbalaPinda/${locTime}` },
   ];
 
