@@ -20,12 +20,6 @@ export default function ProfileDetailPage() {
     jyotishganit: DEFAULT_ENGINE,
   });
 
-  useEffect(() => {
-    fetch(`/api/profiles/${id}`)
-      .then((r) => r.json())
-      .then(setProfile);
-  }, [id]);
-
   const fetchEngine = useCallback(
     async (engine: "vedastro" | "panchangam" | "jyotishganit") => {
       setEngines((e) => ({ ...e, [engine]: { output: null, loading: true } }));
@@ -47,6 +41,18 @@ export default function ProfileDetailPage() {
     },
     [id]
   );
+
+  useEffect(() => {
+    fetch(`/api/profiles/${id}`)
+      .then((r) => r.json())
+      .then((p: Profile) => {
+        setProfile(p);
+        // Auto-fetch all three engines once profile is confirmed to exist
+        fetchEngine("vedastro");
+        fetchEngine("panchangam");
+        fetchEngine("jyotishganit");
+      });
+  }, [id, fetchEngine]);
 
   if (!profile) return <div className="text-center py-16 text-muted-foreground">Loading…</div>;
 
