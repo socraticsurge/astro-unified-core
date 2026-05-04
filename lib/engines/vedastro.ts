@@ -43,11 +43,13 @@ export async function fetchVedAstro(input: VedAstroInput): Promise<VedAstroOutpu
   const raw_responses: Record<string, unknown> = {};
   const errors: Record<string, string> = {};
 
+  // Note: VedAstro's DasaForNow endpoint returns Start = End = current moment with
+  // 0-hour duration (server-side bug). Vimshottari dasha is provided by Jyotishganit
+  // which is accurate. So we don't fetch dasha from VedAstro.
   const calcs = [
     { key: "planetary_positions", path: `AllPlanetLongitude/${locTime}` },
     { key: "house_cusps",         path: `AllHouseLongitudes/${locTime}` },
     { key: "rising_sign",         path: `LagnaSignName/${locTime}` },
-    { key: "dasha",               path: `DasaForNow/${locTime}` },
     { key: "ashtakavarga",        path: `BhinnashtakavargaChart/${locTime}` },
     { key: "shadbala",            path: `PlanetShadbalaPinda/${locTime}` },
   ];
