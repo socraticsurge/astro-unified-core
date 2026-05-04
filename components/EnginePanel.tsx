@@ -95,6 +95,12 @@ export function EnginePanel({ engine, output, onRefresh, loading, error }: Props
         <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2">{error}</div>
       )}
 
+      {!output && !error && loading && (
+        <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground gap-2">
+          <RefreshCw className="h-3 w-3 animate-spin" /> Fetching…
+        </div>
+      )}
+
       {!output && !error && !loading && (
         <div className="flex-1 flex items-center justify-center">
           <Button onClick={onRefresh} size="sm">Fetch {label}</Button>
