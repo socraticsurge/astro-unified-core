@@ -4,7 +4,7 @@ from datetime import datetime
 import json
 import jyotishganit
 
-app = FastAPI(title="Jyotishganit Sidecar")
+app = FastAPI(title="Astrology Sidecar")
 
 
 class BirthData(BaseModel):
@@ -13,28 +13,88 @@ class BirthData(BaseModel):
     latitude: float
     longitude: float
     timezone_offset: float
+    timezone: str = "UTC"
+    name: str = "Native"
 
 
 @app.post("/calculate")
-def calculate(data: BirthData):
+def calculate_jyotishganit(data: BirthData):
     try:
-        # Parse date and time into a combined datetime object
         birth_datetime = datetime.strptime(
             f"{data.date_of_birth} {data.time_of_birth}", "%Y-%m-%d %H:%M"
         )
-
-        # Calculate the full Vedic birth chart
         chart = jyotishganit.calculate_birth_chart(
             birth_date=birth_datetime,
             latitude=data.latitude,
             longitude=data.longitude,
             timezone_offset=data.timezone_offset,
         )
-
-        # Convert to JSON-serializable dict using the library's built-in method
         output = jyotishganit.get_birth_chart_json(chart)
-
         return {"status": "ok", "data": output}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/calculate/western")
+def calculate_western(data: BirthData):
+    try:
+        from kerykeion import AstrologicalSubject, NatalAspects
+
+        year, month, day = [int(x) for x in data.date_of_birth.split("-")]
+        hour, minute = [int(x) for x in data.time_of_birth.split(":")]
+
+        s = AstrologicalSubject(
+            data.name, year, month, day, hour, minute,
+            lat=data.latitude,
+            lng=data.longitude,
+            tz_str=data.timezone,
+        )
+        subject_data = json.loads(s.json())
+
+        aspects = NatalAspects(s)
+        aspects_list = [
+            {
+                "p1": a.p1_name,
+                "p2": a.p2_name,
+                "aspect": a.aspect,
+                "orbit": round(a.orbit, 4),
+                "movement": a.aspect_movement,
+                "aspect_degrees": a.aspect_degrees,
+            }
+            for a in aspects.all_aspects
+        ]
+
+        PLANET_KEYS = [
+            "sun", "moon", "mercury", "venus", "mars",
+            "jupiter", "saturn", "uranus", "neptune", "pluto",
+            "mean_node", "true_node", "chiron",
+        ]
+        HOUSE_KEYS = [
+            "first_house", "second_house", "third_house", "fourth_house",
+            "fifth_house", "sixth_house", "seventh_house", "eighth_house",
+            "ninth_house", "tenth_house", "eleventh_house", "twelfth_house",
+        ]
+
+        planets = {k: subject_data[k] for k in PLANET_KEYS if k in subject_data}
+        houses = {k: subject_data[k] for k in HOUSE_KEYS if k in subject_data}
+
+        return {
+            "status": "ok",
+            "data": {
+                "meta": {
+                    "zodiac_type": subject_data.get("zodiac_type"),
+                    "houses_system": subject_data.get("houses_system_name"),
+                    "julian_day": subject_data.get("julian_day"),
+                    "is_diurnal": subject_data.get("is_diurnal"),
+                    "day_of_week": subject_data.get("day_of_week"),
+                    "utc_datetime": subject_data.get("iso_formatted_utc_datetime"),
+                    "local_datetime": subject_data.get("iso_formatted_local_datetime"),
+                },
+                "planets": planets,
+                "houses": houses,
+                "aspects": aspects_list,
+            },
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
