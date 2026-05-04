@@ -8,6 +8,9 @@ import { JyotishganitView } from "@/components/engines/JyotishganitView";
 import { WesternView } from "@/components/engines/WesternView";
 import { HellenisticView } from "@/components/engines/HellenisticView";
 import { BaziView } from "@/components/engines/BaziView";
+import { NumerologyView } from "@/components/engines/NumerologyView";
+import { DashaflowView } from "@/components/engines/DashaflowView";
+import { StelliumView } from "@/components/engines/StelliumView";
 import { ComparePanel } from "@/components/ComparePanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +28,9 @@ const ENGINE_ACCENTS: Record<string, string> = {
   western: "text-indigo-400",
   hellenistic: "text-purple-400",
   bazi: "text-red-400",
+  numerology: "text-emerald-400",
+  dashaflow: "text-green-400",
+  stellium: "text-rose-400",
 };
 
 function EngineTab({
@@ -84,6 +90,9 @@ function EngineTab({
         engine === "western" ? <WesternView output={state.output as Record<string, unknown>} /> :
         engine === "hellenistic" ? <HellenisticView output={state.output as Record<string, unknown>} /> :
         engine === "bazi" ? <BaziView output={state.output as Record<string, unknown>} /> :
+        engine === "numerology" ? <NumerologyView output={state.output as Record<string, unknown>} /> :
+        engine === "dashaflow" ? <DashaflowView output={state.output as Record<string, unknown>} /> :
+        engine === "stellium" ? <StelliumView output={state.output as Record<string, unknown>} /> :
         null
       )}
 
@@ -106,10 +115,13 @@ export default function ProfileDetailPage() {
     western: DEFAULT_ENGINE,
     hellenistic: DEFAULT_ENGINE,
     bazi: DEFAULT_ENGINE,
+    numerology: DEFAULT_ENGINE,
+    dashaflow: DEFAULT_ENGINE,
+    stellium: DEFAULT_ENGINE,
   });
 
   const fetchEngine = useCallback(
-    async (engine: "vedastro" | "panchangam" | "jyotishganit" | "western" | "hellenistic" | "bazi", force = false) => {
+    async (engine: "vedastro" | "panchangam" | "jyotishganit" | "western" | "hellenistic" | "bazi" | "numerology" | "dashaflow" | "stellium", force = false) => {
       setEngines(e => ({ ...e, [engine]: { output: null, loading: true } }));
       try {
         const res = force
@@ -143,6 +155,9 @@ export default function ProfileDetailPage() {
         fetchEngine("western");
         fetchEngine("hellenistic");
         fetchEngine("bazi");
+        fetchEngine("numerology");
+        fetchEngine("dashaflow");
+        fetchEngine("stellium");
       });
   }, [id, fetchEngine]);
 
@@ -169,6 +184,9 @@ export default function ProfileDetailPage() {
           <TabsTrigger value="western" className="text-indigo-400">Western</TabsTrigger>
           <TabsTrigger value="hellenistic" className="text-purple-400">Hellenistic</TabsTrigger>
           <TabsTrigger value="bazi" className="text-red-400">Ba Zi</TabsTrigger>
+          <TabsTrigger value="numerology" className="text-emerald-400">Numerology</TabsTrigger>
+          <TabsTrigger value="dashaflow" className="text-green-400">Dashaflow</TabsTrigger>
+          <TabsTrigger value="stellium" className="text-rose-400">Stellium</TabsTrigger>
           <TabsTrigger value="consolidated">Consolidated</TabsTrigger>
           <TabsTrigger value="chat">Chat (Ollama)</TabsTrigger>
         </TabsList>
@@ -191,6 +209,16 @@ export default function ProfileDetailPage() {
         </TabsContent>
         <TabsContent value="bazi">
           <EngineTab engine="bazi" label="Chinese Ba Zi" state={engines.bazi} onRefresh={() => fetchEngine("bazi", true)} />
+        </TabsContent>
+
+        <TabsContent value="numerology">
+          <EngineTab engine="numerology" label="Numerology" state={engines.numerology} onRefresh={() => fetchEngine("numerology", true)} />
+        </TabsContent>
+        <TabsContent value="dashaflow">
+          <EngineTab engine="dashaflow" label="Dashaflow (Vedic)" state={engines.dashaflow} onRefresh={() => fetchEngine("dashaflow", true)} />
+        </TabsContent>
+        <TabsContent value="stellium">
+          <EngineTab engine="stellium" label="Stellium (Hellenistic)" state={engines.stellium} onRefresh={() => fetchEngine("stellium", true)} />
         </TabsContent>
 
         <TabsContent value="consolidated">
