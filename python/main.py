@@ -376,6 +376,99 @@ def calculate_dashaflow_endpoint(data: BirthData):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/calculate/stellium")
+def calculate_stellium_endpoint(data: BirthData):
+    try:
+        import stellium
+        from stellium.components import ArabicPartsCalculator
+        from dataclasses import asdict, is_dataclass
+        from datetime import datetime, timezone, timedelta
+
+        # Build datetime string for stellium
+        dt_str = f"{data.date_of_birth} {data.time_of_birth}"
+
+        chart = (stellium.ChartBuilder.from_details(
+            dt_str,
+            (data.latitude, data.longitude),
+            name=data.name,
+        )
+        .with_aspects()
+        .add_component(ArabicPartsCalculator())
+        .calculate())
+
+        full = chart.to_dict()  # base dict (positions, aspects, houses, etc.)
+
+        # Sect
+        sect = chart.sect()
+
+        # Voc moon
+        try:
+            voc = chart.voc_moon()
+            if hasattr(voc, "__dict__"):
+                voc = vars(voc)
+        except Exception:
+            voc = None
+
+        # Profections at "now" (UTC)
+        try:
+            now = datetime.now(timezone.utc)
+            profs = chart.profection(date=now)
+            # profs is a tuple of ProfectionResult dataclass instances
+            def serialize_prof(p):
+                if not p:
+                    return None
+                d = {}
+                for fld in ['source_point', 'source_sign', 'source_house', 'units', 'unit_type',
+                            'profected_house', 'profected_sign', 'ruler', 'ruler_house', 'ruler_modern']:
+                    if hasattr(p, fld):
+                        d[fld] = getattr(p, fld)
+                # ruler_position is a CelestialPosition — extract the essentials
+                rp = getattr(p, 'ruler_position', None)
+                if rp:
+                    d['ruler_position'] = {
+                        'name': rp.name,
+                        'sign': rp.sign,
+                        'sign_degree': round(rp.sign_degree, 4) if rp.sign_degree is not None else None,
+                        'longitude': round(rp.longitude, 4) if rp.longitude is not None else None,
+                        'is_retrograde': rp.is_retrograde,
+                    }
+                # planets_in_house may be a tuple of CelestialPositions or strings
+                pih = getattr(p, 'planets_in_house', ())
+                d['planets_in_house'] = [
+                    (x.name if hasattr(x, 'name') else str(x)) for x in (pih or ())
+                ]
+                return d
+            profections = [serialize_prof(p) for p in (profs or ())]
+        except Exception as e:
+            profections = {"error": str(e)}
+
+        # Arabic Parts
+        try:
+            parts = chart.get_component_result("Arabic Parts") or []
+            arabic_parts = [
+                {
+                    "name": p.name,
+                    "sign": p.sign,
+                    "sign_degree": round(p.sign_degree, 4) if p.sign_degree is not None else None,
+                    "longitude": round(p.longitude, 4) if p.longitude is not None else None,
+                }
+                for p in parts
+            ]
+        except Exception as e:
+            arabic_parts = {"error": str(e)}
+
+        # Get current date for context
+        full["sect"] = sect
+        full["voc_moon"] = voc
+        full["profections_now"] = profections
+        full["arabic_parts"] = arabic_parts
+        full["query_date"] = datetime.now(timezone.utc).isoformat()
+
+        return {"status": "ok", "data": full}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
