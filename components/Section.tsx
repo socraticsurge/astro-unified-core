@@ -15,7 +15,7 @@ export function Section({ title, defaultOpen = true, children, accent = "text-gr
     <div className="border-b last:border-b-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`w-full flex items-center justify-between py-3 px-1 text-left hover:bg-black/5 transition-colors`}
+        className={`w-full flex items-center justify-between py-3 px-1 text-left hover:bg-white/5 transition-colors`}
       >
         <span className={`font-semibold text-sm uppercase tracking-wide ${accent}`}>{title}</span>
         {open

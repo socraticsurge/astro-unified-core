@@ -44,3 +44,12 @@ astrounified.db-shm
 astrounified.db-wal
 python/hip_main.dat
 python/de421.bsp
+
+# python
+python/venv/
+python/.cache/
+python/cache/
+**/__pycache__/
+*.pyc
+
+# stellium ephemeris (downloaded at runtime to ~/.stellium/)
