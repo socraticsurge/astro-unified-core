@@ -109,14 +109,16 @@ export default function ProfileDetailPage() {
   });
 
   const fetchEngine = useCallback(
-    async (engine: "vedastro" | "panchangam" | "jyotishganit" | "western" | "hellenistic" | "bazi") => {
+    async (engine: "vedastro" | "panchangam" | "jyotishganit" | "western" | "hellenistic" | "bazi", force = false) => {
       setEngines(e => ({ ...e, [engine]: { output: null, loading: true } }));
       try {
-        const res = await fetch(`/api/readings/${engine}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profile_id: id }),
-        });
+        const res = force
+          ? await fetch(`/api/readings/${engine}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ profile_id: id }),
+            })
+          : await fetch(`/api/readings/${engine}?profile_id=${id}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Request failed");
         setEngines(e => ({ ...e, [engine]: { output: data.output, loading: false } }));
@@ -172,23 +174,23 @@ export default function ProfileDetailPage() {
         </TabsList>
 
         <TabsContent value="vedastro">
-          <EngineTab engine="vedastro" label="VedAstro" state={engines.vedastro} onRefresh={() => fetchEngine("vedastro")} />
+          <EngineTab engine="vedastro" label="VedAstro" state={engines.vedastro} onRefresh={() => fetchEngine("vedastro", true)} />
         </TabsContent>
         <TabsContent value="panchangam">
-          <EngineTab engine="panchangam" label="Panchangam" state={engines.panchangam} onRefresh={() => fetchEngine("panchangam")} />
+          <EngineTab engine="panchangam" label="Panchangam" state={engines.panchangam} onRefresh={() => fetchEngine("panchangam", true)} />
         </TabsContent>
         <TabsContent value="jyotishganit">
-          <EngineTab engine="jyotishganit" label="Jyotishganit" state={engines.jyotishganit} onRefresh={() => fetchEngine("jyotishganit")} />
+          <EngineTab engine="jyotishganit" label="Jyotishganit" state={engines.jyotishganit} onRefresh={() => fetchEngine("jyotishganit", true)} />
         </TabsContent>
 
         <TabsContent value="western">
-          <EngineTab engine="western" label="Western (Kerykeion)" state={engines.western} onRefresh={() => fetchEngine("western")} />
+          <EngineTab engine="western" label="Western (Kerykeion)" state={engines.western} onRefresh={() => fetchEngine("western", true)} />
         </TabsContent>
         <TabsContent value="hellenistic">
-          <EngineTab engine="hellenistic" label="Hellenistic (flatlib)" state={engines.hellenistic} onRefresh={() => fetchEngine("hellenistic")} />
+          <EngineTab engine="hellenistic" label="Hellenistic (flatlib)" state={engines.hellenistic} onRefresh={() => fetchEngine("hellenistic", true)} />
         </TabsContent>
         <TabsContent value="bazi">
-          <EngineTab engine="bazi" label="Chinese Ba Zi" state={engines.bazi} onRefresh={() => fetchEngine("bazi")} />
+          <EngineTab engine="bazi" label="Chinese Ba Zi" state={engines.bazi} onRefresh={() => fetchEngine("bazi", true)} />
         </TabsContent>
 
         <TabsContent value="consolidated">

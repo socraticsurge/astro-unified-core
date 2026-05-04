@@ -134,6 +134,13 @@ export const db = {
         )
         .all(profileId) as Reading[];
     },
+    latestByEngine(profileId: string, engine: string): Reading | undefined {
+      return getDb()
+        .prepare(
+          `SELECT * FROM readings WHERE profile_id = ? AND engine = ? ORDER BY created_at DESC LIMIT 1`
+        )
+        .get(profileId, engine) as Reading | undefined;
+    },
     latestPerEngine(profileId: string): Record<string, Reading> {
       const rows = getDb()
         .prepare(
