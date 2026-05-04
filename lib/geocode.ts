@@ -36,10 +36,10 @@ export async function geocodePlace(place: string): Promise<GeoResult> {
   let timezone_offset = 0;
   if (match) {
     const offsetParts = match[1].split(":");
-    const hours = Number(offsetParts[0]);
-    const minutes = offsetParts[1] !== undefined ? Number(offsetParts[1]) : 0;
+    const hours = parseInt(offsetParts[0], 10);
+    const minutes = offsetParts[1] !== undefined ? parseInt(offsetParts[1], 10) : 0;
     const sign = match[1].startsWith("-") ? -1 : 1;
-    timezone_offset = hours + sign * (minutes / 60);
+    timezone_offset = isNaN(hours) || isNaN(minutes) ? 0 : hours + sign * (minutes / 60);
   }
 
   return { latitude, longitude, timezone, timezone_offset, display_name };

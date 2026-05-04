@@ -4,16 +4,16 @@ import { randomUUID } from "crypto";
 
 const DB_PATH = path.join(process.cwd(), "astrounified.db");
 
-let _db: Database.Database | null = null;
+const globalForDb = global as typeof globalThis & { _db?: Database.Database };
 
 export function getDb(): Database.Database {
-  if (!_db) {
-    _db = new Database(DB_PATH);
-    _db.pragma("journal_mode = WAL");
-    _db.pragma("foreign_keys = ON");
-    initSchema(_db);
+  if (!globalForDb._db) {
+    globalForDb._db = new Database(DB_PATH);
+    globalForDb._db.pragma("journal_mode = WAL");
+    globalForDb._db.pragma("foreign_keys = ON");
+    initSchema(globalForDb._db);
   }
-  return _db;
+  return globalForDb._db;
 }
 
 function initSchema(db: Database.Database) {
@@ -136,8 +136,12 @@ export const db = {
     latestPerEngine(profileId: string): Record<string, Reading> {
       const rows = getDb()
         .prepare(
-          `SELECT * FROM readings WHERE profile_id = ?
-           GROUP BY engine HAVING created_at = MAX(created_at)`
+          `SELECT r.* FROM readings r
+           WHERE r.profile_id = ?
+             AND r.created_at = (
+               SELECT MAX(r2.created_at) FROM readings r2
+               WHERE r2.profile_id = r.profile_id AND r2.engine = r.engine
+             )`
         )
         .all(profileId) as Reading[];
       return Object.fromEntries(rows.map((r) => [r.engine, r]));
