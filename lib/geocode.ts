@@ -35,10 +35,11 @@ export async function geocodePlace(place: string): Promise<GeoResult> {
   const match = offsetPart.match(/UTC([+-]\d+(?::\d+)?)/);
   let timezone_offset = 0;
   if (match) {
-    const parts = match[1].split(":");
-    const hours = Number(parts[0]);
-    const minutes = parts[1] !== undefined ? Number(parts[1]) : 0;
-    timezone_offset = hours + (hours < 0 ? -minutes / 60 : minutes / 60);
+    const offsetParts = match[1].split(":");
+    const hours = Number(offsetParts[0]);
+    const minutes = offsetParts[1] !== undefined ? Number(offsetParts[1]) : 0;
+    const sign = match[1].startsWith("-") ? -1 : 1;
+    timezone_offset = hours + sign * (minutes / 60);
   }
 
   return { latitude, longitude, timezone, timezone_offset, display_name };
