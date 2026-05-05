@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VedAstroView } from "@/components/engines/VedAstroView";
@@ -11,17 +11,41 @@ import { BaziView } from "@/components/engines/BaziView";
 import { NumerologyView } from "@/components/engines/NumerologyView";
 import { DashaflowView } from "@/components/engines/DashaflowView";
 import { StelliumView } from "@/components/engines/StelliumView";
-import { ComparePanel } from "@/components/ComparePanel";
-import { ChatPanel } from "@/components/ChatPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, AlertCircle, CheckCircle, Code } from "lucide-react";
+import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check } from "lucide-react";
 import type { Profile } from "@/lib/db";
+import { summarizeEngine } from "@/lib/chart-summary";
 
 type EngineState = { output: unknown; loading: boolean; error?: string };
 const DEFAULT_ENGINE: EngineState = { output: null, loading: false };
 
-const ENGINE_ACCENTS: Record<string, string> = {
+const ENGINE_KEYS = [
+  "vedastro",
+  "panchangam",
+  "jyotishganit",
+  "western",
+  "hellenistic",
+  "bazi",
+  "numerology",
+  "dashaflow",
+  "stellium",
+] as const;
+type EngineKey = (typeof ENGINE_KEYS)[number];
+
+const ENGINE_LABELS: Record<EngineKey, string> = {
+  vedastro: "VedAstro (Vedic)",
+  panchangam: "Panchangam (Indian almanac)",
+  jyotishganit: "Jyotishganit (Vedic — divisional charts, Vimshottari)",
+  western: "Western — Kerykeion (tropical)",
+  hellenistic: "Hellenistic — flatlib (essential dignities, Pars Fortuna)",
+  bazi: "Chinese Ba Zi (Four Pillars)",
+  numerology: "Numerology (Pythagorean + Chaldean)",
+  dashaflow: "Dashaflow (Vedic — Shadbala, Yogas, Jaimini, Karakamsha)",
+  stellium: "Stellium (Hellenistic — profections, Arabic Parts, sect)",
+};
+
+const ENGINE_ACCENTS: Record<EngineKey, string> = {
   vedastro: "text-blue-400",
   panchangam: "text-amber-400",
   jyotishganit: "text-green-400",
@@ -33,19 +57,72 @@ const ENGINE_ACCENTS: Record<string, string> = {
   stellium: "text-rose-400",
 };
 
+function profileHeaderText(p: Profile): string {
+  return [
+    `Name: ${p.name}`,
+    `Date of birth: ${p.date_of_birth}`,
+    `Time of birth: ${p.time_of_birth} (${p.timezone}, UTC${p.timezone_offset >= 0 ? "+" : ""}${p.timezone_offset})`,
+    `Place of birth: ${p.place_of_birth} (lat ${p.latitude}, lon ${p.longitude})`,
+  ].join("\n");
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function CopyButton({ getText, label = "Copy" }: { getText: () => string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={async () => {
+        const ok = await copyToClipboard(getText());
+        if (ok) {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }
+      }}
+      className="h-7 text-xs gap-1"
+    >
+      {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+      {copied ? "Copied" : label}
+    </Button>
+  );
+}
+
 function EngineTab({
   engine,
   label,
   state,
+  profile,
   onRefresh,
 }: {
-  engine: string;
+  engine: EngineKey;
   label: string;
   state: EngineState;
+  profile: Profile;
   onRefresh: () => void;
 }) {
   const [showRaw, setShowRaw] = useState(false);
   const accent = ENGINE_ACCENTS[engine] ?? "text-gray-700";
+
+  const summaryText = useMemo(() => {
+    if (!state.output) return "";
+    const body = summarizeEngine(engine, state.output);
+    return [
+      `=== ${ENGINE_LABELS[engine]} ===`,
+      "",
+      profileHeaderText(profile),
+      "",
+      body,
+    ].join("\n");
+  }, [engine, state.output, profile]);
 
   return (
     <div>
@@ -60,6 +137,9 @@ function EngineTab({
           </span>
         </div>
         <div className="flex gap-1">
+          {!!state.output && (
+            <CopyButton getText={() => summaryText} label="Copy summary" />
+          )}
           {!!state.output && (
             <Button variant="ghost" size="sm" onClick={() => setShowRaw(r => !r)} className="h-7 text-xs gap-1">
               <Code className="h-3 w-3" />
@@ -105,10 +185,61 @@ function EngineTab({
   );
 }
 
+function buildAllSystemsText(profile: Profile, engines: Record<EngineKey, EngineState>): string {
+  const sections: string[] = [];
+  sections.push("=== Birth Profile ===");
+  sections.push(profileHeaderText(profile));
+  sections.push("");
+
+  for (const key of ENGINE_KEYS) {
+    const out = engines[key].output;
+    if (!out) continue;
+    const summary = summarizeEngine(key, out);
+    if (!summary) continue;
+    sections.push(`=== ${ENGINE_LABELS[key]} ===`);
+    sections.push(summary);
+    sections.push("");
+  }
+
+  return sections.join("\n").trim() + "\n";
+}
+
+function AllSystemsTab({ profile, engines }: { profile: Profile; engines: Record<EngineKey, EngineState> }) {
+  const text = useMemo(() => buildAllSystemsText(profile, engines), [profile, engines]);
+  const presentCount = ENGINE_KEYS.filter((k) => engines[k].output).length;
+  const charCount = text.length;
+  const tokenEstimate = Math.round(charCount / 4);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between py-3 border-b mb-4">
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <span className="text-sm font-medium">
+            {presentCount} of {ENGINE_KEYS.length} systems loaded · {charCount.toLocaleString()} chars · ~{tokenEstimate.toLocaleString()} tokens
+          </span>
+        </div>
+        <CopyButton getText={() => text} label="Copy all to clipboard" />
+      </div>
+
+      <p className="text-xs text-muted-foreground mb-3">
+        Paste this into ChatGPT, Claude, or any LLM to get a deeper interpretation across all systems. Edit
+        the textarea below before copying if you want to trim or augment.
+      </p>
+
+      <textarea
+        readOnly
+        value={text}
+        className="w-full h-[600px] text-xs font-mono leading-relaxed bg-white/5 border border-white/10 rounded-lg p-4 resize-y"
+      />
+    </div>
+  );
+}
+
 export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [engines, setEngines] = useState<Record<string, EngineState>>({
+  const [engines, setEngines] = useState<Record<EngineKey, EngineState>>({
     vedastro: DEFAULT_ENGINE,
     panchangam: DEFAULT_ENGINE,
     jyotishganit: DEFAULT_ENGINE,
@@ -121,7 +252,7 @@ export default function ProfileDetailPage() {
   });
 
   const fetchEngine = useCallback(
-    async (engine: "vedastro" | "panchangam" | "jyotishganit" | "western" | "hellenistic" | "bazi" | "numerology" | "dashaflow" | "stellium", force = false) => {
+    async (engine: EngineKey, force = false) => {
       setEngines(e => ({ ...e, [engine]: { output: null, loading: true } }));
       try {
         const res = force
@@ -149,15 +280,7 @@ export default function ProfileDetailPage() {
       .then(r => r.json())
       .then((p: Profile) => {
         setProfile(p);
-        fetchEngine("vedastro");
-        fetchEngine("panchangam");
-        fetchEngine("jyotishganit");
-        fetchEngine("western");
-        fetchEngine("hellenistic");
-        fetchEngine("bazi");
-        fetchEngine("numerology");
-        fetchEngine("dashaflow");
-        fetchEngine("stellium");
+        for (const key of ENGINE_KEYS) fetchEngine(key);
       });
   }, [id, fetchEngine]);
 
@@ -187,50 +310,23 @@ export default function ProfileDetailPage() {
           <TabsTrigger value="numerology" className="text-emerald-400">Numerology</TabsTrigger>
           <TabsTrigger value="dashaflow" className="text-green-400">Dashaflow</TabsTrigger>
           <TabsTrigger value="stellium" className="text-rose-400">Stellium</TabsTrigger>
-          <TabsTrigger value="consolidated">Consolidated</TabsTrigger>
-          <TabsTrigger value="chat">Chat (Ollama)</TabsTrigger>
+          <TabsTrigger value="all">All Systems</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="vedastro">
-          <EngineTab engine="vedastro" label="VedAstro" state={engines.vedastro} onRefresh={() => fetchEngine("vedastro", true)} />
-        </TabsContent>
-        <TabsContent value="panchangam">
-          <EngineTab engine="panchangam" label="Panchangam" state={engines.panchangam} onRefresh={() => fetchEngine("panchangam", true)} />
-        </TabsContent>
-        <TabsContent value="jyotishganit">
-          <EngineTab engine="jyotishganit" label="Jyotishganit" state={engines.jyotishganit} onRefresh={() => fetchEngine("jyotishganit", true)} />
-        </TabsContent>
+        {ENGINE_KEYS.map((key) => (
+          <TabsContent key={key} value={key}>
+            <EngineTab
+              engine={key}
+              label={ENGINE_LABELS[key]}
+              state={engines[key]}
+              profile={profile}
+              onRefresh={() => fetchEngine(key, true)}
+            />
+          </TabsContent>
+        ))}
 
-        <TabsContent value="western">
-          <EngineTab engine="western" label="Western (Kerykeion)" state={engines.western} onRefresh={() => fetchEngine("western", true)} />
-        </TabsContent>
-        <TabsContent value="hellenistic">
-          <EngineTab engine="hellenistic" label="Hellenistic (flatlib)" state={engines.hellenistic} onRefresh={() => fetchEngine("hellenistic", true)} />
-        </TabsContent>
-        <TabsContent value="bazi">
-          <EngineTab engine="bazi" label="Chinese Ba Zi" state={engines.bazi} onRefresh={() => fetchEngine("bazi", true)} />
-        </TabsContent>
-
-        <TabsContent value="numerology">
-          <EngineTab engine="numerology" label="Numerology" state={engines.numerology} onRefresh={() => fetchEngine("numerology", true)} />
-        </TabsContent>
-        <TabsContent value="dashaflow">
-          <EngineTab engine="dashaflow" label="Dashaflow (Vedic)" state={engines.dashaflow} onRefresh={() => fetchEngine("dashaflow", true)} />
-        </TabsContent>
-        <TabsContent value="stellium">
-          <EngineTab engine="stellium" label="Stellium (Hellenistic)" state={engines.stellium} onRefresh={() => fetchEngine("stellium", true)} />
-        </TabsContent>
-
-        <TabsContent value="consolidated">
-          <ComparePanel
-            vedastroOutput={engines.vedastro.output}
-            panchangamOutput={engines.panchangam.output}
-            jyotishganitOutput={engines.jyotishganit.output}
-          />
-        </TabsContent>
-
-        <TabsContent value="chat">
-          <ChatPanel profileId={id} profileName={profile.name} />
+        <TabsContent value="all">
+          <AllSystemsTab profile={profile} engines={engines} />
         </TabsContent>
       </Tabs>
     </div>
