@@ -214,6 +214,59 @@ export type ResearchJob = {
   notes: string | null;
 };
 
+export type SubjectListOpts = {
+  gender?: string;
+  country?: string;
+  decade?: number; // 1900 → 1900..1909
+  outcome?: string; // joined on marriages.outcome_normalized
+  marriages?: number | "5+"; // exactly N, or "5+" for ≥5
+};
+
+function buildSubjectWhere(opts: SubjectListOpts): {
+  sql: string;
+  params: Array<string | number>;
+} {
+  const where: string[] = [];
+  const params: Array<string | number> = [];
+
+  if (opts.outcome) {
+    // outcome filter requires JOIN
+    where.push(
+      "EXISTS (SELECT 1 FROM research_marriages m WHERE m.subject_row_key = s.row_key AND m.outcome_normalized = ?)"
+    );
+    params.push(opts.outcome);
+  }
+  if (opts.gender) {
+    where.push("s.gender = ?");
+    params.push(opts.gender);
+  }
+  if (opts.country) {
+    where.push("s.country = ?");
+    params.push(opts.country);
+  }
+  if (opts.decade !== undefined) {
+    where.push("s.birth_year >= ? AND s.birth_year <= ?");
+    params.push(opts.decade, opts.decade + 9);
+  }
+  if (opts.marriages !== undefined) {
+    if (opts.marriages === "5+") {
+      where.push(
+        "(SELECT COUNT(*) FROM research_marriages m WHERE m.subject_row_key = s.row_key) >= 5"
+      );
+    } else {
+      where.push(
+        "(SELECT COUNT(*) FROM research_marriages m WHERE m.subject_row_key = s.row_key) = ?"
+      );
+      params.push(opts.marriages);
+    }
+  }
+
+  return {
+    sql: where.length ? " WHERE " + where.join(" AND ") : "",
+    params,
+  };
+}
+
 export const db = {
   profiles: {
     list(): Profile[] {
@@ -325,83 +378,23 @@ export const db = {
           .prepare("SELECT * FROM research_subjects WHERE row_key = ?")
           .get(rowKey) as ResearchSubject | undefined;
       },
-      list(opts: {
-        limit?: number;
-        offset?: number;
-        gender?: string;
-        country?: string;
-        decade?: number; // e.g. 1900 → 1900..1909
-        outcome?: string; // joined filter on marriages
-        order?: "name" | "year_asc" | "year_desc";
-      } = {}): ResearchSubject[] {
+      list(opts: SubjectListOpts & { limit?: number; offset?: number; order?: "name" | "year_asc" | "year_desc" } = {}): ResearchSubject[] {
         const limit = Math.min(opts.limit ?? 50, 500);
         const offset = Math.max(opts.offset ?? 0, 0);
-        const where: string[] = [];
-        const params: Array<string | number> = [];
-        if (opts.gender) {
-          where.push("s.gender = ?");
-          params.push(opts.gender);
-        }
-        if (opts.country) {
-          where.push("s.country = ?");
-          params.push(opts.country);
-        }
-        if (opts.decade !== undefined) {
-          where.push("s.birth_year >= ? AND s.birth_year <= ?");
-          params.push(opts.decade, opts.decade + 9);
-        }
-        let sql: string;
-        if (opts.outcome) {
-          sql = `SELECT DISTINCT s.* FROM research_subjects s
-                 JOIN research_marriages m ON m.subject_row_key = s.row_key
-                 WHERE m.outcome_normalized = ?`;
-          params.unshift(opts.outcome);
-          if (where.length) sql += " AND " + where.join(" AND ");
-        } else {
-          sql = "SELECT s.* FROM research_subjects s";
-          if (where.length) sql += " WHERE " + where.join(" AND ");
-        }
+        const { sql: whereSql, params } = buildSubjectWhere(opts);
         const order =
           opts.order === "name"
             ? "s.name ASC"
             : opts.order === "year_asc"
               ? "s.birth_year ASC, s.name ASC"
               : "s.birth_year DESC, s.name ASC";
-        sql += ` ORDER BY ${order} LIMIT ? OFFSET ?`;
-        params.push(limit, offset);
-        return getDb().prepare(sql).all(...params) as ResearchSubject[];
+        const sql = `SELECT ${opts.outcome ? "DISTINCT s.*" : "s.*"} FROM research_subjects s${whereSql} ORDER BY ${order} LIMIT ? OFFSET ?`;
+        return getDb().prepare(sql).all(...params, limit, offset) as ResearchSubject[];
       },
-      countFiltered(opts: {
-        gender?: string;
-        country?: string;
-        decade?: number;
-        outcome?: string;
-      } = {}): number {
-        const where: string[] = [];
-        const params: Array<string | number> = [];
-        if (opts.gender) {
-          where.push("s.gender = ?");
-          params.push(opts.gender);
-        }
-        if (opts.country) {
-          where.push("s.country = ?");
-          params.push(opts.country);
-        }
-        if (opts.decade !== undefined) {
-          where.push("s.birth_year >= ? AND s.birth_year <= ?");
-          params.push(opts.decade, opts.decade + 9);
-        }
-        let sql: string;
-        if (opts.outcome) {
-          sql = `SELECT COUNT(DISTINCT s.row_key) as c FROM research_subjects s
-                 JOIN research_marriages m ON m.subject_row_key = s.row_key
-                 WHERE m.outcome_normalized = ?`;
-          params.unshift(opts.outcome);
-          if (where.length) sql += " AND " + where.join(" AND ");
-        } else {
-          sql = "SELECT COUNT(*) as c FROM research_subjects s";
-          if (where.length) sql += " WHERE " + where.join(" AND ");
-        }
+      countFiltered(opts: SubjectListOpts = {}): number {
+        const { sql: whereSql, params } = buildSubjectWhere(opts);
+        const select = opts.outcome ? "COUNT(DISTINCT s.row_key)" : "COUNT(*)";
+        const sql = `SELECT ${select} as c FROM research_subjects s${whereSql}`;
         const r = getDb().prepare(sql).get(...params) as { c: number };
         return r.c;
       },
@@ -438,6 +431,28 @@ export const db = {
             "SELECT outcome_normalized, COUNT(*) as count FROM research_marriages WHERE outcome_normalized IS NOT NULL GROUP BY outcome_normalized ORDER BY count DESC"
           )
           .all() as Array<{ outcome_normalized: string; count: number }>;
+      },
+      // Distribution of marriages per subject (0, 1, 2, ..., 5+).
+      // Includes subjects with zero marriages.
+      perSubjectDistribution(): Array<{ marriages: number | "5+"; subjects: number }> {
+        const rows = getDb()
+          .prepare(
+            `SELECT mc, COUNT(*) as subjects FROM (
+               SELECT s.row_key,
+                 (SELECT COUNT(*) FROM research_marriages m WHERE m.subject_row_key = s.row_key) as mc
+               FROM research_subjects s
+             ) GROUP BY mc ORDER BY mc ASC`
+          )
+          .all() as Array<{ mc: number; subjects: number }>;
+
+        const buckets: Array<{ marriages: number | "5+"; subjects: number }> = [];
+        let fivePlus = 0;
+        for (const r of rows) {
+          if (r.mc < 5) buckets.push({ marriages: r.mc, subjects: r.subjects });
+          else fivePlus += r.subjects;
+        }
+        if (fivePlus > 0) buckets.push({ marriages: "5+", subjects: fivePlus });
+        return buckets;
       },
       countsForSubjects(rowKeys: string[]): Map<string, number> {
         const result = new Map<string, number>();

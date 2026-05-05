@@ -23,6 +23,7 @@ type SearchParams = {
   country?: string;
   gender?: string;
   outcome?: string;
+  marriages?: string;
   offset?: string;
   order?: string;
 };
@@ -33,6 +34,7 @@ type ParsedFilters = {
   country: string | undefined;
   gender: string | undefined;
   outcome: string | undefined;
+  marriages: number | "5+" | undefined;
   offset: number;
   order: Order | undefined;
 };
@@ -42,12 +44,18 @@ function parseFilters(sp: SearchParams): ParsedFilters {
   const country = sp.country || undefined;
   const gender = sp.gender || undefined;
   const outcome = sp.outcome || undefined;
+  let marriages: number | "5+" | undefined;
+  if (sp.marriages === "5+") marriages = "5+";
+  else if (sp.marriages !== undefined && sp.marriages !== "") {
+    const n = Number(sp.marriages);
+    if (Number.isInteger(n) && n >= 0 && n <= 4) marriages = n;
+  }
   const offset = sp.offset ? Math.max(0, Number(sp.offset)) : 0;
   const order: Order | undefined =
     sp.order === "name" || sp.order === "year_asc" || sp.order === "year_desc"
       ? sp.order
       : undefined;
-  return { decade, country, gender, outcome, offset, order };
+  return { decade, country, gender, outcome, marriages, offset, order };
 }
 
 function buildQuery(
@@ -83,6 +91,7 @@ export default async function ResearchPage({
     country: filters.country,
     decade: filters.decade,
     outcome: filters.outcome,
+    marriages: filters.marriages,
   });
 
   const subjects = db.research.subjects.list({
@@ -92,6 +101,7 @@ export default async function ResearchPage({
     country: filters.country,
     decade: filters.decade,
     outcome: filters.outcome,
+    marriages: filters.marriages,
     order: filters.order,
   });
 
@@ -104,6 +114,7 @@ export default async function ResearchPage({
   const countries = db.research.subjects.countries();
   const decades = db.research.subjects.decadeDistribution();
   const outcomes = db.research.marriages.outcomeDistribution();
+  const marriageBuckets = db.research.marriages.perSubjectDistribution();
 
   const totalReadings =
     (progress.by_status.pending ?? 0) +
@@ -283,6 +294,24 @@ export default async function ResearchPage({
           </div>
 
           <div className="flex flex-col gap-1">
+            <label className="text-xs text-zinc-400">Marriages</label>
+            <select
+              name="marriages"
+              defaultValue={
+                filters.marriages === undefined ? "" : String(filters.marriages)
+              }
+              className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-32"
+            >
+              <option value="">Any</option>
+              {marriageBuckets.map((b) => (
+                <option key={String(b.marriages)} value={String(b.marriages)}>
+                  {b.marriages === "5+" ? "5 or more" : b.marriages} ({b.subjects.toLocaleString()})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
             <label className="text-xs text-zinc-400">Order</label>
             <select
               name="order"
@@ -314,7 +343,7 @@ export default async function ResearchPage({
       <div className="flex items-center justify-between text-sm">
         <div className="text-zinc-400">
           {filteredCount.toLocaleString()} subjects match
-          {(filters.country || filters.decade || filters.gender || filters.outcome) && (
+          {(filters.country || filters.decade !== undefined || filters.gender || filters.outcome || filters.marriages !== undefined) && (
             <> · filtered from {totalSubjects.toLocaleString()}</>
           )}
         </div>
