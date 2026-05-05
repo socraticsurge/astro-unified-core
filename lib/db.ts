@@ -53,6 +53,75 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_readings_engine ON readings(engine);
     CREATE INDEX IF NOT EXISTS idx_readings_profile_engine ON readings(profile_id, engine, created_at);
     CREATE INDEX IF NOT EXISTS idx_chat_profile ON chat_messages(profile_id);
+
+    -- Research corpus (VedAstro 15K dataset). Isolated from user-facing profiles.
+    CREATE TABLE IF NOT EXISTS research_subjects (
+      row_key TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      gender TEXT,
+      date_of_birth TEXT NOT NULL,
+      time_of_birth TEXT NOT NULL,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      timezone_name TEXT,
+      timezone_offset REAL NOT NULL,
+      location_name TEXT,
+      country TEXT,
+      rodden TEXT,
+      birth_year INTEGER,
+      raw_birthtime TEXT,
+      source_dataset TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS research_marriages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      subject_row_key TEXT NOT NULL REFERENCES research_subjects(row_key) ON DELETE CASCADE,
+      seq_index INTEGER NOT NULL,
+      type_raw TEXT,
+      type_normalized TEXT,
+      outcome_raw TEXT,
+      outcome_normalized TEXT,
+      marriage_date TEXT,
+      divorce_date TEXT,
+      spouse TEXT,
+      person_id TEXT,
+      credibility TEXT,
+      raw_json TEXT
+    );
+
+    -- Per-(subject, engine) row. status: pending | running | done | error.
+    -- The compute worker picks pending rows, marks them running, computes, sets done/error.
+    CREATE TABLE IF NOT EXISTS research_readings (
+      subject_row_key TEXT NOT NULL REFERENCES research_subjects(row_key) ON DELETE CASCADE,
+      engine TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      output_data TEXT,
+      error_msg TEXT,
+      duration_ms INTEGER,
+      computed_at TEXT,
+      PRIMARY KEY (subject_row_key, engine)
+    );
+
+    CREATE TABLE IF NOT EXISTS research_jobs (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      status TEXT NOT NULL,
+      total INTEGER NOT NULL DEFAULT 0,
+      completed INTEGER NOT NULL DEFAULT 0,
+      failed INTEGER NOT NULL DEFAULT 0,
+      started_at TEXT,
+      finished_at TEXT,
+      last_progress_at TEXT,
+      notes TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_research_marriages_subject ON research_marriages(subject_row_key);
+    CREATE INDEX IF NOT EXISTS idx_research_readings_status ON research_readings(status);
+    CREATE INDEX IF NOT EXISTS idx_research_readings_engine_status ON research_readings(engine, status);
+    CREATE INDEX IF NOT EXISTS idx_research_subjects_birth_year ON research_subjects(birth_year);
+    CREATE INDEX IF NOT EXISTS idx_research_subjects_country ON research_subjects(country);
+    CREATE INDEX IF NOT EXISTS idx_research_subjects_gender ON research_subjects(gender);
   `);
 }
 
@@ -85,6 +154,64 @@ export type ChatMessage = {
   content: string;
   context_engines: string;
   created_at: string;
+};
+
+export type ResearchSubject = {
+  row_key: string;
+  name: string;
+  gender: string | null;
+  date_of_birth: string;
+  time_of_birth: string;
+  latitude: number;
+  longitude: number;
+  timezone_name: string | null;
+  timezone_offset: number;
+  location_name: string | null;
+  country: string | null;
+  rodden: string | null;
+  birth_year: number | null;
+  raw_birthtime: string | null;
+  source_dataset: string;
+  created_at: string;
+};
+
+export type ResearchMarriage = {
+  id: number;
+  subject_row_key: string;
+  seq_index: number;
+  type_raw: string | null;
+  type_normalized: string | null;
+  outcome_raw: string | null;
+  outcome_normalized: string | null;
+  marriage_date: string | null;
+  divorce_date: string | null;
+  spouse: string | null;
+  person_id: string | null;
+  credibility: string | null;
+  raw_json: string | null;
+};
+
+export type ResearchReading = {
+  subject_row_key: string;
+  engine: string;
+  status: "pending" | "running" | "done" | "error";
+  output_data: string | null;
+  error_msg: string | null;
+  duration_ms: number | null;
+  computed_at: string | null;
+};
+
+export type ResearchJob = {
+  id: string;
+  kind: string;
+  status: string;
+  total: number;
+  completed: number;
+  failed: number;
+  started_at: string | null;
+  finished_at: string | null;
+  last_progress_at: string | null;
+  notes: string | null;
 };
 
 export const db = {
@@ -183,6 +310,250 @@ export const db = {
         output_data: JSON.stringify(data.output_data),
         created_at,
       };
+    },
+  },
+  research: {
+    subjects: {
+      count(): number {
+        const r = getDb()
+          .prepare("SELECT COUNT(*) as c FROM research_subjects")
+          .get() as { c: number };
+        return r.c;
+      },
+      get(rowKey: string): ResearchSubject | undefined {
+        return getDb()
+          .prepare("SELECT * FROM research_subjects WHERE row_key = ?")
+          .get(rowKey) as ResearchSubject | undefined;
+      },
+      list(opts: {
+        limit?: number;
+        offset?: number;
+        gender?: string;
+        country?: string;
+        decade?: number; // e.g. 1900 → 1900..1909
+        outcome?: string; // joined filter on marriages
+        order?: "name" | "year_asc" | "year_desc";
+      } = {}): ResearchSubject[] {
+        const limit = Math.min(opts.limit ?? 50, 500);
+        const offset = Math.max(opts.offset ?? 0, 0);
+        const where: string[] = [];
+        const params: Array<string | number> = [];
+        if (opts.gender) {
+          where.push("s.gender = ?");
+          params.push(opts.gender);
+        }
+        if (opts.country) {
+          where.push("s.country = ?");
+          params.push(opts.country);
+        }
+        if (opts.decade !== undefined) {
+          where.push("s.birth_year >= ? AND s.birth_year <= ?");
+          params.push(opts.decade, opts.decade + 9);
+        }
+        let sql: string;
+        if (opts.outcome) {
+          sql = `SELECT DISTINCT s.* FROM research_subjects s
+                 JOIN research_marriages m ON m.subject_row_key = s.row_key
+                 WHERE m.outcome_normalized = ?`;
+          params.unshift(opts.outcome);
+          if (where.length) sql += " AND " + where.join(" AND ");
+        } else {
+          sql = "SELECT s.* FROM research_subjects s";
+          if (where.length) sql += " WHERE " + where.join(" AND ");
+        }
+        const order =
+          opts.order === "name"
+            ? "s.name ASC"
+            : opts.order === "year_asc"
+              ? "s.birth_year ASC, s.name ASC"
+              : "s.birth_year DESC, s.name ASC";
+        sql += ` ORDER BY ${order} LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
+        return getDb().prepare(sql).all(...params) as ResearchSubject[];
+      },
+      countFiltered(opts: {
+        gender?: string;
+        country?: string;
+        decade?: number;
+        outcome?: string;
+      } = {}): number {
+        const where: string[] = [];
+        const params: Array<string | number> = [];
+        if (opts.gender) {
+          where.push("s.gender = ?");
+          params.push(opts.gender);
+        }
+        if (opts.country) {
+          where.push("s.country = ?");
+          params.push(opts.country);
+        }
+        if (opts.decade !== undefined) {
+          where.push("s.birth_year >= ? AND s.birth_year <= ?");
+          params.push(opts.decade, opts.decade + 9);
+        }
+        let sql: string;
+        if (opts.outcome) {
+          sql = `SELECT COUNT(DISTINCT s.row_key) as c FROM research_subjects s
+                 JOIN research_marriages m ON m.subject_row_key = s.row_key
+                 WHERE m.outcome_normalized = ?`;
+          params.unshift(opts.outcome);
+          if (where.length) sql += " AND " + where.join(" AND ");
+        } else {
+          sql = "SELECT COUNT(*) as c FROM research_subjects s";
+          if (where.length) sql += " WHERE " + where.join(" AND ");
+        }
+        const r = getDb().prepare(sql).get(...params) as { c: number };
+        return r.c;
+      },
+      countries(): Array<{ country: string; count: number }> {
+        return getDb()
+          .prepare(
+            "SELECT country, COUNT(*) as count FROM research_subjects WHERE country IS NOT NULL AND country != '' GROUP BY country ORDER BY count DESC"
+          )
+          .all() as Array<{ country: string; count: number }>;
+      },
+      decadeDistribution(): Array<{ decade: number; count: number }> {
+        return getDb()
+          .prepare(
+            `SELECT (birth_year / 10) * 10 as decade, COUNT(*) as count
+             FROM research_subjects
+             WHERE birth_year IS NOT NULL
+             GROUP BY decade
+             ORDER BY decade ASC`
+          )
+          .all() as Array<{ decade: number; count: number }>;
+      },
+    },
+    marriages: {
+      listForSubject(rowKey: string): ResearchMarriage[] {
+        return getDb()
+          .prepare(
+            "SELECT * FROM research_marriages WHERE subject_row_key = ? ORDER BY seq_index ASC"
+          )
+          .all(rowKey) as ResearchMarriage[];
+      },
+      outcomeDistribution(): Array<{ outcome_normalized: string; count: number }> {
+        return getDb()
+          .prepare(
+            "SELECT outcome_normalized, COUNT(*) as count FROM research_marriages WHERE outcome_normalized IS NOT NULL GROUP BY outcome_normalized ORDER BY count DESC"
+          )
+          .all() as Array<{ outcome_normalized: string; count: number }>;
+      },
+      countsForSubjects(rowKeys: string[]): Map<string, number> {
+        const result = new Map<string, number>();
+        if (rowKeys.length === 0) return result;
+        const CHUNK = 500;
+        for (let i = 0; i < rowKeys.length; i += CHUNK) {
+          const chunk = rowKeys.slice(i, i + CHUNK);
+          const placeholders = chunk.map(() => "?").join(",");
+          const rows = getDb()
+            .prepare(
+              `SELECT subject_row_key, COUNT(*) as c
+               FROM research_marriages
+               WHERE subject_row_key IN (${placeholders})
+               GROUP BY subject_row_key`
+            )
+            .all(...chunk) as Array<{ subject_row_key: string; c: number }>;
+          for (const r of rows) result.set(r.subject_row_key, r.c);
+        }
+        return result;
+      },
+    },
+    readings: {
+      get(rowKey: string, engine: string): ResearchReading | undefined {
+        return getDb()
+          .prepare(
+            "SELECT * FROM research_readings WHERE subject_row_key = ? AND engine = ?"
+          )
+          .get(rowKey, engine) as ResearchReading | undefined;
+      },
+      listForSubject(rowKey: string): ResearchReading[] {
+        return getDb()
+          .prepare("SELECT * FROM research_readings WHERE subject_row_key = ?")
+          .all(rowKey) as ResearchReading[];
+      },
+      countsForSubjects(
+        rowKeys: string[]
+      ): Map<string, { done: number; pending: number; running: number; error: number; total: number }> {
+        const result = new Map<
+          string,
+          { done: number; pending: number; running: number; error: number; total: number }
+        >();
+        if (rowKeys.length === 0) return result;
+        const CHUNK = 500;
+        for (let i = 0; i < rowKeys.length; i += CHUNK) {
+          const chunk = rowKeys.slice(i, i + CHUNK);
+          const placeholders = chunk.map(() => "?").join(",");
+          const rows = getDb()
+            .prepare(
+              `SELECT subject_row_key,
+                      SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) as done,
+                      SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) as pending,
+                      SUM(CASE WHEN status='running' THEN 1 ELSE 0 END) as running,
+                      SUM(CASE WHEN status='error' THEN 1 ELSE 0 END) as error,
+                      COUNT(*) as total
+               FROM research_readings
+               WHERE subject_row_key IN (${placeholders})
+               GROUP BY subject_row_key`
+            )
+            .all(...chunk) as Array<{
+              subject_row_key: string;
+              done: number;
+              pending: number;
+              running: number;
+              error: number;
+              total: number;
+            }>;
+          for (const r of rows) {
+            result.set(r.subject_row_key, {
+              done: r.done,
+              pending: r.pending,
+              running: r.running,
+              error: r.error,
+              total: r.total,
+            });
+          }
+        }
+        return result;
+      },
+      progress(): {
+        by_status: Record<string, number>;
+        by_engine: Array<{ engine: string; pending: number; running: number; done: number; error: number }>;
+      } {
+        const byStatus = getDb()
+          .prepare("SELECT status, COUNT(*) as c FROM research_readings GROUP BY status")
+          .all() as Array<{ status: string; c: number }>;
+        const by_status: Record<string, number> = {};
+        for (const row of byStatus) by_status[row.status] = row.c;
+
+        const byEngine = getDb()
+          .prepare(
+            `SELECT engine,
+                    SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN status='running' THEN 1 ELSE 0 END) as running,
+                    SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) as done,
+                    SUM(CASE WHEN status='error' THEN 1 ELSE 0 END) as error
+             FROM research_readings GROUP BY engine ORDER BY engine`
+          )
+          .all() as Array<{
+            engine: string;
+            pending: number;
+            running: number;
+            done: number;
+            error: number;
+          }>;
+
+        return { by_status, by_engine: byEngine };
+      },
+    },
+    jobs: {
+      latest(kind: string): ResearchJob | undefined {
+        return getDb()
+          .prepare(
+            "SELECT * FROM research_jobs WHERE kind = ? ORDER BY started_at DESC LIMIT 1"
+          )
+          .get(kind) as ResearchJob | undefined;
+      },
     },
   },
   chat: {
