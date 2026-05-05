@@ -124,8 +124,6 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_research_subjects_gender ON research_subjects(gender);
 
     -- Pre-extracted facets per (subject, engine) for fast filtering by chart properties.
-    -- Multiple rows per (subject, engine) — one per facet — so listings, conjunctions,
-    -- yoga presence, and other multi-valued attributes all fit naturally.
     CREATE TABLE IF NOT EXISTS research_chart_facets (
       subject_row_key TEXT NOT NULL REFERENCES research_subjects(row_key) ON DELETE CASCADE,
       engine TEXT NOT NULL,
@@ -134,6 +132,47 @@ function initSchema(db: Database.Database) {
     );
     CREATE INDEX IF NOT EXISTS idx_facets_subject ON research_chart_facets(subject_row_key, engine);
     CREATE INDEX IF NOT EXISTS idx_facets_lookup ON research_chart_facets(engine, facet_key, facet_value);
+
+    -- Univariate analysis: per-facet vs outcome (dissolution / multiple_marriages / never_married)
+    CREATE TABLE IF NOT EXISTS research_pattern_findings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      metric TEXT NOT NULL,
+      engine TEXT NOT NULL,
+      facet_key TEXT NOT NULL,
+      facet_value TEXT NOT NULL,
+      n_subjects INTEGER NOT NULL,
+      n_universe INTEGER NOT NULL,
+      observed_rate REAL NOT NULL,
+      baseline_rate REAL NOT NULL,
+      lift REAL NOT NULL,
+      diff REAL NOT NULL,
+      p_value REAL NOT NULL,
+      q_value REAL NOT NULL,
+      computed_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_findings_metric_q ON research_pattern_findings(metric, q_value);
+    CREATE INDEX IF NOT EXISTS idx_findings_engine ON research_pattern_findings(engine, metric);
+
+    -- Cluster analysis: groups of similar charts across all engines
+    CREATE TABLE IF NOT EXISTS research_clusters (
+      id INTEGER PRIMARY KEY,
+      label TEXT,
+      size INTEGER NOT NULL,
+      description TEXT,
+      mean_marriages REAL,
+      dissolution_rate REAL,
+      n_with_outcome INTEGER,
+      top_facets TEXT,
+      computed_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS research_subject_clusters (
+      subject_row_key TEXT PRIMARY KEY REFERENCES research_subjects(row_key) ON DELETE CASCADE,
+      cluster_id INTEGER NOT NULL,
+      umap_x REAL,
+      umap_y REAL
+    );
+    CREATE INDEX IF NOT EXISTS idx_subject_clusters_cluster ON research_subject_clusters(cluster_id);
   `);
 }
 
@@ -224,6 +263,47 @@ export type ResearchJob = {
   finished_at: string | null;
   last_progress_at: string | null;
   notes: string | null;
+};
+
+export type PatternMetric =
+  | "dissolution"
+  | "multiple_marriages"
+  | "never_married";
+
+export type PatternFinding = {
+  id: number;
+  metric: PatternMetric;
+  engine: string;
+  facet_key: string;
+  facet_value: string;
+  n_subjects: number;
+  n_universe: number;
+  observed_rate: number;
+  baseline_rate: number;
+  lift: number;
+  diff: number;
+  p_value: number;
+  q_value: number;
+  computed_at: string;
+};
+
+export type ResearchCluster = {
+  id: number;
+  label: string | null;
+  size: number;
+  description: string | null;
+  mean_marriages: number | null;
+  dissolution_rate: number | null;
+  n_with_outcome: number | null;
+  top_facets: string | null;
+  computed_at: string;
+};
+
+export type ResearchSubjectCluster = {
+  subject_row_key: string;
+  cluster_id: number;
+  umap_x: number | null;
+  umap_y: number | null;
 };
 
 export type SubjectListOpts = {
@@ -592,6 +672,96 @@ export const db = {
             "SELECT * FROM research_jobs WHERE kind = ? ORDER BY started_at DESC LIMIT 1"
           )
           .get(kind) as ResearchJob | undefined;
+      },
+    },
+    patterns: {
+      // List metrics that have findings.
+      metrics(): Array<{ metric: PatternMetric; findings: number }> {
+        return getDb()
+          .prepare(
+            "SELECT metric, COUNT(*) as findings FROM research_pattern_findings GROUP BY metric ORDER BY metric"
+          )
+          .all() as Array<{ metric: PatternMetric; findings: number }>;
+      },
+      // Top findings per (metric, engine) ordered by absolute lift, with q-value cutoff.
+      top(opts: {
+        metric: PatternMetric;
+        engine?: string;
+        limit?: number;
+        maxQ?: number;
+        minN?: number;
+      }): PatternFinding[] {
+        const { metric, engine, limit = 30, maxQ = 0.10, minN = 30 } = opts;
+        const where = ["metric = ?", "q_value <= ?", "n_subjects >= ?"];
+        const params: Array<string | number> = [metric, maxQ, minN];
+        if (engine) {
+          where.push("engine = ?");
+          params.push(engine);
+        }
+        const sql = `SELECT * FROM research_pattern_findings
+                     WHERE ${where.join(" AND ")}
+                     ORDER BY ABS(lift - 1) DESC, q_value ASC
+                     LIMIT ?`;
+        params.push(limit);
+        return getDb().prepare(sql).all(...params) as PatternFinding[];
+      },
+      // List engines that have findings for a given metric.
+      enginesFor(metric: PatternMetric): Array<{ engine: string; findings: number }> {
+        return getDb()
+          .prepare(
+            "SELECT engine, COUNT(*) as findings FROM research_pattern_findings WHERE metric = ? GROUP BY engine ORDER BY engine"
+          )
+          .all(metric) as Array<{ engine: string; findings: number }>;
+      },
+      baseline(metric: PatternMetric): number | null {
+        const row = getDb()
+          .prepare(
+            "SELECT baseline_rate FROM research_pattern_findings WHERE metric = ? LIMIT 1"
+          )
+          .get(metric) as { baseline_rate: number } | undefined;
+        return row ? row.baseline_rate : null;
+      },
+    },
+    clusters: {
+      list(): ResearchCluster[] {
+        return getDb()
+          .prepare(
+            "SELECT * FROM research_clusters ORDER BY (CASE WHEN id < 0 THEN 1 ELSE 0 END), size DESC"
+          )
+          .all() as ResearchCluster[];
+      },
+      get(id: number): ResearchCluster | undefined {
+        return getDb()
+          .prepare("SELECT * FROM research_clusters WHERE id = ?")
+          .get(id) as ResearchCluster | undefined;
+      },
+      subjectsIn(
+        clusterId: number,
+        opts: { limit?: number; offset?: number } = {}
+      ): ResearchSubject[] {
+        const { limit = 50, offset = 0 } = opts;
+        return getDb()
+          .prepare(
+            `SELECT s.* FROM research_subjects s
+             JOIN research_subject_clusters sc ON sc.subject_row_key = s.row_key
+             WHERE sc.cluster_id = ?
+             ORDER BY s.birth_year DESC, s.name ASC
+             LIMIT ? OFFSET ?`
+          )
+          .all(clusterId, limit, offset) as ResearchSubject[];
+      },
+      countSubjectsIn(clusterId: number): number {
+        const r = getDb()
+          .prepare(
+            "SELECT COUNT(*) as c FROM research_subject_clusters WHERE cluster_id = ?"
+          )
+          .get(clusterId) as { c: number };
+        return r.c;
+      },
+      forSubject(rowKey: string): ResearchSubjectCluster | undefined {
+        return getDb()
+          .prepare("SELECT * FROM research_subject_clusters WHERE subject_row_key = ?")
+          .get(rowKey) as ResearchSubjectCluster | undefined;
       },
     },
     facets: {
