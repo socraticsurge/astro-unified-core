@@ -258,9 +258,7 @@ export default async function ResearchPage({
   const decades = db.research.subjects.decadeDistribution();
   const outcomes = db.research.marriages.outcomeDistribution();
   const marriageBuckets = db.research.marriages.perSubjectDistribution();
-  const enginesWithFacets = new Set(
-    db.research.facets.enginesWithFacets().map((e) => e.engine)
-  );
+  const enginesWithFacets = new Set(db.research.facets.enginesNames());
 
   // Per-facet value distributions for the currently-selected engine only
   const facetValueLists = filters.engine

@@ -12,6 +12,11 @@ export function getDb(): Database.Database {
     globalForDb._db.pragma("journal_mode = WAL");
     globalForDb._db.pragma("foreign_keys = ON");
     initSchema(globalForDb._db);
+    // Tell the query planner to refresh / build statistics. Without this, queries
+    // like `COUNT(*) FROM subjects WHERE EXISTS(facet lookup)` were 3-6s on the 4.6M
+    // facets table because SQLite picked a full-scan plan. With analyze stats it
+    // uses the (engine, facet_key, facet_value) index and runs in ~80ms.
+    globalForDb._db.pragma("optimize");
   }
   return globalForDb._db;
 }
@@ -306,6 +311,20 @@ export type ResearchSubjectCluster = {
   umap_y: number | null;
 };
 
+// Tiny TTL cache for results that are deterministic given current data.
+// Used for aggregations on research tables (countries, decade dist, etc.)
+// that only change when the ingest/extract scripts re-run.
+const memoCache = new Map<string, { value: unknown; expires: number }>();
+const MEMO_TTL_MS = 5 * 60 * 1000; // 5 minutes
+function memo<T>(key: string, fn: () => T): T {
+  const now = Date.now();
+  const hit = memoCache.get(key);
+  if (hit && hit.expires > now) return hit.value as T;
+  const value = fn();
+  memoCache.set(key, { value, expires: now + MEMO_TTL_MS });
+  return value;
+}
+
 export type SubjectListOpts = {
   gender?: string;
   country?: string;
@@ -503,22 +522,26 @@ export const db = {
         return r.c;
       },
       countries(): Array<{ country: string; count: number }> {
-        return getDb()
-          .prepare(
-            "SELECT country, COUNT(*) as count FROM research_subjects WHERE country IS NOT NULL AND country != '' GROUP BY country ORDER BY count DESC"
-          )
-          .all() as Array<{ country: string; count: number }>;
+        return memo("subjects.countries", () =>
+          getDb()
+            .prepare(
+              "SELECT country, COUNT(*) as count FROM research_subjects WHERE country IS NOT NULL AND country != '' GROUP BY country ORDER BY count DESC"
+            )
+            .all() as Array<{ country: string; count: number }>
+        );
       },
       decadeDistribution(): Array<{ decade: number; count: number }> {
-        return getDb()
-          .prepare(
-            `SELECT (birth_year / 10) * 10 as decade, COUNT(*) as count
-             FROM research_subjects
-             WHERE birth_year IS NOT NULL
-             GROUP BY decade
-             ORDER BY decade ASC`
-          )
-          .all() as Array<{ decade: number; count: number }>;
+        return memo("subjects.decades", () =>
+          getDb()
+            .prepare(
+              `SELECT (birth_year / 10) * 10 as decade, COUNT(*) as count
+               FROM research_subjects
+               WHERE birth_year IS NOT NULL
+               GROUP BY decade
+               ORDER BY decade ASC`
+            )
+            .all() as Array<{ decade: number; count: number }>
+        );
       },
     },
     marriages: {
@@ -530,33 +553,37 @@ export const db = {
           .all(rowKey) as ResearchMarriage[];
       },
       outcomeDistribution(): Array<{ outcome_normalized: string; count: number }> {
-        return getDb()
-          .prepare(
-            "SELECT outcome_normalized, COUNT(*) as count FROM research_marriages WHERE outcome_normalized IS NOT NULL GROUP BY outcome_normalized ORDER BY count DESC"
-          )
-          .all() as Array<{ outcome_normalized: string; count: number }>;
+        return memo("marriages.outcomes", () =>
+          getDb()
+            .prepare(
+              "SELECT outcome_normalized, COUNT(*) as count FROM research_marriages WHERE outcome_normalized IS NOT NULL GROUP BY outcome_normalized ORDER BY count DESC"
+            )
+            .all() as Array<{ outcome_normalized: string; count: number }>
+        );
       },
       // Distribution of marriages per subject (0, 1, 2, ..., 5+).
       // Includes subjects with zero marriages.
       perSubjectDistribution(): Array<{ marriages: number | "5+"; subjects: number }> {
-        const rows = getDb()
-          .prepare(
-            `SELECT mc, COUNT(*) as subjects FROM (
-               SELECT s.row_key,
-                 (SELECT COUNT(*) FROM research_marriages m WHERE m.subject_row_key = s.row_key) as mc
-               FROM research_subjects s
-             ) GROUP BY mc ORDER BY mc ASC`
-          )
-          .all() as Array<{ mc: number; subjects: number }>;
+        return memo("marriages.perSubjectDistribution", () => {
+          const rows = getDb()
+            .prepare(
+              `SELECT mc, COUNT(*) as subjects FROM (
+                 SELECT s.row_key,
+                   (SELECT COUNT(*) FROM research_marriages m WHERE m.subject_row_key = s.row_key) as mc
+                 FROM research_subjects s
+               ) GROUP BY mc ORDER BY mc ASC`
+            )
+            .all() as Array<{ mc: number; subjects: number }>;
 
-        const buckets: Array<{ marriages: number | "5+"; subjects: number }> = [];
-        let fivePlus = 0;
-        for (const r of rows) {
-          if (r.mc < 5) buckets.push({ marriages: r.mc, subjects: r.subjects });
-          else fivePlus += r.subjects;
-        }
-        if (fivePlus > 0) buckets.push({ marriages: "5+", subjects: fivePlus });
-        return buckets;
+          const buckets: Array<{ marriages: number | "5+"; subjects: number }> = [];
+          let fivePlus = 0;
+          for (const r of rows) {
+            if (r.mc < 5) buckets.push({ marriages: r.mc, subjects: r.subjects });
+            else fivePlus += r.subjects;
+          }
+          if (fivePlus > 0) buckets.push({ marriages: "5+", subjects: fivePlus });
+          return buckets;
+        });
       },
       countsForSubjects(rowKeys: string[]): Map<string, number> {
         const result = new Map<string, number>();
@@ -766,16 +793,30 @@ export const db = {
     },
     facets: {
       // List all engines that have any extracted facets.
+      // Cached because this is a static aggregation that only changes after extract_facets.py.
+      // (Was the slowest query on the page — 6.4s of COUNT DISTINCT over 4.6M rows.)
       enginesWithFacets(): Array<{ engine: string; subjects: number; rows: number }> {
-        return getDb()
-          .prepare(
-            `SELECT engine,
-                    COUNT(DISTINCT subject_row_key) as subjects,
-                    COUNT(*) as rows
-             FROM research_chart_facets
-             GROUP BY engine ORDER BY engine`
-          )
-          .all() as Array<{ engine: string; subjects: number; rows: number }>;
+        return memo("facets.enginesWithFacets", () =>
+          getDb()
+            .prepare(
+              `SELECT engine,
+                      COUNT(DISTINCT subject_row_key) as subjects,
+                      COUNT(*) as rows
+               FROM research_chart_facets
+               GROUP BY engine ORDER BY engine`
+            )
+            .all() as Array<{ engine: string; subjects: number; rows: number }>
+        );
+      },
+      // Lightweight version when you only need the engine names (e.g. for the
+      // research filter dropdown). Uses the (engine, facet_key, facet_value)
+      // covering index, ~200ms vs 6.4s for the full aggregate.
+      enginesNames(): string[] {
+        return memo("facets.enginesNames", () =>
+          (getDb()
+            .prepare("SELECT DISTINCT engine FROM research_chart_facets ORDER BY engine")
+            .all() as Array<{ engine: string }>).map((r) => r.engine)
+        );
       },
       // For an engine, list distinct facet keys (so the UI knows what to render).
       keysForEngine(engine: string): Array<{ facet_key: string; values: number; rows: number }> {
@@ -797,17 +838,19 @@ export const db = {
         facetKey: string,
         limit = 100
       ): Array<{ facet_value: string; subjects: number }> {
-        return getDb()
-          .prepare(
-            `SELECT facet_value,
-                    COUNT(DISTINCT subject_row_key) as subjects
-             FROM research_chart_facets
-             WHERE engine = ? AND facet_key = ?
-             GROUP BY facet_value
-             ORDER BY subjects DESC, facet_value ASC
-             LIMIT ?`
-          )
-          .all(engine, facetKey, limit) as Array<{ facet_value: string; subjects: number }>;
+        return memo(`facets.values:${engine}:${facetKey}:${limit}`, () =>
+          getDb()
+            .prepare(
+              `SELECT facet_value,
+                      COUNT(DISTINCT subject_row_key) as subjects
+               FROM research_chart_facets
+               WHERE engine = ? AND facet_key = ?
+               GROUP BY facet_value
+               ORDER BY subjects DESC, facet_value ASC
+               LIMIT ?`
+            )
+            .all(engine, facetKey, limit) as Array<{ facet_value: string; subjects: number }>
+        );
       },
       // All facet rows for one subject (used by the detail page).
       forSubject(rowKey: string): Array<{ engine: string; facet_key: string; facet_value: string }> {
