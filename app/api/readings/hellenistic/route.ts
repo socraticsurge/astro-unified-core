@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { fetchHellenistic } from "@/lib/engines/hellenistic";
+import { extractEngineError } from "@/lib/engine-error";
 
 export async function GET(req: NextRequest) {
   const profile_id = req.nextUrl.searchParams.get("profile_id");
@@ -24,6 +25,9 @@ export async function GET(req: NextRequest) {
   };
 
   const output = await fetchHellenistic(input);
+  const errMsg = extractEngineError(output);
+  if (errMsg) return NextResponse.json({ error: errMsg }, { status: 502 });
+
   db.readings.save({ profile_id, engine: "hellenistic", input_snapshot: input, output_data: output });
 
   return NextResponse.json({ output, cached: false });
@@ -44,6 +48,9 @@ export async function POST(req: NextRequest) {
   };
 
   const output = await fetchHellenistic(input);
+  const errMsg = extractEngineError(output);
+  if (errMsg) return NextResponse.json({ error: errMsg }, { status: 502 });
+
   const reading = db.readings.save({
     profile_id,
     engine: "hellenistic",

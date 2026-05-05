@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { summarizeEngine } from "@/lib/chart-summary";
+import { extractEngineError } from "@/lib/engine-error";
 
 type EngineState = { output: unknown; loading: boolean; error?: string };
 const DEFAULT_ENGINE: EngineState = { output: null, loading: false };
@@ -264,6 +265,10 @@ export default function ProfileDetailPage() {
           : await fetch(`/api/readings/${engine}?profile_id=${id}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Request failed");
+        // Cached responses can carry engine-level errors saved by older code paths;
+        // surface those instead of showing a misleading "Data loaded" state.
+        const innerErr = extractEngineError(data.output);
+        if (innerErr) throw new Error(innerErr);
         setEngines(e => ({ ...e, [engine]: { output: data.output, loading: false } }));
       } catch (err) {
         setEngines(e => ({
@@ -277,10 +282,16 @@ export default function ProfileDetailPage() {
 
   useEffect(() => {
     fetch(`/api/profiles/${id}`)
-      .then(r => r.json())
-      .then((p: Profile) => {
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`Failed to load profile (${r.status})`);
+        return r.json() as Promise<Profile>;
+      })
+      .then((p) => {
         setProfile(p);
         for (const key of ENGINE_KEYS) fetchEngine(key);
+      })
+      .catch(() => {
+        setProfile(null);
       });
   }, [id, fetchEngine]);
 
