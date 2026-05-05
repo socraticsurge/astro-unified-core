@@ -18,44 +18,177 @@ const TOTAL_ENGINES = ENGINE_KEYS.length;
 
 const PAGE_SIZE = 50;
 
-type SearchParams = {
-  decade?: string;
-  country?: string;
-  gender?: string;
-  outcome?: string;
-  marriages?: string;
-  offset?: string;
-  order?: string;
+// Curated facets to surface per engine. Each engine has 50-180 facet keys total
+// (planet × position × house etc.); these are the ones a researcher most often filters on.
+type FacetSpec = { key: string; label: string };
+const ENGINE_FACETS: Record<string, FacetSpec[]> = {
+  panchangam: [
+    { key: "tithi", label: "Tithi" },
+    { key: "paksha", label: "Paksha" },
+    { key: "nakshatra", label: "Nakshatra" },
+    { key: "yoga", label: "Yoga" },
+    { key: "karana", label: "Karana" },
+    { key: "vara", label: "Weekday" },
+    { key: "ascendant_sign", label: "Ascendant sign" },
+  ],
+  jyotishganit: [
+    { key: "lagna_sign", label: "Lagna sign" },
+    { key: "lagna_nakshatra", label: "Lagna nakshatra" },
+    { key: "sun_sign", label: "Sun sign" },
+    { key: "sun_house", label: "Sun house" },
+    { key: "moon_sign", label: "Moon sign" },
+    { key: "moon_house", label: "Moon house" },
+    { key: "moon_nakshatra", label: "Moon nakshatra" },
+    { key: "mars_house", label: "Mars house" },
+    { key: "mercury_house", label: "Mercury house" },
+    { key: "jupiter_house", label: "Jupiter house" },
+    { key: "venus_house", label: "Venus house" },
+    { key: "saturn_house", label: "Saturn house" },
+    { key: "rahu_house", label: "Rahu house" },
+    { key: "mahadasha_lord", label: "Current mahadasha lord" },
+  ],
+  western: [
+    { key: "chart_type", label: "Day / Night" },
+    { key: "sun_sign", label: "Sun sign" },
+    { key: "moon_sign", label: "Moon sign" },
+    { key: "asc_sign", label: "Ascendant sign" },
+    { key: "mc_sign", label: "MC sign" },
+    { key: "mercury_sign", label: "Mercury sign" },
+    { key: "venus_sign", label: "Venus sign" },
+    { key: "mars_sign", label: "Mars sign" },
+    { key: "jupiter_sign", label: "Jupiter sign" },
+    { key: "saturn_sign", label: "Saturn sign" },
+    { key: "sun_house", label: "Sun house" },
+    { key: "moon_house", label: "Moon house" },
+  ],
+  hellenistic: [
+    { key: "sect", label: "Sect" },
+    { key: "sun_sign", label: "Sun sign" },
+    { key: "moon_sign", label: "Moon sign" },
+    { key: "sun_dignity", label: "Sun dignity" },
+    { key: "moon_dignity", label: "Moon dignity" },
+    { key: "mercury_dignity", label: "Mercury dignity" },
+    { key: "venus_dignity", label: "Venus dignity" },
+    { key: "mars_dignity", label: "Mars dignity" },
+    { key: "jupiter_dignity", label: "Jupiter dignity" },
+    { key: "saturn_dignity", label: "Saturn dignity" },
+    { key: "pars_fortuna_sign", label: "Pars Fortuna sign" },
+  ],
+  bazi: [
+    { key: "day_master_element", label: "Day Master element" },
+    { key: "day_master_nature", label: "Day Master nature" },
+    { key: "year_animal", label: "Year animal" },
+    { key: "month_animal", label: "Month animal" },
+    { key: "day_animal", label: "Day animal" },
+    { key: "time_animal", label: "Hour animal" },
+    { key: "eight_mansions_group", label: "Eight Mansions group" },
+    { key: "dominant_element", label: "Dominant element" },
+    { key: "weakest_element", label: "Weakest element" },
+    { key: "life_gua", label: "Life Gua" },
+  ],
+  numerology: [
+    { key: "pythagorean_life_path", label: "Life path (Pythagorean)" },
+    { key: "pythagorean_destiny", label: "Destiny" },
+    { key: "pythagorean_expression", label: "Expression" },
+    { key: "pythagorean_soul_urge", label: "Soul urge" },
+    { key: "pythagorean_personality", label: "Personality" },
+    { key: "pythagorean_power", label: "Power" },
+    { key: "chaldean_life_path", label: "Life path (Chaldean)" },
+    { key: "chaldean_destiny", label: "Destiny (Chaldean)" },
+  ],
+  dashaflow: [
+    { key: "lagna_sign", label: "Lagna sign" },
+    { key: "lagna_nakshatra", label: "Lagna nakshatra" },
+    { key: "sun_sign", label: "Sun sign" },
+    { key: "sun_house", label: "Sun house" },
+    { key: "moon_sign", label: "Moon sign" },
+    { key: "moon_house", label: "Moon house" },
+    { key: "moon_nakshatra", label: "Moon nakshatra" },
+    { key: "mahadasha_lord", label: "Mahadasha lord" },
+    { key: "antardasha_lord", label: "Antardasha lord" },
+    { key: "atmakaraka", label: "Atmakaraka" },
+    { key: "amatyakaraka", label: "Amatyakaraka" },
+    { key: "sun_dignity", label: "Sun dignity" },
+    { key: "moon_dignity", label: "Moon dignity" },
+    { key: "panchang_vara", label: "Weekday" },
+    { key: "yoga", label: "Yoga (any of)" },
+  ],
+  stellium: [
+    { key: "sect", label: "Sect" },
+    { key: "sun_sign", label: "Sun sign" },
+    { key: "moon_sign", label: "Moon sign" },
+    { key: "asc_sign", label: "Ascendant sign" },
+    { key: "mc_sign", label: "MC sign" },
+    { key: "profection_year_sign", label: "Annual profection sign" },
+    { key: "profection_year_ruler", label: "Annual profection ruler" },
+    { key: "lot_part_fortune_sign", label: "Pars Fortuna sign" },
+    { key: "lot_part_spirit_sign", label: "Pars Spirit sign" },
+  ],
 };
 
+const FACET_PARAM_PREFIX = "f.";
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
 type Order = "name" | "year_asc" | "year_desc";
+
 type ParsedFilters = {
   decade: number | undefined;
   country: string | undefined;
   gender: string | undefined;
   outcome: string | undefined;
   marriages: number | "5+" | undefined;
+  engine: string | undefined;
+  facets: Record<string, string>;
   offset: number;
   order: Order | undefined;
 };
 
+function firstString(v: string | string[] | undefined): string | undefined {
+  if (Array.isArray(v)) return v[0];
+  return v;
+}
+
 function parseFilters(sp: SearchParams): ParsedFilters {
-  const decade = sp.decade ? Number(sp.decade) : undefined;
-  const country = sp.country || undefined;
-  const gender = sp.gender || undefined;
-  const outcome = sp.outcome || undefined;
+  const decadeStr = firstString(sp.decade);
+  const decade = decadeStr ? Number(decadeStr) : undefined;
+  const country = firstString(sp.country) || undefined;
+  const gender = firstString(sp.gender) || undefined;
+  const outcome = firstString(sp.outcome) || undefined;
+
+  const marriagesStr = firstString(sp.marriages);
   let marriages: number | "5+" | undefined;
-  if (sp.marriages === "5+") marriages = "5+";
-  else if (sp.marriages !== undefined && sp.marriages !== "") {
-    const n = Number(sp.marriages);
+  if (marriagesStr === "5+") marriages = "5+";
+  else if (marriagesStr) {
+    const n = Number(marriagesStr);
     if (Number.isInteger(n) && n >= 0 && n <= 4) marriages = n;
   }
-  const offset = sp.offset ? Math.max(0, Number(sp.offset)) : 0;
+
+  const engineRaw = firstString(sp.engine);
+  const engine = engineRaw && engineRaw in ENGINE_FACETS ? engineRaw : undefined;
+
+  const facets: Record<string, string> = {};
+  if (engine) {
+    const allowed = new Set(ENGINE_FACETS[engine].map((f) => f.key));
+    for (const [k, raw] of Object.entries(sp)) {
+      if (!k.startsWith(FACET_PARAM_PREFIX)) continue;
+      const facetKey = k.slice(FACET_PARAM_PREFIX.length);
+      if (!allowed.has(facetKey)) continue;
+      const value = firstString(raw);
+      if (value) facets[facetKey] = value;
+    }
+  }
+
+  const offsetStr = firstString(sp.offset);
+  const offset = offsetStr ? Math.max(0, Number(offsetStr)) : 0;
+
+  const orderRaw = firstString(sp.order);
   const order: Order | undefined =
-    sp.order === "name" || sp.order === "year_asc" || sp.order === "year_desc"
-      ? sp.order
+    orderRaw === "name" || orderRaw === "year_asc" || orderRaw === "year_desc"
+      ? orderRaw
       : undefined;
-  return { decade, country, gender, outcome, marriages, offset, order };
+
+  return { decade, country, gender, outcome, marriages, engine, facets, offset, order };
 }
 
 function buildQuery(
@@ -63,10 +196,20 @@ function buildQuery(
   overrides: Record<string, string | number | undefined>
 ): string {
   const params = new URLSearchParams();
-  const merged: Record<string, string | number | undefined> = { ...base, ...overrides };
-  for (const [k, v] of Object.entries(merged)) {
-    if (v === undefined || v === null || v === "") continue;
-    params.set(k, String(v));
+  // Carry over existing keys (handling string-array values defensively)
+  for (const [k, v] of Object.entries(base)) {
+    if (v === undefined || v === "") continue;
+    const value = Array.isArray(v) ? v[0] : v;
+    if (!value) continue;
+    params.set(k, value);
+  }
+  // Apply overrides
+  for (const [k, v] of Object.entries(overrides)) {
+    if (v === undefined || v === null || v === "") {
+      params.delete(k);
+    } else {
+      params.set(k, String(v));
+    }
   }
   const qs = params.toString();
   return qs ? `/research?${qs}` : "/research";
@@ -86,22 +229,22 @@ export default async function ResearchPage({
   const filters = parseFilters(sp);
 
   const totalSubjects = db.research.subjects.count();
-  const filteredCount = db.research.subjects.countFiltered({
+
+  const filterOpts = {
     gender: filters.gender,
     country: filters.country,
     decade: filters.decade,
     outcome: filters.outcome,
     marriages: filters.marriages,
-  });
+    facetEngine: filters.engine,
+    facets: filters.facets,
+  };
 
+  const filteredCount = db.research.subjects.countFiltered(filterOpts);
   const subjects = db.research.subjects.list({
+    ...filterOpts,
     limit: PAGE_SIZE,
     offset: filters.offset,
-    gender: filters.gender,
-    country: filters.country,
-    decade: filters.decade,
-    outcome: filters.outcome,
-    marriages: filters.marriages,
     order: filters.order,
   });
 
@@ -115,6 +258,17 @@ export default async function ResearchPage({
   const decades = db.research.subjects.decadeDistribution();
   const outcomes = db.research.marriages.outcomeDistribution();
   const marriageBuckets = db.research.marriages.perSubjectDistribution();
+  const enginesWithFacets = new Set(
+    db.research.facets.enginesWithFacets().map((e) => e.engine)
+  );
+
+  // Per-facet value distributions for the currently-selected engine only
+  const facetValueLists = filters.engine
+    ? ENGINE_FACETS[filters.engine].map((f) => ({
+        ...f,
+        values: db.research.facets.valuesFor(filters.engine!, f.key, 200),
+      }))
+    : [];
 
   const totalReadings =
     (progress.by_status.pending ?? 0) +
@@ -134,6 +288,15 @@ export default async function ResearchPage({
   const hasNext = nextOffset < filteredCount;
 
   const topCountries = countries.slice(0, 20);
+
+  const hasNonFacetFilter =
+    !!filters.country ||
+    filters.decade !== undefined ||
+    !!filters.gender ||
+    !!filters.outcome ||
+    filters.marriages !== undefined;
+  const hasFacetFilter = !!filters.engine && Object.keys(filters.facets).length > 0;
+  const hasAnyFilter = hasNonFacetFilter || hasFacetFilter;
 
   return (
     <div className="space-y-6">
@@ -230,112 +393,175 @@ export default async function ResearchPage({
       </section>
 
       {/* Filter bar */}
-      <section className="rounded-xl border border-zinc-700/60 bg-zinc-900/30 p-4">
-        <form method="get" action="/research" className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-400">Decade</label>
-            <select
-              name="decade"
-              defaultValue={filters.decade?.toString() ?? ""}
-              className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-32"
-            >
-              <option value="">All decades</option>
-              {decades.map((d) => (
-                <option key={d.decade} value={d.decade}>
-                  {d.decade}s ({d.count.toLocaleString()})
-                </option>
-              ))}
-            </select>
+      <section className="rounded-xl border border-zinc-700/60 bg-zinc-900/30 p-4 space-y-4">
+        <form method="get" action="/research" className="space-y-4">
+          {/* Demographic + corpus filters */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-zinc-400">Decade</label>
+              <select
+                name="decade"
+                defaultValue={filters.decade?.toString() ?? ""}
+                className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-32"
+              >
+                <option value="">All decades</option>
+                {decades.map((d) => (
+                  <option key={d.decade} value={d.decade}>
+                    {d.decade}s ({d.count.toLocaleString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-zinc-400">Country</label>
+              <select
+                name="country"
+                defaultValue={filters.country ?? ""}
+                className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-44"
+              >
+                <option value="">All countries</option>
+                {topCountries.map((c) => (
+                  <option key={c.country} value={c.country}>
+                    {c.country} ({c.count.toLocaleString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-zinc-400">Gender</label>
+              <select
+                name="gender"
+                defaultValue={filters.gender ?? ""}
+                className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-28"
+              >
+                <option value="">All</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-zinc-400">Outcome</label>
+              <select
+                name="outcome"
+                defaultValue={filters.outcome ?? ""}
+                className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-36"
+              >
+                <option value="">Any outcome</option>
+                {outcomes.map((o) => (
+                  <option key={o.outcome_normalized} value={o.outcome_normalized}>
+                    {o.outcome_normalized} ({o.count.toLocaleString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-zinc-400">Marriages</label>
+              <select
+                name="marriages"
+                defaultValue={
+                  filters.marriages === undefined ? "" : String(filters.marriages)
+                }
+                className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-32"
+              >
+                <option value="">Any</option>
+                {marriageBuckets.map((b) => (
+                  <option key={String(b.marriages)} value={String(b.marriages)}>
+                    {b.marriages === "5+" ? "5 or more" : b.marriages} ({b.subjects.toLocaleString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-zinc-400">Order</label>
+              <select
+                name="order"
+                defaultValue={filters.order ?? ""}
+                className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-32"
+              >
+                <option value="">Year (desc)</option>
+                <option value="year_asc">Year (asc)</option>
+                <option value="name">Name</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-400">Country</label>
-            <select
-              name="country"
-              defaultValue={filters.country ?? ""}
-              className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-44"
-            >
-              <option value="">All countries</option>
-              {topCountries.map((c) => (
-                <option key={c.country} value={c.country}>
-                  {c.country} ({c.count.toLocaleString()})
-                </option>
-              ))}
-            </select>
+          {/* Chart-property filter — adapts to selected engine */}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 space-y-3">
+            <div className="flex items-end gap-3 flex-wrap">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-zinc-400">
+                  Filter by chart properties — system
+                </label>
+                <select
+                  name="engine"
+                  defaultValue={filters.engine ?? ""}
+                  className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-44"
+                >
+                  <option value="">— None (no chart filter) —</option>
+                  {Object.keys(ENGINE_FACETS)
+                    .filter((e) => enginesWithFacets.has(e))
+                    .map((e) => (
+                      <option key={e} value={e}>
+                        {e}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              {filters.engine && (
+                <p className="text-xs text-zinc-500 max-w-md">
+                  Pick any combination of {filters.engine} chart properties below. Subjects must
+                  match every selected value (AND).
+                </p>
+              )}
+            </div>
+
+            {filters.engine && facetValueLists.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-1">
+                {facetValueLists.map((f) => {
+                  const current = filters.facets[f.key] ?? "";
+                  return (
+                    <div key={f.key} className="flex flex-col gap-1">
+                      <label className="text-xs text-zinc-400" title={f.key}>
+                        {f.label}
+                      </label>
+                      <select
+                        name={`${FACET_PARAM_PREFIX}${f.key}`}
+                        defaultValue={current}
+                        className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1"
+                      >
+                        <option value="">Any</option>
+                        {f.values.map((v) => (
+                          <option key={v.facet_value} value={v.facet_value}>
+                            {v.facet_value} ({v.subjects.toLocaleString()})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-400">Gender</label>
-            <select
-              name="gender"
-              defaultValue={filters.gender ?? ""}
-              className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-28"
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              className="h-8 px-3 rounded-md bg-zinc-200 text-zinc-900 text-sm font-medium hover:bg-white transition-colors"
             >
-              <option value="">All</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-400">Outcome</label>
-            <select
-              name="outcome"
-              defaultValue={filters.outcome ?? ""}
-              className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-36"
+              Apply
+            </button>
+            <Link
+              href="/research"
+              className="h-8 px-3 inline-flex items-center rounded-md border border-zinc-600 text-sm hover:bg-zinc-800 transition-colors"
             >
-              <option value="">Any outcome</option>
-              {outcomes.map((o) => (
-                <option key={o.outcome_normalized} value={o.outcome_normalized}>
-                  {o.outcome_normalized} ({o.count.toLocaleString()})
-                </option>
-              ))}
-            </select>
+              Reset
+            </Link>
           </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-400">Marriages</label>
-            <select
-              name="marriages"
-              defaultValue={
-                filters.marriages === undefined ? "" : String(filters.marriages)
-              }
-              className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-32"
-            >
-              <option value="">Any</option>
-              {marriageBuckets.map((b) => (
-                <option key={String(b.marriages)} value={String(b.marriages)}>
-                  {b.marriages === "5+" ? "5 or more" : b.marriages} ({b.subjects.toLocaleString()})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-zinc-400">Order</label>
-            <select
-              name="order"
-              defaultValue={filters.order ?? ""}
-              className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-32"
-            >
-              <option value="">Year (desc)</option>
-              <option value="year_asc">Year (asc)</option>
-              <option value="name">Name</option>
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            className="h-8 px-3 rounded-md bg-zinc-200 text-zinc-900 text-sm font-medium hover:bg-white transition-colors"
-          >
-            Apply
-          </button>
-          <Link
-            href="/research"
-            className="h-8 px-3 inline-flex items-center rounded-md border border-zinc-600 text-sm hover:bg-zinc-800 transition-colors"
-          >
-            Reset
-          </Link>
         </form>
       </section>
 
@@ -343,9 +569,7 @@ export default async function ResearchPage({
       <div className="flex items-center justify-between text-sm">
         <div className="text-zinc-400">
           {filteredCount.toLocaleString()} subjects match
-          {(filters.country || filters.decade !== undefined || filters.gender || filters.outcome || filters.marriages !== undefined) && (
-            <> · filtered from {totalSubjects.toLocaleString()}</>
-          )}
+          {hasAnyFilter && <> · filtered from {totalSubjects.toLocaleString()}</>}
         </div>
         <div className="text-zinc-500 text-xs">
           Page {page} of {totalPages.toLocaleString()}
@@ -370,10 +594,7 @@ export default async function ResearchPage({
             <tbody>
               {subjects.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="py-12 text-center text-zinc-500"
-                  >
+                  <td colSpan={7} className="py-12 text-center text-zinc-500">
                     {totalSubjects === 0
                       ? "0 subjects, queue empty."
                       : "No subjects match the current filters."}

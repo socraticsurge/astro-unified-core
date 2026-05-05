@@ -122,6 +122,18 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_research_subjects_birth_year ON research_subjects(birth_year);
     CREATE INDEX IF NOT EXISTS idx_research_subjects_country ON research_subjects(country);
     CREATE INDEX IF NOT EXISTS idx_research_subjects_gender ON research_subjects(gender);
+
+    -- Pre-extracted facets per (subject, engine) for fast filtering by chart properties.
+    -- Multiple rows per (subject, engine) — one per facet — so listings, conjunctions,
+    -- yoga presence, and other multi-valued attributes all fit naturally.
+    CREATE TABLE IF NOT EXISTS research_chart_facets (
+      subject_row_key TEXT NOT NULL REFERENCES research_subjects(row_key) ON DELETE CASCADE,
+      engine TEXT NOT NULL,
+      facet_key TEXT NOT NULL,
+      facet_value TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_facets_subject ON research_chart_facets(subject_row_key, engine);
+    CREATE INDEX IF NOT EXISTS idx_facets_lookup ON research_chart_facets(engine, facet_key, facet_value);
   `);
 }
 
@@ -220,6 +232,10 @@ export type SubjectListOpts = {
   decade?: number; // 1900 → 1900..1909
   outcome?: string; // joined on marriages.outcome_normalized
   marriages?: number | "5+"; // exactly N, or "5+" for ≥5
+  // Chart-facet filters: an engine + a map of facet_key → facet_value.
+  // Subjects must have a research_chart_facets row matching every (engine, key, value).
+  facetEngine?: string;
+  facets?: Record<string, string>;
 };
 
 function buildSubjectWhere(opts: SubjectListOpts): {
@@ -230,7 +246,6 @@ function buildSubjectWhere(opts: SubjectListOpts): {
   const params: Array<string | number> = [];
 
   if (opts.outcome) {
-    // outcome filter requires JOIN
     where.push(
       "EXISTS (SELECT 1 FROM research_marriages m WHERE m.subject_row_key = s.row_key AND m.outcome_normalized = ?)"
     );
@@ -258,6 +273,15 @@ function buildSubjectWhere(opts: SubjectListOpts): {
         "(SELECT COUNT(*) FROM research_marriages m WHERE m.subject_row_key = s.row_key) = ?"
       );
       params.push(opts.marriages);
+    }
+  }
+  if (opts.facetEngine && opts.facets) {
+    for (const [key, value] of Object.entries(opts.facets)) {
+      if (!value) continue;
+      where.push(
+        "EXISTS (SELECT 1 FROM research_chart_facets f WHERE f.subject_row_key = s.row_key AND f.engine = ? AND f.facet_key = ? AND f.facet_value = ?)"
+      );
+      params.push(opts.facetEngine, key, value);
     }
   }
 
@@ -568,6 +592,60 @@ export const db = {
             "SELECT * FROM research_jobs WHERE kind = ? ORDER BY started_at DESC LIMIT 1"
           )
           .get(kind) as ResearchJob | undefined;
+      },
+    },
+    facets: {
+      // List all engines that have any extracted facets.
+      enginesWithFacets(): Array<{ engine: string; subjects: number; rows: number }> {
+        return getDb()
+          .prepare(
+            `SELECT engine,
+                    COUNT(DISTINCT subject_row_key) as subjects,
+                    COUNT(*) as rows
+             FROM research_chart_facets
+             GROUP BY engine ORDER BY engine`
+          )
+          .all() as Array<{ engine: string; subjects: number; rows: number }>;
+      },
+      // For an engine, list distinct facet keys (so the UI knows what to render).
+      keysForEngine(engine: string): Array<{ facet_key: string; values: number; rows: number }> {
+        return getDb()
+          .prepare(
+            `SELECT facet_key,
+                    COUNT(DISTINCT facet_value) as values,
+                    COUNT(*) as rows
+             FROM research_chart_facets
+             WHERE engine = ?
+             GROUP BY facet_key
+             ORDER BY facet_key`
+          )
+          .all(engine) as Array<{ facet_key: string; values: number; rows: number }>;
+      },
+      // Distribution of values for a (engine, facet_key) — counts unique subjects per value.
+      valuesFor(
+        engine: string,
+        facetKey: string,
+        limit = 100
+      ): Array<{ facet_value: string; subjects: number }> {
+        return getDb()
+          .prepare(
+            `SELECT facet_value,
+                    COUNT(DISTINCT subject_row_key) as subjects
+             FROM research_chart_facets
+             WHERE engine = ? AND facet_key = ?
+             GROUP BY facet_value
+             ORDER BY subjects DESC, facet_value ASC
+             LIMIT ?`
+          )
+          .all(engine, facetKey, limit) as Array<{ facet_value: string; subjects: number }>;
+      },
+      // All facet rows for one subject (used by the detail page).
+      forSubject(rowKey: string): Array<{ engine: string; facet_key: string; facet_value: string }> {
+        return getDb()
+          .prepare(
+            "SELECT engine, facet_key, facet_value FROM research_chart_facets WHERE subject_row_key = ? ORDER BY engine, facet_key, facet_value"
+          )
+          .all(rowKey) as Array<{ engine: string; facet_key: string; facet_value: string }>;
       },
     },
   },
