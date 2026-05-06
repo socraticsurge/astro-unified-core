@@ -3,11 +3,32 @@ import { useEffect, useState } from "react";
 import type { Profile } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Trash2 } from "lucide-react";
 
 export default function HomePage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortCol, setSortCol] = useState<keyof Profile>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const filtered = profiles.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const sorted = [...filtered].sort((a, b) => {
+    const aVal = String(a[sortCol] || "");
+    const bVal = String(b[sortCol] || "");
+    const cmp = aVal.localeCompare(bVal);
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  const toggleSort = (col: keyof Profile) => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+
+  const SortIcon = ({ col }: { col: keyof Profile }) => {
+    if (sortCol !== col) return <ChevronsUpDown className="ml-1 h-3 w-3 inline opacity-30" />;
+    return sortDir === "asc" ? <ChevronUp className="ml-1 h-3 w-3 inline" /> : <ChevronDown className="ml-1 h-3 w-3 inline" />;
+  };
 
   const load = () =>
     fetch("/api/profiles")
@@ -36,21 +57,33 @@ export default function HomePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Saved Profiles</h1>
+      <div className="flex items-center justify-between mb-6 gap-4">
+        <h1 className="text-2xl font-bold">Saved Profiles</h1>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search profiles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm min-w-[250px]"
+          />
+        </div>
+      </div>
       <div className="overflow-x-auto rounded-lg border border-white/10">
         <table className="w-full text-sm">
           <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-medium">Name</th>
-              <th className="px-3 py-2 font-medium">Date</th>
-              <th className="px-3 py-2 font-medium">Time</th>
-              <th className="px-3 py-2 font-medium">Place</th>
-              <th className="px-3 py-2 font-medium">Timezone</th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("name")}>Name <SortIcon col="name" /></th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("date_of_birth")}>Date <SortIcon col="date_of_birth" /></th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("time_of_birth")}>Time <SortIcon col="time_of_birth" /></th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("place_of_birth")}>Place <SortIcon col="place_of_birth" /></th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("timezone")}>Timezone <SortIcon col="timezone" /></th>
               <th className="px-3 py-2 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {profiles.map((p) => (
+            {sorted.map((p) => (
               <tr key={p.id} className="border-t border-white/10 hover:bg-white/5">
                 <td className="px-3 py-2 font-medium">
                   <Link href={`/profiles/${p.id}`} className="hover:underline">{p.name}</Link>

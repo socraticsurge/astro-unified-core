@@ -33,18 +33,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 >
                   Research
                 </Link>
-                <Link
-                  href="/research/patterns"
-                  className="px-2 py-1 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  Patterns
-                </Link>
-                <Link
-                  href="/research/clusters"
-                  className="px-2 py-1 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  Clusters
-                </Link>
               </div>
             </div>
             <Link href="/profiles/new">

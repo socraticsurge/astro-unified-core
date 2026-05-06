@@ -326,7 +326,9 @@ def calculate_numerology(data: BirthData):
         name = (data.name or "Native").strip()
         parts = name.split(None, 1)
         first_name = parts[0]
-        last_name = parts[1] if len(parts) > 1 else ""
+        # The 'numerology' package fails if last_name is empty or has no valid chars.
+        # Fallback to duplicating the first name (or a default) to prevent calculation failures.
+        last_name = parts[1] if len(parts) > 1 else first_name
 
         py = Pythagorean(first_name=first_name, last_name=last_name, birthdate=data.date_of_birth)
 

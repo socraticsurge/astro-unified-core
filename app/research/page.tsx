@@ -142,6 +142,7 @@ type ParsedFilters = {
   facets: Record<string, string>;
   offset: number;
   order: Order | undefined;
+  search: string | undefined;
 };
 
 function firstString(v: string | string[] | undefined): string | undefined {
@@ -150,6 +151,7 @@ function firstString(v: string | string[] | undefined): string | undefined {
 }
 
 function parseFilters(sp: SearchParams): ParsedFilters {
+  const search = firstString(sp.search) || undefined;
   const decadeStr = firstString(sp.decade);
   const decade = decadeStr ? Number(decadeStr) : undefined;
   const country = firstString(sp.country) || undefined;
@@ -188,7 +190,7 @@ function parseFilters(sp: SearchParams): ParsedFilters {
       ? orderRaw
       : undefined;
 
-  return { decade, country, gender, outcome, marriages, engine, facets, offset, order };
+  return { decade, country, gender, outcome, marriages, engine, facets, offset, order, search };
 }
 
 function buildQuery(
@@ -231,6 +233,7 @@ export default async function ResearchPage({
   const totalSubjects = db.research.subjects.count();
 
   const filterOpts = {
+    search: filters.search,
     gender: filters.gender,
     country: filters.country,
     decade: filters.decade,
@@ -395,6 +398,17 @@ export default async function ResearchPage({
         <form method="get" action="/research" className="space-y-4">
           {/* Demographic + corpus filters */}
           <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-zinc-400">Search</label>
+              <input
+                type="text"
+                name="search"
+                defaultValue={filters.search ?? ""}
+                placeholder="Search names..."
+                className="bg-zinc-950 border border-zinc-700 rounded-md text-sm px-2 py-1 min-w-[200px]"
+              />
+            </div>
+
             <div className="flex flex-col gap-1">
               <label className="text-xs text-zinc-400">Decade</label>
               <select

@@ -335,6 +335,7 @@ export type SubjectListOpts = {
   // Subjects must have a research_chart_facets row matching every (engine, key, value).
   facetEngine?: string;
   facets?: Record<string, string>;
+  search?: string;
 };
 
 function buildSubjectWhere(opts: SubjectListOpts): {
@@ -343,6 +344,11 @@ function buildSubjectWhere(opts: SubjectListOpts): {
 } {
   const where: string[] = [];
   const params: Array<string | number> = [];
+
+  if (opts.search) {
+    where.push("s.name LIKE ?");
+    params.push(`%${opts.search}%`);
+  }
 
   if (opts.outcome) {
     where.push(
