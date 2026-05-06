@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { geocodePlace } from "@/lib/geocode";
+import { getServerSession } from "next-auth/next";
 
 export async function GET() {
-  const profiles = db.profiles.list();
+  const session = await getServerSession();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+  const userId = (session.user as any).id;
+  const profiles = await db.profiles.list(userId);
   return NextResponse.json(profiles);
 }
 
 export async function POST(req: NextRequest) {
+  const session = await getServerSession();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+  const userId = (session.user as any).id;
   const body = await req.json();
   const { name, date_of_birth, time_of_birth, place_of_birth } = body;
 
@@ -16,7 +25,7 @@ export async function POST(req: NextRequest) {
   }
 
   const geo = await geocodePlace(place_of_birth);
-  const profile = db.profiles.create({
+  const profile = await db.profiles.create(userId, {
     name,
     date_of_birth,
     time_of_birth,
