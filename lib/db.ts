@@ -1,62 +1,78 @@
-import { createClient } from "@libsql/client";
+import { createClient, type Client } from "@libsql/client";
 import { randomUUID } from "crypto";
 
-const url = process.env.TURSO_DATABASE_URL!;
-const authToken = process.env.TURSO_AUTH_TOKEN!;
+let clientInstance: Client | null = null;
 
-const client = createClient({
-  url: url,
-  authToken: authToken,
-});
+function getClient() {
+  if (clientInstance) return clientInstance;
+  
+  const url = process.env.TURSO_DATABASE_URL;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (!url) {
+    console.warn("TURSO_DATABASE_URL is not set");
+  }
+
+  clientInstance = createClient({
+    url: url || "libsql://dummy.db",
+    authToken: authToken,
+  });
+  return clientInstance;
+}
 
 let schemaInitialized = false;
 
 export async function ensureSchema() {
   if (schemaInitialized) return;
   
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      name TEXT,
-      email TEXT UNIQUE,
-      image TEXT,
-      last_login TEXT
-    );
-  `);
+  const client = getClient();
+  try {
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        email TEXT UNIQUE,
+        image TEXT,
+        last_login TEXT
+      );
+    `);
 
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS profiles (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      date_of_birth TEXT NOT NULL,
-      time_of_birth TEXT NOT NULL,
-      place_of_birth TEXT NOT NULL,
-      latitude REAL NOT NULL,
-      longitude REAL NOT NULL,
-      timezone TEXT NOT NULL,
-      timezone_offset REAL NOT NULL,
-      created_at TEXT NOT NULL
-    );
-  `);
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS profiles (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        date_of_birth TEXT NOT NULL,
+        time_of_birth TEXT NOT NULL,
+        place_of_birth TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        timezone TEXT NOT NULL,
+        timezone_offset REAL NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `);
 
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS readings (
-      id TEXT PRIMARY KEY,
-      profile_id TEXT NOT NULL,
-      engine TEXT NOT NULL,
-      input_snapshot TEXT NOT NULL,
-      output_data TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-  `);
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS readings (
+        id TEXT PRIMARY KEY,
+        profile_id TEXT NOT NULL,
+        engine TEXT NOT NULL,
+        input_snapshot TEXT NOT NULL,
+        output_data TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+    `);
 
-  await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
-    CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings(profile_id);
-  `);
-  
-  schemaInitialized = true;
+    await client.execute(`
+      CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
+      CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings(profile_id);
+    `);
+    
+    schemaInitialized = true;
+  } catch (e) {
+    console.error("Failed to initialize schema:", e);
+  }
 }
 
 export type Profile = {
@@ -77,7 +93,7 @@ export const db = {
   users: {
     async upsert(user: { id: string; name?: string | null; email?: string | null; image?: string | null }) {
       await ensureSchema();
-      await client.execute({
+      await getClient().execute({
         sql: `INSERT INTO users (id, name, email, image, last_login) 
              VALUES (?, ?, ?, ?, ?)
              ON CONFLICT(email) DO UPDATE SET 
@@ -89,14 +105,14 @@ export const db = {
     },
     async list() {
       await ensureSchema();
-      const rs = await client.execute("SELECT * FROM users ORDER BY last_login DESC");
+      const rs = await getClient().execute("SELECT * FROM users ORDER BY last_login DESC");
       return rs.rows;
     }
   },
   profiles: {
     async list(userId: string): Promise<Profile[]> {
       await ensureSchema();
-      const rs = await client.execute({
+      const rs = await getClient().execute({
         sql: "SELECT * FROM profiles WHERE user_id = ? ORDER BY created_at DESC",
         args: [userId],
       });
@@ -104,7 +120,7 @@ export const db = {
     },
     async get(id: string, userId: string): Promise<Profile | undefined> {
       await ensureSchema();
-      const rs = await client.execute({
+      const rs = await getClient().execute({
         sql: "SELECT * FROM profiles WHERE id = ? AND user_id = ?",
         args: [id, userId],
       });
@@ -114,7 +130,7 @@ export const db = {
       await ensureSchema();
       const id = randomUUID();
       const created_at = new Date().toISOString();
-      await client.execute({
+      await getClient().execute({
         sql: `INSERT INTO profiles (id, user_id, name, date_of_birth, time_of_birth, place_of_birth,
              latitude, longitude, timezone, timezone_offset, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -136,10 +152,38 @@ export const db = {
     },
     async delete(id: string, userId: string): Promise<void> {
       await ensureSchema();
-      await client.execute({
+      await getClient().execute({
         sql: "DELETE FROM profiles WHERE id = ? AND user_id = ?",
         args: [id, userId],
       });
+    },
+  },
+  readings: {
+    async save(data: { profile_id: string, engine: string, input_snapshot: any, output_data: any }) {
+      await ensureSchema();
+      const id = randomUUID();
+      const created_at = new Date().toISOString();
+      await getClient().execute({
+        sql: `INSERT INTO readings (id, profile_id, engine, input_snapshot, output_data, created_at)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [
+          id,
+          data.profile_id,
+          data.engine,
+          JSON.stringify(data.input_snapshot),
+          JSON.stringify(data.output_data),
+          created_at,
+        ],
+      });
+      return { id, created_at, ...data };
+    },
+    async latestByEngine(profile_id: string, engine: string) {
+      await ensureSchema();
+      const rs = await getClient().execute({
+        sql: "SELECT * FROM readings WHERE profile_id = ? AND engine = ? ORDER BY created_at DESC LIMIT 1",
+        args: [profile_id, engine],
+      });
+      return rs.rows[0];
     },
   },
 };

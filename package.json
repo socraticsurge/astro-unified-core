@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "node -e \"require('fs').writeFileSync('node_modules/bazi-calculator-by-alvamind/dist/index.d.ts', 'export * from \"./bazi-calculator\";\\n')\""
+    "postinstall": "node -e \"const fs=require('fs'), path=require('path'); try { const p=require.resolve('bazi-calculator-by-alvamind/package.json'); const target=path.join(path.dirname(p), 'dist', 'index.d.ts'); if(fs.existsSync(path.dirname(target))) { fs.writeFileSync(target, 'export * from \\\"./bazi-calculator\\\";\\n'); console.log('Fixed bazi-calculator types'); } } catch(e) { console.log('Skipping bazi-calculator fix:', e.message); }\""
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
