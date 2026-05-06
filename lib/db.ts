@@ -1,22 +1,26 @@
 import { createClient } from "@libsql/client";
 import { randomUUID } from "crypto";
 
-const url = process.env.TURSO_DATABASE_URL || "file:astrounified.db";
-const authToken = process.env.TURSO_AUTH_TOKEN;
+const url = process.env.TURSO_DATABASE_URL!;
+const authToken = process.env.TURSO_AUTH_TOKEN!;
 
 const client = createClient({
   url: url,
   authToken: authToken,
 });
 
-export async function initSchema() {
+let schemaInitialized = false;
+
+export async function ensureSchema() {
+  if (schemaInitialized) return;
+  
   await client.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       name TEXT,
       email TEXT UNIQUE,
       image TEXT,
-      email_verified DATETIME
+      last_login TEXT
     );
   `);
 
@@ -51,6 +55,8 @@ export async function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
     CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings(profile_id);
   `);
+  
+  schemaInitialized = true;
 }
 
 export type Profile = {
@@ -68,8 +74,28 @@ export type Profile = {
 };
 
 export const db = {
+  users: {
+    async upsert(user: { id: string; name?: string | null; email?: string | null; image?: string | null }) {
+      await ensureSchema();
+      await client.execute({
+        sql: `INSERT INTO users (id, name, email, image, last_login) 
+             VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT(email) DO UPDATE SET 
+             last_login = excluded.last_login,
+             name = excluded.name,
+             image = excluded.image`,
+        args: [user.id, user.name || "", user.email || "", user.image || "", new Date().toISOString()],
+      });
+    },
+    async list() {
+      await ensureSchema();
+      const rs = await client.execute("SELECT * FROM users ORDER BY last_login DESC");
+      return rs.rows;
+    }
+  },
   profiles: {
     async list(userId: string): Promise<Profile[]> {
+      await ensureSchema();
       const rs = await client.execute({
         sql: "SELECT * FROM profiles WHERE user_id = ? ORDER BY created_at DESC",
         args: [userId],
@@ -77,6 +103,7 @@ export const db = {
       return rs.rows as unknown as Profile[];
     },
     async get(id: string, userId: string): Promise<Profile | undefined> {
+      await ensureSchema();
       const rs = await client.execute({
         sql: "SELECT * FROM profiles WHERE id = ? AND user_id = ?",
         args: [id, userId],
@@ -84,6 +111,7 @@ export const db = {
       return rs.rows[0] as unknown as Profile | undefined;
     },
     async create(userId: string, data: Omit<Profile, "id" | "created_at" | "user_id">): Promise<Profile> {
+      await ensureSchema();
       const id = randomUUID();
       const created_at = new Date().toISOString();
       await client.execute({
@@ -107,11 +135,11 @@ export const db = {
       return { id, user_id: userId, created_at, ...data };
     },
     async delete(id: string, userId: string): Promise<void> {
+      await ensureSchema();
       await client.execute({
         sql: "DELETE FROM profiles WHERE id = ? AND user_id = ?",
         args: [id, userId],
       });
     },
   },
-  // Readings and other methods will be updated similarly...
 };

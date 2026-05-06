@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { db } from "@/lib/db";
 
 const handler = NextAuth({
   providers: [
@@ -9,6 +10,17 @@ const handler = NextAuth({
     }),
   ],
   callbacks: {
+    async signIn({ user }) {
+      if (user.email) {
+        await db.users.upsert({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        });
+      }
+      return true;
+    },
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.sub;
