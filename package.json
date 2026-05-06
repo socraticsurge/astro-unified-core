@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "node -e \"require('fs').writeFileSync('node_modules/bazi-calculator-by-alvamind/dist/index.d.ts', \\"export * from './bazi-calculator';\\n\\")\""
+    "postinstall": "node -e \"require('fs').writeFileSync('node_modules/bazi-calculator-by-alvamind/dist/index.d.ts', 'export * from \"./bazi-calculator\";\\n')\""
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^7.6.13",
+    "@types/better-sqlite3": "^76.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
