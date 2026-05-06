@@ -2,7 +2,10 @@ import Database from "better-sqlite3";
 import path from "path";
 import { randomUUID } from "crypto";
 
-const DB_PATH = path.join(process.cwd(), "astrounified.db");
+// For Vercel, the DB will be created in /tmp which is writable
+const DB_PATH = process.env.NODE_ENV === 'production' 
+  ? path.join('/tmp', 'astrounified.db')
+  : path.join(process.cwd(), 'astrounified.db');
 
 const globalForDb = global as typeof globalThis & { _db?: Database.Database };
 
