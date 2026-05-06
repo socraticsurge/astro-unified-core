@@ -27,12 +27,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 >
                   Profiles
                 </Link>
-                <Link
-                  href="/research"
-                  className="px-2 py-1 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  Research
-                </Link>
               </div>
             </div>
             <Link href="/profiles/new">

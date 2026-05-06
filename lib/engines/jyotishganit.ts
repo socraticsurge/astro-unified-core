@@ -1,4 +1,4 @@
-const SIDECAR = process.env.PYTHON_SIDECAR_URL ?? "http://localhost:8001";
+const SIDECAR = process.env.PYTHON_SIDECAR_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/api/python` : "http://localhost:3000/api/python");
 
 export type JyotishganitInput = {
   date_of_birth: string;
