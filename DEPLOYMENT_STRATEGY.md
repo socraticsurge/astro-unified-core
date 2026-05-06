@@ -1,58 +1,38 @@
-# AstroRepos Vercel Launch Strategy (Core Features Only - Zero Cost)
+# AstroRepos Vercel Launch Strategy (Core Features + Multi-User Auth)
 
-This revised strategy focuses exclusively on the core application: profile management and multi-engine astrological calculations. 
+This strategy delivers a world-ready version of AstroUnified with secure Google Sign-In and private profile isolation.
 
-## 1. Scope Reductions
-- **EXCLUDE:** Research tab and its associated routes (/research).
-- **EXCLUDE:** 2.9GB Research Corpus database.
-- **RETAIN:** Profile creation/management.
-- **RETAIN:** Calculations for all systems (Jyotish, Western, Hellenistic, Bazi, Numerology, etc.).
+## 1. Scope & Features
+- **Multi-User Security:** Users only see their own profiles.
+- **Admin Visibility:** You can see global usage statistics.
+- **Calculations:** Full support for Jyotish, Western, Hellenistic, Bazi, etc.
+- **Database:** Migrated to **Turso (SQLite for the Edge)** for permanent, zero-cost storage.
 
-## 2. Updated Architectural Plan
+## 2. Technical Stack ($0)
+- **Frontend:** Next.js + NextAuth.js (Google Provider).
+- **Database:** Turso (9GB Free Tier).
+- **Compute:** Vercel Serverless (Node.js + Python).
+- **Static Data:** Star catalog bundled as chunks and auto-reconstructed in `/tmp`.
 
-### Phase 1: Vercel Native Storage ($0)
-- **Database:** Since we only need to store profiles and reading history, we will use **Vercel Postgres (Free Tier)**. This is a hosted PostgreSQL database that integrates natively with Vercel.
-- **Files (Star Catalog/Ephemeris):** 
-    - The ephemeris files and `hip_main.dat` (51MB) **will be bundled directly into the Vercel deployment**. 
-    - Total deployment limit is 250MB (Pro) or 100MB+ (Hobby). At ~60MB total for data, it fits comfortably. This ensures the data is always available locally to the functions with zero latency.
+## 3. How to Launch (Final Steps)
 
-### Phase 2: Atlas & Geocoding ($0)
-- **Atlas:** We are using **OpenStreetMap (Nominatim)** for geocoding and the `geo-tz` library for timezone lookups.
-- **Implementation:** These are already integrated into `lib/geocode.ts`. They require no local database and cost $0 as they use public APIs and local computation.
+### Step A: Setup Turso (The Permanent Database)
+1.  Go to [Turso.tech](https://turso.tech) and create a free account.
+2.  Create a new database (e.g., `astrounified-live`).
+3.  Copy the **Database URL** and **Auth Token**.
 
-### Phase 3: Unified Serverless Compute ($0)
-- **Next.js API:** Handles profile CRUD and UI logic.
-- **Python Functions:** Calculation engines (Kerykeion, Flatlib, Jyotishganit) will be ported to `api/python/index.py`. 
-- **Integration:** The frontend calls the Python functions via relative API paths, keeping everything in one project.
-
-## 3. Implementation Steps
-
-1.  **Strip Research Logic:** Disable Research UI and exclude the large .db from git history.
-2.  **Database Migration:** Initialize Vercel Postgres and update `lib/db.ts` to use it for profiles/readings.
-3.  **Data Bundling:** Move `hip_main.dat` and ephemeris into the project folder so they are uploaded during `git push`.
-4.  **Python Refactor:** Port sidecar logic to Vercel Serverless Python functions.
+### Step B: Connect to Vercel
+1.  Go to the Vercel Dashboard and import the `astro-unified-core` repo from GitHub.
+2.  In the **Environment Variables** section, add these 5 keys:
+    - `GOOGLE_CLIENT_ID`: (The one you created)
+    - `GOOGLE_CLIENT_SECRET`: (The one you created)
+    - `NEXTAUTH_SECRET`: (Any random string of 32 characters)
+    - `TURSO_DATABASE_URL`: (From Turso)
+    - `TURSO_AUTH_TOKEN`: (From Turso)
+3.  Click **Deploy**.
 
 ## 4. Expected Costs: $0.00
-- **Frontend/API:** Vercel (Hobby) - $0
-- **Database:** Vercel Postgres (Free) - $0
-- **Compute:** Vercel Serverless Functions - $0
-- **Geocoding:** OpenStreetMap - $0
+- Every component used (Vercel, Turso, Google, GitHub) is on a perpetual free tier.
 
 ---
 *Created by Gemini CLI Agent*
-
-## 7. Deployment Execution (The Move to Live)
-
-Once the code is refactored locally, the move to Vercel will follow these steps:
-
-1.  **GitHub Repository Creation:** I will use the `gh` (GitHub CLI) to create a new, private repository (e.g., `astro-unified-core`) on your account.
-2.  **Initial Push:** I will push the cleaned experimental code (Next.js + Vercel Python Functions + Static Data) to this new repo.
-3.  **Vercel Connection:** 
-    - You will log into your Vercel dashboard.
-    - Click "Add New" -> "Project".
-    - Select the new GitHub repository.
-4.  **Configuration:** 
-    - I will provide you with the necessary Environment Variables (e.g., `POSTGRES_URL` for Vercel Postgres).
-    - Vercel will automatically detect the Next.js and Python functions and deploy them.
-
-*Note: I can handle the GitHub creation and code pushing autonomously. You will only need to click "Deploy" on Vercel and provide the DB credentials.*
