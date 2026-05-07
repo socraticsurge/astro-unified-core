@@ -14,7 +14,7 @@ function LandingPage() {
         <div className="text-6xl">✦</div>
         <h1 className="font-heading text-6xl font-medium tracking-tight">Astro Chaganti</h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Detailed Vedic birth charts, by Astrologer Dr. Vinay Kumar Chaganti.
+          Detailed Vedic birth charts, by Dr. Vinay Kumar Chaganti.
         </p>
         <div className="flex justify-center pt-2">
           <Link href="/auth/signin">
@@ -88,8 +88,7 @@ function LandingPage() {
         <h2 className="font-heading text-3xl font-medium mb-4">About the astrologer</h2>
         <div className="border border-white/10 rounded-lg p-6 bg-white/5 space-y-4">
           <p className="text-base leading-relaxed">
-            <span className="font-semibold">Dr. Vinay Kumar Chaganti</span>{" "}
-            brings a researcher&apos;s discipline to his study and practice of Vedic astrology.
+            <span className="font-semibold">Dr. Vinay Kumar Chaganti</span> brings a researcher&apos;s discipline to his study and practice of Vedic astrology.
             His approach is methodical, grounded in the classical tradition, and
             attentive to the precision of sidereal calculations.
           </p>

@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Inter, Cormorant_Garamond } from "next/font/google";
+import { Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
 import { NavBar } from "@/components/NavBar";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+// Single classical serif throughout — same family for headings and body.
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-cormorant",
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${cormorant.variable} font-sans antialiased`}>
+      <body className={`${cormorant.variable} font-sans antialiased`}>
         <NextAuthProvider>
           <NavBar />
           <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
