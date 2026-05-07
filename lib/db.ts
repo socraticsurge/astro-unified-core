@@ -159,7 +159,7 @@ export const db = {
     },
   },
   readings: {
-    async save(data: { profile_id: string, engine: string, input_snapshot: any, output_data: any }) {
+    async save(data: { profile_id: string, engine: string, input_snapshot: unknown, output_data: unknown }) {
       await ensureSchema();
       const id = randomUUID();
       const created_at = new Date().toISOString();

@@ -23,7 +23,7 @@ const handler = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.sub;
+        (session.user as { id: string }).id = token.sub;
       }
       return session;
     },

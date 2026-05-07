@@ -7,7 +7,7 @@ export async function GET() {
   const session = await getServerSession();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id: string }).id;
   const profiles = await db.profiles.list(userId);
   return NextResponse.json(profiles);
 }
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id: string }).id;
   const body = await req.json();
   const { name, date_of_birth, time_of_birth, place_of_birth } = body;
 

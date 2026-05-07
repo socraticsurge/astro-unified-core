@@ -10,7 +10,7 @@ export async function GET(
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id: string }).id;
 
   const { id } = await params;
   const profile = await db.profiles.get(id, userId);
@@ -26,7 +26,7 @@ export async function DELETE(
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id: string }).id;
 
   const { id } = await params;
   const profile = await db.profiles.get(id, userId);

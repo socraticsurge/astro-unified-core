@@ -1,6 +1,5 @@
 "use client";
 import { Section } from "@/components/Section";
-import { dignityBadgeColor } from "@/lib/astro-utils";
 
 type Panchanga = { tithi?: string; nakshatra?: string; yoga?: string; karana?: string; vaara?: string };
 type Ayanamsa = { name?: string; value?: number };

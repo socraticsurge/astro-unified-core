@@ -25,7 +25,7 @@ export default function HomePage() {
     else { setSortCol(col); setSortDir("asc"); }
   };
 
-  const SortIcon = ({ col }: { col: keyof Profile }) => {
+  const renderSortIcon = (col: keyof Profile) => {
     if (sortCol !== col) return <ChevronsUpDown className="ml-1 h-3 w-3 inline opacity-30" />;
     return sortDir === "asc" ? <ChevronUp className="ml-1 h-3 w-3 inline" /> : <ChevronDown className="ml-1 h-3 w-3 inline" />;
   };
@@ -74,11 +74,11 @@ export default function HomePage() {
         <table className="w-full text-sm">
           <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("name")}>Name <SortIcon col="name" /></th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("date_of_birth")}>Date <SortIcon col="date_of_birth" /></th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("time_of_birth")}>Time <SortIcon col="time_of_birth" /></th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("place_of_birth")}>Place <SortIcon col="place_of_birth" /></th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("timezone")}>Timezone <SortIcon col="timezone" /></th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("name")}>Name {renderSortIcon("name")}</th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("date_of_birth")}>Date {renderSortIcon("date_of_birth")}</th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("time_of_birth")}>Time {renderSortIcon("time_of_birth")}</th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("place_of_birth")}>Place {renderSortIcon("place_of_birth")}</th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("timezone")}>Timezone {renderSortIcon("timezone")}</th>
               <th className="px-3 py-2 font-medium text-right">Actions</th>
             </tr>
           </thead>

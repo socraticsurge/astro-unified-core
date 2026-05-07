@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id: string }).id;
 
 
   const profile_id = req.nextUrl.searchParams.get("profile_id");
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = (session.user as any).id;
+  const userId = (session.user as { id: string }).id;
 
 
   const { profile_id } = await req.json();
