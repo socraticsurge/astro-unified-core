@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { isAdmin, ADMIN_EMAILS } from "@/lib/admin";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
 
