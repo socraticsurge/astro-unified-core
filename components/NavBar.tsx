@@ -14,7 +14,7 @@ export function NavBar() {
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Left: Logo + links */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-lg font-bold tracking-tight">
+          <Link href="/" className="font-heading text-xl font-semibold tracking-tight">
             ✦ Astro Chaganti
           </Link>
           {isLoggedIn && (
