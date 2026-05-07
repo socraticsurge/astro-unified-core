@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { VedAstroView } from "@/components/engines/VedAstroView";
+import { DashaflowView } from "@/components/engines/DashaflowView";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check } from "lucide-react";
 import type { Profile } from "@/lib/db";
-import { summarizeVedAstro } from "@/lib/chart-summary";
+import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
 
 type EngineState = { output: unknown; loading: boolean; error?: string };
@@ -61,12 +61,12 @@ export default function ProfileDetailPage() {
       setReading({ output: null, loading: true });
       try {
         const res = force
-          ? await fetch(`/api/readings/vedastro`, {
+          ? await fetch(`/api/readings/dashaflow`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ profile_id: id }),
             })
-          : await fetch(`/api/readings/vedastro?profile_id=${id}`);
+          : await fetch(`/api/readings/dashaflow?profile_id=${id}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Request failed");
         const innerErr = extractEngineError(data.output);
@@ -101,11 +101,11 @@ export default function ProfileDetailPage() {
   const summaryText = useMemo(() => {
     if (!profile || !reading.output) return "";
     return [
-      "=== VedAstro (Vedic) ===",
+      "=== DashaFlow (Vedic, sidereal Lahiri) ===",
       "",
       profileHeaderText(profile),
       "",
-      summarizeVedAstro(reading.output),
+      summarizeDashaflow(reading.output),
     ].join("\n");
   }, [profile, reading.output]);
 
@@ -113,7 +113,6 @@ export default function ProfileDetailPage() {
 
   return (
     <div>
-      {/* Profile header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold">{profile.name}</h1>
         <div className="flex gap-2 mt-2 flex-wrap">
@@ -124,14 +123,13 @@ export default function ProfileDetailPage() {
         </div>
       </div>
 
-      {/* Status bar */}
       <div className="flex items-center justify-between py-3 border-b mb-4">
         <div className="flex items-center gap-2">
           {!!reading.output && !reading.error && <CheckCircle className="h-4 w-4 text-green-600" />}
           {reading.error && <AlertCircle className="h-4 w-4 text-red-500" />}
           {reading.loading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
-          <span className="text-sm font-medium text-blue-400">
-            {reading.loading ? "Fetching from VedAstro…" : reading.error ? "Error" : reading.output ? "Vedic chart loaded" : "Not yet fetched"}
+          <span className="text-sm font-medium text-green-400">
+            {reading.loading ? "Fetching from DashaFlow…" : reading.error ? "Error" : reading.output ? "Vedic chart loaded" : "Not yet fetched"}
           </span>
         </div>
         <div className="flex gap-1">
@@ -159,12 +157,12 @@ export default function ProfileDetailPage() {
 
       {!reading.output && !reading.error && !reading.loading && (
         <div className="text-center py-16 text-muted-foreground">
-          <Button onClick={() => fetchReading(true)} variant="outline">Fetch VedAstro reading</Button>
+          <Button onClick={() => fetchReading(true)} variant="outline">Fetch DashaFlow reading</Button>
         </div>
       )}
 
       {!!reading.output && !showRaw && (
-        <VedAstroView output={reading.output as Record<string, unknown>} />
+        <DashaflowView output={reading.output as Record<string, unknown>} />
       )}
 
       {!!reading.output && showRaw && (
