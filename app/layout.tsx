@@ -4,6 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
 import { NavBar } from "@/components/NavBar";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Body — Inter, purpose-built for screen readability at small sizes.
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/terms" className="hover:underline">Terms of Service</Link>
           </footer>
         </NextAuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
