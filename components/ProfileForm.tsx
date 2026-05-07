@@ -66,6 +66,11 @@ export function ProfileForm() {
           <div className="space-y-1">
             <Label htmlFor="place_of_birth">Place of Birth</Label>
             <Input id="place_of_birth" name="place_of_birth" value={form.place_of_birth} onChange={handleChange} required placeholder="e.g. Erode, Tamil Nadu, India" />
+            <p className="text-xs text-muted-foreground pt-1">
+              Tip: if your village or town isn&apos;t recognized, use the nearest larger city or
+              district headquarters. Lagna calculations are usually unaffected by small
+              distance differences.
+            </p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>

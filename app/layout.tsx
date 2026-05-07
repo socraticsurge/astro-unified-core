@@ -8,8 +8,9 @@ import { NavBar } from "@/components/NavBar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AstroUnified",
-  description: "Unified Vedic, Western, and Chinese astrology in one place.",
+  title: "Astro Chaganti — Vedic birth charts by Dr. Vinay Kumar Chaganti",
+  description:
+    "Detailed Vedic birth charts: Lagna, divisional charts, 5-level Vimshottari Dasha, Yogas, Shadbala, Karakamsha, and more. By Dr. Vinay Kumar Chaganti.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <NavBar />
           <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
           <footer className="border-t border-white/10 mt-16 py-6 text-center text-xs text-muted-foreground space-x-4">
-            <span>© {new Date().getFullYear()} AstroUnified</span>
+            <span>© {new Date().getFullYear()} Astro Chaganti</span>
             <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
             <Link href="/terms" className="hover:underline">Terms of Service</Link>
           </footer>

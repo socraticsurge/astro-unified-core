@@ -1,4 +1,4 @@
-export const metadata = { title: "Terms of Service — AstroUnified" };
+export const metadata = { title: "Terms of Service — Astro Chaganti" };
 
 export default function TermsPage() {
   return (
@@ -8,11 +8,11 @@ export default function TermsPage() {
 
       <h2>What this is</h2>
       <p>
-        AstroUnified is a tool that computes astrological readings (Vedic,
-        Western, Hellenistic, Chinese, and others) for birth profiles you
-        provide. Readings are produced by open-source astronomy and astrology
-        libraries; results are informational and not a substitute for
-        professional advice.
+        Astro Chaganti is a tool that computes detailed Vedic birth charts
+        (sidereal Lahiri ayanamsha) for the profiles you provide. Readings
+        are produced by the open-source DashaFlow library and are
+        informational; they are not a substitute for a personal consultation
+        with the astrologer.
       </p>
 
       <h2>Acceptable use</h2>
@@ -32,7 +32,7 @@ export default function TermsPage() {
       <p>
         We may update these terms. Continued use after changes constitutes
         acceptance. For questions, contact{" "}
-        <a href="mailto:cvk.atreya@gmail.com">cvk.atreya@gmail.com</a>.
+        <a href="mailto:astrochaganti@gmail.com">astrochaganti@gmail.com</a>.
       </p>
     </article>
   );

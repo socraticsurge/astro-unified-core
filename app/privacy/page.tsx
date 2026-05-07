@@ -1,4 +1,4 @@
-export const metadata = { title: "Privacy Policy — AstroUnified" };
+export const metadata = { title: "Privacy Policy — Astro Chaganti" };
 
 export default function PrivacyPage() {
   return (
@@ -35,7 +35,7 @@ export default function PrivacyPage() {
       <p>
         You can delete any saved profile at any time from your dashboard. To
         delete your account entirely, email{" "}
-        <a href="mailto:cvk.atreya@gmail.com">cvk.atreya@gmail.com</a>.
+        <a href="mailto:astrochaganti@gmail.com">astrochaganti@gmail.com</a>.
       </p>
     </article>
   );

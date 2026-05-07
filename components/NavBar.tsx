@@ -15,7 +15,7 @@ export function NavBar() {
         {/* Left: Logo + links */}
         <div className="flex items-center gap-6">
           <Link href="/" className="text-lg font-bold tracking-tight">
-            ✦ AstroUnified
+            ✦ Astro Chaganti
           </Link>
           {isLoggedIn && (
             <div className="flex items-center gap-1 text-sm">

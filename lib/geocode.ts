@@ -11,7 +11,7 @@ export type GeoResult = {
 export async function geocodePlace(place: string): Promise<GeoResult> {
   const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1`;
   const res = await fetch(url, {
-    headers: { "User-Agent": "AstroUnified/1.0" },
+    headers: { "User-Agent": "AstroChaganti/1.0" },
   });
   if (!res.ok) throw new Error(`Geocoding failed: ${res.statusText}`);
 

@@ -6,22 +6,204 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Trash2 } from "lucide-react";
 
-function HeroSection() {
+function LandingPage() {
   return (
-    <div className="text-center py-24 space-y-6">
-      <div className="text-5xl mb-4">✦</div>
-      <h1 className="text-4xl font-bold tracking-tight">AstroUnified</h1>
-      <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-        Explore Vedic, Western, Chinese, and Hellenistic astrology for any birth profile — all in one place.
-      </p>
-      <div className="flex justify-center gap-4 pt-4">
+    <div className="space-y-24 py-12">
+      {/* Hero */}
+      <section className="text-center space-y-6 pt-8">
+        <div className="text-6xl">✦</div>
+        <h1 className="text-5xl font-bold tracking-tight">Astro Chaganti</h1>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Detailed Vedic birth charts, by Astrologer Dr. Vinay Kumar Chaganti.
+        </p>
+        <div className="flex justify-center gap-4 pt-2">
+          <Link href="/auth/signin">
+            <Button size="lg">Sign In with Google</Button>
+          </Link>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Sign in to create profiles for yourself and your family.
+        </p>
+      </section>
+
+      {/* About the astrologer */}
+      <section className="max-w-3xl mx-auto">
+        <h2 className="text-2xl font-semibold mb-4">About the astrologer</h2>
+        <div className="border border-white/10 rounded-lg p-6 bg-white/5 space-y-3">
+          <p className="text-base">
+            <span className="font-semibold">Dr. Vinay Kumar Chaganti</span> is a passionate
+            student and practitioner of Vedic astrology. His work centres on the classical
+            Indian tradition — sidereal calculations using the Lahiri ayanamsha, Vimshottari
+            Dasha analysis, divisional charts, and the interpretive depth of yogas and
+            karakas.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            This site is a free tool he offers to make detailed birth charts easy to generate.
+            Personal consultations are available separately by appointment.
+          </p>
+          <p className="text-xs text-muted-foreground pt-2">
+            <a
+              href="https://www.linkedin.com/in/vinaychaganti/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              LinkedIn ↗
+            </a>
+          </p>
+        </div>
+      </section>
+
+      {/* What you'll see in each chart */}
+      <section className="max-w-4xl mx-auto">
+        <h2 className="text-2xl font-semibold mb-2">What you&apos;ll see in each chart</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Every birth profile generates a full Vedic chart with the sections Dr. Chaganti
+          looks at during a consultation:
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            ["Lagna & 14 divisional charts", "Ascendant in D1 with all classical vargas through D60."],
+            ["Planetary positions", "Sign, degrees, nakshatra, pada, dignity, retrograde, combust."],
+            ["Vimshottari Dasha (5 levels)", "Mahadasha → Antardasha → Pratyantardasha → Sukshma → Prana, with full timeline."],
+            ["Yogas (planetary combinations)", "Major yogas like Malavya, Shasha, Gajakesari, Raj, Lakshmi — with explanations."],
+            ["Panchang", "Tithi, Vara, Nakshatra, Yoga, Karana for the moment of birth."],
+            ["Shadbala & strengths", "Six-fold planetary strength — Sthana, Dig, Kala, Chesta, Naisargika, Drik."],
+            ["Jaimini & Karakamsha", "Atmakaraka, karakamsha sign, Ishta Devata."],
+            ["More", "Avasthas, Bhava Chalit, Graha Yuddha, Gandanta, Arudha Padas, Upapada, Ashtakavarga."],
+          ].map(([title, body]) => (
+            <div key={title} className="border border-white/10 rounded-lg p-4 bg-white/5">
+              <div className="font-semibold text-blue-300">{title}</div>
+              <div className="text-sm text-muted-foreground mt-1">{body}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How to use it */}
+      <section className="max-w-3xl mx-auto">
+        <h2 className="text-2xl font-semibold mb-6">How to use it</h2>
+        <ol className="space-y-4">
+          {[
+            ["1", "Sign in with Google", "Your profiles are saved privately to your account."],
+            [
+              "2",
+              "Create profiles",
+              "Add yourself, your family members, and anyone else relevant for an astrological conversation.",
+            ],
+            [
+              "3",
+              "Open any profile",
+              "The full chart is generated automatically. Refresh anytime to recompute.",
+            ],
+          ].map(([n, title, body]) => (
+            <li key={n} className="flex gap-4">
+              <div className="shrink-0 w-9 h-9 rounded-full bg-blue-950/40 border border-blue-700/50 flex items-center justify-center font-bold text-blue-300">
+                {n}
+              </div>
+              <div>
+                <div className="font-semibold">{title}</div>
+                <div className="text-sm text-muted-foreground mt-0.5">{body}</div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Family recommendation */}
+      <section className="max-w-3xl mx-auto">
+        <div className="border border-amber-700/40 rounded-lg p-6 bg-amber-950/20">
+          <h2 className="text-xl font-semibold mb-3 text-amber-300">
+            Recommended: build out your family&apos;s chart, not just your own
+          </h2>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            Astrological forces affect a family as a unit, not just an individual.
+            For a fuller picture, generate profiles of everyone whose chart matters to
+            your situation — parents, spouse, children, siblings, and anyone else
+            relevant to the question you want to ask.
+          </p>
+          <p className="text-sm text-foreground/90 leading-relaxed mt-3">
+            Before requesting a consultation, please share your context and question
+            in as much detail as you can. The more specific the question, the more
+            useful the reading.
+          </p>
+        </div>
+      </section>
+
+      {/* FAQs */}
+      <section className="max-w-3xl mx-auto">
+        <h2 className="text-2xl font-semibold mb-6">Frequently asked questions</h2>
+        <div className="space-y-2">
+          {[
+            {
+              q: "My birth place isn't found, or the chart looks wrong.",
+              a: "Try the nearest larger city or district headquarters — small villages and towns are often missing from the geocoder. Coordinates within 10–20 km rarely affect the Lagna calculation, so the nearest recognised city is usually a safe substitute.",
+            },
+            {
+              q: "Can I get a personal reading from Dr. Chaganti?",
+              a: "Yes. Email astrochaganti@gmail.com and ask for a calendar link. Appointments are chargeable.",
+            },
+            {
+              q: "When is the astrologer available?",
+              a: "Typically on weekends.",
+            },
+            {
+              q: "What does it cost?",
+              a: "Contact astrochaganti@gmail.com for current pricing.",
+            },
+            {
+              q: "How do I prepare for an appointment?",
+              a: "Generate profiles for yourself and everyone relevant to your question (family members, partner, anyone whose chart bears on the situation), then write a detailed note describing your context and what you want to ask. The more specific, the better the reading.",
+            },
+            {
+              q: "Why does this chart say my Lagna is Capricorn but another app says Sagittarius?",
+              a: "This site uses the Vedic sidereal zodiac with Lahiri ayanamsha. Western/tropical astrology apps use a different reference frame — the two are offset by roughly 24°, which is enough to shift signs.",
+            },
+            {
+              q: "Is my data private?",
+              a: "Only you and Dr. Chaganti, the astrologer, can see the profiles you create. Your data is never sold or shared with anyone else.",
+            },
+          ].map(({ q, a }) => (
+            <details
+              key={q}
+              className="border border-white/10 rounded-lg bg-white/5 group"
+            >
+              <summary className="cursor-pointer list-none px-4 py-3 font-medium flex items-center justify-between">
+                <span>{q}</span>
+                <span className="text-muted-foreground text-xs ml-3 group-open:rotate-180 transition-transform">▾</span>
+              </summary>
+              <div className="px-4 pb-4 pt-1 text-sm text-muted-foreground leading-relaxed">
+                {a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section className="max-w-2xl mx-auto text-center">
+        <h2 className="text-2xl font-semibold mb-3">Contact</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          For appointments, questions, or anything else:
+        </p>
+        <a
+          href="mailto:astrochaganti@gmail.com"
+          className="inline-block border border-white/10 rounded-lg px-6 py-3 bg-white/5 hover:bg-white/10 font-mono text-base transition-colors"
+        >
+          astrochaganti@gmail.com
+        </a>
+        <p className="text-xs text-muted-foreground mt-4">
+          Email is the best way to reach Dr. Chaganti. Ask for a calendar link to set up an
+          appointment.
+        </p>
+      </section>
+
+      {/* Final CTA */}
+      <section className="text-center pb-8">
         <Link href="/auth/signin">
-          <Button size="lg">Sign In with Google</Button>
+          <Button size="lg">Get started — Sign in with Google</Button>
         </Link>
-      </div>
-      <p className="text-xs text-muted-foreground pt-2">
-        Create profiles, run multiple astrology engines, and copy results directly into any AI for deeper interpretation.
-      </p>
+      </section>
     </div>
   );
 }
@@ -74,7 +256,7 @@ export default function HomePage() {
 
   // Not logged in — show landing hero
   if (status === "unauthenticated") {
-    return <HeroSection />;
+    return <LandingPage />;
   }
 
   if (loading || status === "loading") {
@@ -83,9 +265,18 @@ export default function HomePage() {
 
   if (profiles.length === 0) {
     return (
-      <div className="text-center py-16 space-y-4">
+      <div className="max-w-2xl mx-auto py-16 space-y-6 text-center">
         <p className="text-2xl font-light text-muted-foreground">No profiles yet</p>
-        <Link href="/profiles/new"><Button>Create your first birth profile</Button></Link>
+        <Link href="/profiles/new"><Button size="lg">Create your first birth profile</Button></Link>
+        <div className="text-left border border-white/10 rounded-lg p-5 bg-white/5 mt-8 space-y-2">
+          <div className="text-sm font-semibold text-amber-300">A suggestion to get the most out of this</div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Start with your own profile, then add your family — parents, spouse,
+            children, siblings — and anyone else whose chart bears on the questions you
+            want to bring to a consultation. Astrological forces affect a family as a
+            unit, so a fuller picture is more useful than a single chart.
+          </p>
+        </div>
       </div>
     );
   }
