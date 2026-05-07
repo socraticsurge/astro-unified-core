@@ -1,4 +1,9 @@
+// VedAstro public API. Free tier is rate-limited to 5 calls/min, so we
+// keep this list at 5 to stay within budget on a fresh profile creation.
+// Once a profile is saved its reading is cached in the DB, so subsequent
+// page loads don't re-hit the API.
 const BASE = process.env.VEDASTRO_API_URL ?? "https://api.vedastro.org/api";
+const API_KEY = process.env.VEDASTRO_API_KEY;
 
 export type VedAstroInput = {
   date_of_birth: string;
@@ -29,10 +34,16 @@ function buildTimeSegment(input: VedAstroInput): string {
 }
 
 async function callCalc(path: string): Promise<unknown> {
-  const url = `${BASE}/Calculate/${path}`;
+  const apiKeySegment = API_KEY ? `APIKey/${API_KEY}/` : "";
+  const url = `${BASE}/${apiKeySegment}Calculate/${path}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`VedAstro API error ${res.status}: ${url}`);
-  return res.json();
+  const json = (await res.json()) as { Status?: string; Payload?: unknown };
+  if (json?.Status === "Fail") {
+    const msg = typeof json.Payload === "string" ? json.Payload : "VedAstro returned Status=Fail";
+    throw new Error(msg);
+  }
+  return json;
 }
 
 export async function fetchVedAstro(input: VedAstroInput): Promise<VedAstroOutput> {
@@ -43,15 +54,17 @@ export async function fetchVedAstro(input: VedAstroInput): Promise<VedAstroOutpu
   const raw_responses: Record<string, unknown> = {};
   const errors: Record<string, string> = {};
 
-  // Note: VedAstro's DasaForNow endpoint returns Start = End = current moment with
-  // 0-hour duration (server-side bug). Vimshottari dasha is provided by Jyotishganit
-  // which is accurate. So we don't fetch dasha from VedAstro.
+  // 5 calls — picked for highest signal in a Vedic birth-chart view.
+  // DasaForNow returns a 3-level Vimshottari tree
+  // (Mahadasa → Bhukti → Antaram) with planet lords, natures, and
+  // descriptions. The endpoint's start/end timestamps are unreliable
+  // (known VedAstro quirk) but the structural tree is correct.
   const calcs = [
-    { key: "planetary_positions", path: `AllPlanetLongitude/${locTime}` },
-    { key: "house_cusps",         path: `AllHouseLongitudes/${locTime}` },
-    { key: "rising_sign",         path: `LagnaSignName/${locTime}` },
-    { key: "ashtakavarga",        path: `BhinnashtakavargaChart/${locTime}` },
-    { key: "shadbala",            path: `PlanetShadbalaPinda/${locTime}` },
+    { key: "planets",       path: `AllPlanetLongitude/${locTime}` },
+    { key: "houses",        path: `AllHouseLongitudes/${locTime}` },
+    { key: "rising_sign",   path: `LagnaSignName/${locTime}` },
+    { key: "ashtakavarga",  path: `BhinnashtakavargaChart/${locTime}` },
+    { key: "dasha",         path: `DasaForNow/${locTime}` },
   ];
 
   await Promise.all(

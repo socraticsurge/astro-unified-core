@@ -1,4 +1,6 @@
 "use client";
+import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { Section } from "@/components/Section";
 import { parseVedAstroPlanets, longitudeToSign, longitudeToDegreesInSign } from "@/lib/astro-utils";
 
@@ -9,16 +11,77 @@ const PLANETS_ORDER = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn"]
 
 function houseNum(h: string): number { return parseInt(h.replace("House", "")); }
 
+type DasaNode = {
+  Type: string;
+  Lord: string;
+  Description?: string;
+  Nature?: string;
+  ParentLord?: string | null;
+  SubDasas?: Record<string, DasaNode>;
+};
+
+const NATURE_COLOR: Record<string, string> = {
+  Good: "text-emerald-400",
+  Bad: "text-red-400",
+  Neutral: "text-amber-300",
+};
+
+function DasaTree({ nodes, level = 0 }: { nodes: Record<string, DasaNode>; level?: number }) {
+  const labels = ["Mahadasha", "Antardasha", "Pratyantardasha"];
+  return (
+    <ul className="space-y-1">
+      {Object.entries(nodes).map(([planet, node]) => (
+        <DasaItem key={`${level}-${planet}`} planet={planet} node={node} level={level} levelLabel={labels[level] ?? "Sub"} />
+      ))}
+    </ul>
+  );
+}
+
+function DasaItem({ planet, node, level, levelLabel }: { planet: string; node: DasaNode; level: number; levelLabel: string }) {
+  const [open, setOpen] = useState(level === 0);
+  const hasChildren = node.SubDasas && Object.keys(node.SubDasas).length > 0;
+  const natureClass = NATURE_COLOR[node.Nature ?? "Neutral"] ?? "text-foreground";
+  return (
+    <li>
+      <div
+        className={`flex items-start gap-2 py-1 ${hasChildren ? "cursor-pointer hover:bg-white/5 rounded -mx-1 px-1" : ""}`}
+        onClick={() => hasChildren && setOpen((o) => !o)}
+        style={{ paddingLeft: `${level * 12}px` }}
+      >
+        {hasChildren ? (
+          <ChevronRight className={`h-4 w-4 mt-0.5 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
+        ) : (
+          <span className="w-4" />
+        )}
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium">{planet}</span>
+            <span className="text-xs text-muted-foreground">{levelLabel}</span>
+            {node.Nature && <span className={`text-xs ${natureClass}`}>· {node.Nature}</span>}
+          </div>
+          {open && node.Description && (
+            <p className="text-xs text-muted-foreground leading-relaxed mt-1 mb-1">{node.Description}</p>
+          )}
+        </div>
+      </div>
+      {hasChildren && open && (
+        <DasaTree nodes={node.SubDasas as Record<string, DasaNode>} level={level + 1} />
+      )}
+    </li>
+  );
+}
+
 export function VedAstroView({ output }: Props) {
   const raw = output.raw_responses as Record<string, unknown> | undefined;
   const errors = output.errors as Record<string, string> | undefined;
   if (!raw) return <p className="text-muted-foreground text-sm p-4">No data</p>;
 
   const lagna = (raw.rising_sign as { Payload?: { LagnaSignName?: string } } | undefined)?.Payload?.LagnaSignName;
-  const planetsRaw = (raw.planetary_positions as { Payload?: { AllPlanetLongitude?: string } } | undefined)?.Payload?.AllPlanetLongitude;
+  const planetsRaw = (raw.planets as { Payload?: { AllPlanetLongitude?: string } } | undefined)?.Payload?.AllPlanetLongitude;
   const planets = planetsRaw ? parseVedAstroPlanets(planetsRaw) : [];
-  const housesRaw = (raw.house_cusps as { Payload?: { AllHouseLongitudes?: Array<{ House: string; Begin: string; Mid: string; End: string }> } } | undefined)?.Payload?.AllHouseLongitudes ?? [];
+  const housesRaw = (raw.houses as { Payload?: { AllHouseLongitudes?: Array<{ House: string; Begin: string; Mid: string; End: string }> } } | undefined)?.Payload?.AllHouseLongitudes ?? [];
   const avPayload = (raw.ashtakavarga as { Payload?: { BhinnashtakavargaChart?: Record<string, { Total: number; Rows: number[] }> } } | undefined)?.Payload?.BhinnashtakavargaChart;
+  const dashaPayload = (raw.dasha as { Payload?: { DasaForNow?: Record<string, DasaNode> } } | undefined)?.Payload?.DasaForNow;
 
   const accent = "text-blue-400";
   const row = "border-b border-white/10 hover:bg-white/5";
@@ -90,6 +153,18 @@ export function VedAstroView({ output }: Props) {
         </Section>
       )}
 
+      {dashaPayload && Object.keys(dashaPayload).length > 0 && (
+        <Section title="Vimshottari Dasha (current)" accent={accent}>
+          <p className="text-xs text-muted-foreground mb-2">
+            Click rows to expand into Antardasha and Pratyantardasha. Lord nature: {" "}
+            <span className="text-emerald-400">Good</span> · {" "}
+            <span className="text-amber-300">Neutral</span> · {" "}
+            <span className="text-red-400">Bad</span>.
+          </p>
+          <DasaTree nodes={dashaPayload} />
+        </Section>
+      )}
+
       {avPayload && (
         <Section title="Ashtakavarga — Bhinnashtakavarga Chart" accent={accent}>
           <div className="overflow-x-auto mt-2">
@@ -113,7 +188,6 @@ export function VedAstroView({ output }: Props) {
                     <td className="py-2 px-2 text-center font-bold text-blue-300">{avPayload[planet].Total}</td>
                   </tr>
                 ))}
-                {/* SAV total row */}
                 <tr className="border-t-2 border-blue-800/50 bg-blue-950/20">
                   <td className="py-2 pr-3 font-bold text-blue-400">SAV</td>
                   {SIGNS.map((_, i) => {

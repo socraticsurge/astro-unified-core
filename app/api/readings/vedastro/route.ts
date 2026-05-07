@@ -22,7 +22,13 @@ export async function GET(req: NextRequest) {
 
   const cached = await db.readings.latestByEngine(profile_id, "vedastro");
   if (cached) {
-    return NextResponse.json({ output: JSON.parse(cached.output_data as string), cached: true });
+    const parsed = JSON.parse(cached.output_data as string);
+    // Stale cache from before the schema change has keys like
+    // `planetary_positions`/`house_cusps`; fall through and re-fetch.
+    const raw = (parsed?.raw_responses ?? {}) as Record<string, unknown>;
+    if (raw.planets && raw.houses) {
+      return NextResponse.json({ output: parsed, cached: true });
+    }
   }
 
   const input = {
