@@ -1,5 +1,10 @@
 "use client";
 import { useState } from "react";
+
+function safeJson(text: string): { id?: string; error?: string } | null {
+  try { return JSON.parse(text); } catch { return null; }
+}
+
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,12 +32,13 @@ export function ProfileForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+      const text = await res.text();
+      const data = text ? safeJson(text) : null;
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Failed to create profile");
+        throw new Error(data?.error ?? `Failed (${res.status} ${res.statusText})`);
       }
-      const profile = await res.json();
-      router.push(`/profiles/${profile.id}`);
+      if (!data?.id) throw new Error("Server returned unexpected response");
+      router.push(`/profiles/${data.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {

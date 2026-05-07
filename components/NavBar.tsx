@@ -2,13 +2,12 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
-const ADMIN_EMAIL = "cvk.atreya@gmail.com";
+import { isAdmin } from "@/lib/admin";
 
 export function NavBar() {
   const { data: session, status } = useSession();
   const isLoggedIn = status === "authenticated";
-  const isAdmin = session?.user?.email === ADMIN_EMAIL;
+  const showAdmin = isAdmin(session);
 
   return (
     <nav className="border-b bg-background sticky top-0 z-10">
@@ -26,7 +25,7 @@ export function NavBar() {
               >
                 Profiles
               </Link>
-              {isAdmin && (
+              {showAdmin && (
                 <Link
                   href="/admin"
                   className="px-2 py-1 rounded-md text-amber-400/80 hover:text-amber-400 hover:bg-muted transition-colors"

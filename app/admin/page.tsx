@@ -1,13 +1,13 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-
-const ADMIN_EMAIL = "cvk.atreya@gmail.com";
+import { authOptions } from "@/lib/auth";
+import { isAdmin, ADMIN_EMAILS } from "@/lib/admin";
 
 export default async function AdminPage() {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email || session.user.email !== ADMIN_EMAIL) {
+  if (!isAdmin(session)) {
     redirect("/");
   }
 
@@ -21,7 +21,7 @@ export default async function AdminPage() {
       <div>
         <h1 className="text-2xl font-bold mb-1">Admin Dashboard</h1>
         <p className="text-sm text-muted-foreground">
-          Visible only to {ADMIN_EMAIL}
+          Visible only to {ADMIN_EMAILS.join(", ")}
         </p>
       </div>
 
