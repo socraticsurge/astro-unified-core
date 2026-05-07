@@ -10,56 +10,24 @@ function LandingPage() {
   return (
     <div className="space-y-24 py-12">
       {/* Hero */}
-      <section className="text-center space-y-6 pt-8">
+      <section className="text-center space-y-5 pt-8">
         <div className="text-6xl">✦</div>
         <h1 className="text-5xl font-bold tracking-tight">Astro Chaganti</h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Detailed Vedic birth charts, by Astrologer Dr. Vinay Kumar Chaganti.
         </p>
-        <div className="flex justify-center gap-4 pt-2">
-          <Link href="/auth/signin">
-            <Button size="lg">Sign In with Google</Button>
-          </Link>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Sign in to create profiles for yourself and your family.
+        <p className="text-sm text-muted-foreground">
+          Sign in (top right) to create profiles for yourself and your family.
         </p>
       </section>
 
-      {/* About the astrologer */}
-      <section className="max-w-3xl mx-auto">
-        <h2 className="text-2xl font-semibold mb-4">About the astrologer</h2>
-        <div className="border border-white/10 rounded-lg p-6 bg-white/5 space-y-3">
-          <p className="text-base">
-            <span className="font-semibold">Dr. Vinay Kumar Chaganti</span> is a passionate
-            student and practitioner of Vedic astrology. His work centres on the classical
-            Indian tradition — sidereal calculations using the Lahiri ayanamsha, Vimshottari
-            Dasha analysis, divisional charts, and the interpretive depth of yogas and
-            karakas.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            This site is a free tool he offers to make detailed birth charts easy to generate.
-            Personal consultations are available separately by appointment.
-          </p>
-          <p className="text-xs text-muted-foreground pt-2">
-            <a
-              href="https://www.linkedin.com/in/vinaychaganti/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline"
-            >
-              LinkedIn ↗
-            </a>
-          </p>
-        </div>
-      </section>
-
-      {/* What you'll see in each chart */}
+      {/* What this is */}
       <section className="max-w-4xl mx-auto">
-        <h2 className="text-2xl font-semibold mb-2">What you&apos;ll see in each chart</h2>
-        <p className="text-sm text-muted-foreground mb-6">
-          Every birth profile generates a full Vedic chart with the sections Dr. Chaganti
-          looks at during a consultation:
+        <h2 className="text-2xl font-semibold mb-2">What this is</h2>
+        <p className="text-sm text-muted-foreground mb-6 max-w-3xl">
+          Astro Chaganti generates a detailed Vedic birth chart for any profile you create
+          — using the sidereal Lahiri ayanamsha and Swiss Ephemeris computations. Every
+          chart includes:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
@@ -85,7 +53,7 @@ function LandingPage() {
         <h2 className="text-2xl font-semibold mb-6">How to use it</h2>
         <ol className="space-y-4">
           {[
-            ["1", "Sign in with Google", "Your profiles are saved privately to your account."],
+            ["1", "Sign in with Google", "Use the Sign In button in the top-right corner. Your profiles are saved privately to your account."],
             [
               "2",
               "Create profiles",
@@ -110,11 +78,36 @@ function LandingPage() {
         </ol>
       </section>
 
+      {/* About the astrologer */}
+      <section className="max-w-3xl mx-auto">
+        <h2 className="text-2xl font-semibold mb-4">About the astrologer</h2>
+        <div className="border border-white/10 rounded-lg p-6 bg-white/5 space-y-4">
+          <p className="text-base leading-relaxed">
+            <span className="font-semibold">Dr. Vinay Kumar Chaganti</span> brings a
+            researcher&apos;s discipline to the study and practice of Vedic astrology. His
+            approach is grounded in close reading of the classical Sanskrit canon, careful
+            attention to sidereal calculations using the Lahiri ayanamsha, and
+            cross-referencing across the major classical schools — Parashari, Jaimini, and
+            the Tajika tradition.
+          </p>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            He treats each consultation as a structured research engagement: rooted in the
+            specifics of the chart rather than generic prediction, and supported by the
+            kind of computational precision and source-rigor he is known for in his other
+            scholarly work.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            This site is a free tool he offers to make detailed birth charts easy to
+            generate. Personal consultations are available separately, by appointment.
+          </p>
+        </div>
+      </section>
+
       {/* Family recommendation */}
       <section className="max-w-3xl mx-auto">
         <div className="border border-amber-700/40 rounded-lg p-6 bg-amber-950/20">
           <h2 className="text-xl font-semibold mb-3 text-amber-300">
-            Recommended: build out your family&apos;s chart, not just your own
+            Dr. Chaganti recommends: build out your family&apos;s chart, not just your own
           </h2>
           <p className="text-sm text-foreground/90 leading-relaxed">
             Astrological forces affect a family as a unit, not just an individual.
@@ -156,8 +149,8 @@ function LandingPage() {
               a: "Generate profiles for yourself and everyone relevant to your question (family members, partner, anyone whose chart bears on the situation), then write a detailed note describing your context and what you want to ask. The more specific, the better the reading.",
             },
             {
-              q: "Why does this chart say my Lagna is Capricorn but another app says Sagittarius?",
-              a: "This site uses the Vedic sidereal zodiac with Lahiri ayanamsha. Western/tropical astrology apps use a different reference frame — the two are offset by roughly 24°, which is enough to shift signs.",
+              q: "Why does this chart show different signs than other astrology apps?",
+              a: "This site uses the Vedic sidereal zodiac with the Lahiri ayanamsha. Western or tropical astrology apps use a different reference frame, and the two are offset by roughly 24° — enough to shift the Lagna and several planets by a sign. Both can be internally consistent; they're answering different questions.",
             },
             {
               q: "Is my data private?",
@@ -196,13 +189,6 @@ function LandingPage() {
           Email is the best way to reach Dr. Chaganti. Ask for a calendar link to set up an
           appointment.
         </p>
-      </section>
-
-      {/* Final CTA */}
-      <section className="text-center pb-8">
-        <Link href="/auth/signin">
-          <Button size="lg">Get started — Sign in with Google</Button>
-        </Link>
       </section>
     </div>
   );
