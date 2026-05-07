@@ -121,60 +121,10 @@ def calculate_western(data: BirthData):
 
 @app.post("/calculate/hellenistic")
 def calculate_hellenistic(data: BirthData):
-    try:
-        from flatlib import const, chart as flat_chart, aspects as flat_aspects
-        from flatlib.datetime import Datetime
-        from flatlib.geopos import GeoPos
-        year, month, day = data.date_of_birth.split("-")
-        hour, minute = data.time_of_birth.split(":")
-        local_decimal = int(hour) + int(minute) / 60.0
-        utc_decimal = local_decimal - data.timezone_offset
-        utc_date = datetime.strptime(data.date_of_birth, "%Y-%m-%d")
-        if utc_decimal < 0:
-            from datetime import timedelta
-            utc_date = utc_date - timedelta(days=1)
-            utc_decimal += 24
-        elif utc_decimal >= 24:
-            from datetime import timedelta
-            utc_date = utc_date + timedelta(days=1)
-            utc_decimal -= 24
-        utc_h = int(utc_decimal)
-        utc_m = int((utc_decimal - utc_h) * 60)
-        utc_date_str = utc_date.strftime("%Y/%m/%d")
-        utc_time_str = f"{utc_h:02d}:{utc_m:02d}"
-        date = Datetime(utc_date_str, utc_time_str, "+00:00")
-        pos = GeoPos(data.latitude, data.longitude)
-        c = flat_chart.Chart(date, pos)
-        PLANETS = [
-            const.SUN, const.MOON, const.MERCURY, const.VENUS, const.MARS,
-            const.JUPITER, const.SATURN, const.URANUS, const.NEPTUNE, const.PLUTO,
-        ]
-        HOUSES = [
-            const.HOUSE1, const.HOUSE2, const.HOUSE3, const.HOUSE4,
-            const.HOUSE5, const.HOUSE6, const.HOUSE7, const.HOUSE8,
-            const.HOUSE9, const.HOUSE10, const.HOUSE11, const.HOUSE12,
-        ]
-        def serialize_obj(obj):
-            return {
-                "id": obj.id,
-                "lon": round(obj.lon, 4),
-                "lat": round(obj.lat, 4) if hasattr(obj, "lat") else None,
-                "speed": round(obj.speed, 4) if hasattr(obj, "speed") else None,
-                "sign": obj.sign,
-                "signlon": round(obj.signlon, 4),
-                "house": obj.house if hasattr(obj, "house") else None,
-            }
-        planets_data = {p: serialize_obj(c.get(p)) for p in PLANETS}
-        houses_data = {h: serialize_obj(c.get(h)) for h in HOUSES}
-        return {
-            "status": "ok",
-            "data": {
-                "planets": planets_data,
-                "houses": houses_data,
-            },
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(
+        status_code=501, 
+        detail="Hellenistic calculator (flatlib) is temporarily disabled due to dependency conflicts."
+    )
 
 @app.get("/health")
 def health():
