@@ -118,6 +118,11 @@ export const db = {
       });
       return rs.rows as unknown as Profile[];
     },
+    async listAll(): Promise<Profile[]> {
+      await ensureSchema();
+      const rs = await getClient().execute("SELECT * FROM profiles ORDER BY created_at DESC");
+      return rs.rows as unknown as Profile[];
+    },
     async get(id: string, userId: string): Promise<Profile | undefined> {
       await ensureSchema();
       const rs = await getClient().execute({

@@ -1,11 +1,33 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import type { Profile } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Trash2 } from "lucide-react";
 
+function HeroSection() {
+  return (
+    <div className="text-center py-24 space-y-6">
+      <div className="text-5xl mb-4">✦</div>
+      <h1 className="text-4xl font-bold tracking-tight">AstroUnified</h1>
+      <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+        Explore Vedic, Western, Chinese, and Hellenistic astrology for any birth profile — all in one place.
+      </p>
+      <div className="flex justify-center gap-4 pt-4">
+        <Link href="/auth/signin">
+          <Button size="lg">Sign In with Google</Button>
+        </Link>
+      </div>
+      <p className="text-xs text-muted-foreground pt-2">
+        Create profiles, run multiple astrology engines, and copy results directly into any AI for deeper interpretation.
+      </p>
+    </div>
+  );
+}
+
 export default function HomePage() {
+  const { status } = useSession();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,10 +55,16 @@ export default function HomePage() {
   const load = () =>
     fetch("/api/profiles")
       .then((r) => r.json())
-      .then(setProfiles)
+      .then((data) => setProfiles(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (status === "authenticated") {
+      load();
+    } else if (status !== "loading") {
+      setLoading(false);
+    }
+  }, [status]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this profile and all its readings?")) return;
@@ -44,7 +72,14 @@ export default function HomePage() {
     setProfiles((p) => p.filter((x) => x.id !== id));
   };
 
-  if (loading) return <div className="text-center py-16 text-muted-foreground">Loading…</div>;
+  // Not logged in — show landing hero
+  if (status === "unauthenticated") {
+    return <HeroSection />;
+  }
+
+  if (loading || status === "loading") {
+    return <div className="text-center py-16 text-muted-foreground">Loading…</div>;
+  }
 
   if (profiles.length === 0) {
     return (

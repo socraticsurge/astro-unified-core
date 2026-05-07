@@ -3,12 +3,13 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
+import { NavBar } from "@/components/NavBar";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "AstroUnified",
-  description: "Unified Vedic astrology interface",
+  description: "Unified Vedic, Western, and Chinese astrology in one place.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,29 +17,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className="dark">
       <body className={inter.className}>
         <NextAuthProvider>
-          <nav className="border-b bg-background sticky top-0 z-10">
-            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <Link href="/" className="text-lg font-bold tracking-tight">
-                  ✦ AstroUnified
-                </Link>
-                <div className="flex items-center gap-1 text-sm">
-                  <Link
-                    href="/"
-                    className="px-2 py-1 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
-                  >
-                    Profiles
-                  </Link>
-                </div>
-              </div>
-              <Link href="/profiles/new">
-                <button className="text-sm px-3 py-1 rounded-md border hover:bg-muted transition-colors">
-                  + New Profile
-                </button>
-              </Link>
-            </div>
-          </nav>
+          <NavBar />
           <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
+          <footer className="border-t border-white/10 mt-16 py-6 text-center text-xs text-muted-foreground space-x-4">
+            <span>© {new Date().getFullYear()} AstroUnified</span>
+            <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+            <Link href="/terms" className="hover:underline">Terms of Service</Link>
+          </footer>
         </NextAuthProvider>
       </body>
     </html>
