@@ -1,6 +1,14 @@
 import { withAuth } from "next-auth/middleware";
 
+const PUBLIC_PATHS = new Set(["/", "/privacy", "/terms"]);
+
 export default withAuth({
+  callbacks: {
+    authorized: ({ token, req }) => {
+      if (PUBLIC_PATHS.has(req.nextUrl.pathname)) return true;
+      return !!token;
+    },
+  },
   pages: {
     signIn: "/auth/signin",
   },
