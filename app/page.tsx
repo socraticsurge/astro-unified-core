@@ -88,7 +88,7 @@ function LandingPage() {
         <h2 className="font-heading text-3xl font-medium mb-4">About the astrologer</h2>
         <div className="border border-white/10 rounded-lg p-6 bg-white/5 space-y-4">
           <p className="text-base leading-relaxed">
-            <span className="font-semibold">Dr. Vinay Kumar Chaganti</span> brings a researcher&apos;s discipline to his study and practice of Vedic astrology.
+            <span className="font-semibold">Dr. Vinay Kumar Chaganti </span>brings a researcher&apos;s discipline to his study and practice of Vedic astrology.
             His approach is methodical, grounded in the classical tradition, and
             attentive to the precision of sidereal calculations.
           </p>
