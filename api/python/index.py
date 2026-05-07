@@ -8,6 +8,20 @@ import jyotishganit
 
 app = FastAPI(title="Astrology Sidecar")
 
+# Vercel's Python runtime may pass paths either with or without the
+# /api/python prefix depending on how the function was invoked
+# (direct match vs. via vercel.json rewrite). A simple ASGI middleware
+# strips the prefix if present so the route table below stays clean.
+@app.middleware("http")
+async def strip_prefix(request, call_next):
+    raw = request.scope.get("path", "")
+    if raw.startswith("/api/python"):
+        new_path = raw[len("/api/python"):] or "/"
+        request.scope["path"] = new_path
+        if "raw_path" in request.scope:
+            request.scope["raw_path"] = new_path.encode()
+    return await call_next(request)
+
 # Reconstruct the star catalog if chunks exist
 DATA_DIR = "/tmp/data"
 CATALOG_PATH = os.path.join(DATA_DIR, "hip_main.dat")
