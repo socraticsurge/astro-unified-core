@@ -4,6 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
 import { NavBar } from "@/components/NavBar";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const cormorant = Cormorant_Garamond({
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/terms" className="hover:underline">Terms of Service</Link>
           </footer>
         </NextAuthProvider>
+        <Analytics />
       </body>
     </html>
   );
