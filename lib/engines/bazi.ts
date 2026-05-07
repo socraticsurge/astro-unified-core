@@ -9,9 +9,10 @@ export type BaziOutput = {
   error?: string;
 };
 
+import { BaziCalculator } from "bazi-calculator-by-alvamind";
+
 export async function fetchBazi(input: BaziInput): Promise<BaziOutput> {
   try {
-    const { BaziCalculator } = await import("bazi-calculator-by-alvamind");
     const [year, month, day] = input.date_of_birth.split("-").map(Number);
     const [hour] = input.time_of_birth.split(":").map(Number);
     const gender = input.gender ?? "male";
