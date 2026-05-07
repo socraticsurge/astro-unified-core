@@ -8,20 +8,6 @@ import jyotishganit
 
 app = FastAPI(title="Astrology Sidecar")
 
-# Vercel's Python runtime may pass paths either with or without the
-# /api/python prefix depending on how the function was invoked
-# (direct match vs. via vercel.json rewrite). A simple ASGI middleware
-# strips the prefix if present so the route table below stays clean.
-@app.middleware("http")
-async def strip_prefix(request, call_next):
-    raw = request.scope.get("path", "")
-    if raw.startswith("/api/python"):
-        new_path = raw[len("/api/python"):] or "/"
-        request.scope["path"] = new_path
-        if "raw_path" in request.scope:
-            request.scope["raw_path"] = new_path.encode()
-    return await call_next(request)
-
 # Reconstruct the star catalog if chunks exist
 DATA_DIR = "/tmp/data"
 CATALOG_PATH = os.path.join(DATA_DIR, "hip_main.dat")
@@ -70,6 +56,7 @@ class BirthData(BaseModel):
     name: str = "Native"
 
 @app.post("/calculate")
+@app.post("/api/sidecar/calculate")
 def calculate_jyotishganit(data: BirthData):
     try:
         birth_datetime = datetime.strptime(
@@ -87,6 +74,7 @@ def calculate_jyotishganit(data: BirthData):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/calculate/western")
+@app.post("/api/sidecar/calculate/western")
 def calculate_western(data: BirthData):
     try:
         from kerykeion import AstrologicalSubject, NatalAspects
@@ -134,6 +122,7 @@ def calculate_western(data: BirthData):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/calculate/hellenistic")
+@app.post("/api/sidecar/calculate/hellenistic")
 def calculate_hellenistic(data: BirthData):
     raise HTTPException(
         status_code=501, 
@@ -141,5 +130,6 @@ def calculate_hellenistic(data: BirthData):
     )
 
 @app.get("/health")
+@app.get("/api/sidecar/health")
 def health():
     return {"status": "ok", "catalog_ready": os.path.exists(CATALOG_PATH)}
