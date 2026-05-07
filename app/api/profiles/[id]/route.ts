@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isAdmin } from "@/lib/admin";
 
 export async function GET(
   _req: NextRequest,
@@ -14,7 +15,9 @@ export async function GET(
   const userId = (session.user as { id: string }).id;
 
   const { id } = await params;
-  const profile = await db.profiles.get(id, userId);
+  const profile = isAdmin(session)
+    ? await db.profiles.getAny(id)
+    : await db.profiles.get(id, userId);
   if (!profile) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(profile);
 }

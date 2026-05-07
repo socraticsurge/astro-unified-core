@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { fetchNumerology } from "@/lib/engines/numerology";
 import { extractEngineError } from "@/lib/engine-error";
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   const profile_id = req.nextUrl.searchParams.get("profile_id");
   if (!profile_id) return NextResponse.json({ error: "profile_id is required" }, { status: 400 });
 
-  const profile = await db.profiles.get(profile_id, userId);
+  const profile = isAdmin(session) ? await db.profiles.getAny(profile_id) : await db.profiles.get(profile_id, userId);
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
 
   const cached = await db.readings.latestByEngine(profile_id, "numerology");
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
 
 
   const { profile_id } = await req.json();
-  const profile = await db.profiles.get(profile_id, userId);
+  const profile = isAdmin(session) ? await db.profiles.getAny(profile_id) : await db.profiles.get(profile_id, userId);
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
 
   const input = {

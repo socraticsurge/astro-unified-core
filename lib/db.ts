@@ -123,11 +123,28 @@ export const db = {
       const rs = await getClient().execute("SELECT * FROM profiles ORDER BY created_at DESC");
       return rs.rows as unknown as Profile[];
     },
+    async listAllWithUser(): Promise<(Profile & { user_name: string | null; user_email: string | null })[]> {
+      await ensureSchema();
+      const rs = await getClient().execute(`
+        SELECT p.*, u.name AS user_name, u.email AS user_email
+        FROM profiles p LEFT JOIN users u ON u.id = p.user_id
+        ORDER BY p.created_at DESC
+      `);
+      return rs.rows as unknown as (Profile & { user_name: string | null; user_email: string | null })[];
+    },
     async get(id: string, userId: string): Promise<Profile | undefined> {
       await ensureSchema();
       const rs = await getClient().execute({
         sql: "SELECT * FROM profiles WHERE id = ? AND user_id = ?",
         args: [id, userId],
+      });
+      return rs.rows[0] as unknown as Profile | undefined;
+    },
+    async getAny(id: string): Promise<Profile | undefined> {
+      await ensureSchema();
+      const rs = await getClient().execute({
+        sql: "SELECT * FROM profiles WHERE id = ?",
+        args: [id],
       });
       return rs.rows[0] as unknown as Profile | undefined;
     },

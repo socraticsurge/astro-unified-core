@@ -186,35 +186,6 @@ function summarizeHellenistic(out: Output): string {
   return lines.join("\n");
 }
 
-function summarizeBazi(out: Output): string {
-  if (!isObj(out)) return "";
-  const data = (out.data as Record<string, unknown>) ?? {};
-  const pillars = data.mainPillars as Record<string, { chinese?: string; element?: string; animal?: string; branch?: { element?: string } }> | undefined;
-  const a = data.basicAnalysis as Record<string, unknown> | undefined;
-  const lines: string[] = [];
-  if (pillars) {
-    for (const k of ["year", "month", "day", "time"] as const) {
-      const p = pillars[k];
-      if (p) lines.push(`  ${k}: ${p.chinese} (stem ${p.element}, branch ${p.branch?.element}, animal ${p.animal})`);
-    }
-  }
-  if (a) {
-    const dm = a.dayMaster as { stem?: string; nature?: string; element?: string } | undefined;
-    if (dm) lines.push(`Day Master: ${dm.stem} ${dm.nature} ${dm.element}`);
-    const ff = a.fiveFactors as Record<string, number> | undefined;
-    if (ff) lines.push(`Five Elements: ${Object.entries(ff).map(([k, v]) => `${k}=${v}`).join(", ")}`);
-    const em = a.eightMansions as { group?: string; lucky?: Record<string, string>; unlucky?: Record<string, string> } | undefined;
-    if (em) {
-      lines.push(`Eight Mansions group: ${em.group}`);
-      if (em.lucky) lines.push(`  Lucky: ${Object.entries(em.lucky).map(([k, v]) => `${k}=${v}`).join(", ")}`);
-      if (em.unlucky) lines.push(`  Unlucky: ${Object.entries(em.unlucky).map(([k, v]) => `${k}=${v}`).join(", ")}`);
-    }
-    if (a.lifeGua !== undefined) lines.push(`Life Gua: ${a.lifeGua}`);
-    if (a.nobleman) lines.push(`Nobleman: ${(a.nobleman as string[]).join(", ")}`);
-  }
-  return lines.join("\n");
-}
-
 function summarizeNumerology(out: Output): string {
   if (!isObj(out)) return "";
   const data = (out.data as Record<string, unknown>) ?? {};
@@ -338,7 +309,6 @@ const SUMMARIZERS: Record<string, (o: Output) => string> = {
   jyotishganit: summarizeJyotishganit,
   western: summarizeWestern,
   hellenistic: summarizeHellenistic,
-  bazi: summarizeBazi,
   numerology: summarizeNumerology,
   dashaflow: summarizeDashaflow,
   stellium: summarizeStellium,

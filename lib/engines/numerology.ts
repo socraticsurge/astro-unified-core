@@ -1,4 +1,4 @@
-const SIDECAR = process.env.PYTHON_SIDECAR_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/api/python` : "http://localhost:3000/api/python");
+import { SIDECAR_URL as SIDECAR } from "@/lib/python-sidecar";
 
 export type NumerologyInput = {
   date_of_birth: string;

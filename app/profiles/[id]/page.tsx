@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { isAdmin } from "@/lib/admin";
 import { VedAstroView } from "@/components/engines/VedAstroView";
 import { PanchangamView } from "@/components/engines/PanchangamView";
 import { JyotishganitView } from "@/components/engines/JyotishganitView";
 import { WesternView } from "@/components/engines/WesternView";
 import { HellenisticView } from "@/components/engines/HellenisticView";
-import { BaziView } from "@/components/engines/BaziView";
 import { NumerologyView } from "@/components/engines/NumerologyView";
 import { DashaflowView } from "@/components/engines/DashaflowView";
 import { StelliumView } from "@/components/engines/StelliumView";
@@ -27,7 +28,6 @@ const ENGINE_KEYS = [
   "jyotishganit",
   "western",
   "hellenistic",
-  "bazi",
   "numerology",
   "dashaflow",
   "stellium",
@@ -40,7 +40,6 @@ const ENGINE_LABELS: Record<EngineKey, string> = {
   jyotishganit: "Jyotishganit (Vedic — divisional charts, Vimshottari)",
   western: "Western — Kerykeion (tropical)",
   hellenistic: "Hellenistic — flatlib (essential dignities, Pars Fortuna)",
-  bazi: "Chinese Ba Zi (Four Pillars)",
   numerology: "Numerology (Pythagorean + Chaldean)",
   dashaflow: "Dashaflow (Vedic — Shadbala, Yogas, Jaimini, Karakamsha)",
   stellium: "Stellium (Hellenistic — profections, Arabic Parts, sect)",
@@ -52,7 +51,6 @@ const ENGINE_ACCENTS: Record<EngineKey, string> = {
   jyotishganit: "text-green-400",
   western: "text-indigo-400",
   hellenistic: "text-purple-400",
-  bazi: "text-red-400",
   numerology: "text-emerald-400",
   dashaflow: "text-green-400",
   stellium: "text-rose-400",
@@ -170,7 +168,6 @@ function EngineTab({
         engine === "jyotishganit" ? <JyotishganitView output={state.output as Record<string, unknown>} /> :
         engine === "western" ? <WesternView output={state.output as Record<string, unknown>} /> :
         engine === "hellenistic" ? <HellenisticView output={state.output as Record<string, unknown>} /> :
-        engine === "bazi" ? <BaziView output={state.output as Record<string, unknown>} /> :
         engine === "numerology" ? <NumerologyView output={state.output as Record<string, unknown>} /> :
         engine === "dashaflow" ? <DashaflowView output={state.output as Record<string, unknown>} /> :
         engine === "stellium" ? <StelliumView output={state.output as Record<string, unknown>} /> :
@@ -239,6 +236,8 @@ function AllSystemsTab({ profile, engines }: { profile: Profile; engines: Record
 
 export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { data: session } = useSession();
+  const showAllSystems = isAdmin(session);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [engines, setEngines] = useState<Record<EngineKey, EngineState>>({
     vedastro: DEFAULT_ENGINE,
@@ -246,7 +245,6 @@ export default function ProfileDetailPage() {
     jyotishganit: DEFAULT_ENGINE,
     western: DEFAULT_ENGINE,
     hellenistic: DEFAULT_ENGINE,
-    bazi: DEFAULT_ENGINE,
     numerology: DEFAULT_ENGINE,
     dashaflow: DEFAULT_ENGINE,
     stellium: DEFAULT_ENGINE,
@@ -317,11 +315,10 @@ export default function ProfileDetailPage() {
           <TabsTrigger value="jyotishganit" className="text-green-700">Jyotishganit</TabsTrigger>
           <TabsTrigger value="western" className="text-indigo-400">Western</TabsTrigger>
           <TabsTrigger value="hellenistic" className="text-purple-400">Hellenistic</TabsTrigger>
-          <TabsTrigger value="bazi" className="text-red-400">Ba Zi</TabsTrigger>
           <TabsTrigger value="numerology" className="text-emerald-400">Numerology</TabsTrigger>
           <TabsTrigger value="dashaflow" className="text-green-400">Dashaflow</TabsTrigger>
           <TabsTrigger value="stellium" className="text-rose-400">Stellium</TabsTrigger>
-          <TabsTrigger value="all">All Systems</TabsTrigger>
+          {showAllSystems && <TabsTrigger value="all">All Systems</TabsTrigger>}
         </TabsList>
 
         {ENGINE_KEYS.map((key) => (
@@ -336,9 +333,11 @@ export default function ProfileDetailPage() {
           </TabsContent>
         ))}
 
-        <TabsContent value="all">
-          <AllSystemsTab profile={profile} engines={engines} />
-        </TabsContent>
+        {showAllSystems && (
+          <TabsContent value="all">
+            <AllSystemsTab profile={profile} engines={engines} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
