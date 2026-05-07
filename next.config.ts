@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [
     "better-sqlite3",
     "@fusionstrings/panchangam",
-    "bazi-calculator-by-alvamind",
   ],
   turbopack: {},
   webpack: (config) => {

@@ -9,14 +9,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "node -e \"const fs=require('fs'), path=require('path'); try { const p=require.resolve('bazi-calculator-by-alvamind/package.json'); const target=path.join(path.dirname(p), 'dist', 'index.d.ts'); if(fs.existsSync(path.dirname(target))) { fs.writeFileSync(target, 'export * from \\\"./bazi-calculator\\\";\\n'); console.log('Fixed bazi-calculator types'); } } catch(e) { console.log('Skipping bazi-calculator fix:', e.message); }\""
+    "lint": "eslint"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@fusionstrings/panchangam": "^0.2.0",
     "@libsql/client": "^0.14.0",
-    "bazi-calculator-by-alvamind": "^1.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "geo-tz": "^8.1.6",

@@ -9,21 +9,9 @@ export type BaziOutput = {
   error?: string;
 };
 
-import { BaziCalculator } from "bazi-calculator-by-alvamind";
-
 export async function fetchBazi(input: BaziInput): Promise<BaziOutput> {
-  try {
-    const [year, month, day] = input.date_of_birth.split("-").map(Number);
-    const [hour] = input.time_of_birth.split(":").map(Number);
-    const gender = input.gender ?? "male";
-
-    const calc = new BaziCalculator(year, month, day, hour, gender);
-    const result = calc.getCompleteAnalysis();
-    return { data: result };
-  } catch (e) {
-    return {
-      data: null,
-      error: e instanceof Error ? e.message : String(e),
-    };
-  }
+  return {
+    data: null,
+    error: "Bazi calculator is temporarily disabled in this build.",
+  };
 }
