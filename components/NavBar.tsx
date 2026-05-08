@@ -20,7 +20,7 @@ export function NavBar() {
           {isLoggedIn && (
             <div className="flex items-center gap-1 text-sm">
               <Link
-                href="/"
+                href="/dashboard"
                 className="px-2 py-1 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
               >
                 Profiles

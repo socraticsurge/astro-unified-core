@@ -11,7 +11,7 @@ export default function SignInPage() {
       </div>
       <Button 
         size="lg" 
-        onClick={() => signIn("google", { callbackUrl: "/" })}
+        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
         className="w-full max-w-sm"
       >
         Continue with Google
