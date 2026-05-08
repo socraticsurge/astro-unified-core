@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
 import { NavBar } from "@/components/NavBar";
 
@@ -9,9 +11,10 @@ import { NavBar } from "@/components/NavBar";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 // Headings — Cormorant Garamond, a classical serif for display.
+// Two weights only: regular for hero copy, semibold for h2s/wordmark.
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   variable: "--font-cormorant",
 });
 
@@ -34,6 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/terms" className="hover:underline">Terms of Service</Link>
           </footer>
         </NextAuthProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

@@ -1,9 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function safeJson(text: string): { id?: string; error?: string } | null {
   try { return JSON.parse(text); } catch { return null; }
 }
+
+const SIDECAR_URL =
+  process.env.NEXT_PUBLIC_DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,6 +21,12 @@ export function ProfileForm() {
   const [form, setForm] = useState({
     name: "", date_of_birth: "", time_of_birth: "", place_of_birth: "",
   });
+
+  // Pre-warm the Python sidecar so the chart fetches faster after submit.
+  // Fire-and-forget on mount; ignore failures.
+  useEffect(() => {
+    fetch(`${SIDECAR_URL}/health`, { mode: "cors", cache: "no-store" }).catch(() => {});
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));

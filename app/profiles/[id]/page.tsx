@@ -88,18 +88,16 @@ export default function ProfileDetailPage() {
   );
 
   useEffect(() => {
+    // Kick off both requests in parallel — they're independent, no need
+    // to wait for /api/profiles to resolve before /api/readings starts.
     fetch(`/api/profiles/${id}`)
       .then(async (r) => {
         if (!r.ok) throw new Error(`Failed to load profile (${r.status})`);
         return r.json() as Promise<Profile>;
       })
-      .then((p) => {
-        setProfile(p);
-        fetchReading();
-      })
-      .catch(() => {
-        setProfile(null);
-      });
+      .then(setProfile)
+      .catch(() => setProfile(null));
+    fetchReading();
   }, [id, fetchReading]);
 
   const summaryText = useMemo(() => {
