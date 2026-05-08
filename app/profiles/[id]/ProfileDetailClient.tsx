@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { DashaflowViewV2 } from "@/components/engines/v2/DashaflowViewV2";
+import { DashaflowView } from "@/components/engines/DashaflowView";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check } from "lucide-react";
@@ -64,7 +64,7 @@ function CopyButton({ getText, label = "Copy" }: { getText: () => string; label?
   );
 }
 
-export function V2Client({ explainers }: Props) {
+export function ProfileDetailClient({ explainers }: Props) {
   const { id } = useParams<{ id: string }>();
   const { data: session } = useSession();
   const showAdminTools = isAdmin(session);
@@ -134,22 +134,14 @@ export function V2Client({ explainers }: Props) {
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold">{profile.name}</h1>
-          <div className="flex gap-2 mt-2 flex-wrap">
-            <Badge variant="outline">{profile.date_of_birth}</Badge>
-            <Badge variant="outline">{profile.time_of_birth}</Badge>
-            <Badge variant="outline">{profile.place_of_birth}</Badge>
-            <Badge variant="secondary">{profile.timezone}</Badge>
-          </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">{profile.name}</h1>
+        <div className="flex gap-2 mt-2 flex-wrap">
+          <Badge variant="outline">{profile.date_of_birth}</Badge>
+          <Badge variant="outline">{profile.time_of_birth}</Badge>
+          <Badge variant="outline">{profile.place_of_birth}</Badge>
+          <Badge variant="secondary">{profile.timezone}</Badge>
         </div>
-        <Link
-          href={`/profiles/${id}`}
-          className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline pt-1"
-        >
-          Back to original view
-        </Link>
       </div>
 
       <div className="flex items-center justify-between py-3 border-b mb-4">
@@ -191,7 +183,7 @@ export function V2Client({ explainers }: Props) {
       )}
 
       {!!reading.output && !(showAdminTools && showRaw) && (
-        <DashaflowViewV2
+        <DashaflowView
           output={reading.output as Record<string, unknown>}
           explainers={explainers}
         />

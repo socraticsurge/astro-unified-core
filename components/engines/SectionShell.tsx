@@ -11,7 +11,7 @@ type SectionExplainer = {
 };
 
 type Props = {
-  /** Exact title string used by the legacy DashaflowView for this section. */
+  /** Exact title string used by DashaflowView for this section. */
   sectionInView: string;
   /** Pre-rendered explainer payload, or null if no explainer exists. */
   explainer: SectionExplainer | null;
@@ -23,21 +23,21 @@ type Props = {
   chartEntries?: ChartEntry[];
   /** Visual accent class for the title. */
   accent?: string;
-  /** Initial collapse state — matches the legacy view's defaultOpen. */
+  /** Initial collapse state for the section. */
   defaultOpen?: boolean;
   /** The section data (table, cards, etc.) to render below the title. */
   children: React.ReactNode;
 };
 
 /**
- * V2 section wrapper. Same collapse semantics as the legacy
- * `Section.tsx`, plus an Info button next to the title that opens the
- * `ExplainerModal`. The modal renders the section explainer always; if
- * `chartEntries` is provided, it also exposes a "For your chart" tab
- * with chart-specific verses.
+ * Section wrapper used by DashaflowView. Renders the section title with
+ * a chevron-toggle (collapse/expand) and an Info button to its right.
+ * Clicking the Info button opens the ExplainerModal, which renders the
+ * section explainer always; if `chartEntries` is provided, it also
+ * exposes a "For your chart" tab with chart-specific verses.
  *
  * If neither an explainer nor any chart entries exist, the icon is not
- * rendered (briefing rule: never an icon that opens an empty modal).
+ * rendered.
  */
 export function SectionShell({
   sectionInView,

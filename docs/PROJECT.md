@@ -65,21 +65,32 @@ app/
 ├── admin/page.tsx                      # Admin dashboard (force-dynamic)
 ├── profiles/
 │   ├── new/page.tsx                    # Profile creation form
-│   └── [id]/page.tsx                   # Profile detail with DashaFlow chart
+│   └── [id]/
+│       ├── page.tsx                    # Server component — pre-loads section explainers
+│       └── ProfileDetailClient.tsx     # Client wrapper — fetches chart, status chrome
 ├── privacy/page.tsx                    # Public
-├── terms/page.tsx                      # Public
+├── terms/page.tsx                      # Public — includes content sources / Maitreya attribution
+├── credits/page.tsx                    # Public — renders content/CREDITS.md
 └── api/
     ├── auth/[...nextauth]/route.ts     # NextAuth handler
     ├── profiles/route.ts               # List / create profiles
     ├── profiles/[id]/route.ts          # Get / delete one profile
+    ├── content/[type]/[key]/route.ts   # Lazy fetch for per-row interpretive content
     └── readings/dashaflow/route.ts     # Sidecar proxy + cache
 
 components/
 ├── NavBar.tsx                          # Top nav + auth state
 ├── ProfileForm.tsx                     # New-profile form (geocodes on submit)
 ├── auth/NextAuthProvider.tsx           # Session provider
-├── engines/DashaflowView.tsx           # Renders the 17-section chart
+├── engines/
+│   ├── DashaflowView.tsx               # Renders the 17-section chart
+│   ├── SectionShell.tsx                # Section container with collapse + ⓘ trigger
+│   └── ExplainerModal.tsx              # Tabbed modal: "For your chart" + "About"
 └── ui/                                 # shadcn primitives
+
+content/                                # 538 markdown files of authored / adapted
+                                        # interpretive content (sections, planet-in-house,
+                                        # dasha-pair, nakshatra, ascendant, etc.)
 
 lib/
 ├── auth.ts                             # Shared authOptions for getServerSession
@@ -88,6 +99,11 @@ lib/
 ├── engines/dashaflow.ts                # HTTP client for the sidecar
 ├── chart-summary.ts                    # Text summary for clipboard / LLM
 ├── geocode.ts                          # Nominatim wrapper
+└── content/                            # Server-only loaders and renderers
+    ├── loader.ts                       # readSync + frontmatter parse, cached
+    ├── lookup.ts                       # planet-in-house / dasha-pair / etc. helpers
+    ├── markdown.ts                     # marked wrapper + two-track body splitter
+    └── types.ts                        # Typed entry shapes
 └── astro-utils.ts                      # Sign / longitude helpers
 
 proxy.ts                                # NextAuth middleware (matcher + authorized callback)

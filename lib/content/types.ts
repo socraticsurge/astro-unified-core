@@ -14,7 +14,7 @@ export type SectionEntry = {
   key: string;
   title: string;
   /** Exact title string used by DashaflowView for this section. */
-  section_in_view: string;
+  section_in_view: string;  // (kept verbatim from frontmatter)
   /** One-sentence summary, rendered in the modal as a lede. */
   gist?: string;
   sources?: Source[];

@@ -16,6 +16,16 @@ const nextConfig: NextConfig = {
       "./node_modules/geo-tz/data/timezones-1970.geojson.*",
     ],
   },
+  // Redirect anyone with /v2 bookmarks to the now-default profile view.
+  async redirects() {
+    return [
+      {
+        source: "/profiles/:id/v2",
+        destination: "/profiles/:id",
+        permanent: true,
+      },
+    ];
+  },
   turbopack: {},
   webpack: (config) => {
     config.experiments = { ...config.experiments, asyncWebAssembly: true };

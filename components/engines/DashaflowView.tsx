@@ -1,7 +1,29 @@
 "use client";
-import { Section } from "@/components/Section";
+import { SectionShell } from "./SectionShell";
+import type { ChartEntry } from "./ExplainerModal";
 
-type Props = { output: Record<string, unknown> };
+const slug = (s: string) => s.toLowerCase().trim().replace(/\s+/g, "-");
+const ord = (n: number) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
+type SectionExplainer = {
+  title: string;
+  gist?: string | null;
+  bodyHtml: string;
+  sources?: { text: string; chapter?: number | string; sloka?: number | string }[];
+};
+
+type Props = {
+  output: Record<string, unknown>;
+  /**
+   * Server-loaded explainers, keyed by `section_in_view`. Pre-rendered
+   * to HTML so the client doesn't bundle a markdown parser.
+   */
+  explainers: Record<string, SectionExplainer>;
+};
 
 const DIGNITY_COLOR: Record<string, string> = {
   exalted:     "text-emerald-400 bg-emerald-950/40 border border-emerald-700/50",
@@ -40,7 +62,9 @@ const DIV_LABELS: Record<string, string> = {
   d60_sign: "D60 Shastiamsa",
 };
 
-export function DashaflowView({ output }: Props) {
+const PLANET_ORDER = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"];
+
+export function DashaflowView({ output, explainers }: Props) {
   const data = output.data as Record<string, unknown> | undefined;
   if (!data) {
     return (
@@ -55,7 +79,6 @@ export function DashaflowView({ output }: Props) {
   const th     = "text-left py-1.5 pr-3 font-medium text-xs text-muted-foreground";
   const card   = "bg-green-950/20 border border-green-800/30 rounded-lg p-3";
 
-  // Cast each section
   const meta = data.metadata as {
     ayanamsha?: string; ayanamsha_degrees?: number; query_date?: string;
     coordinates?: { lat: number; lon: number }; timezone?: string; dob?: string; time?: string;
@@ -140,13 +163,14 @@ export function DashaflowView({ output }: Props) {
 
   const kaalSarpa = data.kaal_sarpa as Record<string, unknown> | null | undefined;
 
-  const planetOrder = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"];
+  // Helpers to look up explainer by section_in_view; returns null if absent
+  const exp = (sectionInView: string) => explainers[sectionInView] ?? null;
 
   return (
     <div>
       {/* 1. Chart Metadata */}
       {meta && (
-        <Section title="Chart Metadata" accent={accent}>
+        <SectionShell sectionInView="Chart Metadata" explainer={exp("Chart Metadata")} accent={accent}>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-xs">
             {[
               { label: "Ayanamsha",   value: meta.ayanamsha },
@@ -164,14 +188,28 @@ export function DashaflowView({ output }: Props) {
               </div>
             ))}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
       {/* 2. Panchang */}
       {panchang && (
-        <Section title="Panchang" accent={accent}>
+        <SectionShell
+          sectionInView="Panchang"
+          explainer={exp("Panchang")}
+          accent={accent}
+          chartEntries={
+            panchang.nakshatra?.name
+              ? [
+                  {
+                    type: "nakshatra",
+                    key: slug(panchang.nakshatra.name),
+                    heading: `Moon in ${panchang.nakshatra.name}`,
+                  },
+                ]
+              : []
+          }
+        >
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
-            {/* Tithi */}
             {panchang.tithi && (
               <div className={card}>
                 <p className="text-xs text-green-400/70 font-medium uppercase tracking-wide">Tithi</p>
@@ -184,7 +222,6 @@ export function DashaflowView({ output }: Props) {
                 )}
               </div>
             )}
-            {/* Vara */}
             {panchang.vara && (
               <div className={card}>
                 <p className="text-xs text-green-400/70 font-medium uppercase tracking-wide">Vara (Day)</p>
@@ -194,7 +231,6 @@ export function DashaflowView({ output }: Props) {
                 )}
               </div>
             )}
-            {/* Nakshatra — highlighted */}
             {panchang.nakshatra && (
               <div className="bg-green-900/30 border border-green-600/50 rounded-lg p-3">
                 <p className="text-xs text-green-300/80 font-medium uppercase tracking-wide">Nakshatra</p>
@@ -205,7 +241,6 @@ export function DashaflowView({ output }: Props) {
                 </p>
               </div>
             )}
-            {/* Yoga */}
             {panchang.yoga && (
               <div className={card}>
                 <p className="text-xs text-green-400/70 font-medium uppercase tracking-wide">Yoga</p>
@@ -215,7 +250,6 @@ export function DashaflowView({ output }: Props) {
                 )}
               </div>
             )}
-            {/* Karana */}
             {panchang.karana && (
               <div className={card}>
                 <p className="text-xs text-green-400/70 font-medium uppercase tracking-wide">Karana</p>
@@ -223,14 +257,28 @@ export function DashaflowView({ output }: Props) {
               </div>
             )}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
       {/* 3. Lagna & Divisional Lagnas */}
       {lagna && (
-        <Section title="Lagna & Divisional Lagnas" accent={accent}>
+        <SectionShell
+          sectionInView="Lagna & Divisional Lagnas"
+          explainer={exp("Lagna & Divisional Lagnas")}
+          accent={accent}
+          chartEntries={
+            typeof lagna.sign === "string" && lagna.sign.length > 0
+              ? [
+                  {
+                    type: "ascendant",
+                    key: slug(lagna.sign),
+                    heading: `${lagna.sign} ascendant`,
+                  },
+                ]
+              : []
+          }
+        >
           <div className="mt-2 space-y-3">
-            {/* Main lagna card */}
             <div className="bg-green-900/30 border border-green-600/50 rounded-lg p-4">
               <p className="text-xs text-green-300/80 uppercase tracking-wide font-medium">Ascendant (D1 Rasi)</p>
               <p className="text-3xl font-bold text-green-100 mt-1">{String(lagna.sign ?? "")}</p>
@@ -243,7 +291,6 @@ export function DashaflowView({ output }: Props) {
                 )}
               </div>
             </div>
-            {/* Divisional lagna grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {Object.entries(DIV_LABELS).map(([key, label]) => {
                 const val = lagna[key];
@@ -257,12 +304,29 @@ export function DashaflowView({ output }: Props) {
               })}
             </div>
           </div>
-        </Section>
+        </SectionShell>
       )}
 
       {/* 4. Planetary Positions */}
       {planets && (
-        <Section title="Planetary Positions" accent={accent}>
+        <SectionShell
+          sectionInView="Planetary Positions"
+          explainer={exp("Planetary Positions")}
+          accent={accent}
+          chartEntries={
+            PLANET_ORDER
+              .map<ChartEntry | null>((name) => {
+                const p = planets[name];
+                if (!p || p.house === undefined) return null;
+                return {
+                  type: "planet-in-house",
+                  key: `${slug(name)}-${p.house}`,
+                  heading: `${name} · ${ord(p.house)} house`,
+                };
+              })
+              .filter((x): x is ChartEntry => x !== null)
+          }
+        >
           <div className="overflow-x-auto mt-2">
             <table className="w-full text-sm border-collapse">
               <thead>
@@ -279,7 +343,7 @@ export function DashaflowView({ output }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {planetOrder.map(name => {
+                {PLANET_ORDER.map(name => {
                   const p = planets[name];
                   if (!p) return null;
                   const dKey = (p.dignity ?? "neutral").toLowerCase();
@@ -321,14 +385,28 @@ export function DashaflowView({ output }: Props) {
               </tbody>
             </table>
           </div>
-        </Section>
+        </SectionShell>
       )}
 
       {/* 5. Vimshottari Dasha — 5-level */}
       {dashas && (
-        <Section title="Vimshottari Dasha — Current 5-Level Period" accent={accent}>
+        <SectionShell
+          sectionInView="Vimshottari Dasha — Current 5-Level Period"
+          explainer={exp("Vimshottari Dasha — Current 5-Level Period")}
+          accent={accent}
+          chartEntries={
+            dashas.maha?.planet && dashas.antar?.planet
+              ? [
+                  {
+                    type: "dasha-pair",
+                    key: `${slug(dashas.maha.planet)}-${slug(dashas.antar.planet)}`,
+                    heading: `${dashas.maha.planet} mahadasha · ${dashas.antar.planet} antardasha`,
+                  },
+                ]
+              : []
+          }
+        >
           <div className="mt-2 space-y-2">
-            {/* Maha */}
             {dashas.maha && (
               <div className="bg-green-950/40 border border-green-700/50 rounded-lg p-3">
                 <div className="flex items-baseline gap-3 flex-wrap">
@@ -342,7 +420,6 @@ export function DashaflowView({ output }: Props) {
                   )}
                 </div>
 
-                {/* Antar */}
                 {dashas.antar && (
                   <div className="ml-4 mt-2 bg-green-950/30 border border-green-800/40 rounded-lg p-2.5">
                     <div className="flex items-baseline gap-3 flex-wrap">
@@ -356,7 +433,6 @@ export function DashaflowView({ output }: Props) {
                       )}
                     </div>
 
-                    {/* Pratyantar */}
                     {dashas.pratyantar && (
                       <div className="ml-4 mt-2 bg-green-950/20 border border-green-800/30 rounded-lg p-2.5">
                         <div className="flex items-baseline gap-3 flex-wrap">
@@ -370,7 +446,6 @@ export function DashaflowView({ output }: Props) {
                           )}
                         </div>
 
-                        {/* Sukshma */}
                         {dashas.sukshma && (
                           <div className="ml-4 mt-2 bg-green-950/10 border border-green-900/30 rounded-lg p-2">
                             <div className="flex items-baseline gap-3 flex-wrap">
@@ -384,7 +459,6 @@ export function DashaflowView({ output }: Props) {
                               )}
                             </div>
 
-                            {/* Prana */}
                             {dashas.prana && (
                               <div className="ml-4 mt-1.5 bg-white/5 rounded-lg p-2">
                                 <div className="flex items-baseline gap-3 flex-wrap">
@@ -408,7 +482,6 @@ export function DashaflowView({ output }: Props) {
               </div>
             )}
 
-            {/* Dasha timeline */}
             {dashas.timeline && dashas.timeline.length > 0 && (
               <details className="border border-white/10 rounded-lg">
                 <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-green-400 hover:bg-white/5 rounded-lg uppercase tracking-wide">
@@ -443,12 +516,16 @@ export function DashaflowView({ output }: Props) {
               </details>
             )}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
       {/* 6. Yogas */}
       {yogas && yogas.length > 0 && (
-        <Section title="Yogas (Planetary Combinations)" accent={accent}>
+        <SectionShell
+          sectionInView="Yogas (Planetary Combinations)"
+          explainer={exp("Yogas (Planetary Combinations)")}
+          accent={accent}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             {yogas.map((yoga, i) => {
               const isMajor = MAJOR_YOGAS.has(yoga.name ?? "");
@@ -485,12 +562,16 @@ export function DashaflowView({ output }: Props) {
               );
             })}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
       {/* 7. Shadbala */}
       {shadbala && (
-        <Section title="Shadbala — 6-Fold Planetary Strength" accent={accent}>
+        <SectionShell
+          sectionInView="Shadbala — 6-Fold Planetary Strength"
+          explainer={exp("Shadbala — 6-Fold Planetary Strength")}
+          accent={accent}
+        >
           <p className="text-xs text-muted-foreground mt-2 mb-3">
             Shadbala = 6-fold planetary strength. A planet is strong if total rupas ≥ required rupas.
           </p>
@@ -514,7 +595,7 @@ export function DashaflowView({ output }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {planetOrder.slice(0, 7).map(name => {
+                {PLANET_ORDER.slice(0, 7).map(name => {
                   const s = shadbala[name];
                   if (!s) return null;
                   const isStrong = s.is_strong;
@@ -545,12 +626,12 @@ export function DashaflowView({ output }: Props) {
               </tbody>
             </table>
           </div>
-        </Section>
+        </SectionShell>
       )}
 
       {/* 8. Jaimini Karakas */}
       {jaiminiKarakas && (
-        <Section title="Jaimini Karakas" accent={accent}>
+        <SectionShell sectionInView="Jaimini Karakas" explainer={exp("Jaimini Karakas")} accent={accent}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             {Object.entries(jaiminiKarakas).map(([role, k]) => (
               <div key={role} className={card}>
@@ -570,12 +651,17 @@ export function DashaflowView({ output }: Props) {
               </div>
             ))}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 9. Karakamsha — collapsed */}
+      {/* 9. Karakamsha */}
       {karakamsha && (
-        <Section title="Karakamsha — Soul's Direction in D9" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Karakamsha — Soul's Direction in D9"
+          explainer={exp("Karakamsha — Soul's Direction in D9")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className={`${card} mt-2 space-y-2`}>
             <div className="flex gap-4 flex-wrap text-sm">
               {karakamsha.atmakaraka && (
@@ -606,12 +692,17 @@ export function DashaflowView({ output }: Props) {
               <p className="text-xs text-muted-foreground leading-relaxed">{karakamsha.description}</p>
             )}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 10. Avasthas — collapsed */}
+      {/* 10. Avasthas */}
       {avasthas && (
-        <Section title="Avasthas — Planetary States" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Avasthas — Planetary States"
+          explainer={exp("Avasthas — Planetary States")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className="overflow-x-auto mt-2">
             <table className="w-full text-sm border-collapse">
               <thead>
@@ -624,7 +715,7 @@ export function DashaflowView({ output }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {planetOrder.slice(0, 7).map(name => {
+                {PLANET_ORDER.slice(0, 7).map(name => {
                   const a = avasthas[name];
                   if (!a) return null;
                   const avasthaColors: Record<string, string> = {
@@ -652,12 +743,17 @@ export function DashaflowView({ output }: Props) {
               </tbody>
             </table>
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 11. Bhava Chalit — collapsed */}
+      {/* 11. Bhava Chalit */}
       {bhavaChalit && (
-        <Section title="Bhava Chalit — House Shift Analysis" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Bhava Chalit — House Shift Analysis"
+          explainer={exp("Bhava Chalit — House Shift Analysis")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className="overflow-x-auto mt-2">
             <table className="w-full text-sm border-collapse">
               <thead>
@@ -669,7 +765,7 @@ export function DashaflowView({ output }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {planetOrder.map(name => {
+                {PLANET_ORDER.map(name => {
                   const b = bhavaChalit[name];
                   if (!b) return null;
                   return (
@@ -688,12 +784,17 @@ export function DashaflowView({ output }: Props) {
               </tbody>
             </table>
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 12. Graha Yuddha — collapsed */}
+      {/* 12. Graha Yuddha */}
       {grahaYuddha && grahaYuddha.length > 0 && (
-        <Section title="Graha Yuddha — Planetary Wars" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Graha Yuddha — Planetary Wars"
+          explainer={exp("Graha Yuddha — Planetary Wars")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className="space-y-3 mt-2">
             {grahaYuddha.map((war, i) => (
               <div key={i} className="bg-red-950/20 border border-red-900/40 rounded-lg p-3">
@@ -719,12 +820,17 @@ export function DashaflowView({ output }: Props) {
               </div>
             ))}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 13. Gandanta — collapsed, only if non-empty */}
+      {/* 13. Gandanta */}
       {gandanta && gandanta.length > 0 && (
-        <Section title="Gandanta — Karmic Junction Planets" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Gandanta — Karmic Junction Planets"
+          explainer={exp("Gandanta — Karmic Junction Planets")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className="space-y-2 mt-2">
             {gandanta.map((g, i) => (
               <div key={i} className={card}>
@@ -732,12 +838,17 @@ export function DashaflowView({ output }: Props) {
               </div>
             ))}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 14. Arudha Padas — collapsed */}
+      {/* 14. Arudha Padas */}
       {arudha && (
-        <Section title="Arudha Padas (A1–A12)" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Arudha Padas (A1–A12)"
+          explainer={exp("Arudha Padas (A1–A12)")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2">
             {Object.entries(arudha).map(([num, a]) => (
               <div key={num} className={card}>
@@ -747,12 +858,17 @@ export function DashaflowView({ output }: Props) {
               </div>
             ))}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 15. Upapada — collapsed */}
+      {/* 15. Upapada */}
       {upapada && (
-        <Section title="Upapada (UL) — Spouse Indicator" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Upapada (UL) — Spouse Indicator"
+          explainer={exp("Upapada (UL) — Spouse Indicator")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className={`${card} mt-2 space-y-2`}>
             <div className="flex gap-4 flex-wrap text-sm">
               {upapada.sign && (
@@ -769,12 +885,17 @@ export function DashaflowView({ output }: Props) {
               <p className="text-xs text-muted-foreground leading-relaxed">{upapada.description}</p>
             )}
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 16. Ashtakavarga — SAV — collapsed */}
+      {/* 16. SAV */}
       {ashtakavarga?.sarvashtakavarga && (
-        <Section title="Ashtakavarga — Sarvashtakavarga (SAV)" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Ashtakavarga — Sarvashtakavarga (SAV)"
+          explainer={exp("Ashtakavarga — Sarvashtakavarga (SAV)")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className="mt-2">
             <p className="text-xs text-muted-foreground mb-2">Total bindus per sign across all 7 planets. Green ≥28 (strong), Red &lt;22 (weak).</p>
             <div className="overflow-x-auto">
@@ -801,12 +922,17 @@ export function DashaflowView({ output }: Props) {
               </table>
             </div>
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 17. Ashtakavarga — Bhinnashtakavarga — collapsed */}
+      {/* 17. Bhinnashtakavarga */}
       {ashtakavarga?.bhinnashtakavarga && (
-        <Section title="Ashtakavarga — Bhinnashtakavarga (Planet-wise)" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Ashtakavarga — Bhinnashtakavarga (Planet-wise)"
+          explainer={exp("Ashtakavarga — Bhinnashtakavarga (Planet-wise)")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className="mt-2 overflow-x-auto">
             <table className="text-xs border-collapse">
               <thead>
@@ -836,7 +962,6 @@ export function DashaflowView({ output }: Props) {
                     </tr>
                   );
                 })}
-                {/* SAV row */}
                 {ashtakavarga.sarvashtakavarga && (
                   <tr className="border-t border-white/20 bg-green-950/20">
                     <td className="py-1.5 pr-4 font-bold text-green-400 uppercase text-[10px] tracking-wide">SAV</td>
@@ -856,18 +981,23 @@ export function DashaflowView({ output }: Props) {
               </tbody>
             </table>
           </div>
-        </Section>
+        </SectionShell>
       )}
 
-      {/* 18. Kaal Sarpa Yoga — collapsed, only if present */}
+      {/* 18. Kaal Sarpa */}
       {kaalSarpa && (
-        <Section title="Kaal Sarpa Yoga" accent={accent} defaultOpen={false}>
+        <SectionShell
+          sectionInView="Kaal Sarpa Yoga"
+          explainer={exp("Kaal Sarpa Yoga")}
+          accent={accent}
+          defaultOpen={false}
+        >
           <div className={`${card} mt-2`}>
             <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
               {JSON.stringify(kaalSarpa, null, 2)}
             </pre>
           </div>
-        </Section>
+        </SectionShell>
       )}
     </div>
   );
