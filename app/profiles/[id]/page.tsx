@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { DashaflowView } from "@/components/engines/DashaflowView";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check } from "lucide-r
 import type { Profile } from "@/lib/db";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
+import { isAdmin } from "@/lib/admin";
 
 type EngineState = { output: unknown; loading: boolean; error?: string };
 
@@ -52,6 +54,8 @@ function CopyButton({ getText, label = "Copy" }: { getText: () => string; label?
 
 export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { data: session } = useSession();
+  const showAdminTools = isAdmin(session);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [reading, setReading] = useState<EngineState>({ output: null, loading: true });
   const [showRaw, setShowRaw] = useState(false);
@@ -129,14 +133,14 @@ export default function ProfileDetailPage() {
           {reading.error && <AlertCircle className="h-4 w-4 text-red-500" />}
           {reading.loading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
           <span className="text-sm font-medium text-green-400">
-            {reading.loading ? "Fetching from DashaFlow…" : reading.error ? "Error" : reading.output ? "Vedic chart loaded" : "Not yet fetched"}
+            {reading.loading ? "Preparing your chart…" : reading.error ? "Error" : reading.output ? "Vedic chart loaded" : "Not yet fetched"}
           </span>
         </div>
         <div className="flex gap-1">
-          {!!reading.output && (
+          {showAdminTools && !!reading.output && (
             <CopyButton getText={() => summaryText} label="Copy summary" />
           )}
-          {!!reading.output && (
+          {showAdminTools && !!reading.output && (
             <Button variant="ghost" size="sm" onClick={() => setShowRaw((r) => !r)} className="h-7 text-xs gap-1">
               <Code className="h-3 w-3" />
               {showRaw ? "Formatted" : "Raw JSON"}
@@ -157,15 +161,15 @@ export default function ProfileDetailPage() {
 
       {!reading.output && !reading.error && !reading.loading && (
         <div className="text-center py-16 text-muted-foreground">
-          <Button onClick={() => fetchReading(true)} variant="outline">Fetch DashaFlow reading</Button>
+          <Button onClick={() => fetchReading(true)} variant="outline">Generate chart</Button>
         </div>
       )}
 
-      {!!reading.output && !showRaw && (
+      {!!reading.output && !(showAdminTools && showRaw) && (
         <DashaflowView output={reading.output as Record<string, unknown>} />
       )}
 
-      {!!reading.output && showRaw && (
+      {showAdminTools && !!reading.output && showRaw && (
         <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all bg-white/5 border border-white/10 rounded-lg p-4">
           {JSON.stringify(reading.output, null, 2)}
         </pre>
