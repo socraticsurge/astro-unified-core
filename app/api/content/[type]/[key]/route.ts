@@ -1,13 +1,14 @@
 // Lazy content-fetch endpoint used by the v2 client view to load
-// per-row entries (planet-in-house, dasha-pair, etc.) when a user
-// expands an explainer. Sections are pre-loaded server-side by the
-// v2 page; this endpoint covers everything else.
+// per-row entries (planet-in-house, dasha-pair, etc.) when the v2
+// view mounts. Returns a unified bodyHtml — rendering when authored,
+// source verse otherwise. Maitreya attribution is stripped from the
+// body; full attribution lives on /credits and in Privacy/Terms.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { loadByTypeAndKey } from "@/lib/content/loader";
-import { renderMarkdown, splitTwoTrack } from "@/lib/content/markdown";
+import { renderMarkdown, pickDisplayBody } from "@/lib/content/markdown";
 import type { ContentType } from "@/lib/content/types";
 
 const ALLOWED: Set<ContentType> = new Set([
@@ -38,37 +39,12 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // For two-track entries, split body into source + rendering and let
-  // the client decide which to surface. For sections and
-  // planet-in-house (single-track), pass body through.
-  const isTwoTrack =
-    entry.type === "dasha-pair" ||
-    entry.type === "nakshatra" ||
-    entry.type === "ascendant" ||
-    entry.type === "house-lordship";
-
-  if (isTwoTrack) {
-    const { source, rendering } = splitTwoTrack(entry.body);
-    const sourceHtml = renderMarkdown(source);
-    const renderingHtml = rendering ? renderMarkdown(rendering) : null;
-    return NextResponse.json({
-      type: entry.type,
-      key: entry.key,
-      title: entry.title,
-      sources: entry.sources ?? [],
-      rendering_status: "rendering_status" in entry ? entry.rendering_status : "pending",
-      sourceHtml,
-      renderingHtml,
-    });
-  }
-
-  // Single-track: section or planet-in-house
+  const display = pickDisplayBody(entry.body);
   return NextResponse.json({
     type: entry.type,
     key: entry.key,
     title: entry.title,
-    sources: entry.sources ?? [],
-    bodyHtml: renderMarkdown(entry.body),
+    bodyHtml: renderMarkdown(display),
     gist: entry.type === "section" ? entry.gist ?? null : null,
   });
 }

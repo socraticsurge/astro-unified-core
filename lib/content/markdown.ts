@@ -15,26 +15,42 @@ export function renderMarkdown(md: string): string {
 }
 
 /**
- * Split a two-track body (dasha-pair, nakshatra, ascendant, etc.) into
- * the source-verse block and the rendering block. Returns rendering as
- * null when it is missing or just an HTML comment placeholder. Keep the
- * source block intact (heading and all) so it can render with its
- * citation line under an "Original source" expander.
+ * Strip the Maitreya-attribution sentence from a citation line and
+ * remove the "## Source verse" / "## Rendering" subheaders themselves —
+ * users see attribution on /credits and Privacy/Terms, not under every
+ * verse.
  */
-export function splitTwoTrack(
-  body: string
-): { source: string; rendering: string | null } {
+function cleanForDisplay(md: string): string {
+  return md
+    // Drop "## Source verse" and "## Rendering" structural subheaders
+    .replace(/^##\s+Source verse\s*$/gm, "")
+    .replace(/^##\s+Rendering\s*$/gm, "")
+    // Strip ". Adapted from the Maitreya database..." up to next newline
+    .replace(/\.\s*Adapted from the Maitreya database[^\n]*/g, ".")
+    // Strip standalone "see content/CREDITS.md" tails just in case
+    .replace(/;\s*see content\/CREDITS\.md\.?/g, "")
+    // Strip HTML comment placeholders
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .trim();
+}
+
+/**
+ * Pick the best body for user display from a two-track entry: the
+ * authored "Rendering" if present and non-trivial, otherwise the
+ * source verse. Always strip the Maitreya attribution sentence.
+ */
+export function pickDisplayBody(body: string): string {
   const idx = body.indexOf("## Rendering");
   if (idx === -1) {
-    return { source: body, rendering: null };
+    return cleanForDisplay(body);
   }
-  const source = body.slice(0, idx).trim();
-  const renderingRaw = body
+  const sourcePart = body.slice(0, idx);
+  const renderingPart = body
     .slice(idx + "## Rendering".length)
     .replace(/<!--[\s\S]*?-->/g, "")
     .trim();
-  return {
-    source,
-    rendering: renderingRaw.length > 0 ? renderingRaw : null,
-  };
+  if (renderingPart.length > 0) {
+    return cleanForDisplay(renderingPart);
+  }
+  return cleanForDisplay(sourcePart);
 }

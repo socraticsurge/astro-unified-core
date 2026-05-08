@@ -218,10 +218,11 @@ export function DashaflowViewV2({ output, explainers }: Props) {
                   Pada {panchang.nakshatra.pada}
                   {panchang.nakshatra.lord ? ` · Lord: ${panchang.nakshatra.lord}` : ""}
                 </p>
-                <div className="mt-2">
+                <div className="mt-3">
                   <ValueExplainer
                     kind="nakshatra"
                     nakshatra={panchang.nakshatra.name ?? ""}
+                    variant="card"
                   />
                 </div>
               </div>
@@ -265,8 +266,8 @@ export function DashaflowViewV2({ output, explainers }: Props) {
                 )}
               </div>
               {typeof lagna.sign === "string" && lagna.sign.length > 0 && (
-                <div className="mt-2">
-                  <ValueExplainer kind="ascendant" sign={lagna.sign} />
+                <div className="mt-3">
+                  <ValueExplainer kind="ascendant" sign={lagna.sign} variant="card" />
                 </div>
               )}
             </div>
@@ -349,12 +350,12 @@ export function DashaflowViewV2({ output, explainers }: Props) {
                       </tr>
                       {p.house !== undefined && (
                         <tr className="border-b border-white/10">
-                          <td colSpan={9} className="py-1 pl-3 pr-3">
+                          <td colSpan={9} className="pt-1 pb-3 pl-6 pr-3 align-top">
                             <ValueExplainer
                               kind="planet-in-house"
                               planet={name}
                               house={p.house}
-                              label={`${name} in house ${p.house}`}
+                              variant="row"
                             />
                           </td>
                         </tr>
@@ -402,14 +403,14 @@ export function DashaflowViewV2({ output, explainers }: Props) {
                       )}
                     </div>
 
-                    {/* Per-row explainer for the Maha→Antar pair */}
+                    {/* Always-visible interpretation for the Maha→Antar pair */}
                     {dashas.maha?.planet && dashas.antar?.planet && (
-                      <div className="mt-2">
+                      <div className="mt-3">
                         <ValueExplainer
                           kind="dasha-pair"
                           mahadasha={dashas.maha.planet}
                           antardasha={dashas.antar.planet}
-                          label={`${dashas.antar.planet} antardasha in ${dashas.maha.planet} mahadasha`}
+                          variant="card"
                         />
                       </div>
                     )}

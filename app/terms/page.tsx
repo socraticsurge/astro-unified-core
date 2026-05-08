@@ -15,6 +15,23 @@ export default function TermsPage() {
         with the astrologer.
       </p>
 
+      <h2>Sources for the interpretive content</h2>
+      <p>
+        The classical verses shown alongside each chart are drawn from
+        public-domain Sanskrit Vedic-astrology texts: Brihat Parasara Hora
+        Sastra (BPHS), Phaladeepika by Mantreswara, Brihat Jataka by
+        Varahamihira, Saravali by Kalyanavarman, the Jaimini Sutras, and
+        Sripati Paddhati. The English renderings and several source-verse
+        adaptations are derived from the open-source{" "}
+        <a href="https://github.com/martin-pe/maitreya8" target="_blank" rel="noopener noreferrer">
+          Maitreya project
+        </a>{" "}
+        by Martin Pettau, distributed under the GNU GPL v2.0 or later.
+        Where authored rephrasings are shown, those are original work by
+        Dr. Vinay Kumar Chaganti. See{" "}
+        <a href="/credits">/credits</a> for the full attribution.
+      </p>
+
       <h2>Acceptable use</h2>
       <p>
         Use the service only for personal or research purposes. Do not attempt
