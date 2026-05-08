@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function ProfileForm() {
   const router = useRouter();
@@ -57,8 +57,7 @@ export function ProfileForm() {
 
   return (
     <Card className="max-w-lg mx-auto">
-      <CardHeader><CardTitle>New Birth Profile</CardTitle></CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="name">Full Name</Label>
@@ -71,6 +70,10 @@ export function ProfileForm() {
           <div className="space-y-1">
             <Label htmlFor="time_of_birth">Time of Birth</Label>
             <Input id="time_of_birth" name="time_of_birth" type="time" value={form.time_of_birth} onChange={handleChange} required />
+            <p className="text-xs text-muted-foreground pt-1">
+              24-hour format — for example, 14:30 means 2:30 PM. Use the most accurate
+              time you have; even a 5-minute difference can shift the Lagna.
+            </p>
           </div>
           <div className="space-y-1">
             <Label htmlFor="place_of_birth">Place of Birth</Label>
