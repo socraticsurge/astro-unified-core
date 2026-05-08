@@ -39,11 +39,17 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
 
   useEffect(() => {
-    if (status === "authenticated") {
-      load();
-    } else if (status !== "loading") {
-      setLoading(false);
-    }
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      if (status === "authenticated") {
+        load();
+      } else if (status !== "loading") {
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [status]);
 
   const handleDelete = async (id: string) => {

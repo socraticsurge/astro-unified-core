@@ -1,6 +1,6 @@
 import { withAuth } from "next-auth/middleware";
 
-const PUBLIC_PATHS = new Set(["/", "/privacy", "/terms"]);
+const PUBLIC_PATHS = new Set(["/", "/privacy", "/terms", "/credits"]);
 
 export default withAuth({
   callbacks: {

@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { DashaflowView } from "@/components/engines/DashaflowView";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -115,14 +116,22 @@ export default function ProfileDetailPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">{profile.name}</h1>
-        <div className="flex gap-2 mt-2 flex-wrap">
-          <Badge variant="outline">{profile.date_of_birth}</Badge>
-          <Badge variant="outline">{profile.time_of_birth}</Badge>
-          <Badge variant="outline">{profile.place_of_birth}</Badge>
-          <Badge variant="secondary">{profile.timezone}</Badge>
+      <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold">{profile.name}</h1>
+          <div className="flex gap-2 mt-2 flex-wrap">
+            <Badge variant="outline">{profile.date_of_birth}</Badge>
+            <Badge variant="outline">{profile.time_of_birth}</Badge>
+            <Badge variant="outline">{profile.place_of_birth}</Badge>
+            <Badge variant="secondary">{profile.timezone}</Badge>
+          </div>
         </div>
+        <Link
+          href={`/profiles/${id}/v2`}
+          className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline pt-1"
+        >
+          Try the new view →
+        </Link>
       </div>
 
       <div className="flex items-center justify-between py-3 border-b mb-4">
