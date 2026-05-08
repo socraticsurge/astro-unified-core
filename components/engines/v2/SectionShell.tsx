@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Info } from "lucide-react";
-import { ExplainerModal } from "./ExplainerModal";
+import { ExplainerModal, type ChartEntry } from "./ExplainerModal";
 
 type SectionExplainer = {
   title: string;
@@ -15,6 +15,12 @@ type Props = {
   sectionInView: string;
   /** Pre-rendered explainer payload, or null if no explainer exists. */
   explainer: SectionExplainer | null;
+  /**
+   * Optional chart-specific entries to surface inside the modal under a
+   * "For your chart" tab. Pass an empty array (or omit) for sections
+   * that have no per-row personal content.
+   */
+  chartEntries?: ChartEntry[];
   /** Visual accent class for the title. */
   accent?: string;
   /** Initial collapse state — matches the legacy view's defaultOpen. */
@@ -25,20 +31,26 @@ type Props = {
 
 /**
  * V2 section wrapper. Same collapse semantics as the legacy
- * `Section.tsx`, plus an Info button next to the title that opens an
- * ExplainerModal. If no explainer exists for this section, the Info
- * button is not rendered (briefing rule: never show an icon that opens
- * an empty modal).
+ * `Section.tsx`, plus an Info button next to the title that opens the
+ * `ExplainerModal`. The modal renders the section explainer always; if
+ * `chartEntries` is provided, it also exposes a "For your chart" tab
+ * with chart-specific verses.
+ *
+ * If neither an explainer nor any chart entries exist, the icon is not
+ * rendered (briefing rule: never an icon that opens an empty modal).
  */
 export function SectionShell({
   sectionInView,
   explainer,
+  chartEntries,
   accent = "text-green-400",
   defaultOpen = true,
   children,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [modalOpen, setModalOpen] = useState(false);
+
+  const hasModalContent = !!explainer || (chartEntries && chartEntries.length > 0);
 
   return (
     <div className="border-b last:border-b-0">
@@ -57,12 +69,12 @@ export function SectionShell({
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           )}
         </button>
-        {explainer && (
+        {hasModalContent && (
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            aria-label={`About ${sectionInView}`}
-            title="About this section"
+            aria-label={`Read about ${sectionInView}`}
+            title="Read"
             className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-white/10 hover:text-foreground"
           >
             <Info className="h-4 w-4" />
@@ -71,14 +83,15 @@ export function SectionShell({
       </div>
       {open && <div className="pb-4 px-1">{children}</div>}
 
-      {explainer && (
+      {hasModalContent && (
         <ExplainerModal
           open={modalOpen}
           onClose={() => setModalOpen(false)}
-          title={explainer.title}
-          gist={explainer.gist ?? null}
-          bodyHtml={explainer.bodyHtml}
-          sources={explainer.sources}
+          title={explainer?.title ?? sectionInView}
+          gist={explainer?.gist ?? null}
+          bodyHtml={explainer?.bodyHtml ?? ""}
+          sources={explainer?.sources}
+          chartEntries={chartEntries}
         />
       )}
     </div>

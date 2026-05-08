@@ -1,7 +1,13 @@
 "use client";
-import { Fragment } from "react";
 import { SectionShell } from "./SectionShell";
-import { ValueExplainer } from "./ValueExplainer";
+import type { ChartEntry } from "./ExplainerModal";
+
+const slug = (s: string) => s.toLowerCase().trim().replace(/\s+/g, "-");
+const ord = (n: number) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
 
 type SectionExplainer = {
   title: string;
@@ -187,7 +193,22 @@ export function DashaflowViewV2({ output, explainers }: Props) {
 
       {/* 2. Panchang */}
       {panchang && (
-        <SectionShell sectionInView="Panchang" explainer={exp("Panchang")} accent={accent}>
+        <SectionShell
+          sectionInView="Panchang"
+          explainer={exp("Panchang")}
+          accent={accent}
+          chartEntries={
+            panchang.nakshatra?.name
+              ? [
+                  {
+                    type: "nakshatra",
+                    key: slug(panchang.nakshatra.name),
+                    heading: `Moon in ${panchang.nakshatra.name}`,
+                  },
+                ]
+              : []
+          }
+        >
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
             {panchang.tithi && (
               <div className={card}>
@@ -218,13 +239,6 @@ export function DashaflowViewV2({ output, explainers }: Props) {
                   Pada {panchang.nakshatra.pada}
                   {panchang.nakshatra.lord ? ` · Lord: ${panchang.nakshatra.lord}` : ""}
                 </p>
-                <div className="mt-3">
-                  <ValueExplainer
-                    kind="nakshatra"
-                    nakshatra={panchang.nakshatra.name ?? ""}
-                    variant="card"
-                  />
-                </div>
               </div>
             )}
             {panchang.yoga && (
@@ -252,6 +266,17 @@ export function DashaflowViewV2({ output, explainers }: Props) {
           sectionInView="Lagna & Divisional Lagnas"
           explainer={exp("Lagna & Divisional Lagnas")}
           accent={accent}
+          chartEntries={
+            typeof lagna.sign === "string" && lagna.sign.length > 0
+              ? [
+                  {
+                    type: "ascendant",
+                    key: slug(lagna.sign),
+                    heading: `${lagna.sign} ascendant`,
+                  },
+                ]
+              : []
+          }
         >
           <div className="mt-2 space-y-3">
             <div className="bg-green-900/30 border border-green-600/50 rounded-lg p-4">
@@ -265,11 +290,6 @@ export function DashaflowViewV2({ output, explainers }: Props) {
                   <span className="text-green-300">{String(lagna.nakshatra)}{lagna.pada ? ` · Pada ${String(lagna.pada)}` : ""}</span>
                 )}
               </div>
-              {typeof lagna.sign === "string" && lagna.sign.length > 0 && (
-                <div className="mt-3">
-                  <ValueExplainer kind="ascendant" sign={lagna.sign} variant="card" />
-                </div>
-              )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {Object.entries(DIV_LABELS).map(([key, label]) => {
@@ -293,6 +313,19 @@ export function DashaflowViewV2({ output, explainers }: Props) {
           sectionInView="Planetary Positions"
           explainer={exp("Planetary Positions")}
           accent={accent}
+          chartEntries={
+            PLANET_ORDER
+              .map<ChartEntry | null>((name) => {
+                const p = planets[name];
+                if (!p || p.house === undefined) return null;
+                return {
+                  type: "planet-in-house",
+                  key: `${slug(name)}-${p.house}`,
+                  heading: `${name} · ${ord(p.house)} house`,
+                };
+              })
+              .filter((x): x is ChartEntry => x !== null)
+          }
         >
           <div className="overflow-x-auto mt-2">
             <table className="w-full text-sm border-collapse">
@@ -316,51 +349,37 @@ export function DashaflowViewV2({ output, explainers }: Props) {
                   const dKey = (p.dignity ?? "neutral").toLowerCase();
                   const dignClass = DIGNITY_COLOR[dKey] ?? DIGNITY_COLOR.neutral;
                   return (
-                    <Fragment key={name}>
-                      <tr className={row}>
-                        <td className="py-2 pr-3 font-semibold text-green-300">{name}</td>
-                        <td className="py-2 pr-3">{p.sign}</td>
-                        <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
-                          {p.degree !== undefined ? `${p.degree.toFixed(2)}°` : "—"}
-                        </td>
-                        <td className="py-2 pr-3 text-green-400 font-bold">
-                          {p.house !== undefined ? `H${p.house}` : "—"}
-                        </td>
-                        <td className="py-2 pr-3 text-xs text-muted-foreground">
-                          {p.nakshatra ?? "—"}
-                        </td>
-                        <td className="py-2 pr-3 text-xs text-muted-foreground">
-                          {p.pada ?? "—"}
-                        </td>
-                        <td className="py-2 pr-3">
-                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium capitalize ${dignClass}`}>
-                            {p.dignity ?? "—"}
-                          </span>
-                        </td>
-                        <td className="py-2 pr-2 text-center">
-                          {p.is_retrograde
-                            ? <span className="text-orange-400 font-bold">℞</span>
-                            : <span className="text-muted-foreground/40">—</span>}
-                        </td>
-                        <td className="py-2 text-center">
-                          {p.is_combust
-                            ? <span className="text-red-400 font-bold">●</span>
-                            : <span className="text-muted-foreground/40">—</span>}
-                        </td>
-                      </tr>
-                      {p.house !== undefined && (
-                        <tr className="border-b border-white/10">
-                          <td colSpan={9} className="pt-1 pb-3 pl-6 pr-3 align-top">
-                            <ValueExplainer
-                              kind="planet-in-house"
-                              planet={name}
-                              house={p.house}
-                              variant="row"
-                            />
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
+                    <tr key={name} className={row}>
+                      <td className="py-2 pr-3 font-semibold text-green-300">{name}</td>
+                      <td className="py-2 pr-3">{p.sign}</td>
+                      <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                        {p.degree !== undefined ? `${p.degree.toFixed(2)}°` : "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-green-400 font-bold">
+                        {p.house !== undefined ? `H${p.house}` : "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-xs text-muted-foreground">
+                        {p.nakshatra ?? "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-xs text-muted-foreground">
+                        {p.pada ?? "—"}
+                      </td>
+                      <td className="py-2 pr-3">
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium capitalize ${dignClass}`}>
+                          {p.dignity ?? "—"}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-2 text-center">
+                        {p.is_retrograde
+                          ? <span className="text-orange-400 font-bold">℞</span>
+                          : <span className="text-muted-foreground/40">—</span>}
+                      </td>
+                      <td className="py-2 text-center">
+                        {p.is_combust
+                          ? <span className="text-red-400 font-bold">●</span>
+                          : <span className="text-muted-foreground/40">—</span>}
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -375,6 +394,17 @@ export function DashaflowViewV2({ output, explainers }: Props) {
           sectionInView="Vimshottari Dasha — Current 5-Level Period"
           explainer={exp("Vimshottari Dasha — Current 5-Level Period")}
           accent={accent}
+          chartEntries={
+            dashas.maha?.planet && dashas.antar?.planet
+              ? [
+                  {
+                    type: "dasha-pair",
+                    key: `${slug(dashas.maha.planet)}-${slug(dashas.antar.planet)}`,
+                    heading: `${dashas.maha.planet} mahadasha · ${dashas.antar.planet} antardasha`,
+                  },
+                ]
+              : []
+          }
         >
           <div className="mt-2 space-y-2">
             {dashas.maha && (
@@ -402,18 +432,6 @@ export function DashaflowViewV2({ output, explainers }: Props) {
                         <span className="text-xs text-green-400">{dashas.antar.days.toFixed(1)} days</span>
                       )}
                     </div>
-
-                    {/* Always-visible interpretation for the Maha→Antar pair */}
-                    {dashas.maha?.planet && dashas.antar?.planet && (
-                      <div className="mt-3">
-                        <ValueExplainer
-                          kind="dasha-pair"
-                          mahadasha={dashas.maha.planet}
-                          antardasha={dashas.antar.planet}
-                          variant="card"
-                        />
-                      </div>
-                    )}
 
                     {dashas.pratyantar && (
                       <div className="ml-4 mt-2 bg-green-950/20 border border-green-800/30 rounded-lg p-2.5">
