@@ -140,6 +140,16 @@ export default function DashboardPage() {
           </tbody>
         </table>
       </div>
+      
+      <div className="mt-6 p-4 rounded-lg bg-amber-950/20 border border-amber-700/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="text-sm">
+          <span className="font-medium text-amber-300">Profile Usage: </span>
+          <span className="text-foreground/90">{profiles.length} out of 10 free profiles created.</span>
+        </div>
+        <p className="text-xs text-muted-foreground sm:text-right max-w-sm leading-relaxed">
+          We encourage you to use your available slots to add family members—parents, spouse, children, or siblings—to get a complete astrological picture!
+        </p>
+      </div>
     </div>
   );
 }

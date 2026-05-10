@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { geocodePlace } from "@/lib/geocode";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -21,11 +22,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Rate Limiting Check
+    const rateLimitResult = rateLimit(`create_profile_${userId}`);
+    if (!rateLimitResult.success) {
+      return NextResponse.json({ error: "Too many requests. Please wait a minute before creating another profile." }, { status: 429 });
+    }
+
+    // Max Profiles Check
+    const existingProfiles = await db.profiles.list(userId);
+    if (existingProfiles.length >= 10) {
+      return NextResponse.json({ error: "You have reached the maximum limit of 10 profiles." }, { status: 403 });
+    }
+
     const body = await req.json();
     const { name, date_of_birth, time_of_birth, place_of_birth } = body ?? {};
 
     if (!name || !date_of_birth || !time_of_birth || !place_of_birth) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
+    }
+
+    // Input Length Validation
+    if (name.length > 100 || place_of_birth.length > 100) {
+      return NextResponse.json({ error: "Name and place of birth must be under 100 characters." }, { status: 400 });
     }
 
     let geo;

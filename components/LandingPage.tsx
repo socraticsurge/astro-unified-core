@@ -154,6 +154,10 @@ export function LandingPage() {
               q: "Is my data private?",
               a: "Only you and Dr. Chaganti, the astrologer, can see the profiles you create. Your data is never sold or shared with anyone else.",
             },
+            {
+              q: "How many profiles can I create?",
+              a: "You can generate up to 10 birth profiles completely free of cost. We encourage you to create profiles for yourself and your immediate family members to get a fuller astrological picture.",
+            },
           ].map(({ q, a }) => (
             <details
               key={q}

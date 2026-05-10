@@ -61,7 +61,7 @@ export function ProfileForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="name">Full Name</Label>
-            <Input id="name" name="name" value={form.name} onChange={handleChange} required placeholder="e.g. Ramanujan" />
+            <Input id="name" name="name" value={form.name} onChange={handleChange} required maxLength={100} placeholder="e.g. Ramanujan" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="date_of_birth">Date of Birth</Label>
@@ -77,7 +77,7 @@ export function ProfileForm() {
           </div>
           <div className="space-y-1">
             <Label htmlFor="place_of_birth">Place of Birth</Label>
-            <Input id="place_of_birth" name="place_of_birth" value={form.place_of_birth} onChange={handleChange} required placeholder="e.g. Erode, Tamil Nadu, India" />
+            <Input id="place_of_birth" name="place_of_birth" value={form.place_of_birth} onChange={handleChange} required maxLength={100} placeholder="e.g. Erode, Tamil Nadu, India" />
             <p className="text-xs text-muted-foreground pt-1">
               Tip: if your village or town isn&apos;t recognized, use the nearest larger city or
               district headquarters. Lagna calculations are usually unaffected by small
