@@ -122,18 +122,20 @@ export default function DashboardPage() {
                   {p.timezone} (UTC{p.timezone_offset >= 0 ? "+" : ""}{p.timezone_offset})
                 </td>
                 <td className="px-3 py-2 text-right whitespace-nowrap">
-                  <Link href={`/profiles/${p.id}`}>
-                    <Button variant="outline" size="sm" className="h-7 text-xs mr-1">View</Button>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(p.id)}
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    aria-label="Delete profile"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    <Link href={`/profiles/${p.id}`}>
+                      <Button variant="outline" size="sm" className="h-7 text-xs">View</Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(p.id)}
+                      className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+                      aria-label="Delete profile"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
