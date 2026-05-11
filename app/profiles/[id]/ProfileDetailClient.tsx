@@ -154,7 +154,7 @@ export function ProfileDetailClient({ explainers }: Props) {
           {reading.error && <AlertCircle className="h-4 w-4 text-red-500" />}
           {reading.loading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
           <span className="text-sm font-medium text-green-400">
-            {reading.loading ? "Preparing your chart…" : reading.error ? "Error" : reading.output ? "Vedic chart loaded" : "Not yet fetched"}
+            {reading.loading ? "Preparing your chart…" : reading.error ? "Error" : ""}
           </span>
         </div>
         <div className="flex gap-1">
@@ -181,7 +181,7 @@ export function ProfileDetailClient({ explainers }: Props) {
         <div className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-lg bg-amber-950/20 border border-amber-800/30">
           <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400/80" />
           <p className="text-xs text-amber-300/80 leading-relaxed">
-            Each section below has a <span className="text-amber-300 font-semibold">ⓘ</span> button. Tap it to read the classical Vedic interpretation for that section of your chart.
+            Each section below has a <span className="text-amber-300 font-semibold">ⓘ</span> button. Tap it to read the classical Vedic interpretation for your chart.
           </p>
         </div>
       )}
