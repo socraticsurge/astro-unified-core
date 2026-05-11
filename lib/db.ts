@@ -65,6 +65,7 @@ export async function ensureSchema() {
     `);
 
     // Migrations for newly added columns
+    try { await client.execute("ALTER TABLE users ADD COLUMN created_at TEXT;"); } catch {}
     try { await client.execute("ALTER TABLE profiles ADD COLUMN relationship TEXT;"); } catch {}
     try { await client.execute("ALTER TABLE profiles ADD COLUMN gender TEXT;"); } catch {}
 
@@ -100,13 +101,13 @@ export const db = {
     async upsert(user: { id: string; name?: string | null; email?: string | null; image?: string | null }) {
       await ensureSchema();
       await getClient().execute({
-        sql: `INSERT INTO users (id, name, email, image, last_login) 
-             VALUES (?, ?, ?, ?, ?)
+        sql: `INSERT INTO users (id, name, email, image, last_login, created_at) 
+             VALUES (?, ?, ?, ?, ?, ?)
              ON CONFLICT(email) DO UPDATE SET 
              last_login = excluded.last_login,
              name = excluded.name,
              image = excluded.image`,
-        args: [user.id, user.name || "", user.email || "", user.image || "", new Date().toISOString()],
+        args: [user.id, user.name || "", user.email || "", user.image || "", new Date().toISOString(), new Date().toISOString()],
       });
     },
     async list() {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { isAdmin, ADMIN_EMAILS } from "@/lib/admin";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminTables } from "./AdminTables";
 
 export const dynamic = "force-dynamic";
 
@@ -41,93 +41,7 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="users">
-        <TabsList className="mb-4">
-          <TabsTrigger value="users">Users ({users.length})</TabsTrigger>
-          <TabsTrigger value="profiles">Profiles ({profiles.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="users">
-          <div className="overflow-x-auto rounded-lg border border-white/10">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Email</th>
-                  <th className="px-3 py-2 font-medium">User ID</th>
-                  <th className="px-3 py-2 font-medium">Last Login</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={String(u.id)} className="border-t border-white/10 hover:bg-white/5">
-                    <td className="px-3 py-2 font-medium">{String(u.name || "—")}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{String(u.email || "—")}</td>
-                    <td className="px-3 py-2 text-muted-foreground font-mono text-xs">{String(u.id)}</td>
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                      {u.last_login ? new Date(String(u.last_login)).toLocaleString() : "—"}
-                    </td>
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">No users yet</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="profiles">
-          <div className="overflow-x-auto rounded-lg border border-white/10">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Profile</th>
-                  <th className="px-3 py-2 font-medium">Owner</th>
-                  <th className="px-3 py-2 font-medium">Relation</th>
-                  <th className="px-3 py-2 font-medium">Gender</th>
-                  <th className="px-3 py-2 font-medium">Date of Birth</th>
-                  <th className="px-3 py-2 font-medium">Time of Birth</th>
-                  <th className="px-3 py-2 font-medium">Place</th>
-                  <th className="px-3 py-2 font-medium">Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {profiles.map((p) => (
-                  <tr key={p.id} className="border-t border-white/10 hover:bg-white/5">
-                    <td className="px-3 py-2 font-medium">
-                      <Link href={`/profiles/${p.id}`} className="hover:underline text-amber-300">
-                        {p.name}
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      <div>{p.user_name || "—"}</div>
-                      <div className="text-xs">{p.user_email || ""}</div>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.relationship || "-"}</td>
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.gender || "-"}</td>
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.date_of_birth}</td>
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.time_of_birth}</td>
-                    <td className="px-3 py-2 text-muted-foreground max-w-[20rem] truncate" title={p.place_of_birth}>
-                      {p.place_of_birth}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                      {new Date(p.created_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-                {profiles.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No profiles yet</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-      </Tabs>
+      <AdminTables users={users} profiles={profiles} />
     </div>
   );
 }
