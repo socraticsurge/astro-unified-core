@@ -28,6 +28,8 @@ type Props = {
 function profileHeaderText(p: Profile): string {
   return [
     `Name: ${p.name}`,
+    `Relationship: ${p.relationship || "-"}`,
+    `Gender: ${p.gender || "-"}`,
     `Date of birth: ${p.date_of_birth}`,
     `Time of birth: ${p.time_of_birth} (${p.timezone}, UTC${p.timezone_offset >= 0 ? "+" : ""}${p.timezone_offset})`,
     `Place of birth: ${p.place_of_birth} (lat ${p.latitude}, lon ${p.longitude})`,
@@ -137,6 +139,8 @@ export function ProfileDetailClient({ explainers }: Props) {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">{profile.name}</h1>
         <div className="flex gap-2 mt-2 flex-wrap">
+          {profile.relationship && <Badge variant="secondary" className="bg-amber-900/50 text-amber-200 hover:bg-amber-900/50">{profile.relationship}</Badge>}
+          {profile.gender && <Badge variant="secondary" className="bg-blue-900/50 text-blue-200 hover:bg-blue-900/50">{profile.gender}</Badge>}
           <Badge variant="outline">{profile.date_of_birth}</Badge>
           <Badge variant="outline">{profile.time_of_birth}</Badge>
           <Badge variant="outline">{profile.place_of_birth}</Badge>
