@@ -11,6 +11,7 @@ import type { Profile } from "@/lib/db";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
 import { isAdmin } from "@/lib/admin";
+import { RelationshipBadge, GenderBadge, BirthDetails } from "@/components/profile-ui";
 
 type SectionExplainer = {
   title: string;
@@ -155,44 +156,19 @@ export function ProfileDetailClient({ explainers }: Props) {
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <h1 className="text-2xl font-bold leading-tight">{profile.name}</h1>
             <div className="flex gap-1.5 flex-wrap">
-              {profile.relationship ? (
-                <span className="inline-flex items-center rounded-full bg-amber-900/40 px-2.5 py-0.5 text-xs font-medium text-amber-300 ring-1 ring-inset ring-amber-800/50">
-                  {profile.relationship}
-                </span>
-              ) : (
-                <Link href={`/profiles/${profile.id}/edit`} className="inline-flex items-center rounded-full bg-red-950/30 px-2.5 py-0.5 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-900/50 hover:bg-red-900/40 transition-colors">
-                  + Add Relationship
-                </Link>
-              )}
-              {profile.gender ? (
-                <span className="inline-flex items-center rounded-full bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-300 ring-1 ring-inset ring-blue-800/40">
-                  {profile.gender}
-                </span>
-              ) : (
-                <Link href={`/profiles/${profile.id}/edit`} className="inline-flex items-center rounded-full bg-red-950/30 px-2.5 py-0.5 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-900/50 hover:bg-red-900/40 transition-colors">
-                  + Add Gender
-                </Link>
-              )}
+              <RelationshipBadge value={profile.relationship} profileId={profile.id} />
+              <GenderBadge value={profile.gender} profileId={profile.id} />
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-1.5 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="text-base">📅</span>
-              <span className="font-medium text-foreground/80">{profile.date_of_birth}</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="text-base">⏰</span>
-              <span className="font-medium text-foreground/80">{profile.time_of_birth}</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground col-span-1 sm:col-span-1">
-              <span className="text-base">🌐</span>
-              <span className="font-medium text-foreground/80 text-xs">{profile.timezone} (UTC{profile.timezone_offset >= 0 ? "+" : ""}{profile.timezone_offset})</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground sm:col-span-3">
-              <span className="text-base">📍</span>
-              <span className="font-medium text-foreground/80">{profile.place_of_birth}</span>
-            </div>
+          <div className="mt-3">
+            <BirthDetails
+              date_of_birth={profile.date_of_birth}
+              time_of_birth={profile.time_of_birth}
+              place_of_birth={profile.place_of_birth}
+              timezone={profile.timezone}
+              timezone_offset={profile.timezone_offset}
+            />
           </div>
         </div>
       </div>

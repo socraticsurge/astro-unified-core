@@ -4,7 +4,8 @@ import { useSession } from "next-auth/react";
 import type { Profile } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Trash2, Edit2 } from "lucide-react";
+import { Search, Trash2, Edit2 } from "lucide-react";
+import { RelationshipBadge, GenderBadge, BirthDetails } from "@/components/profile-ui";
 
 export default function DashboardPage() {
   const { status } = useSession();
@@ -104,21 +105,8 @@ export default function DashboardPage() {
                   {p.name}
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
-                  {p.relationship && (
-                    <span className="inline-flex items-center rounded-full bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-300 ring-1 ring-inset ring-amber-900/50">
-                      {p.relationship}
-                    </span>
-                  )}
-                  {p.gender && (
-                    <span className="inline-flex items-center rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-300 ring-1 ring-inset ring-zinc-700">
-                      {p.gender}
-                    </span>
-                  )}
-                  {(!p.relationship || !p.gender) && (
-                    <Link href={`/profiles/${p.id}/edit`} className="inline-flex items-center rounded-full bg-red-950/40 px-2 py-0.5 text-[10px] font-medium text-red-400 ring-1 ring-inset ring-red-900/50 hover:bg-red-900/60 transition-colors">
-                      + Add missing info
-                    </Link>
-                  )}
+                  <RelationshipBadge value={p.relationship} profileId={p.id} />
+                  <GenderBadge value={p.gender} profileId={p.id} />
                 </div>
               </div>
               <Link href={`/profiles/${p.id}`} className="shrink-0">
@@ -129,21 +117,14 @@ export default function DashboardPage() {
             </div>
 
             {/* Card Body */}
-            <div className="p-4 space-y-2 text-sm text-muted-foreground flex-1">
-              <div className="flex items-center justify-between">
-                <span>Date:</span>
-                <span className="text-foreground/90 font-medium">{p.date_of_birth}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Time:</span>
-                <span className="text-foreground/90 font-medium">{p.time_of_birth}</span>
-              </div>
-              <div className="pt-2 border-t border-white/5">
-                <div className="text-xs text-muted-foreground mb-0.5">Place of Birth</div>
-                <div className="text-foreground/90 font-medium line-clamp-2 leading-tight">
-                  {p.place_of_birth}
-                </div>
-              </div>
+            <div className="p-4 flex-1">
+              <BirthDetails
+                date_of_birth={p.date_of_birth}
+                time_of_birth={p.time_of_birth}
+                place_of_birth={p.place_of_birth}
+                timezone={p.timezone}
+                timezone_offset={p.timezone_offset}
+              />
             </div>
 
             {/* Card Footer */}
