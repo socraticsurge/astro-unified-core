@@ -6,7 +6,7 @@ import Link from "next/link";
 import { DashaflowView } from "@/components/engines/DashaflowView";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check } from "lucide-react";
+import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check, Info } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
@@ -173,6 +173,16 @@ export function ProfileDetailClient({ explainers }: Props) {
           </Button>
         </div>
       </div>
+
+      {/* Permanent hint strip — always visible once chart is loaded */}
+      {!!reading.output && !reading.error && (
+        <div className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-lg bg-amber-950/20 border border-amber-800/30">
+          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400/80" />
+          <p className="text-xs text-amber-300/80 leading-relaxed">
+            Each section below has a <span className="text-amber-300 font-semibold">ⓘ</span> button — tap it to read the classical Vedic interpretation for that section of your chart.
+          </p>
+        </div>
+      )}
 
       {reading.error && (
         <div className="text-sm text-red-400 bg-red-950/30 border border-red-800/50 rounded-lg p-3 mb-4">

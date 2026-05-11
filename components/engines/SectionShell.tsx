@@ -74,8 +74,8 @@ export function SectionShell({
             type="button"
             onClick={() => setModalOpen(true)}
             aria-label={`Read about ${sectionInView}`}
-            title="Read"
-            className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+            title="Read Vedic explanation"
+            className="shrink-0 rounded-md p-1 text-amber-400/70 hover:bg-amber-950/40 hover:text-amber-300 transition-colors"
           >
             <Info className="h-4 w-4" />
           </button>
