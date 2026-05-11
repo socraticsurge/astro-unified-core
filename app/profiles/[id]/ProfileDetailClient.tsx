@@ -167,10 +167,12 @@ export function ProfileDetailClient({ explainers }: Props) {
               {showRaw ? "Formatted" : "Raw JSON"}
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => fetchReading(true)} disabled={reading.loading} className="h-7 text-xs gap-1">
-            <RefreshCw className="h-3 w-3" />
-            Refresh
-          </Button>
+          {showAdminTools && (
+            <Button variant="ghost" size="sm" onClick={() => fetchReading(true)} disabled={reading.loading} className="h-7 text-xs gap-1">
+              <RefreshCw className="h-3 w-3" />
+              Refresh
+            </Button>
+          )}
         </div>
       </div>
 
@@ -179,7 +181,7 @@ export function ProfileDetailClient({ explainers }: Props) {
         <div className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-lg bg-amber-950/20 border border-amber-800/30">
           <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400/80" />
           <p className="text-xs text-amber-300/80 leading-relaxed">
-            Each section below has a <span className="text-amber-300 font-semibold">ⓘ</span> button — tap it to read the classical Vedic interpretation for that section of your chart.
+            Each section below has a <span className="text-amber-300 font-semibold">ⓘ</span> button. Tap it to read the classical Vedic interpretation for that section of your chart.
           </p>
         </div>
       )}
