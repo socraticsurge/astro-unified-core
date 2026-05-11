@@ -89,36 +89,36 @@ export function AdminTables({ users, profiles }: { users: any[], profiles: any[]
           <table className="w-full text-sm">
             <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("name")}>Profile {renderSortIcon("name", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("user_name")}>Owner Name {renderSortIcon("user_name", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("user_email")}>Owner Email {renderSortIcon("user_email", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("relationship")}>Relation {renderSortIcon("relationship", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("gender")}>Gender {renderSortIcon("gender", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("date_of_birth")}>Date of Birth {renderSortIcon("date_of_birth", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("time_of_birth")}>Time of Birth {renderSortIcon("time_of_birth", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("place_of_birth")}>Place {renderSortIcon("place_of_birth", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("created_at")}>Created {renderSortIcon("created_at", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("name")}>Profile {renderSortIcon("name", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("user_name")}>Owner Name {renderSortIcon("user_name", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("user_email")}>Owner Email {renderSortIcon("user_email", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("relationship")}>Relation {renderSortIcon("relationship", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("gender")}>Gender {renderSortIcon("gender", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("date_of_birth")}>Date of Birth {renderSortIcon("date_of_birth", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("time_of_birth")}>Time of Birth {renderSortIcon("time_of_birth", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("place_of_birth")}>Place {renderSortIcon("place_of_birth", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("created_at")}>Created {renderSortIcon("created_at", profileSortCol, profileSortDir)}</th>
               </tr>
             </thead>
             <tbody>
               {sortedProfiles.map((p) => (
                 <tr key={p.id} className="border-t border-white/10 hover:bg-white/5">
-                  <td className="px-3 py-2 font-medium">
+                  <td className="px-3 py-2 font-medium whitespace-nowrap">
                     <Link href={`/profiles/${p.id}`} className="hover:underline text-amber-300">
                       {p.name}
                     </Link>
                   </td>
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.user_name || "—"}</td>
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.user_email || "—"}</td>
-                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.relationship || "-"}</td>
-                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.gender || "-"}</td>
+                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.relationship || "—"}</td>
+                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.gender || "—"}</td>
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.date_of_birth}</td>
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.time_of_birth}</td>
-                  <td className="px-3 py-2 text-muted-foreground max-w-[20rem] truncate" title={p.place_of_birth}>
+                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                     {p.place_of_birth}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                    {new Date(p.created_at).toLocaleDateString()}
+                    {p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}
                   </td>
                 </tr>
               ))}

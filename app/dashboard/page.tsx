@@ -99,27 +99,27 @@ export default function DashboardPage() {
         <table className="w-full text-sm">
           <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("name")}>Name {renderSortIcon("name")}</th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("relationship")}>Relation {renderSortIcon("relationship")}</th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("gender")}>Gender {renderSortIcon("gender")}</th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("date_of_birth")}>Date {renderSortIcon("date_of_birth")}</th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("time_of_birth")}>Time {renderSortIcon("time_of_birth")}</th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("place_of_birth")}>Place {renderSortIcon("place_of_birth")}</th>
-              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("timezone")}>Timezone {renderSortIcon("timezone")}</th>
-              <th className="px-3 py-2 font-medium text-right">Actions</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("name")}>Name {renderSortIcon("name")}</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("relationship")}>Relation {renderSortIcon("relationship")}</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("gender")}>Gender {renderSortIcon("gender")}</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("date_of_birth")}>Date {renderSortIcon("date_of_birth")}</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("time_of_birth")}>Time {renderSortIcon("time_of_birth")}</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("place_of_birth")}>Place {renderSortIcon("place_of_birth")}</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("timezone")}>Timezone {renderSortIcon("timezone")}</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map((p) => (
               <tr key={p.id} className="border-t border-white/10 hover:bg-white/5">
-                <td className="px-3 py-2 font-medium">
+                <td className="px-3 py-2 font-medium whitespace-nowrap">
                   <Link href={`/profiles/${p.id}`} className="hover:underline">{p.name}</Link>
                 </td>
-                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.relationship || "-"}</td>
-                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.gender || "-"}</td>
+                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.relationship || "—"}</td>
+                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.gender || "—"}</td>
                 <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.date_of_birth}</td>
                 <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.time_of_birth}</td>
-                <td className="px-3 py-2 text-muted-foreground max-w-[24rem] truncate" title={p.place_of_birth}>
+                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                   {p.place_of_birth}
                 </td>
                 <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
