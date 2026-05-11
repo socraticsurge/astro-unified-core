@@ -127,32 +127,44 @@ export function LandingPage() {
         <div className="space-y-2">
           {[
             {
-              q: "My birth place isn't found, or the chart looks wrong.",
-              a: "Try the nearest larger city or district headquarters — small villages and towns are often missing from the geocoder. Coordinates within 10–20 km rarely affect the Lagna calculation, so the nearest recognised city is usually a safe substitute.",
+              q: "Which Ayanamsha and Zodiac system does this platform use?",
+              a: "This platform strictly utilizes the Sidereal Zodiac with the Chitra Paksha (Lahiri) Ayanamsha, the gold standard for Vedic Astrology (Jyotish). By integrating the Swiss Ephemeris, we provide planetary positions with sub-second accuracy, ensuring that your divisional charts (Vargas) are calculated with the highest possible mathematical integrity.",
             },
             {
-              q: "Can I get a personal reading from Dr. Chaganti?",
-              a: "Yes. Email astrochaganti@gmail.com and ask for a calendar link. Appointments are chargeable.",
+              q: "Why does my chart look different here compared to Western astrology apps?",
+              a: "Western astrology typically uses the Tropical zodiac, which is based on the seasons. Vedic astrology uses the Sidereal zodiac, which is fixed to the stars. Due to the Earth’s axial precession, these two systems are currently offset by approximately 24 degrees. This \"shift\" (Ayanamsha) means your planets and Ascendant (Lagna) will likely move back by nearly one full sign compared to Western charts.",
             },
             {
-              q: "When is the astrologer available?",
-              a: "Typically on weekends.",
+              q: "What should I do if my exact birth village isn't listed in the search?",
+              a: "Our geocoder maps to a global database of cities and districts. If your specific location is missing, please select the nearest recognized town or district headquarters. From a mathematical standpoint, coordinates within a 15–20 km radius are sufficient; they do not impact the Lagna or Varga calculations significantly.",
             },
             {
-              q: "What does it cost?",
-              a: "Contact astrochaganti@gmail.com for current pricing.",
+              q: "What defines Dr. Chaganti’s approach to a reading?",
+              a: "Dr. Chaganti approaches astrology as a systemic research engagement rather than a generic predictive service. By applying systems thinking to classical Parashari principles, the goal is to decode the underlying architecture of your life. We define success within your karmic constraints, focusing on planetary strengths and dasha timing. We work our way collaboratively.",
             },
             {
-              q: "How do I prepare for an appointment?",
-              a: "Generate profiles for yourself and everyone relevant to your question (family members, partner, anyone whose chart bears on the situation), then write a detailed note describing your context and what you want to ask. The more specific, the better the reading.",
+              q: "How should I prepare my context for a consultation?",
+              a: (
+                <div className="space-y-3">
+                  <p>
+                    To prepare for a consultation, it is best to move away from vague, passive questions and toward a structured Life Problem Statement.
+                  </p>
+                  <p>
+                    For example, instead of asking a broad question like "Which stream should I study?", a high-value inquiry would be: "I am currently at a crossroads between pursuing Data Science or Management; based on my chart, does my intellectual architecture support a career in deep technical research, or am I better aligned for a leadership path involving strategic growth?" This is effective because it identifies the specific options you are considering and allows the analysis to focus on your inherent strengths and the timing of your dasha cycles, rather than providing a generic or arbitrary recommendation.
+                  </p>
+                  <p>
+                    Vague questions like "When will my life get better?" or "Will I get this job?" are low-value because they lack a clear definition of success and treat astrology as a simple "yes/no" binary. To get the most out of your session, try using a three-point framework: the Observation (what is happening now), the Constraint (the main obstacle you face), and the Objective (what success looks like to you). Providing this level of detail, along with the birth profiles of yourself and relevant family members, ensures that the consultation moves past surface-level predictions and into a methodical research engagement that reveals your specific "Definition of Success."
+                  </p>
+                </div>
+              ),
             },
             {
-              q: "Why does this chart show different signs than other astrology apps?",
-              a: "This site uses the Vedic sidereal zodiac with the Lahiri ayanamsha. Western or tropical astrology apps use a different reference frame, and the two are offset by roughly 24° — enough to shift the Lagna and several planets by a sign. Both can be internally consistent; they're answering different questions.",
+              q: "What is the cost, and how do I set up an appointment?",
+              a: "Personal consultations are conducted as deep-dive research sessions and are available by appointment, typically on weekends. To initiate the process, please email astrochaganti@gmail.com with your specific Life Problem Statement and the names of the profiles you have created on the platform, and clearly indicate the family relationship of each person. Once your context is reviewed, you will receive a response with current professional fees and a calendar link to book your session. Please note that appointments are chargeable and are structured to provide a synthesis of the charts generated.",
             },
             {
-              q: "Is my data private?",
-              a: "Only you and Dr. Chaganti, the astrologer, can see the profiles you create. Your data is never sold or shared with anyone else.",
+              q: "How is my personal birth data handled?",
+              a: "In the Vedic tradition, birth data is considered sacred and sensitive. Your data is stored in a private, secure environment. It is visible only to you and is used by Dr. Chaganti solely for the purpose of your requested research or consultation. We do not engage in data sharing or commercial profiling.",
             },
             {
               q: "How many profiles can I create?",
