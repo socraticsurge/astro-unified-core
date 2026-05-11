@@ -11,26 +11,13 @@ export default function DashboardPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortCol, setSortCol] = useState<keyof Profile>("created_at");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
   const filtered = profiles.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
   const sorted = [...filtered].sort((a, b) => {
-    const aVal = String(a[sortCol] || "");
-    const bVal = String(b[sortCol] || "");
-    const cmp = aVal.localeCompare(bVal);
-    return sortDir === "asc" ? cmp : -cmp;
+    // Default to sorting by created_at descending (newest first)
+    const aVal = String(a.created_at || "");
+    const bVal = String(b.created_at || "");
+    return bVal.localeCompare(aVal);
   });
-
-  const toggleSort = (col: keyof Profile) => {
-    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortCol(col); setSortDir("asc"); }
-  };
-
-  const renderSortIcon = (col: keyof Profile) => {
-    if (sortCol !== col) return <ChevronsUpDown className="ml-1 h-3 w-3 inline opacity-30" />;
-    return sortDir === "asc" ? <ChevronUp className="ml-1 h-3 w-3 inline" /> : <ChevronDown className="ml-1 h-3 w-3 inline" />;
-  };
 
   const load = () =>
     fetch("/api/profiles")
@@ -66,7 +53,11 @@ export default function DashboardPage() {
     return (
       <div className="max-w-2xl mx-auto py-16 space-y-6 text-center">
         <p className="text-2xl font-light text-muted-foreground">No profiles yet</p>
-        <Link href="/profiles/new"><Button size="lg">Create your first birth profile</Button></Link>
+        <Link href="/profiles/new">
+          <Button size="lg" className="font-semibold shadow-md bg-amber-500 hover:bg-amber-600 text-amber-950">
+            Create your first birth profile
+          </Button>
+        </Link>
         <div className="text-left border border-white/10 rounded-lg p-5 bg-white/5 mt-8 space-y-2">
           <div className="text-sm font-semibold text-amber-300">A suggestion to get the most out of this</div>
           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -81,78 +72,106 @@ export default function DashboardPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6 gap-4">
-        <h1 className="text-2xl font-bold">Saved Profiles</h1>
-        <div className="relative">
+    <div className="space-y-8">
+      {/* Hero CTA & Search */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <Link href="/profiles/new" className="w-full sm:w-auto">
+          <Button size="lg" className="w-full sm:w-auto font-semibold shadow-md bg-amber-500 hover:bg-amber-600 text-amber-950">
+            + Create New Profile
+          </Button>
+        </Link>
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search profiles..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm min-w-[250px]"
+            className="w-full pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm"
           />
         </div>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-white/10">
-        <table className="w-full text-sm">
-          <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("name")}>Name {renderSortIcon("name")}</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("relationship")}>Relation {renderSortIcon("relationship")}</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("gender")}>Gender {renderSortIcon("gender")}</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("date_of_birth")}>Date {renderSortIcon("date_of_birth")}</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("time_of_birth")}>Time {renderSortIcon("time_of_birth")}</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("place_of_birth")}>Place {renderSortIcon("place_of_birth")}</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleSort("timezone")}>Timezone {renderSortIcon("timezone")}</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((p) => (
-              <tr key={p.id} className="border-t border-white/10 hover:bg-white/5">
-                <td className="px-3 py-2 font-medium whitespace-nowrap">
-                  <Link href={`/profiles/${p.id}`} className="hover:underline">{p.name}</Link>
-                </td>
-                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.relationship || "—"}</td>
-                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.gender || "—"}</td>
-                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.date_of_birth}</td>
-                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.time_of_birth}</td>
-                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+
+      {/* Card Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {sorted.map((p) => (
+          <div key={p.id} className="group relative flex flex-col bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 transition-colors">
+            
+            {/* Card Header */}
+            <div className="p-4 border-b border-white/5 flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-heading text-xl font-semibold text-foreground line-clamp-1">
+                  {p.name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  {p.relationship && (
+                    <span className="inline-flex items-center rounded-full bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-300 ring-1 ring-inset ring-amber-900/50">
+                      {p.relationship}
+                    </span>
+                  )}
+                  {p.gender && (
+                    <span className="inline-flex items-center rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-300 ring-1 ring-inset ring-zinc-700">
+                      {p.gender}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Link href={`/profiles/${p.id}`} className="shrink-0">
+                <Button variant="secondary" size="sm" className="h-8 text-xs font-medium">
+                  View Chart
+                </Button>
+              </Link>
+            </div>
+
+            {/* Card Body */}
+            <div className="p-4 space-y-2 text-sm text-muted-foreground flex-1">
+              <div className="flex items-center justify-between">
+                <span>Date:</span>
+                <span className="text-foreground/90 font-medium">{p.date_of_birth}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Time:</span>
+                <span className="text-foreground/90 font-medium">{p.time_of_birth}</span>
+              </div>
+              <div className="pt-2 border-t border-white/5">
+                <div className="text-xs text-muted-foreground mb-0.5">Place of Birth</div>
+                <div className="text-foreground/90 font-medium line-clamp-2 leading-tight">
                   {p.place_of_birth}
-                </td>
-                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                  {p.timezone} (UTC{p.timezone_offset >= 0 ? "+" : ""}{p.timezone_offset})
-                </td>
-                <td className="px-3 py-2 text-right whitespace-nowrap">
-                  <div className="flex items-center justify-end gap-1">
-                    <Link href={`/profiles/${p.id}`}>
-                      <Button variant="outline" size="sm" className="h-7 text-xs">View</Button>
-                    </Link>
-                    <Link href={`/profiles/${p.id}/edit`}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Edit profile">
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(p.id)}
-                      className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
-                      aria-label="Delete profile"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Footer */}
+            <div className="px-4 py-3 bg-black/20 border-t border-white/5 flex items-center justify-between">
+              <div className="text-[10px] text-muted-foreground/60 font-mono">
+                {p.timezone} (UTC{p.timezone_offset >= 0 ? "+" : ""}{p.timezone_offset})
+              </div>
+              <div className="flex items-center gap-1">
+                <Link href={`/profiles/${p.id}/edit`}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(p.id)}
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {sorted.length === 0 && searchQuery && (
+          <div className="col-span-full py-12 text-center text-muted-foreground border border-dashed border-white/10 rounded-xl">
+            No profiles match your search.
+          </div>
+        )}
       </div>
       
-      <div className="mt-6 p-4 rounded-lg bg-amber-950/20 border border-amber-700/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="p-4 rounded-lg bg-amber-950/20 border border-amber-700/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="text-sm">
           <span className="font-medium text-amber-300">Profile Usage: </span>
           <span className="text-foreground/90">{profiles.length} out of 10 free profiles created.</span>
