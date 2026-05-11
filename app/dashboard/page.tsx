@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import type { Profile } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Trash2 } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, ChevronsUpDown, Trash2, Edit2 } from "lucide-react";
 
 export default function DashboardPage() {
   const { status } = useSession();
@@ -100,6 +100,8 @@ export default function DashboardPage() {
           <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("name")}>Name {renderSortIcon("name")}</th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("relationship")}>Relation {renderSortIcon("relationship")}</th>
+              <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("gender")}>Gender {renderSortIcon("gender")}</th>
               <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("date_of_birth")}>Date {renderSortIcon("date_of_birth")}</th>
               <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("time_of_birth")}>Time {renderSortIcon("time_of_birth")}</th>
               <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleSort("place_of_birth")}>Place {renderSortIcon("place_of_birth")}</th>
@@ -113,6 +115,8 @@ export default function DashboardPage() {
                 <td className="px-3 py-2 font-medium">
                   <Link href={`/profiles/${p.id}`} className="hover:underline">{p.name}</Link>
                 </td>
+                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.relationship || "-"}</td>
+                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.gender || "-"}</td>
                 <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.date_of_birth}</td>
                 <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.time_of_birth}</td>
                 <td className="px-3 py-2 text-muted-foreground max-w-[24rem] truncate" title={p.place_of_birth}>
@@ -125,6 +129,11 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-end gap-1">
                     <Link href={`/profiles/${p.id}`}>
                       <Button variant="outline" size="sm" className="h-7 text-xs">View</Button>
+                    </Link>
+                    <Link href={`/profiles/${p.id}/edit`}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Edit profile">
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
                     </Link>
                     <Button
                       variant="ghost"

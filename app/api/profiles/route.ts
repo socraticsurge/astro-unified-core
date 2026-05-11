@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, date_of_birth, time_of_birth, place_of_birth } = body ?? {};
+    const { name, date_of_birth, time_of_birth, place_of_birth, gender, relationship } = body ?? {};
 
     if (!name || !date_of_birth || !time_of_birth || !place_of_birth) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
@@ -63,6 +63,8 @@ export async function POST(req: NextRequest) {
       longitude: geo.longitude,
       timezone: geo.timezone,
       timezone_offset: geo.timezone_offset,
+      gender,
+      relationship,
     });
 
     return NextResponse.json(profile, { status: 201 });

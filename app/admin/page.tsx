@@ -86,6 +86,8 @@ export default async function AdminPage() {
                 <tr>
                   <th className="px-3 py-2 font-medium">Profile</th>
                   <th className="px-3 py-2 font-medium">Owner</th>
+                  <th className="px-3 py-2 font-medium">Relation</th>
+                  <th className="px-3 py-2 font-medium">Gender</th>
                   <th className="px-3 py-2 font-medium">Date of Birth</th>
                   <th className="px-3 py-2 font-medium">Time of Birth</th>
                   <th className="px-3 py-2 font-medium">Place</th>
@@ -104,6 +106,8 @@ export default async function AdminPage() {
                       <div>{p.user_name || "—"}</div>
                       <div className="text-xs">{p.user_email || ""}</div>
                     </td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.relationship || "-"}</td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.gender || "-"}</td>
                     <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.date_of_birth}</td>
                     <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{p.time_of_birth}</td>
                     <td className="px-3 py-2 text-muted-foreground max-w-[20rem] truncate" title={p.place_of_birth}>

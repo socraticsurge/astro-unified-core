@@ -14,7 +14,7 @@ function getClient() {
   }
 
   clientInstance = createClient({
-    url: url || "libsql://dummy.db",
+    url: url || "file:dummy.db",
     authToken: authToken,
   });
   return clientInstance;
@@ -64,6 +64,10 @@ export async function ensureSchema() {
       );
     `);
 
+    // Migrations for newly added columns
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN relationship TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN gender TEXT;"); } catch {}
+
     await client.execute(`
       CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
       CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings(profile_id);
@@ -86,6 +90,8 @@ export type Profile = {
   longitude: number;
   timezone: string;
   timezone_offset: number;
+  relationship?: string | null;
+  gender?: string | null;
   created_at: string;
 };
 
@@ -154,8 +160,8 @@ export const db = {
       const created_at = new Date().toISOString();
       await getClient().execute({
         sql: `INSERT INTO profiles (id, user_id, name, date_of_birth, time_of_birth, place_of_birth,
-             latitude, longitude, timezone, timezone_offset, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             latitude, longitude, timezone, timezone_offset, relationship, gender, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           id,
           userId,
@@ -167,10 +173,36 @@ export const db = {
           data.longitude,
           data.timezone,
           data.timezone_offset,
+          data.relationship || null,
+          data.gender || null,
           created_at,
         ],
       });
       return { id, user_id: userId, created_at, ...data };
+    },
+    async update(id: string, userId: string, data: Omit<Profile, "id" | "created_at" | "user_id">): Promise<void> {
+      await ensureSchema();
+      await getClient().execute({
+        sql: `UPDATE profiles SET 
+              name = ?, date_of_birth = ?, time_of_birth = ?, place_of_birth = ?,
+              latitude = ?, longitude = ?, timezone = ?, timezone_offset = ?,
+              relationship = ?, gender = ?
+              WHERE id = ? AND user_id = ?`,
+        args: [
+          data.name,
+          data.date_of_birth,
+          data.time_of_birth,
+          data.place_of_birth,
+          data.latitude,
+          data.longitude,
+          data.timezone,
+          data.timezone_offset,
+          data.relationship || null,
+          data.gender || null,
+          id,
+          userId,
+        ],
+      });
     },
     async delete(id: string, userId: string): Promise<void> {
       await ensureSchema();
@@ -206,6 +238,13 @@ export const db = {
         args: [profile_id, engine],
       });
       return rs.rows[0];
+    },
+    async deleteByProfile(profile_id: string) {
+      await ensureSchema();
+      await getClient().execute({
+        sql: "DELETE FROM readings WHERE profile_id = ?",
+        args: [profile_id],
+      });
     },
   },
 };
