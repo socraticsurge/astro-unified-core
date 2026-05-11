@@ -67,10 +67,10 @@ export function AdminTables({ users, profiles }: { users: any[], profiles: any[]
                   <td className="px-3 py-2 text-muted-foreground">{String(u.email || "—")}</td>
                   <td className="px-3 py-2 text-muted-foreground font-mono text-xs">{String(u.id)}</td>
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                    {u.created_at ? new Date(String(u.created_at)).toLocaleString() : "—"}
+                    {u.created_at ? new Date(String(u.created_at)).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : "—"}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                    {u.last_login ? new Date(String(u.last_login)).toLocaleString() : "—"}
+                    {u.last_login ? new Date(String(u.last_login)).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : "—"}
                   </td>
                 </tr>
               ))}
@@ -118,7 +118,7 @@ export function AdminTables({ users, profiles }: { users: any[], profiles: any[]
                     {p.place_of_birth}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                    {p.created_at ? new Date(p.created_at).toLocaleDateString() : "—"}
+                    {p.created_at ? new Date(p.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : "—"}
                   </td>
                 </tr>
               ))}
