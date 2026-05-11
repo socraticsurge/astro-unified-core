@@ -81,9 +81,10 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
                 name="relationship" 
                 value={form.relationship} 
                 onChange={handleChange}
+                required
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <option value="">Select...</option>
+                <option value="" disabled>Select...</option>
                 <option value="Self">Self</option>
                 <option value="Spouse">Spouse</option>
                 <option value="Child">Child</option>
@@ -101,9 +102,10 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
                 name="gender" 
                 value={form.gender} 
                 onChange={handleChange}
+                required
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <option value="">Select...</option>
+                <option value="" disabled>Select...</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>

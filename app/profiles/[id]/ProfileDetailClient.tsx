@@ -155,15 +155,23 @@ export function ProfileDetailClient({ explainers }: Props) {
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <h1 className="text-2xl font-bold leading-tight">{profile.name}</h1>
             <div className="flex gap-1.5 flex-wrap">
-              {profile.relationship && (
+              {profile.relationship ? (
                 <span className="inline-flex items-center rounded-full bg-amber-900/40 px-2.5 py-0.5 text-xs font-medium text-amber-300 ring-1 ring-inset ring-amber-800/50">
                   {profile.relationship}
                 </span>
+              ) : (
+                <Link href={`/profiles/${profile.id}/edit`} className="inline-flex items-center rounded-full bg-red-950/30 px-2.5 py-0.5 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-900/50 hover:bg-red-900/40 transition-colors">
+                  + Add Relationship
+                </Link>
               )}
-              {profile.gender && (
+              {profile.gender ? (
                 <span className="inline-flex items-center rounded-full bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-300 ring-1 ring-inset ring-blue-800/40">
                   {profile.gender}
                 </span>
+              ) : (
+                <Link href={`/profiles/${profile.id}/edit`} className="inline-flex items-center rounded-full bg-red-950/30 px-2.5 py-0.5 text-xs font-medium text-red-400 ring-1 ring-inset ring-red-900/50 hover:bg-red-900/40 transition-colors">
+                  + Add Gender
+                </Link>
               )}
             </div>
           </div>
