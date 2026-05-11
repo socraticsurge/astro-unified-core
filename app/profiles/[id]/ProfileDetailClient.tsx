@@ -134,23 +134,63 @@ export function ProfileDetailClient({ explainers }: Props) {
 
   if (!profile) return <div className="text-center py-16 text-muted-foreground">Loading…</div>;
 
+  const initials = profile.name
+    .split(" ")
+    .map((w: string) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">{profile.name}</h1>
-        <div className="flex gap-2 mt-2 flex-wrap">
-          {profile.relationship && <Badge variant="secondary" className="bg-amber-900/50 text-amber-200 hover:bg-amber-900/50">{profile.relationship}</Badge>}
-          {profile.gender && <Badge variant="secondary" className="bg-blue-900/50 text-blue-200 hover:bg-blue-900/50">{profile.gender}</Badge>}
-          <Badge variant="outline">{profile.date_of_birth}</Badge>
-          <Badge variant="outline">{profile.time_of_birth}</Badge>
-          <Badge variant="outline">{profile.place_of_birth}</Badge>
-          <Badge variant="secondary">{profile.timezone}</Badge>
+      {/* Profile Header Card */}
+      <div className="mb-6 flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
+        {/* Monogram Avatar */}
+        <div className="shrink-0 h-14 w-14 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg">
+          <span className="text-xl font-bold text-amber-950">{initials}</span>
+        </div>
+
+        {/* Identity + Birth Data */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 flex-wrap">
+            <h1 className="text-2xl font-bold leading-tight">{profile.name}</h1>
+            <div className="flex gap-1.5 flex-wrap">
+              {profile.relationship && (
+                <span className="inline-flex items-center rounded-full bg-amber-900/40 px-2.5 py-0.5 text-xs font-medium text-amber-300 ring-1 ring-inset ring-amber-800/50">
+                  {profile.relationship}
+                </span>
+              )}
+              {profile.gender && (
+                <span className="inline-flex items-center rounded-full bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-300 ring-1 ring-inset ring-blue-800/40">
+                  {profile.gender}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-1.5 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="text-base">📅</span>
+              <span className="font-medium text-foreground/80">{profile.date_of_birth}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="text-base">⏰</span>
+              <span className="font-medium text-foreground/80">{profile.time_of_birth}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground col-span-1 sm:col-span-1">
+              <span className="text-base">🌐</span>
+              <span className="font-medium text-foreground/80 text-xs">{profile.timezone} (UTC{profile.timezone_offset >= 0 ? "+" : ""}{profile.timezone_offset})</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground sm:col-span-3">
+              <span className="text-base">📍</span>
+              <span className="font-medium text-foreground/80">{profile.place_of_birth}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="flex items-center justify-between py-3 border-b mb-4">
         <div className="flex items-center gap-2">
-          {!!reading.output && !reading.error && <CheckCircle className="h-4 w-4 text-green-600" />}
           {reading.error && <AlertCircle className="h-4 w-4 text-red-500" />}
           {reading.loading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
           <span className="text-sm font-medium text-green-400">
