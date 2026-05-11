@@ -3,7 +3,19 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { DashaflowView } from "@/components/engines/DashaflowView";
+import dynamic from "next/dynamic";
+
+const DashaflowView = dynamic(
+  () => import("@/components/engines/DashaflowView").then((m) => ({ default: m.DashaflowView })),
+  {
+    loading: () => (
+      <div className="py-12 text-center text-sm text-muted-foreground animate-pulse">
+        Loading chart sections…
+      </div>
+    ),
+    ssr: false,
+  }
+);
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check, Info } from "lucide-react";
@@ -90,6 +102,8 @@ export function ProfileDetailClient({ explainers }: Props) {
         if (!res.ok) throw new Error(data.error ?? "Request failed");
         const innerErr = extractEngineError(data.output);
         if (innerErr) throw new Error(innerErr);
+        // Use the profile embedded in the reading response to save a round-trip
+        if (data.profile && !profile) setProfile(data.profile as Profile);
         setReading({ output: data.output, loading: false });
       } catch (err) {
         setReading({
@@ -99,25 +113,31 @@ export function ProfileDetailClient({ explainers }: Props) {
         });
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [id]
   );
 
   useEffect(() => {
     let cancelled = false;
-    // Defer state updates one microtask so they don't fire
-    // synchronously inside the effect body — keeps the
-    // react-hooks/set-state-in-effect rule happy.
     void (async () => {
       await Promise.resolve();
       if (cancelled) return;
-      fetch(`/api/profiles/${id}`)
-        .then(async (r) => {
-          if (!r.ok) throw new Error(`Failed to load profile (${r.status})`);
-          return r.json() as Promise<Profile>;
-        })
-        .then((p) => { if (!cancelled) setProfile(p); })
-        .catch(() => { if (!cancelled) setProfile(null); });
-      fetchReading();
+      // fetchReading now returns the profile embedded in the response.
+      // We only fall back to a separate profile fetch if the reading API fails.
+      fetchReading().then(() => {
+        // If profile is still null after the reading resolved (e.g. error path),
+        // fetch it independently so the header always renders.
+        if (!cancelled) {
+          setProfile((prev) => {
+            if (prev) return prev; // already set by fetchReading
+            fetch(`/api/profiles/${id}`)
+              .then((r) => r.ok ? r.json() : null)
+              .then((p) => { if (!cancelled && p) setProfile(p); })
+              .catch(() => {});
+            return prev;
+          });
+        }
+      });
     })();
     return () => { cancelled = true; };
   }, [id, fetchReading]);

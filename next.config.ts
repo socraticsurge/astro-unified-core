@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
     "/api/profiles": [
       "./node_modules/geo-tz/data/timezones-1970.geojson.*",
     ],
+    "/api/profiles/[id]": [
+      "./node_modules/geo-tz/data/timezones-1970.geojson.*",
+    ],
   },
   // Redirect anyone with /v2 bookmarks to the now-default profile view.
   async redirects() {

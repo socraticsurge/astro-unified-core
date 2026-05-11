@@ -25,7 +25,10 @@ export async function GET(req: NextRequest) {
 
   const cached = await db.readings.latestByEngine(profile_id, ENGINE);
   if (cached) {
-    return NextResponse.json({ output: JSON.parse(cached.output_data as string), cached: true });
+    return NextResponse.json(
+      { output: JSON.parse(cached.output_data as string), profile, cached: true },
+      { headers: { "Cache-Control": "private, max-age=300, stale-while-revalidate=60" } }
+    );
   }
 
   const input = {
@@ -42,7 +45,7 @@ export async function GET(req: NextRequest) {
 
   await db.readings.save({ profile_id, engine: ENGINE, input_snapshot: input, output_data: output });
 
-  return NextResponse.json({ output, cached: false });
+  return NextResponse.json({ output, profile, cached: false });
 }
 
 export async function POST(req: NextRequest) {
