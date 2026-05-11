@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
 import { NavBar } from "@/components/NavBar";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 
 // Body — Inter, purpose-built for screen readability at small sizes.
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <NextAuthProvider>
           <NavBar />
           <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
+          <FeedbackWidget />
           <footer className="border-t border-white/10 mt-16 py-6 text-center text-xs text-muted-foreground space-x-4">
             <span>© {new Date().getFullYear()} Astro Chaganti</span>
             <Link href="/privacy" className="hover:underline">Privacy Policy</Link>

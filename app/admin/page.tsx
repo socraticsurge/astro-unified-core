@@ -15,9 +15,10 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, profiles] = await Promise.all([
+  const [users, profiles, feedback] = await Promise.all([
     db.users.list(),
     db.profiles.listAllWithUser(),
+    db.feedback.list(),
   ]);
 
   return (
@@ -30,7 +31,7 @@ export default async function AdminPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 gap-4 max-w-sm">
+      <div className="grid grid-cols-3 gap-4 max-w-lg">
         <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
           <div className="text-3xl font-bold">{users.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Total Users</div>
@@ -39,9 +40,13 @@ export default async function AdminPage() {
           <div className="text-3xl font-bold">{profiles.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Total Profiles</div>
         </div>
+        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+          <div className="text-3xl font-bold">{feedback.length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Feedback</div>
+        </div>
       </div>
 
-      <AdminTables users={users} profiles={profiles} />
+      <AdminTables users={users} profiles={profiles} feedback={feedback} />
     </div>
   );
 }

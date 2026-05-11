@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 
-export function AdminTables({ users, profiles }: { users: any[], profiles: any[] }) {
+export function AdminTables({ users, profiles, feedback }: { users: any[], profiles: any[], feedback: any[] }) {
   const [userSortCol, setUserSortCol] = useState<string>("last_login");
   const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
   
@@ -46,6 +46,7 @@ export function AdminTables({ users, profiles }: { users: any[], profiles: any[]
       <TabsList className="mb-4">
         <TabsTrigger value="users">Users ({users.length})</TabsTrigger>
         <TabsTrigger value="profiles">Profiles ({profiles.length})</TabsTrigger>
+        <TabsTrigger value="feedback">Feedback ({feedback.length})</TabsTrigger>
       </TabsList>
 
       <TabsContent value="users">
@@ -125,6 +126,40 @@ export function AdminTables({ users, profiles }: { users: any[], profiles: any[]
               {profiles.length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">No profiles yet</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="feedback">
+        <div className="overflow-x-auto rounded-lg border border-white/10">
+          <table className="w-full text-sm">
+            <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Rating</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">User</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Message</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Page</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Submitted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {feedback.map((f) => (
+                <tr key={String(f.id)} className="border-t border-white/10 hover:bg-white/5">
+                  <td className="px-3 py-2 text-2xl">{String(f.rating || "—")}</td>
+                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{String(f.user_email || "Anonymous")}</td>
+                  <td className="px-3 py-2 text-muted-foreground max-w-xs">{String(f.message || "—")}</td>
+                  <td className="px-3 py-2 text-muted-foreground font-mono text-xs whitespace-nowrap">{String(f.page_url || "—")}</td>
+                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                    {f.created_at ? new Date(String(f.created_at)).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : "—"}
+                  </td>
+                </tr>
+              ))}
+              {feedback.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">No feedback yet</td>
                 </tr>
               )}
             </tbody>

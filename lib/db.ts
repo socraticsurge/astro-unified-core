@@ -69,6 +69,18 @@ export async function ensureSchema() {
     try { await client.execute("ALTER TABLE profiles ADD COLUMN relationship TEXT;"); } catch {}
     try { await client.execute("ALTER TABLE profiles ADD COLUMN gender TEXT;"); } catch {}
 
+    // Feedback table
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS feedback (
+        id TEXT PRIMARY KEY,
+        user_email TEXT,
+        rating TEXT NOT NULL,
+        message TEXT,
+        page_url TEXT,
+        created_at TEXT NOT NULL
+      );
+    `);
+
     await client.execute(`
       CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
       CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings(profile_id);
@@ -246,6 +258,23 @@ export const db = {
         sql: "DELETE FROM readings WHERE profile_id = ?",
         args: [profile_id],
       });
+    },
+  },
+  feedback: {
+    async save(data: { user_email?: string | null; rating: string; message?: string | null; page_url?: string | null }) {
+      await ensureSchema();
+      const id = randomUUID();
+      const created_at = new Date().toISOString();
+      await getClient().execute({
+        sql: `INSERT INTO feedback (id, user_email, rating, message, page_url, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: [id, data.user_email || null, data.rating, data.message || null, data.page_url || null, created_at],
+      });
+      return { id, created_at, ...data };
+    },
+    async list() {
+      await ensureSchema();
+      const rs = await getClient().execute("SELECT * FROM feedback ORDER BY created_at DESC");
+      return rs.rows;
     },
   },
 };
