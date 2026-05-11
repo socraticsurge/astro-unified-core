@@ -103,7 +103,7 @@ export default function DashboardPage() {
                 <h3 className="font-heading text-xl font-semibold text-foreground line-clamp-1">
                   {p.name}
                 </h3>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex flex-wrap items-center gap-2 mt-1">
                   {p.relationship && (
                     <span className="inline-flex items-center rounded-full bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-300 ring-1 ring-inset ring-amber-900/50">
                       {p.relationship}
@@ -113,6 +113,11 @@ export default function DashboardPage() {
                     <span className="inline-flex items-center rounded-full bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-zinc-300 ring-1 ring-inset ring-zinc-700">
                       {p.gender}
                     </span>
+                  )}
+                  {(!p.relationship || !p.gender) && (
+                    <Link href={`/profiles/${p.id}/edit`} className="inline-flex items-center rounded-full bg-red-950/40 px-2 py-0.5 text-[10px] font-medium text-red-400 ring-1 ring-inset ring-red-900/50 hover:bg-red-900/60 transition-colors">
+                      + Add missing info
+                    </Link>
                   )}
                 </div>
               </div>
