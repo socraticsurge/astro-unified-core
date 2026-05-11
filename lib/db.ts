@@ -20,15 +20,11 @@ function getClient() {
   return clientInstance;
 }
 
-let schemaPromise: Promise<void> | null = null;
+let schemaInitialized = false;
 
-/** Called once per process. Concurrent callers all await the same promise. */
-export function ensureSchema(): Promise<void> {
-  if (!schemaPromise) schemaPromise = _initSchema();
-  return schemaPromise;
-}
-
-async function _initSchema(): Promise<void> {
+export async function ensureSchema() {
+  if (schemaInitialized) return;
+  
   const client = getClient();
   try {
     await client.execute(`
@@ -89,11 +85,10 @@ async function _initSchema(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
       CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings(profile_id);
     `);
+    
+    schemaInitialized = true;
   } catch (e) {
-    // Reset so the next request can retry
-    schemaPromise = null;
     console.error("Failed to initialize schema:", e);
-    throw e;
   }
 }
 
