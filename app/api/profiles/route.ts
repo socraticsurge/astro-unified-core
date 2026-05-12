@@ -35,23 +35,35 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, date_of_birth, time_of_birth, place_of_birth, gender, relationship } = body ?? {};
+    const { name, date_of_birth, time_of_birth, place_of_birth, current_location, gender, relationship } = body ?? {};
 
     if (!name || !date_of_birth || !time_of_birth || !place_of_birth) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
     }
 
     // Input Length Validation
-    if (name.length > 100 || place_of_birth.length > 100) {
-      return NextResponse.json({ error: "Name and place of birth must be under 100 characters." }, { status: 400 });
+    if (name.length > 100 || place_of_birth.length > 100 || (current_location && current_location.length > 100)) {
+      return NextResponse.json({ error: "Name, birth place, and current location must be under 100 characters." }, { status: 400 });
     }
 
     let geo;
     try {
       geo = await geocodePlace(place_of_birth);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Geocoding failed";
+      const msg = e instanceof Error ? e.message : "Geocoding birth place failed";
       return NextResponse.json({ error: msg }, { status: 400 });
+    }
+
+    let currentGeo = null;
+    if (current_location) {
+      try {
+        currentGeo = await geocodePlace(current_location);
+      } catch (e) {
+        // We allow creating the profile even if current location geocoding fails,
+        // but we return an error to the user if they specifically tried to set it.
+        const msg = e instanceof Error ? e.message : "Geocoding current location failed";
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
     }
 
     const profile = await db.profiles.create(userId, {
@@ -63,6 +75,11 @@ export async function POST(req: NextRequest) {
       longitude: geo.longitude,
       timezone: geo.timezone,
       timezone_offset: geo.timezone_offset,
+      current_location: currentGeo?.display_name || null,
+      current_latitude: currentGeo?.latitude || null,
+      current_longitude: currentGeo?.longitude || null,
+      current_timezone: currentGeo?.timezone || null,
+      current_timezone_offset: currentGeo?.timezone_offset || null,
       gender,
       relationship,
     });

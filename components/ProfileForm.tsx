@@ -24,6 +24,7 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
     date_of_birth: initialData?.date_of_birth || "", 
     time_of_birth: initialData?.time_of_birth || "", 
     place_of_birth: initialData?.place_of_birth || "",
+    current_location: initialData?.current_location || "",
     gender: initialData?.gender || "",
     relationship: initialData?.relationship || "",
   });
@@ -124,14 +125,24 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
               time you have; even a 5-minute difference can shift the Lagna.
             </p>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="place_of_birth">Place of Birth</Label>
-            <Input id="place_of_birth" name="place_of_birth" value={form.place_of_birth} onChange={handleChange} required maxLength={100} placeholder="e.g. Erode, Tamil Nadu, India" />
-            <p className="text-xs text-muted-foreground pt-1">
-              Tip: if your village or town isn&apos;t recognized, use the nearest larger city or
-              district headquarters. Lagna calculations are usually unaffected by small
-              distance differences.
-            </p>
+          <div className="space-y-4 pt-2 border-t border-white/10">
+            <div className="space-y-1">
+              <Label htmlFor="place_of_birth">Place of Birth</Label>
+              <Input id="place_of_birth" name="place_of_birth" value={form.place_of_birth} onChange={handleChange} required maxLength={100} placeholder="e.g. Erode, Tamil Nadu, India" />
+              <p className="text-xs text-muted-foreground pt-1">
+                Tip: if your village or town isn&apos;t recognized, use the nearest larger city or
+                district headquarters. Lagna calculations are usually unaffected by small
+                distance differences.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="current_location">Current City / Location</Label>
+              <Input id="current_location" name="current_location" value={form.current_location} onChange={handleChange} maxLength={100} placeholder="e.g. Chennai, Tamil Nadu, India" />
+              <p className="text-xs text-muted-foreground pt-1">
+                Required for accurate Muhurtha and transit calculations.
+              </p>
+            </div>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>

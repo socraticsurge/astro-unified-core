@@ -5,7 +5,7 @@ import type { Profile } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Search, Trash2, Edit2 } from "lucide-react";
-import { RelationshipBadge, GenderBadge, BirthDetails } from "@/components/profile-ui";
+import { RelationshipBadge, GenderBadge, CurrentLocationBadge, BirthDetails } from "@/components/profile-ui";
 
 export default function DashboardPage() {
   const { status } = useSession();
@@ -107,6 +107,7 @@ export default function DashboardPage() {
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   <RelationshipBadge value={p.relationship} profileId={p.id} />
                   <GenderBadge value={p.gender} profileId={p.id} />
+                  <CurrentLocationBadge value={p.current_location} profileId={p.id} />
                 </div>
               </div>
               <Link href={`/profiles/${p.id}`} className="shrink-0">

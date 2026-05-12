@@ -11,7 +11,7 @@ import type { Profile } from "@/lib/db";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
 import { isAdmin } from "@/lib/admin";
-import { RelationshipBadge, GenderBadge, BirthDetails } from "@/components/profile-ui";
+import { RelationshipBadge, GenderBadge, CurrentLocationBadge, BirthDetails, CurrentLocationDetails } from "@/components/profile-ui";
 
 type SectionExplainer = {
   title: string;
@@ -34,6 +34,7 @@ function profileHeaderText(p: Profile): string {
     `Date of birth: ${p.date_of_birth}`,
     `Time of birth: ${p.time_of_birth} (${p.timezone}, UTC${p.timezone_offset >= 0 ? "+" : ""}${p.timezone_offset})`,
     `Place of birth: ${p.place_of_birth} (lat ${p.latitude}, lon ${p.longitude})`,
+    `Current location: ${p.current_location || "Not set"}`,
   ].join("\n");
 }
 
@@ -104,9 +105,6 @@ export function ProfileDetailClient({ explainers }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    // Defer state updates one microtask so they don't fire
-    // synchronously inside the effect body — keeps the
-    // react-hooks/set-state-in-effect rule happy.
     void (async () => {
       await Promise.resolve();
       if (cancelled) return;
@@ -144,6 +142,21 @@ export function ProfileDetailClient({ explainers }: Props) {
 
   return (
     <div>
+      {/* Missing Information Nudge */}
+      {!profile.current_location && (
+        <div className="mb-6 flex items-center justify-between gap-4 p-3 rounded-lg bg-red-950/20 border border-red-800/40 text-sm">
+          <div className="flex items-center gap-2 text-red-400">
+            <AlertCircle className="h-4 w-4" />
+            <span>Muhurtha and Transit features require your current location.</span>
+          </div>
+          <Link href={`/profiles/${profile.id}/edit`}>
+            <Button size="sm" variant="destructive" className="h-8 text-xs">
+              Complete Profile
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Profile Header Card */}
       <div className="mb-6 flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
         {/* Monogram Avatar */}
@@ -158,6 +171,7 @@ export function ProfileDetailClient({ explainers }: Props) {
             <div className="flex gap-1.5 flex-wrap">
               <RelationshipBadge value={profile.relationship} profileId={profile.id} />
               <GenderBadge value={profile.gender} profileId={profile.id} />
+              <CurrentLocationBadge value={profile.current_location} profileId={profile.id} />
             </div>
           </div>
 
@@ -169,6 +183,13 @@ export function ProfileDetailClient({ explainers }: Props) {
               timezone={profile.timezone}
               timezone_offset={profile.timezone_offset}
             />
+            {profile.current_location && profile.current_timezone && (
+              <CurrentLocationDetails
+                location={profile.current_location}
+                timezone={profile.current_timezone}
+                timezone_offset={profile.current_timezone_offset ?? 0}
+              />
+            )}
           </div>
         </div>
       </div>

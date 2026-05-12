@@ -25,6 +25,12 @@ export function NavBar() {
               >
                 Profiles
               </Link>
+              <Link
+                href="/compatibility"
+                className="px-2 py-1 rounded-md text-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
+              >
+                Compatibility
+              </Link>
               {showAdmin && (
                 <Link
                   href="/admin"

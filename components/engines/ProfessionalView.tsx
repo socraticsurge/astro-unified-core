@@ -4,6 +4,8 @@ import { VargaDashboard } from "./VargaDashboard";
 import { AntardashaTimeline } from "./AntardashaTimeline";
 import { TransitView } from "./TransitView";
 import { CareerView } from "./CareerView";
+import { MuhurthaView } from "./MuhurthaView";
+import { useParams } from "next/navigation";
 
 type SectionExplainer = {
   title: string;
@@ -20,7 +22,7 @@ type Props = {
   explainers: Record<string, SectionExplainer>;
 };
 
-type TabKey = "natal" | "vargas" | "dashas" | "career" | "transit";
+type TabKey = "natal" | "vargas" | "dashas" | "career" | "transit" | "muhurtha";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "natal", label: "Natal Chart" },
@@ -28,6 +30,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "dashas", label: "Dasha Timeline" },
   { key: "career", label: "Career Analysis" },
   { key: "transit", label: "Transit (Gochar)" },
+  { key: "muhurtha", label: "Muhurtha" },
 ];
 
 export function ProfessionalView({
@@ -38,6 +41,7 @@ export function ProfessionalView({
   explainers,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("natal");
+  const { id } = useParams<{ id: string }>();
 
   const data = chartOutput.data as Record<string, unknown> | undefined;
   const planets = data?.planets as Record<string, unknown> | undefined;
@@ -116,6 +120,13 @@ export function ProfessionalView({
               </div>
             )}
           </>
+        )}
+
+        {activeTab === "muhurtha" && (
+          <MuhurthaView
+            profileId={id}
+            explainer={explainers["Muhurtha (Auspicious Timings)"] ?? null}
+          />
         )}
       </div>
     </div>

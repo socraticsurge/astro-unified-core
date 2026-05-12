@@ -19,14 +19,14 @@ export async function PUT(
     if (!existingProfile) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const body = await req.json();
-    const { name, date_of_birth, time_of_birth, place_of_birth, gender, relationship } = body ?? {};
+    const { name, date_of_birth, time_of_birth, place_of_birth, current_location, gender, relationship } = body ?? {};
 
     if (!name || !date_of_birth || !time_of_birth || !place_of_birth) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
     }
 
-    if (name.length > 100 || place_of_birth.length > 100) {
-      return NextResponse.json({ error: "Name and place of birth must be under 100 characters." }, { status: 400 });
+    if (name.length > 100 || place_of_birth.length > 100 || (current_location && current_location.length > 100)) {
+      return NextResponse.json({ error: "Name, birth place, and current location must be under 100 characters." }, { status: 400 });
     }
 
     let latitude = existingProfile.latitude;
@@ -35,7 +35,7 @@ export async function PUT(
     let timezone_offset = existingProfile.timezone_offset;
     let finalPlaceOfBirth = existingProfile.place_of_birth;
 
-    // Only re-geocode if the place changed
+    // Only re-geocode if the birth place changed
     if (place_of_birth !== existingProfile.place_of_birth) {
       try {
         const geo = await geocodePlace(place_of_birth);
@@ -45,9 +45,36 @@ export async function PUT(
         timezone_offset = geo.timezone_offset;
         finalPlaceOfBirth = geo.display_name;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Geocoding failed";
+        const msg = e instanceof Error ? e.message : "Geocoding birth place failed";
         return NextResponse.json({ error: msg }, { status: 400 });
       }
+    }
+
+    let current_latitude = existingProfile.current_latitude;
+    let current_longitude = existingProfile.current_longitude;
+    let current_timezone = existingProfile.current_timezone;
+    let current_timezone_offset = existingProfile.current_timezone_offset;
+    let finalCurrentLocation = existingProfile.current_location;
+
+    // Only re-geocode current location if it changed
+    if (current_location !== existingProfile.current_location && current_location) {
+      try {
+        const currentGeo = await geocodePlace(current_location);
+        current_latitude = currentGeo.latitude;
+        current_longitude = currentGeo.longitude;
+        current_timezone = currentGeo.timezone;
+        current_timezone_offset = currentGeo.timezone_offset;
+        finalCurrentLocation = currentGeo.display_name;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Geocoding current location failed";
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+    } else if (!current_location) {
+      finalCurrentLocation = null;
+      current_latitude = null;
+      current_longitude = null;
+      current_timezone = null;
+      current_timezone_offset = null;
     }
 
     // Check if astrological data changed
@@ -69,6 +96,11 @@ export async function PUT(
       longitude,
       timezone,
       timezone_offset,
+      current_location: finalCurrentLocation,
+      current_latitude,
+      current_longitude,
+      current_timezone,
+      current_timezone_offset,
       gender,
       relationship,
     });

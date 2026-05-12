@@ -49,6 +49,23 @@ export async function ensureSchema() {
         longitude REAL NOT NULL,
         timezone TEXT NOT NULL,
         timezone_offset REAL NOT NULL,
+        created_at TEXT NOT NULL,
+        current_location TEXT,
+        current_latitude REAL,
+        current_longitude REAL,
+        current_timezone TEXT,
+        current_timezone_offset REAL
+      );
+    `);
+
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS compatibility_checks (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        profile_id_1 TEXT NOT NULL,
+        profile_id_2 TEXT NOT NULL,
+        score REAL NOT NULL,
+        result_json TEXT NOT NULL,
         created_at TEXT NOT NULL
       );
     `);
@@ -68,6 +85,11 @@ export async function ensureSchema() {
     try { await client.execute("ALTER TABLE users ADD COLUMN created_at TEXT;"); } catch {}
     try { await client.execute("ALTER TABLE profiles ADD COLUMN relationship TEXT;"); } catch {}
     try { await client.execute("ALTER TABLE profiles ADD COLUMN gender TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_location TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_latitude REAL;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_longitude REAL;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone_offset REAL;"); } catch {}
 
     // Feedback table
     await client.execute(`
@@ -84,6 +106,7 @@ export async function ensureSchema() {
     await client.execute(`
       CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
       CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings(profile_id);
+      CREATE INDEX IF NOT EXISTS idx_compatibility_user ON compatibility_checks(user_id);
     `);
     
     schemaInitialized = true;
@@ -105,6 +128,21 @@ export type Profile = {
   timezone_offset: number;
   relationship?: string | null;
   gender?: string | null;
+  current_location?: string | null;
+  current_latitude?: number | null;
+  current_longitude?: number | null;
+  current_timezone?: string | null;
+  current_timezone_offset?: number | null;
+  created_at: string;
+};
+
+export type CompatibilityCheck = {
+  id: string;
+  user_id: string;
+  profile_id_1: string;
+  profile_id_2: string;
+  score: number;
+  result_json: string;
   created_at: string;
 };
 
@@ -173,8 +211,9 @@ export const db = {
       const created_at = new Date().toISOString();
       await getClient().execute({
         sql: `INSERT INTO profiles (id, user_id, name, date_of_birth, time_of_birth, place_of_birth,
-             latitude, longitude, timezone, timezone_offset, relationship, gender, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             latitude, longitude, timezone, timezone_offset, relationship, gender, created_at,
+             current_location, current_latitude, current_longitude, current_timezone, current_timezone_offset)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           id,
           userId,
@@ -189,6 +228,11 @@ export const db = {
           data.relationship || null,
           data.gender || null,
           created_at,
+          data.current_location || null,
+          data.current_latitude || null,
+          data.current_longitude || null,
+          data.current_timezone || null,
+          data.current_timezone_offset || null,
         ],
       });
       return { id, user_id: userId, created_at, ...data };
@@ -199,7 +243,9 @@ export const db = {
         sql: `UPDATE profiles SET 
               name = ?, date_of_birth = ?, time_of_birth = ?, place_of_birth = ?,
               latitude = ?, longitude = ?, timezone = ?, timezone_offset = ?,
-              relationship = ?, gender = ?
+              relationship = ?, gender = ?,
+              current_location = ?, current_latitude = ?, current_longitude = ?,
+              current_timezone = ?, current_timezone_offset = ?
               WHERE id = ? AND user_id = ?`,
         args: [
           data.name,
@@ -212,6 +258,11 @@ export const db = {
           data.timezone_offset,
           data.relationship || null,
           data.gender || null,
+          data.current_location || null,
+          data.current_latitude || null,
+          data.current_longitude || null,
+          data.current_timezone || null,
+          data.current_timezone_offset || null,
           id,
           userId,
         ],
@@ -223,6 +274,27 @@ export const db = {
         sql: "DELETE FROM profiles WHERE id = ? AND user_id = ?",
         args: [id, userId],
       });
+    },
+  },
+  compatibility: {
+    async list(userId: string): Promise<CompatibilityCheck[]> {
+      await ensureSchema();
+      const rs = await getClient().execute({
+        sql: "SELECT * FROM compatibility_checks WHERE user_id = ? ORDER BY created_at DESC",
+        args: [userId],
+      });
+      return rs.rows as unknown as CompatibilityCheck[];
+    },
+    async save(userId: string, data: Omit<CompatibilityCheck, "id" | "created_at" | "user_id">): Promise<CompatibilityCheck> {
+      await ensureSchema();
+      const id = randomUUID();
+      const created_at = new Date().toISOString();
+      await getClient().execute({
+        sql: `INSERT INTO compatibility_checks (id, user_id, profile_id_1, profile_id_2, score, result_json, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: [id, userId, data.profile_id_1, data.profile_id_2, data.score, data.result_json, created_at],
+      });
+      return { id, user_id: userId, created_at, ...data };
     },
   },
   readings: {
