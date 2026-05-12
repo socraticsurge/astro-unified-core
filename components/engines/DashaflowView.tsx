@@ -146,7 +146,11 @@ export function DashaflowView({ output, explainers }: Props) {
     winner?: string; loser?: string; description?: string;
   }> | undefined;
 
-  const gandanta = data.gandanta as unknown[] | undefined;
+  const gandanta = data.gandanta as Array<{
+    planet?: string; sign?: string; degree?: number;
+    nakshatra?: string; description?: string;
+    [key: string]: unknown;
+  }> | undefined;
 
   const arudha = data.arudha_padas as Record<string, {
     sign?: string; sign_index?: number; name?: string;
@@ -832,12 +836,43 @@ export function DashaflowView({ output, explainers }: Props) {
           accent={accent}
           defaultOpen={false}
         >
-          <div className="space-y-2 mt-2">
-            {gandanta.map((g, i) => (
-              <div key={i} className={card}>
-                <pre className="text-xs text-muted-foreground">{JSON.stringify(g, null, 2)}</pre>
-              </div>
-            ))}
+          <div className="space-y-3 mt-2">
+            {gandanta.map((g, i) => {
+              const knownKeys = new Set(["planet","sign","degree","nakshatra","description"]);
+              const extra = Object.entries(g).filter(([k]) => !knownKeys.has(k));
+              return (
+                <div key={i} className="bg-amber-950/20 border border-amber-800/30 rounded-lg p-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {g.planet && (
+                      <span className="font-bold text-amber-300">{g.planet}</span>
+                    )}
+                    {g.sign && (
+                      <span className="text-sm text-muted-foreground">in {g.sign}</span>
+                    )}
+                    {g.degree !== undefined && (
+                      <span className="text-xs text-muted-foreground font-mono">{g.degree.toFixed(2)}°</span>
+                    )}
+                    {g.nakshatra && (
+                      <span className="text-xs px-1.5 py-0.5 bg-amber-950/60 border border-amber-800/50 text-amber-300 rounded">
+                        {g.nakshatra}
+                      </span>
+                    )}
+                  </div>
+                  {g.description && (
+                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{g.description}</p>
+                  )}
+                  {extra.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {extra.map(([k, v]) => (
+                        <span key={k} className="text-xs text-muted-foreground">
+                          <span className="text-amber-400/60">{k}:</span> {String(v)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </SectionShell>
       )}

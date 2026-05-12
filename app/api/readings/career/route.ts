@@ -30,7 +30,11 @@ export async function GET(req: NextRequest) {
 
   const cached = await db.readings.latestByEngine(profile_id, ENGINE);
   if (cached) {
-    return NextResponse.json({ output: JSON.parse(cached.output_data as string), cached: true });
+    try {
+      return NextResponse.json({ output: JSON.parse(cached.output_data as string), cached: true });
+    } catch {
+      // Corrupted cache row — fall through to recalculate below.
+    }
   }
 
   const input = {

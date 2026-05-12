@@ -40,11 +40,18 @@ export async function GET(
   }
 
   const display = pickDisplayBody(entry.body);
-  return NextResponse.json({
-    type: entry.type,
-    key: entry.key,
-    title: entry.title,
-    bodyHtml: renderMarkdown(display),
-    gist: entry.type === "section" ? entry.gist ?? null : null,
-  });
+  return NextResponse.json(
+    {
+      type: entry.type,
+      key: entry.key,
+      title: entry.title,
+      bodyHtml: renderMarkdown(display),
+      gist: entry.type === "section" ? entry.gist ?? null : null,
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+      },
+    }
+  );
 }
