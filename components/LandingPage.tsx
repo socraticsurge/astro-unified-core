@@ -1,50 +1,83 @@
-// Server component — pure markup, no React state. Server-rendered to
-// the initial HTML response so unauthenticated visitors see the hero
-// immediately without waiting for client-side hydration.
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export function LandingPage() {
   return (
     <div className="space-y-24 py-12">
+
       {/* Hero */}
       <section className="text-center space-y-6 pt-8">
         <div className="text-6xl">✦</div>
         <h1 className="font-heading text-6xl font-medium tracking-tight">Astro Chaganti</h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Detailed Vedic birth charts, by Dr. Vinay Kumar Chaganti.
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Detailed Vedic birth charts, auspicious timing, and family-level astrological
+          analysis — by Dr. Vinay Kumar Chaganti.
         </p>
         <div className="flex justify-center pt-2">
           <Link href="/auth/signin">
-            <Button size="lg">Sign In with Google</Button>
+            <Button size="lg" className="bg-amber-500 hover:bg-amber-600 text-amber-950 font-semibold px-8">
+              Sign In with Google
+            </Button>
           </Link>
         </div>
         <p className="text-xs text-muted-foreground">
-          Sign in to create profiles for yourself and your family.
+          Free · No credit card · Up to 10 profiles
         </p>
       </section>
 
-      {/* What this is */}
+      {/* Three-column feature overview */}
       <section className="max-w-4xl mx-auto">
-        <h2 className="font-heading text-3xl font-medium mb-2">What this is</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            {
+              icon: "🪐",
+              title: "Birth Chart Analysis",
+              body: "Sidereal Lahiri charts with 14 divisional vargas, Panchang, Dashas, Yogas, Shadbala, Ashtakavarga, and more — all in one view.",
+            },
+            {
+              icon: "📅",
+              title: "Muhurtha",
+              body: "Find auspicious windows for Marriage, House-warming, Travel, or any event — computed from your current location.",
+            },
+            {
+              icon: "👨‍👩‍👧‍👦",
+              title: "Family Tools",
+              body: "Compatibility analysis between any two profiles. Create charts for your entire family and compare them side by side.",
+            },
+          ].map(({ icon, title, body }) => (
+            <div key={title} className="border border-white/10 rounded-xl p-5 bg-white/5 flex flex-col gap-2">
+              <div className="text-3xl">{icon}</div>
+              <div className="font-semibold text-foreground">{title}</div>
+              <div className="text-sm text-muted-foreground leading-relaxed">{body}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* What this is — full feature grid */}
+      <section className="max-w-4xl mx-auto">
+        <h2 className="font-heading text-3xl font-medium mb-2">What's inside every chart</h2>
         <p className="text-sm text-muted-foreground mb-6 max-w-3xl">
-          Astro Chaganti generates a detailed Vedic birth chart for every profile you
-          create, using the sidereal Lahiri ayanamsha and Swiss Ephemeris calculations.
-          Each chart includes:
+          Every profile generates a complete Vedic analysis using Swiss Ephemeris calculations
+          and the sidereal Lahiri ayanamsha.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[
-            ["Lagna & 14 divisional charts", "Ascendant in D1 with all classical vargas through D60."],
-            ["Planetary positions", "Sign, degrees, nakshatra, pada, dignity, retrograde, combust."],
-            ["Vimshottari Dasha (5 levels)", "Mahadasha → Antardasha → Pratyantardasha → Sukshma → Prana, with full timeline."],
-            ["Yogas (planetary combinations)", "Major yogas like Malavya, Shasha, Gajakesari, Raj, Lakshmi — with explanations."],
-            ["Panchang", "Tithi, Vara, Nakshatra, Yoga, Karana for the moment of birth."],
-            ["Shadbala & strengths", "Six-fold planetary strength — Sthana, Dig, Kala, Chesta, Naisargika, Drik."],
-            ["Jaimini & Karakamsha", "Atmakaraka, karakamsha sign, Ishta Devata."],
-            ["More", "Avasthas, Bhava Chalit, Graha Yuddha, Gandanta, Arudha Padas, Upapada, Ashtakavarga."],
+            ["🔭 Lagna & 14 divisional charts", "Ascendant in D1 with all classical vargas through D60."],
+            ["🪐 Planetary positions", "Sign, degree, nakshatra, pada, dignity, retrograde, combust — for all 9 grahas."],
+            ["⏳ Vimshottari Dasha (5 levels)", "Maha → Antar → Pratyantar → Sukshma → Prana, with full timeline."],
+            ["🌟 Yogas", "Major combinations — Malavya, Gajakesari, Raj, Lakshmi — with descriptions."],
+            ["📅 Panchang", "Tithi, Vara, Nakshatra, Yoga, Karana at the moment of birth."],
+            ["💪 Shadbala & Avasthas", "Six-fold planetary strength and planetary state (Bala → Mrita)."],
+            ["🎯 Jaimini & Karakamsha", "Atmakaraka, Karakamsha sign, Ishta Devata."],
+            ["📊 Ashtakavarga", "SAV totals and planet-wise Bhinnashtakavarga across all 12 signs."],
+            ["🚶 Bhava Chalit & Graha Yuddha", "House-shift analysis and planetary war detection."],
+            ["🌊 Gandanta & Arudha Padas", "Karmic junction planets and all 12 Arudha Padas."],
+            ["🌙 Transit Analysis", "Current planetary transits overlaid on the natal chart, with Sade Sati status."],
+            ["💼 Career Analysis (D10)", "Dashamsha-based career themes and planetary domain significations."],
           ].map(([title, body]) => (
-            <div key={title} className="border border-white/10 rounded-lg p-4 bg-white/5">
-              <div className="font-semibold text-blue-300">{title}</div>
+            <div key={String(title)} className="border border-white/10 rounded-lg p-4 bg-white/5">
+              <div className="font-semibold text-blue-300 text-sm">{title}</div>
               <div className="text-sm text-muted-foreground mt-1">{body}</div>
             </div>
           ))}
@@ -56,20 +89,13 @@ export function LandingPage() {
         <h2 className="font-heading text-3xl font-medium mb-6">How to use it</h2>
         <ol className="space-y-4">
           {[
-            ["1", "Sign in with Google", "Use the Sign In button in the top-right corner. Your profiles are saved privately to your account."],
-            [
-              "2",
-              "Create profiles",
-              "Add yourself, your family members, and anyone else relevant for an astrological conversation.",
-            ],
-            [
-              "3",
-              "Open any profile",
-              "The full chart is generated automatically. Refresh anytime to recompute.",
-            ],
+            ["1", "Sign in with Google", "Your profiles are saved privately. Nothing is shared."],
+            ["2", "Create birth profiles", "Add yourself, then your family — parents, spouse, children, siblings. Astrological forces work at the family level."],
+            ["3", "Open any profile", "The full chart is computed automatically. Tap the ⓘ button on any section to read the classical Vedic interpretation for your specific chart."],
+            ["4", "Use Compatibility & Muhurtha", "Compare any two profiles for relationship compatibility. Use Muhurtha to find auspicious dates for events."],
           ].map(([n, title, body]) => (
             <li key={n} className="flex gap-4">
-              <div className="shrink-0 w-9 h-9 rounded-full bg-blue-950/40 border border-blue-700/50 flex items-center justify-center font-bold text-blue-300">
+              <div className="shrink-0 w-9 h-9 rounded-full bg-amber-950/40 border border-amber-700/50 flex items-center justify-center font-bold text-amber-300">
                 {n}
               </div>
               <div>
@@ -86,7 +112,8 @@ export function LandingPage() {
         <h2 className="font-heading text-3xl font-medium mb-4">About the astrologer</h2>
         <div className="border border-white/10 rounded-lg p-6 bg-white/5 space-y-4">
           <p className="text-base leading-relaxed">
-            <span className="font-semibold">Dr. Vinay Kumar Chaganti </span>brings a researcher&apos;s discipline to his study and practice of Vedic astrology.
+            <span className="font-semibold">Dr. Vinay Kumar Chaganti </span>brings a
+            researcher&apos;s discipline to his study and practice of Vedic astrology.
             His approach is methodical, grounded in the classical tradition, and
             attentive to the precision of sidereal calculations.
           </p>
@@ -132,14 +159,14 @@ export function LandingPage() {
             },
             {
               q: "Why does my chart look different here compared to Western astrology apps?",
-              a: "Western astrology typically uses the Tropical zodiac, which is based on the seasons. Vedic astrology uses the Sidereal zodiac, which is fixed to the stars. Due to the Earth’s axial precession, these two systems are currently offset by approximately 24 degrees. This \"shift\" (Ayanamsha) means your planets and Ascendant (Lagna) will likely move back by nearly one full sign compared to Western charts.",
+              a: "Western astrology typically uses the Tropical zodiac, which is based on the seasons. Vedic astrology uses the Sidereal zodiac, which is fixed to the stars. Due to the Earth's axial precession, these two systems are currently offset by approximately 24 degrees. This \"shift\" (Ayanamsha) means your planets and Ascendant (Lagna) will likely move back by nearly one full sign compared to Western charts.",
             },
             {
               q: "What should I do if my exact birth village isn't listed in the search?",
               a: "Our geocoder maps to a global database of cities and districts. If your specific location is missing, please select the nearest recognized town or district headquarters. From a mathematical standpoint, coordinates within a 15–20 km radius are sufficient; they do not impact the Lagna or Varga calculations significantly.",
             },
             {
-              q: "What defines Dr. Chaganti’s approach to a reading?",
+              q: "What defines Dr. Chaganti's approach to a reading?",
               a: "Dr. Chaganti approaches astrology as a systemic research engagement rather than a generic predictive service. By applying systems thinking to classical Parashari principles, the goal is to decode the underlying architecture of your life. We define success within your karmic constraints, focusing on planetary strengths and dasha timing. We work our way collaboratively.",
             },
             {
@@ -150,17 +177,17 @@ export function LandingPage() {
                     To prepare for a consultation, it is best to move away from vague, passive questions and toward a structured Life Problem Statement.
                   </p>
                   <p>
-                    For example, instead of asking a broad question like "Which stream should I study?", a high-value inquiry would be: "I am currently at a crossroads between pursuing Data Science or Management; based on my chart, does my intellectual architecture support a career in deep technical research, or am I better aligned for a leadership path involving strategic growth?" This is effective because it identifies the specific options you are considering and allows the analysis to focus on your inherent strengths and the timing of your dasha cycles, rather than providing a generic or arbitrary recommendation.
+                    For example, instead of asking a broad question like "Which stream should I study?", a high-value inquiry would be: "I am currently at a crossroads between pursuing Data Science or Management; based on my chart, does my intellectual architecture support a career in deep technical research, or am I better aligned for a leadership path involving strategic growth?" This is effective because it identifies the specific options you are considering and allows the analysis to focus on your inherent strengths and the timing of your dasha cycles.
                   </p>
                   <p>
-                    Vague questions like "When will my life get better?" or "Will I get this job?" are low-value because they lack a clear definition of success and treat astrology as a simple "yes/no" binary. To get the most out of your session, try using a three-point framework: the Observation (what is happening now), the Constraint (the main obstacle you face), and the Objective (what success looks like to you). Providing this level of detail, along with the birth profiles of yourself and relevant family members, ensures that the consultation moves past surface-level predictions and into a methodical research engagement that reveals your specific "Definition of Success."
+                    Try using a three-point framework: the Observation (what is happening now), the Constraint (the main obstacle you face), and the Objective (what success looks like to you).
                   </p>
                 </div>
               ),
             },
             {
               q: "What is the cost, and how do I set up an appointment?",
-              a: "Personal consultations are conducted as deep-dive research sessions and are available by appointment, typically on weekends. To initiate the process, please email astrochaganti@gmail.com with your specific Life Problem Statement and the names of the profiles you have created on the platform, and clearly indicate the family relationship of each person. Once your context is reviewed, you will receive a response with current professional fees and a calendar link to book your session. Please note that appointments are chargeable and are structured to provide a synthesis of the charts generated.",
+              a: "Personal consultations are conducted as deep-dive research sessions and are available by appointment, typically on weekends. To initiate the process, please email astrochaganti@gmail.com with your specific Life Problem Statement and the names of the profiles you have created on the platform. Once your context is reviewed, you will receive a response with current professional fees and a calendar link to book your session.",
             },
             {
               q: "How is my personal birth data handled?",
@@ -204,6 +231,7 @@ export function LandingPage() {
           appointment.
         </p>
       </section>
+
     </div>
   );
 }
