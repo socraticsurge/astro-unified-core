@@ -151,6 +151,25 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks }: 
       </TabsContent>
 
       <TabsContent value="compatibility">
+        <div className="flex justify-end mb-4">
+          <button 
+            onClick={async () => {
+              if (confirm("Are you sure you want to clear ALL compatibility checks? This cannot be undone.")) {
+                const res = await fetch("/api/admin/clear-compatibility");
+                const data = await res.json();
+                if (data.success) {
+                  alert(data.message);
+                  window.location.reload();
+                } else {
+                  alert(data.error || "Failed to clear history");
+                }
+              }
+            }}
+            className="text-xs text-red-400 hover:text-red-300 border border-red-900/50 bg-red-950/20 px-3 py-1.5 rounded-md transition-colors"
+          >
+            Clear History
+          </button>
+        </div>
         <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/5">
           <table className="w-full text-sm text-left">
             <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
