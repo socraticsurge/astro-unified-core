@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Users, RefreshCw } from "lucide-react";
 import type { Profile } from "@/lib/db";
-import { taraColor, type Tara } from "@/lib/tarabalam";
+import { taraColor, type Tara, type Tithi } from "@/lib/tarabalam";
 
 type SectionExplainer = {
   title: string;
@@ -17,6 +17,7 @@ type SectionExplainer = {
 type TaraRow = {
   date: string;
   transit_moon_nakshatra: string;
+  tithi: Tithi | null;
   profile_taras: Record<string, Tara | null>;
 };
 
@@ -219,6 +220,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                   <tr className="border-b border-white/10">
                     <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium whitespace-nowrap">Date</th>
                     <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium whitespace-nowrap">Moon in</th>
+                    <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium whitespace-nowrap">Tithi</th>
                     {resultProfiles.map(p => (
                       <th key={p.id} className="text-left py-2 pr-3 text-xs text-muted-foreground font-medium whitespace-nowrap">
                         {p.name}
@@ -248,6 +250,22 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                         </td>
                         <td className="py-2 pr-4 whitespace-nowrap text-xs text-muted-foreground">
                           {row.transit_moon_nakshatra}
+                        </td>
+                        <td className="py-2 pr-4 whitespace-nowrap">
+                          {row.tithi ? (
+                            <span
+                              title={`Tithi ${row.tithi.number} — ${row.tithi.paksha ? row.tithi.paksha + " " : ""}${row.tithi.name}`}
+                              className={`text-[11px] font-medium ${
+                                row.tithi.number === 15 ? "text-amber-300" :
+                                row.tithi.number === 30 ? "text-zinc-400" :
+                                "text-sky-300/80"
+                              }`}
+                            >
+                              {row.tithi.label}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/30 text-[10px]">–</span>
+                          )}
                         </td>
                         {resultProfiles.map(p => {
                           const tara = row.profile_taras[p.id];

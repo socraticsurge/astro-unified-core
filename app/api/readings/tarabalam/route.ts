@@ -4,7 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 import { fetchTransit } from "@/lib/engines/transit";
-import { computeTara, extrapolateMoonNakshatra, type Tara } from "@/lib/tarabalam";
+import {
+  computeTara, computeTithi,
+  extrapolateMoonLongitude, extrapolateMoonNakshatra, extrapolateSunLongitude,
+  type Tara, type Tithi,
+} from "@/lib/tarabalam";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -71,16 +75,17 @@ export async function POST(req: NextRequest) {
   const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
   const transitPlanets = (transitResult.data as Record<string, unknown> | null)
     ?.planets as Record<string, { sign?: string; degree?: number; nakshatra?: string }> | undefined;
-  const moonSign = transitPlanets?.Moon?.sign;
-  const moonDegree = transitPlanets?.Moon?.degree;
-  const signIdx = moonSign ? SIGNS.indexOf(moonSign) : -1;
 
-  const moonLon = signIdx !== -1 && typeof moonDegree === "number"
-    ? signIdx * 30 + moonDegree
-    : null;
+  function toSiderealLon(planet: { sign?: string; degree?: number } | undefined): number | null {
+    const idx = planet?.sign ? SIGNS.indexOf(planet.sign) : -1;
+    return idx !== -1 && typeof planet?.degree === "number" ? idx * 30 + planet.degree : null;
+  }
+
+  const moonLon = toSiderealLon(transitPlanets?.Moon);
+  const sunLon  = toSiderealLon(transitPlanets?.Sun);
 
   if (moonLon === null) {
-    const detail = transitResult.error ?? `sign=${moonSign}, degree=${moonDegree}`;
+    const detail = transitResult.error ?? `Moon sign=${transitPlanets?.Moon?.sign}, degree=${transitPlanets?.Moon?.degree}`;
     return NextResponse.json(
       { error: `Could not determine today's Moon position (${detail}). Please try again.` },
       { status: 502 }
@@ -101,7 +106,12 @@ export async function POST(req: NextRequest) {
 
   const taras = dates.map((date) => {
     const daysFromToday = (new Date(date + "T00:00:00Z").getTime() - todayMs) / 86_400_000;
+    const moonLonDay = extrapolateMoonLongitude(moonLon, daysFromToday);
     const transitNakshatra = extrapolateMoonNakshatra(moonLon, daysFromToday);
+
+    const tithi: Tithi | null = sunLon !== null
+      ? computeTithi(moonLonDay, extrapolateSunLongitude(sunLon, daysFromToday))
+      : null;
 
     const profileTaras: Record<string, Tara | null> = {};
     for (const p of profileData) {
@@ -110,7 +120,7 @@ export async function POST(req: NextRequest) {
         : null;
     }
 
-    return { date, transit_moon_nakshatra: transitNakshatra, profile_taras: profileTaras };
+    return { date, transit_moon_nakshatra: transitNakshatra, tithi, profile_taras: profileTaras };
   });
 
   return NextResponse.json({ profiles: profileData, taras });

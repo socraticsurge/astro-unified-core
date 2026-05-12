@@ -49,10 +49,49 @@ export function computeTara(birthMoonNakshatra: string, transitNakshatra: string
 
 // Moon's mean daily motion in degrees
 const MOON_DAILY_DEG = 13.176;
+// Sun's mean daily motion in degrees
+const SUN_DAILY_DEG = 360 / 365.25;
+
+export function extrapolateMoonLongitude(currentLongitude: number, daysFromNow: number): number {
+  return ((currentLongitude + daysFromNow * MOON_DAILY_DEG) % 360 + 360) % 360;
+}
 
 export function extrapolateMoonNakshatra(currentLongitude: number, daysFromNow: number): string {
-  const newLon = ((currentLongitude + daysFromNow * MOON_DAILY_DEG) % 360 + 360) % 360;
-  return NAKSHATRAS_27[Math.floor(newLon / (360 / 27))];
+  const lon = extrapolateMoonLongitude(currentLongitude, daysFromNow);
+  return NAKSHATRAS_27[Math.floor(lon / (360 / 27))];
+}
+
+export function extrapolateSunLongitude(currentLongitude: number, daysFromNow: number): number {
+  return ((currentLongitude + daysFromNow * SUN_DAILY_DEG) % 360 + 360) % 360;
+}
+
+// Tithi names (1–15 Shukla, 16–30 Krishna; 15 = Purnima, 30 = Amavasya)
+const TITHI_NAMES = [
+  "Pratipada", "Dwitiya",    "Tritiya",    "Chaturthi",  "Panchami",
+  "Shashthi",  "Saptami",    "Ashtami",    "Navami",     "Dashami",
+  "Ekadashi",  "Dwadashi",   "Trayodashi", "Chaturdashi", "Purnima",
+];
+
+export type Tithi = {
+  number: number;   // 1–30
+  name: string;     // e.g. "Ekadashi"
+  paksha: "Shukla" | "Krishna" | null; // null for Purnima/Amavasya
+  label: string;    // compact display e.g. "S·Ekadashi", "Purnima"
+};
+
+export function computeTithi(moonLon: number, sunLon: number): Tithi {
+  const gap = ((moonLon - sunLon) % 360 + 360) % 360;
+  const raw = Math.ceil(gap / 12);                // 1–30 (ceil so 0° → tithi 30/Amavasya)
+  const number = raw === 0 ? 30 : raw;
+  const idx = (number - 1) % 15;                  // 0–14 within each paksha
+  const name = idx === 14 ? (number === 15 ? "Purnima" : "Amavasya") : TITHI_NAMES[idx];
+  const paksha: Tithi["paksha"] =
+    number === 15 || number === 30 ? null : number <= 15 ? "Shukla" : "Krishna";
+  const label =
+    number === 15 ? "Purnima"
+    : number === 30 ? "Amavasya"
+    : `${paksha === "Shukla" ? "S" : "K"}·${name}`;
+  return { number, name, paksha, label };
 }
 
 export function taraColor(quality: TaraQuality): string {
