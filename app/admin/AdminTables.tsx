@@ -3,14 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar } from "lucide-react";
 
-export function AdminTables({ users, profiles, feedback }: { users: any[], profiles: any[], feedback: any[] }) {
+export function AdminTables({ users, profiles, feedback, compatibilityChecks }: { users: any[], profiles: any[], feedback: any[], compatibilityChecks: any[] }) {
   const [userSortCol, setUserSortCol] = useState<string>("last_login");
   const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
   
   const [profileSortCol, setProfileSortCol] = useState<string>("created_at");
   const [profileSortDir, setProfileSortDir] = useState<"asc" | "desc">("desc");
+
+  const [compSortCol, setCompSortCol] = useState<string>("created_at");
+  const [compSortDir, setCompSortDir] = useState<"asc" | "desc">("desc");
 
   const toggleUserSort = (col: string) => {
     if (userSortCol === col) setUserSortDir(d => d === "asc" ? "desc" : "asc");
@@ -20,6 +23,11 @@ export function AdminTables({ users, profiles, feedback }: { users: any[], profi
   const toggleProfileSort = (col: string) => {
     if (profileSortCol === col) setProfileSortDir(d => d === "asc" ? "desc" : "asc");
     else { setProfileSortCol(col); setProfileSortDir("asc"); }
+  };
+
+  const toggleCompSort = (col: string) => {
+    if (compSortCol === col) setCompSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setCompSortCol(col); setCompSortDir("asc"); }
   };
 
   const renderSortIcon = (currentCol: string, sortCol: string, sortDir: string) => {
@@ -41,15 +49,24 @@ export function AdminTables({ users, profiles, feedback }: { users: any[], profi
     return profileSortDir === "asc" ? cmp : -cmp;
   });
 
+  const sortedComps = [...compatibilityChecks].sort((a, b) => {
+    const aVal = String(a[compSortCol] || "");
+    const bVal = String(b[compSortCol] || "");
+    const cmp = aVal.localeCompare(bVal);
+    return compSortDir === "asc" ? cmp : -cmp;
+  });
+
   return (
     <Tabs defaultValue="users">
       <TabsList className="mb-4">
         <TabsTrigger value="users">Users ({users.length})</TabsTrigger>
         <TabsTrigger value="profiles">Profiles ({profiles.length})</TabsTrigger>
+        <TabsTrigger value="compatibility">Compatibility ({compatibilityChecks.length})</TabsTrigger>
         <TabsTrigger value="feedback">Feedback ({feedback.length})</TabsTrigger>
       </TabsList>
 
       <TabsContent value="users">
+        {/* ... (existing user table) */}
         <div className="overflow-x-auto rounded-lg border border-white/10">
           <table className="w-full text-sm">
             <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -127,6 +144,59 @@ export function AdminTables({ users, profiles, feedback }: { users: any[], profi
                 <tr>
                   <td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">No profiles yet</td>
                 </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="compatibility">
+        <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/5">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("user_email")}>User {renderSortIcon("user_email", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("p1_name")}>Male Profile {renderSortIcon("p1_name", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("p2_name")}>Female Profile {renderSortIcon("p2_name", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("score")}>Score {renderSortIcon("score", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("created_at")}>Date {renderSortIcon("created_at", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium text-right">Details</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {sortedComps.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
+                    No compatibility checks recorded yet.
+                  </td>
+                </tr>
+              ) : (
+                sortedComps.map((check) => (
+                  <tr key={check.id} className="hover:bg-white/5">
+                    <td className="px-4 py-3 font-medium text-white">{check.user_email || "Unknown User"}</td>
+                    <td className="px-4 py-3">{check.p1_name || "Deleted Profile"}</td>
+                    <td className="px-4 py-3">{check.p2_name || "Deleted Profile"}</td>
+                    <td className="px-4 py-3">
+                      <span className={`font-bold ${check.score >= 18 ? "text-green-400" : "text-amber-400"}`}>
+                        {check.score}/36
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(check.created_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <details className="relative">
+                        <summary className="text-xs text-sky-400 hover:text-sky-300 cursor-pointer list-none">View JSON</summary>
+                        <div className="absolute right-0 top-full mt-2 w-96 max-h-96 overflow-y-auto bg-zinc-950 border border-white/10 rounded-lg p-4 z-50 text-[10px] font-mono text-left shadow-2xl">
+                          <pre className="whitespace-pre-wrap text-muted-foreground">{JSON.stringify(JSON.parse(check.result_json), null, 2)}</pre>
+                        </div>
+                      </details>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

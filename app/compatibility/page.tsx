@@ -185,20 +185,29 @@ export default function CompatibilityPage() {
               ) : (
                 <div className="space-y-8">
                   {/* Results Display */}
-                  <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center gap-6 text-sm">
-                      <div className="text-blue-300 font-semibold">{selectedP1?.name || "Male"}</div>
-                      <Heart className="h-4 w-4 text-pink-500/50" />
-                      <div className="text-pink-300 font-semibold">{selectedP2?.name || "Female"}</div>
+                  <div className="text-center space-y-6">
+                    <div className="flex items-center justify-center gap-4 w-full">
+                      <div className="flex-1 text-right truncate">
+                        <span className="text-blue-300 font-bold text-lg">{selectedP1?.name || "Male"}</span>
+                      </div>
+                      <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-pink-500/10 border border-pink-500/20">
+                        <Heart className="h-5 w-5 text-pink-500 fill-pink-500/20" />
+                      </div>
+                      <div className="flex-1 text-left truncate">
+                        <span className="text-pink-300 font-bold text-lg">{selectedP2?.name || "Female"}</span>
+                      </div>
                     </div>
-                    <div className="inline-flex items-center justify-center h-24 w-24 rounded-full border-4 border-pink-500/30 bg-pink-500/10 text-3xl font-black text-pink-400">
-                      {result.total_score}/36
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-pink-300">Guna Milan Score</div>
-                      <p className="text-xs text-muted-foreground max-w-xs mx-auto mt-1">
-                        A score above 18 is generally considered auspicious for marriage.
-                      </p>
+
+                    <div className="space-y-2">
+                      <div className="inline-flex items-center justify-center h-24 w-24 rounded-full border-4 border-pink-500/30 bg-pink-500/10 text-3xl font-black text-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.2)]">
+                        {result.total_score}/36
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-pink-300">Guna Milan Score</div>
+                        <p className="text-xs text-muted-foreground max-w-xs mx-auto mt-1">
+                          A score above 18 is generally considered auspicious for marriage.
+                        </p>
+                      </div>
                     </div>
                   </div>
 

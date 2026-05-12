@@ -15,10 +15,11 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, profiles, feedback] = await Promise.all([
+  const [users, profiles, feedback, compatibilityChecks] = await Promise.all([
     db.users.list(),
     db.profiles.listAllWithUser(),
     db.feedback.list(),
+    db.compatibility.listAllWithDetails(),
   ]);
 
   return (
@@ -31,7 +32,7 @@ export default async function AdminPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4 max-w-lg">
+      <div className="grid grid-cols-4 gap-4 max-w-2xl">
         <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
           <div className="text-3xl font-bold">{users.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Total Users</div>
@@ -41,18 +42,16 @@ export default async function AdminPage() {
           <div className="text-xs text-muted-foreground mt-1">Total Profiles</div>
         </div>
         <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+          <div className="text-3xl font-bold">{compatibilityChecks.length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Compat Checks</div>
+        </div>
+        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
           <div className="text-3xl font-bold">{feedback.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Feedback</div>
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <Link href="/admin/compatibility" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-white/20 bg-transparent hover:bg-white/10 h-10 px-4 py-2">
-          View Compatibility Tracker
-        </Link>
-      </div>
-
-      <AdminTables users={users} profiles={profiles} feedback={feedback} />
+      <AdminTables users={users} profiles={profiles} feedback={feedback} compatibilityChecks={compatibilityChecks} />
     </div>
   );
 }
