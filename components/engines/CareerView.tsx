@@ -190,6 +190,18 @@ export function CareerView({ output, explainer }: Props) {
           </div>
         </details>
       )}
+      {/* Raw Data Toggle */}
+      <div className="mt-8 pt-4 border-t border-white/10">
+        <details className="group">
+          <summary className="cursor-pointer text-[10px] text-muted-foreground uppercase tracking-widest hover:text-yellow-400/80 transition-colors list-none flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-900/50 group-open:bg-yellow-500"></span>
+            View Raw Career Data
+          </summary>
+          <pre className="mt-4 p-4 rounded-lg bg-black/40 border border-white/5 text-[10px] font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap">
+            {JSON.stringify(output, null, 2)}
+          </pre>
+        </details>
+      </div>
     </SectionShell>
   );
 }

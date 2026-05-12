@@ -6,6 +6,9 @@ import { TransitView } from "./TransitView";
 import { CareerView } from "./CareerView";
 import { MuhurthaView } from "./MuhurthaView";
 import { useParams } from "next/navigation";
+import { Copy, Check, FileText } from "lucide-react";
+import { generateConsultationNote } from "@/lib/utils/consultation";
+import { Button } from "@/components/ui/button";
 
 type SectionExplainer = {
   title: string;
@@ -41,6 +44,7 @@ export function ProfessionalView({
   explainers,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("natal");
+  const [copied, setCopied] = useState(false);
   const { id } = useParams<{ id: string }>();
 
   const data = chartOutput.data as Record<string, unknown> | undefined;
@@ -51,23 +55,44 @@ export function ProfessionalView({
     timeline?: Array<{ planet?: string; start?: string; end?: string }>;
   } | undefined;
 
+  const handleCopyNote = () => {
+    const note = generateConsultationNote(chartOutput, transitOutput, careerOutput, transitDate);
+    navigator.clipboard.writeText(note);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div>
       {/* ─── Top-level Tab Navigation ─── */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-6 border-b border-white/10 no-scrollbar">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              activeTab === tab.key
-                ? "border-violet-400 text-violet-300"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-white/20"
-            }`}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 border-b border-white/10">
+        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? "border-violet-400 text-violet-300"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-white/20"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="pb-2">
+          <Button 
+            onClick={handleCopyNote} 
+            variant="outline" 
+            size="sm" 
+            className="h-8 text-[11px] gap-1.5 border-violet-800/50 hover:bg-violet-950/20 text-violet-300"
           >
-            {tab.label}
-          </button>
-        ))}
+            {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <FileText className="h-3 w-3" />}
+            {copied ? "Copied!" : "Copy Consultation Note"}
+          </Button>
+        </div>
       </div>
 
       {/* ─── Tab Content ─── */}

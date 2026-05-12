@@ -16,11 +16,17 @@ type SectionExplainer = {
 
 type EngineState = { output: Record<string, unknown> | null; loading: boolean; error?: string };
 
-type Props = { explainers: Record<string, SectionExplainer> };
+type Props = { 
+  explainers: Record<string, SectionExplainer>;
+  initialChart: Record<string, unknown> | null;
+};
 
-export function ProfessionalChartClient({ explainers }: Props) {
+export function ProfessionalChartClient({ explainers, initialChart }: Props) {
   const { id } = useParams<{ id: string }>();
-  const [chart, setChart] = useState<EngineState>({ output: null, loading: true });
+  const [chart, setChart] = useState<EngineState>({ 
+    output: initialChart, 
+    loading: initialChart ? false : true 
+  });
   const [transit, setTransit] = useState<EngineState>({ output: null, loading: true });
   const [career, setCareer] = useState<EngineState>({ output: null, loading: true });
   const [transitDate, setTransitDate] = useState<string | undefined>();
@@ -72,16 +78,13 @@ export function ProfessionalChartClient({ explainers }: Props) {
   }, [id]);
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      await Promise.resolve();
-      if (cancelled) return;
-      fetchChart();
-      fetchTransit();
-      fetchCareer();
-    })();
-    return () => { cancelled = true; };
-  }, [fetchChart, fetchTransit, fetchCareer]);
+    // Fire all initial fetches in parallel
+    if (!initialChart) {
+      void fetchChart();
+    }
+    void fetchTransit();
+    void fetchCareer();
+  }, [fetchChart, fetchTransit, fetchCareer, initialChart]);
 
   const anyLoading = chart.loading || transit.loading || career.loading;
   const anyError = chart.error ?? transit.error ?? career.error;

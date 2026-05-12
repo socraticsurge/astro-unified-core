@@ -992,10 +992,30 @@ export function DashaflowView({ output, explainers }: Props) {
           accent={accent}
           defaultOpen={false}
         >
-          <div className={`${card} mt-2`}>
-            <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-              {JSON.stringify(kaalSarpa, null, 2)}
-            </pre>
+          <div className={`${card} mt-2 border-l-4 ${kaalSarpa.type?.toString().toLowerCase().includes("partial") ? "border-teal-500" : "border-amber-500"}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className={`text-sm font-bold uppercase tracking-wider ${kaalSarpa.type?.toString().toLowerCase().includes("partial") ? "text-teal-400" : "text-amber-400"}`}>
+                {kaalSarpa.type?.toString() || "Kaal Sarpa Yoga"}
+              </h3>
+              <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/10 text-muted-foreground uppercase">
+                {kaalSarpa.present ? "Present" : "Absent"}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Rahu Axis</p>
+                <p className="text-sm font-semibold text-blue-300">{kaalSarpa.rahu_sign?.toString() || "—"}</p>
+              </div>
+              <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Ketu Axis</p>
+                <p className="text-sm font-semibold text-orange-300">{kaalSarpa.ketu_sign?.toString() || "—"}</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground leading-relaxed italic">
+              {kaalSarpa.description?.toString() || "The nodal axis hems in the planets, creating a karmic pattern."}
+            </p>
           </div>
         </SectionShell>
       )}
