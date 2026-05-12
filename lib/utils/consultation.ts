@@ -65,7 +65,7 @@ export function generateConsultationNote(
 
   if (transit && transit.data) {
     lines.push(`6. TRANSIT SNAPSHOT (${transitDate || "Current"})`);
-    const td = transit.data.transits || {};
+    const td = transit.data.planets || {};
     ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"].forEach(p => {
       const d = td[p];
       if (d) {

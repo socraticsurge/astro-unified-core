@@ -1031,11 +1031,11 @@ export function DashaflowView({ output, explainers }: Props) {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Rahu</p>
-                <p className="text-sm font-semibold text-muted-foreground/60">{planets["Rahu"]?.sign || "—"}</p>
+                <p className="text-sm font-semibold text-muted-foreground/60">{planets?.["Rahu"]?.sign || "—"}</p>
               </div>
               <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Ketu</p>
-                <p className="text-sm font-semibold text-muted-foreground/60">{planets["Ketu"]?.sign || "—"}</p>
+                <p className="text-sm font-semibold text-muted-foreground/60">{planets?.["Ketu"]?.sign || "—"}</p>
               </div>
             </div>
 
