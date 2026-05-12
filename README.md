@@ -3,8 +3,9 @@
 Vedic-astrology birth-chart application by Dr. Vinay Kumar Chaganti.
 
 - **Live**: https://astro-unified-core-pfni.vercel.app/
-- **Docs**: see [`docs/PROJECT.md`](docs/PROJECT.md) for full architecture,
-  env vars, schema, lessons learned, and what's not done yet.
+- **Docs**:
+  - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — module reference, file-by-file breakdown, user journey traces, code organisation notes
+  - [`docs/PROJECT.md`](docs/PROJECT.md) — env vars, DB schema, deployment gotchas, lessons learned
 - **Sidecar**: the Python service that generates charts lives in a separate
   repo, [socraticsurge/dashaflow-sidecar](https://github.com/socraticsurge/dashaflow-sidecar)
   (private), and is deployed at https://dashaflow-sidecar.vercel.app/.
