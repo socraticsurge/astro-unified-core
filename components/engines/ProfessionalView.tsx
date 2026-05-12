@@ -24,6 +24,10 @@ type Props = {
   careerOutput: Record<string, unknown> | null;
   transitDate?: string;
   explainers: Record<string, SectionExplainer>;
+  onFetchTransit?: () => void;
+  onFetchCareer?: () => void;
+  isTransitLoading?: boolean;
+  isCareerLoading?: boolean;
 };
 
 type TabKey = "natal" | "vargas" | "dashas" | "career" | "transit" | "muhurtha";
@@ -43,10 +47,23 @@ export function ProfessionalView({
   careerOutput,
   transitDate,
   explainers,
+  onFetchTransit,
+  onFetchCareer,
+  isTransitLoading,
+  isCareerLoading,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("natal");
   const [copied, setCopied] = useState(false);
   const { id } = useParams<{ id: string }>();
+
+  useEffect(() => {
+    if (activeTab === "transit" && onFetchTransit) {
+      onFetchTransit();
+    }
+    if (activeTab === "career" && onFetchCareer) {
+      onFetchCareer();
+    }
+  }, [activeTab, onFetchTransit, onFetchCareer]);
 
   const data = chartOutput.data as Record<string, unknown> | undefined;
   const planets = data?.planets as Record<string, unknown> | undefined;
@@ -119,14 +136,19 @@ export function ProfessionalView({
 
         {activeTab === "career" && (
           <>
-            {careerOutput ? (
+            {isCareerLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground border border-white/5 rounded-xl bg-white/[0.02]">
+                <RefreshCw className="h-8 w-8 animate-spin text-violet-400" />
+                <p className="text-sm font-medium">Analyzing career potential...</p>
+              </div>
+            ) : careerOutput ? (
               <CareerView
                 output={careerOutput}
                 explainer={explainers["Career Analysis (D10 Dashamsha)"] ?? null}
               />
             ) : (
               <div className="py-12 text-center text-sm text-muted-foreground italic bg-white/5 rounded-lg border border-white/10">
-                Career analysis data has not been loaded yet. Try refreshing.
+                Career analysis data could not be loaded.
               </div>
             )}
           </>
@@ -134,7 +156,12 @@ export function ProfessionalView({
 
         {activeTab === "transit" && (
           <>
-            {transitOutput ? (
+            {isTransitLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground border border-white/5 rounded-xl bg-white/[0.02]">
+                <RefreshCw className="h-8 w-8 animate-spin text-sky-400" />
+                <p className="text-sm font-medium">Calculating transits...</p>
+              </div>
+            ) : transitOutput ? (
               <TransitView
                 output={transitOutput}
                 transitDate={transitDate}
@@ -142,7 +169,7 @@ export function ProfessionalView({
               />
             ) : (
               <div className="py-12 text-center text-sm text-muted-foreground italic bg-white/5 rounded-lg border border-white/10">
-                Transit analysis data has not been loaded yet. Try refreshing.
+                Transit data could not be loaded.
               </div>
             )}
           </>

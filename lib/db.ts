@@ -81,6 +81,11 @@ export async function ensureSchema() {
       );
     `);
 
+    // Indexes for performance
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_readings_lookup ON readings (profile_id, engine);");
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles (user_id);");
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_compatibility_user ON compatibility_checks (user_id);");
+
     // Migrations for newly added columns
     try { await client.execute("ALTER TABLE users ADD COLUMN created_at TEXT;"); } catch {}
     try { await client.execute("ALTER TABLE profiles ADD COLUMN relationship TEXT;"); } catch {}

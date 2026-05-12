@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { ChevronDown, ChevronRight, Info } from "lucide-react";
 import { ExplainerModal, type ChartEntry } from "./ExplainerModal";
 
@@ -39,7 +39,7 @@ type Props = {
  * If neither an explainer nor any chart entries exist, the icon is not
  * rendered.
  */
-export function SectionShell({
+export const SectionShell = memo(function SectionShell({
   sectionInView,
   explainer,
   chartEntries,
@@ -96,4 +96,4 @@ export function SectionShell({
       )}
     </div>
   );
-}
+});

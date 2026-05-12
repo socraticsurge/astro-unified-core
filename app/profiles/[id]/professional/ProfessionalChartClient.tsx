@@ -36,8 +36,8 @@ export function ProfessionalChartClient({ explainers, initialChart, profile }: P
     output: initialChart, 
     loading: initialChart ? false : true 
   });
-  const [transit, setTransit] = useState<EngineState>({ output: null, loading: true });
-  const [career, setCareer] = useState<EngineState>({ output: null, loading: true });
+  const [transit, setTransit] = useState<EngineState>({ output: null, loading: false });
+  const [career, setCareer] = useState<EngineState>({ output: null, loading: false });
   const [transitDate, setTransitDate] = useState<string | undefined>();
   const [showRaw, setShowRaw] = useState(false);
 
@@ -58,6 +58,7 @@ export function ProfessionalChartClient({ explainers, initialChart, profile }: P
   }, [id]);
 
   const fetchTransit = useCallback(async (force = false) => {
+    if (transit.output && !force) return;
     setTransit({ output: null, loading: true });
     try {
       const res = force
@@ -70,9 +71,10 @@ export function ProfessionalChartClient({ explainers, initialChart, profile }: P
     } catch (e) {
       setTransit({ output: null, loading: false, error: e instanceof Error ? e.message : String(e) });
     }
-  }, [id]);
+  }, [id, transit.output]);
 
   const fetchCareer = useCallback(async (force = false) => {
+    if (career.output && !force) return;
     setCareer({ output: null, loading: true });
     try {
       const res = force
@@ -84,15 +86,14 @@ export function ProfessionalChartClient({ explainers, initialChart, profile }: P
     } catch (e) {
       setCareer({ output: null, loading: false, error: e instanceof Error ? e.message : String(e) });
     }
-  }, [id]);
+  }, [id, career.output]);
 
   useEffect(() => {
     if (!initialChart) {
       void fetchChart();
     }
-    void fetchTransit();
-    void fetchCareer();
-  }, [fetchChart, fetchTransit, fetchCareer, initialChart]);
+    // Note: Transit and Career are now fetched lazily by the ProfessionalView component on tab change.
+  }, [fetchChart, initialChart]);
 
   const anyLoading = chart.loading || transit.loading || career.loading;
   const anyError = chart.error ?? transit.error ?? career.error;
@@ -220,6 +221,10 @@ export function ProfessionalChartClient({ explainers, initialChart, profile }: P
             careerOutput={career.output}
             transitDate={transitDate}
             explainers={explainers}
+            onFetchTransit={fetchTransit}
+            onFetchCareer={fetchCareer}
+            isTransitLoading={transit.loading}
+            isCareerLoading={career.loading}
           />
         )
       )}
