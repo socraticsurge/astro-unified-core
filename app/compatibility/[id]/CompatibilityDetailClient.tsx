@@ -8,8 +8,14 @@ import { Button } from "@/components/ui/button";
 import { isAdmin } from "@/lib/admin";
 
 const KOOTA_MAX: Record<string, number> = {
-  Varna: 1, Vashya: 2, Dina: 3, Yoni: 4,
-  "Graha Maitri": 5, Gana: 6, Bhakoot: 7, Nadi: 8, Nakshatra: 8,
+  Varna: 1,
+  Vashya: 2,
+  Dina: 3, Tara: 3,
+  Yoni: 4,
+  "Graha Maitri": 5, GrahaMaitri: 5, Maitri: 5,
+  Gana: 6,
+  Bhakoot: 7, Rashi: 7,
+  Nadi: 8, Nakshatra: 8,
 };
 
 type KootaScores = Record<string, number>;
