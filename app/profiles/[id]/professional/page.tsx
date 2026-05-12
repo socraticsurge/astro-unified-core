@@ -65,5 +65,13 @@ export default async function ProfessionalChartPage({ params }: Props) {
     };
   }
 
-  return <ProfessionalChartClient explainers={explainers} initialChart={chartData} />;
+  if (!profile) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <h1 className="text-xl font-bold text-red-500">Profile Not Found</h1>
+      </div>
+    );
+  }
+
+  return <ProfessionalChartClient explainers={explainers} initialChart={chartData} profile={profile} />;
 }
