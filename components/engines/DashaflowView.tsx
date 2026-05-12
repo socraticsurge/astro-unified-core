@@ -65,6 +65,7 @@ const DIV_LABELS: Record<string, string> = {
 const PLANET_ORDER = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"];
 
 export function DashaflowView({ output, explainers }: Props) {
+  if (!output) return null;
   const data = output.data as Record<string, unknown> | undefined;
   if (!data) {
     return (

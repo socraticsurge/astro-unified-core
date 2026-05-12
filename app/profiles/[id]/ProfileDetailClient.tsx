@@ -330,7 +330,17 @@ export function ProfileDetailClient({ explainers }: Props) {
               </p>
             </div>
           )}
-          <DashaflowView output={reading.output} explainers={explainers} />
+          {reading.output ? (
+            <DashaflowView output={reading.output} explainers={explainers} />
+          ) : !reading.error && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground border border-white/5 rounded-2xl bg-white/[0.02]">
+              <RefreshCw className="h-10 w-10 animate-spin text-green-500/50" />
+              <div className="text-center space-y-1">
+                <p className="text-sm font-semibold text-white/80">Calculating your chart...</p>
+                <p className="text-xs">Connecting to the Swiss Ephemeris sidecar</p>
+              </div>
+            </div>
+          )}
         </>
       )}
 
