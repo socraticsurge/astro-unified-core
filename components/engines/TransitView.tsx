@@ -10,28 +10,28 @@ type SectionExplainer = {
 };
 
 type TransitPlanet = {
-  natal_sign?: string;
-  natal_house?: number;
-  transit_sign?: string;
-  transit_house?: number;
-  transit_house_from_moon?: number;
-  auspicious?: boolean;
-  sav_score?: number;
+  sign?: string;
+  degree?: number;
+  is_retrograde?: boolean;
+  nakshatra?: string;
+  house_from_lagna?: number;
+  house_from_moon?: number;
+  sav_points?: number;
 };
 
 type SadeSatiData = {
   active?: boolean;
   phase?: string;
-  saturn_sign?: string;
-  moon_sign?: string;
+  saturn_transit_sign?: string;
+  natal_moon_sign?: string;
   description?: string;
 };
 
 type RahuKetuAxis = {
-  rahu_transit_sign?: string;
-  ketu_transit_sign?: string;
-  natal_rahu_sign?: string;
-  natal_ketu_sign?: string;
+  rahu_sign?: string;
+  ketu_sign?: string;
+  rahu_house_from_lagna?: number;
+  ketu_house_from_lagna?: number;
   description?: string;
 };
 
@@ -109,11 +109,11 @@ export function TransitView({ output, transitDate, explainer }: Props) {
           )}
           {sadeSati.active && (
             <div className="flex gap-4 mt-2 ml-6 text-xs text-muted-foreground">
-              {sadeSati.saturn_sign && (
-                <span>Saturn in: <span className="text-orange-300">{sadeSati.saturn_sign}</span></span>
+              {sadeSati.saturn_transit_sign && (
+                <span>Saturn in: <span className="text-orange-300">{sadeSati.saturn_transit_sign}</span></span>
               )}
-              {sadeSati.moon_sign && (
-                <span>Natal Moon: <span className="text-orange-300">{sadeSati.moon_sign}</span></span>
+              {sadeSati.natal_moon_sign && (
+                <span>Natal Moon: <span className="text-orange-300">{sadeSati.natal_moon_sign}</span></span>
               )}
             </div>
           )}
@@ -132,16 +132,16 @@ export function TransitView({ output, transitDate, explainer }: Props) {
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div>
               <p className="text-muted-foreground">Transit Rahu</p>
-              <p className="font-semibold text-sky-200">{rahuKetu.rahu_transit_sign ?? "—"}</p>
-              {rahuKetu.natal_rahu_sign && (
-                <p className="text-muted-foreground/60">Natal: {rahuKetu.natal_rahu_sign}</p>
+              <p className="font-semibold text-sky-200">{rahuKetu.rahu_sign ?? "—"}</p>
+              {rahuKetu.rahu_house_from_lagna && (
+                <p className="text-muted-foreground/60">House: {rahuKetu.rahu_house_from_lagna}</p>
               )}
             </div>
             <div>
               <p className="text-muted-foreground">Transit Ketu</p>
-              <p className="font-semibold text-sky-200">{rahuKetu.ketu_transit_sign ?? "—"}</p>
-              {rahuKetu.natal_ketu_sign && (
-                <p className="text-muted-foreground/60">Natal: {rahuKetu.natal_ketu_sign}</p>
+              <p className="font-semibold text-sky-200">{rahuKetu.ketu_sign ?? "—"}</p>
+              {rahuKetu.ketu_house_from_lagna && (
+                <p className="text-muted-foreground/60">House: {rahuKetu.ketu_house_from_lagna}</p>
               )}
             </div>
           </div>
@@ -160,43 +160,39 @@ export function TransitView({ output, transitDate, explainer }: Props) {
             <thead>
               <tr className="border-b border-white/10">
                 <th className={th}>Planet</th>
-                <th className={th}>Natal Sign</th>
                 <th className={th}>Transit Sign</th>
+                <th className={th}>H from Lagna</th>
                 <th className={th}>H from ☽</th>
-                <th className={th}>SAV</th>
-                <th className={`${th} text-center`}>Quality</th>
+                <th className={th}>SAV Points</th>
+                <th className={`${th} text-center`}>Rx</th>
               </tr>
             </thead>
             <tbody>
               {PLANET_ORDER.map((name) => {
                 const p = planets[name];
                 if (!p) return null;
-                const savScore = p.sav_score;
+                const savScore = p.sav_points;
                 return (
                   <tr key={name} className={row}>
                     <td className="py-2 pr-3 font-semibold text-sky-300">{name}</td>
-                    <td className="py-2 pr-3 text-muted-foreground text-xs">{p.natal_sign ?? "—"}</td>
-                    <td className="py-2 pr-3 font-semibold text-sky-200">{p.transit_sign ?? "—"}</td>
+                    <td className="py-2 pr-3 font-semibold text-sky-200">{p.sign ?? "—"}</td>
                     <td className="py-2 pr-3 text-muted-foreground">
-                      {p.transit_house_from_moon !== undefined ? `H${p.transit_house_from_moon}` : "—"}
+                      {p.house_from_lagna !== undefined ? `H${p.house_from_lagna}` : "—"}
+                    </td>
+                    <td className="py-2 pr-3 text-muted-foreground">
+                      {p.house_from_moon !== undefined ? `H${p.house_from_moon}` : "—"}
                     </td>
                     <td className="py-2 pr-3">
                       {savScore !== undefined ? (
                         <span className={`font-mono font-bold ${
-                          savScore >= 4 ? "text-emerald-400" : savScore <= 2 ? "text-red-400" : "text-muted-foreground"
+                          savScore >= 30 ? "text-emerald-400" : savScore <= 22 ? "text-red-400" : "text-muted-foreground"
                         }`}>
                           {savScore}
                         </span>
                       ) : "—"}
                     </td>
-                    <td className="py-2 text-center">
-                      {p.auspicious === undefined ? (
-                        <span className="text-muted-foreground/40 text-xs">—</span>
-                      ) : p.auspicious ? (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-700/50 text-emerald-400 font-medium">Fav</span>
-                      ) : (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-red-950/40 border border-red-700/50 text-red-400 font-medium">Unfav</span>
-                      )}
+                    <td className="py-2 text-center text-orange-400 font-bold">
+                      {p.is_retrograde ? "℞" : <span className="text-muted-foreground/40 text-xs">—</span>}
                     </td>
                   </tr>
                 );

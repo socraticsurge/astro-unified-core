@@ -1,6 +1,6 @@
 "use client";
 import { SectionShell } from "./SectionShell";
-import { Briefcase, Star } from "lucide-react";
+import { Briefcase, Star, Info } from "lucide-react";
 
 type SectionExplainer = {
   title: string;
@@ -10,13 +10,27 @@ type SectionExplainer = {
 };
 
 type CareerData = {
+  tenth_house?: {
+    sign?: string;
+    lord?: string;
+    lord_house?: number;
+    lord_sign?: string;
+    lord_d10?: string;
+    lord_dignity?: string;
+    occupants?: string[];
+  };
+  d10_indicators?: Record<
+    string,
+    {
+      d10_sign?: string;
+      d10_lord?: string;
+      d10_strong?: boolean;
+    }
+  >;
   career_themes?: string[];
-  primary_planets?: Array<{ planet: string; domains: string[]; strength?: string; description?: string }>;
-  d10_lagna?: string;
-  d10_lagna_lord?: string;
-  tenth_lord_in_d10?: string;
-  recommendations?: string[];
-  summary?: string;
+  primary_planets?: string[];
+  strength_factors?: string[];
+  d10_strong_planets?: string[];
 };
 
 type Props = {
@@ -43,9 +57,12 @@ export function CareerView({ output, explainer }: Props) {
   }
 
   const raw = (output.data ?? output) as CareerData;
+  const tenth = raw.tenth_house;
+  const d10Indicators = raw.d10_indicators ?? {};
   const themes = raw.career_themes ?? [];
-  const planets = raw.primary_planets ?? [];
-  const recommendations = raw.recommendations ?? [];
+  const primary = raw.primary_planets ?? [];
+  const strongD10 = raw.d10_strong_planets ?? [];
+  const strengths = raw.strength_factors ?? [];
 
   return (
     <SectionShell
@@ -54,24 +71,29 @@ export function CareerView({ output, explainer }: Props) {
       accent={accent}
       defaultOpen={true}
     >
-      {/* D10 Lagna summary */}
-      {(raw.d10_lagna || raw.d10_lagna_lord) && (
+      {/* 10th House Summary */}
+      {tenth && (
         <div className={`${card} mt-2 mb-4`}>
-          <p className="text-xs text-yellow-400/70 uppercase tracking-wide font-medium mb-1">D10 Chart</p>
-          <div className="flex gap-4 flex-wrap text-sm">
-            {raw.d10_lagna && (
-              <span>D10 Lagna: <span className="text-yellow-200 font-bold">{raw.d10_lagna}</span></span>
-            )}
-            {raw.d10_lagna_lord && (
-              <span>Lagna Lord: <span className="text-yellow-200 font-bold">{raw.d10_lagna_lord}</span></span>
-            )}
-            {raw.tenth_lord_in_d10 && (
-              <span>10th Lord in D10: <span className="text-yellow-200 font-bold">{raw.tenth_lord_in_d10}</span></span>
+          <p className="text-xs text-yellow-400/70 uppercase tracking-wide font-medium mb-2">10th House (Karma Bhava)</p>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">10th Sign</p>
+              <p className="font-semibold text-yellow-200">{tenth.sign ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">10th Lord</p>
+              <p className="font-semibold text-yellow-200">{tenth.lord ?? "—"}</p>
+            </div>
+            {tenth.lord_house && (
+              <div className="col-span-2">
+                <p className="text-muted-foreground text-xs">Lord Placement</p>
+                <p className="font-medium text-yellow-200/80">
+                  {tenth.lord} is in House {tenth.lord_house} ({tenth.lord_sign}) 
+                  {tenth.lord_dignity ? ` — ${tenth.lord_dignity.replace("_", " ")}` : ""}
+                </p>
+              </div>
             )}
           </div>
-          {raw.summary && (
-            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{raw.summary}</p>
-          )}
         </div>
       )}
 
@@ -80,75 +102,92 @@ export function CareerView({ output, explainer }: Props) {
         <div className="mb-4">
           <div className="flex items-center gap-1.5 mb-2">
             <Star className="h-3.5 w-3.5 text-yellow-400" />
-            <p className="text-xs text-yellow-300 font-semibold uppercase tracking-wide">Career Themes</p>
+            <p className="text-xs text-yellow-300 font-semibold uppercase tracking-wide">Suggested Career Themes</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {themes.map((theme, i) => (
-              <span key={i} className="text-sm px-3 py-1 bg-yellow-900/30 border border-yellow-700/40 text-yellow-200 rounded-full font-medium">
-                {theme}
+              <span key={i} className="text-sm px-3 py-1 bg-yellow-900/30 border border-yellow-700/40 text-yellow-200 rounded-full font-medium capitalize">
+                {theme.replace(/_/g, " ")}
               </span>
             ))}
           </div>
         </div>
       )}
 
-      {/* Primary Planets & Domains */}
-      {planets.length > 0 && (
-        <div className="space-y-3 mb-4">
-          <div className="flex items-center gap-1.5 mb-1">
+      {/* Primary Planets */}
+      {(primary.length > 0 || strongD10.length > 0) && (
+        <div className="mb-4">
+          <div className="flex items-center gap-1.5 mb-2">
             <Briefcase className="h-3.5 w-3.5 text-yellow-400" />
-            <p className="text-xs text-yellow-300 font-semibold uppercase tracking-wide">Career Significators</p>
+            <p className="text-xs text-yellow-300 font-semibold uppercase tracking-wide">Key Professional Significators</p>
           </div>
-          {planets.map((p, i) => (
-            <div key={i} className={card}>
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className={`font-bold text-base ${PLANET_COLORS[p.planet] ?? "text-yellow-200"}`}>
-                  {p.planet}
-                </span>
-                {p.strength && (
-                  <span className="text-xs text-muted-foreground">{p.strength}</span>
-                )}
-              </div>
-              {p.domains && p.domains.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {p.domains.map((d, di) => (
-                    <span key={di} className="text-xs px-1.5 py-0.5 bg-yellow-950/50 border border-yellow-800/40 text-yellow-300 rounded">
-                      {d}
-                    </span>
-                  ))}
+          <div className="flex flex-wrap gap-2">
+            {Array.from(new Set([...primary, ...strongD10])).map((p, i) => {
+              const color = PLANET_COLORS[p] ?? "text-yellow-200";
+              const isPrimary = primary.includes(p);
+              const isStrongD10 = strongD10.includes(p);
+              return (
+                <div key={i} className="flex flex-col bg-yellow-950/40 border border-yellow-800/40 rounded p-2 px-3">
+                  <span className={`font-bold ${color}`}>{p}</span>
+                  <div className="flex gap-1 mt-1">
+                    {isPrimary && <span className="text-[10px] uppercase bg-yellow-900/40 text-yellow-400/80 px-1 rounded border border-yellow-800/30">Primary</span>}
+                    {isStrongD10 && <span className="text-[10px] uppercase bg-emerald-900/40 text-emerald-400/80 px-1 rounded border border-emerald-800/30">Strong in D10</span>}
+                  </div>
                 </div>
-              )}
-              {p.description && (
-                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{p.description}</p>
-              )}
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Recommendations */}
-      {recommendations.length > 0 && (
-        <div>
-          <p className="text-xs text-yellow-300 font-semibold uppercase tracking-wide mb-2">Recommendations</p>
+      {/* Strength Factors */}
+      {strengths.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Info className="h-3.5 w-3.5 text-yellow-400" />
+            <p className="text-xs text-yellow-300 font-semibold uppercase tracking-wide">Astrological Indicators</p>
+          </div>
           <ul className="space-y-1.5">
-            {recommendations.map((rec, i) => (
+            {strengths.map((s, i) => (
               <li key={i} className="text-sm text-muted-foreground flex gap-2">
                 <span className="text-yellow-400 shrink-0">→</span>
-                <span>{rec}</span>
+                <span>{s}</span>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {themes.length === 0 && planets.length === 0 && recommendations.length === 0 && (
+      {/* D10 Table */}
+      {Object.keys(d10Indicators).length > 0 && (
         <details className="mt-2 border border-white/10 rounded-lg">
-          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-yellow-400 hover:bg-white/5 rounded-lg">
-            Raw Career Data
+          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-yellow-400 hover:bg-white/5 rounded-lg uppercase tracking-wide">
+            View D10 Planetary Details
           </summary>
-          <pre className="px-3 pb-3 text-xs font-mono text-muted-foreground whitespace-pre-wrap break-all">
-            {JSON.stringify(output, null, 2)}
-          </pre>
+          <div className="p-3 overflow-x-auto">
+            <table className="w-full text-xs text-left text-muted-foreground border-collapse">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="pb-2 pr-3 font-medium">Planet</th>
+                  <th className="pb-2 pr-3 font-medium">D10 Sign</th>
+                  <th className="pb-2 pr-3 font-medium">D10 Lord</th>
+                  <th className="pb-2 font-medium">D10 Strong</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(d10Indicators).map(([planet, data]) => (
+                  <tr key={planet} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="py-1.5 pr-3 font-semibold text-yellow-200/80">{planet}</td>
+                    <td className="py-1.5 pr-3">{data.d10_sign}</td>
+                    <td className="py-1.5 pr-3">{data.d10_lord}</td>
+                    <td className="py-1.5">
+                      {data.d10_strong ? <span className="text-emerald-400">Yes</span> : "No"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </details>
       )}
     </SectionShell>
