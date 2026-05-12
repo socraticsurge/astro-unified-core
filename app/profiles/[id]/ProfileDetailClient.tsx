@@ -6,7 +6,7 @@ import Link from "next/link";
 import { DashaflowView } from "@/components/engines/DashaflowView";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check, Info } from "lucide-react";
+import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check, Info, ExternalLink } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
@@ -196,6 +196,14 @@ export function ProfileDetailClient({ explainers }: Props) {
               <RefreshCw className="h-3 w-3" />
               Refresh
             </Button>
+          )}
+          {showAdminTools && (
+            <Link href={`/profiles/${id}/professional`}>
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-violet-400 hover:text-violet-300 hover:bg-violet-950/30">
+                <ExternalLink className="h-3 w-3" />
+                Professional
+              </Button>
+            </Link>
           )}
         </div>
       </div>
