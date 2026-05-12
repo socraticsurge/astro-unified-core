@@ -31,6 +31,7 @@ type EngineState = { output: any; loading: boolean; error?: string };
 type Props = {
   explainers: Record<string, SectionExplainer>;
   profile: Profile;
+  profiles: Profile[];
 };
 
 function profileHeaderText(p: Profile): string {
@@ -75,7 +76,7 @@ function CopyButton({ getText, label = "Copy" }: { getText: () => string; label?
   );
 }
 
-export function ProfileDetailClient({ explainers, profile }: Props) {
+export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
   const id = profile.id;
   const { data: session } = useSession();
   const showAdminTools = isAdmin(session);
@@ -298,6 +299,7 @@ export function ProfileDetailClient({ explainers, profile }: Props) {
           careerOutput={career.output}
           transitDate={transitDate}
           explainers={explainers}
+          profiles={profiles}
           onFetchTransit={fetchTransit}
           onFetchCareer={fetchCareer}
           isTransitLoading={transit.loading}

@@ -6,10 +6,12 @@ import { AntardashaTimeline } from "./AntardashaTimeline";
 import { TransitView } from "./TransitView";
 import { CareerView } from "./CareerView";
 import { MuhurthaView } from "./MuhurthaView";
+import { TarabalamView } from "./TarabalamView";
 import { useParams } from "next/navigation";
 import { Copy, Check, FileText, RefreshCw } from "lucide-react";
 import { generateConsultationNote } from "@/lib/utils/consultation";
 import { Button } from "@/components/ui/button";
+import type { Profile } from "@/lib/db";
 
 type SectionExplainer = {
   title: string;
@@ -24,13 +26,14 @@ type Props = {
   careerOutput: Record<string, unknown> | null;
   transitDate?: string;
   explainers: Record<string, SectionExplainer>;
+  profiles: Profile[];
   onFetchTransit?: () => void;
   onFetchCareer?: () => void;
   isTransitLoading?: boolean;
   isCareerLoading?: boolean;
 };
 
-type TabKey = "natal" | "vargas" | "dashas" | "career" | "transit" | "muhurtha";
+type TabKey = "natal" | "vargas" | "dashas" | "career" | "transit" | "muhurtha" | "tarabalam";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "natal", label: "Natal Chart" },
@@ -39,6 +42,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "career", label: "Career Analysis" },
   { key: "transit", label: "Transit (Gochar)" },
   { key: "muhurtha", label: "Muhurtha" },
+  { key: "tarabalam", label: "Tarabalam" },
 ];
 
 export function ProfessionalView({
@@ -47,6 +51,7 @@ export function ProfessionalView({
   careerOutput,
   transitDate,
   explainers,
+  profiles,
   onFetchTransit,
   onFetchCareer,
   isTransitLoading,
@@ -72,6 +77,12 @@ export function ProfessionalView({
     antar?: { planet?: string; start?: string; end?: string };
     timeline?: Array<{ planet?: string; start?: string; end?: string }>;
   } | undefined;
+
+  const transitData = transitOutput?.data as Record<string, unknown> | undefined;
+  const transitPlanets = transitData?.planets as Record<string, Record<string, unknown>> | undefined;
+  const transitMoonLon = typeof transitPlanets?.Moon?.longitude === "number"
+    ? transitPlanets.Moon.longitude
+    : null;
 
   const handleCopyNote = () => {
     const note = generateConsultationNote(chartOutput, transitOutput, careerOutput, transitDate);
@@ -179,6 +190,15 @@ export function ProfessionalView({
           <MuhurthaView
             profileId={id}
             explainer={explainers["Muhurtha (Auspicious Timings)"] ?? null}
+          />
+        )}
+
+        {activeTab === "tarabalam" && (
+          <TarabalamView
+            profileId={id}
+            profiles={profiles}
+            transitMoonLongitude={transitMoonLon}
+            explainer={explainers["Tarabalam"] ?? null}
           />
         )}
       </div>

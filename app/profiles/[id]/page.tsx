@@ -20,9 +20,10 @@ export default async function ProfileDetailPage({
   const { id } = await params;
   const userId = (session.user as { id: string }).id;
 
-  const profile = isAdmin(session)
-    ? await db.profiles.getAny(id)
-    : await db.profiles.get(id, userId);
+  const [profile, profiles] = await Promise.all([
+    isAdmin(session) ? db.profiles.getAny(id) : db.profiles.get(id, userId),
+    db.profiles.list(userId),
+  ]);
 
   if (!profile) notFound();
 
@@ -45,5 +46,5 @@ export default async function ProfileDetailPage({
     };
   }
 
-  return <ProfileDetailClient explainers={explainers} profile={profile} />;
+  return <ProfileDetailClient explainers={explainers} profile={profile} profiles={profiles} />;
 }
