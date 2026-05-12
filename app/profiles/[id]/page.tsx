@@ -1,18 +1,32 @@
-// Profile-detail page. Server component that pre-loads all section
-// explainers from disk and hands them to the client view. Per-row
-// content (planet-in-house, dasha-pair, etc.) is fetched lazily by
-// the client via /api/content/[type]/[key] when a section's modal
-// opens.
-
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { isAdmin } from "@/lib/admin";
+import { redirect, notFound } from "next/navigation";
 import { loadAllSections } from "@/lib/content/loader";
 import { renderMarkdown } from "@/lib/content/markdown";
 import { ProfileDetailClient } from "./ProfileDetailClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProfileDetailPage() {
+export default async function ProfileDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect("/auth/signin");
+
+  const { id } = await params;
+  const userId = (session.user as { id: string }).id;
+
+  const profile = isAdmin(session)
+    ? await db.profiles.getAny(id)
+    : await db.profiles.get(id, userId);
+
+  if (!profile) notFound();
+
   const sections = loadAllSections();
-  // Pre-render markdown to HTML so the client doesn't bundle a parser.
   const explainers: Record<
     string,
     {
@@ -31,5 +45,5 @@ export default async function ProfileDetailPage() {
     };
   }
 
-  return <ProfileDetailClient explainers={explainers} />;
+  return <ProfileDetailClient explainers={explainers} profile={profile} />;
 }

@@ -1,15 +1,13 @@
 "use client";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { DashaflowView } from "@/components/engines/DashaflowView";
 import { ProfessionalView } from "@/components/engines/ProfessionalView";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check, Info, 
-  ExternalLink, LayoutDashboard, User 
+import {
+  RefreshCw, AlertCircle, Code, Copy, Check, Info,
+  LayoutDashboard, User
 } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { summarizeDashaflow } from "@/lib/chart-summary";
@@ -34,6 +32,7 @@ type EngineState = { output: any; loading: boolean; error?: string };
 
 type Props = {
   explainers: Record<string, SectionExplainer>;
+  profile: Profile;
 };
 
 function profileHeaderText(p: Profile): string {
@@ -78,17 +77,16 @@ function CopyButton({ getText, label = "Copy" }: { getText: () => string; label?
   );
 }
 
-export function ProfileDetailClient({ explainers }: Props) {
-  const { id } = useParams<{ id: string }>();
+export function ProfileDetailClient({ explainers, profile }: Props) {
+  const id = profile.id;
   const { data: session } = useSession();
   const showAdminTools = isAdmin(session);
-  
-  const [profile, setProfile] = useState<Profile | null>(null);
+
   const [reading, setReading] = useState<EngineState>({ output: null, loading: true });
   const [transit, setTransit] = useState<EngineState>({ output: null, loading: false });
   const [career, setCareer] = useState<EngineState>({ output: null, loading: false });
   const [transitDate, setTransitDate] = useState<string | undefined>();
-  
+
   const [isProfessional, setIsProfessional] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
 
@@ -151,21 +149,10 @@ export function ProfileDetailClient({ explainers }: Props) {
   }, [id, career.output]);
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      await Promise.resolve();
-      if (cancelled) return;
-      fetch(`/api/profiles/${id}`)
-        .then(async (r) => {
-          if (!r.ok) throw new Error(`Failed to load profile (${r.status})`);
-          return r.json() as Promise<Profile>;
-        })
-        .then((p) => { if (!cancelled) setProfile(p); })
-        .catch(() => { if (!cancelled) setProfile(null); });
-      fetchReading();
-    })();
-    return () => { cancelled = true; };
-  }, [id, fetchReading]);
+    fetchReading();
+  // fetchReading is stable for a given id; re-running on id change is correct.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const summaryText = useMemo(() => {
     if (!profile || !reading.output) return "";
@@ -177,8 +164,6 @@ export function ProfileDetailClient({ explainers }: Props) {
       summarizeDashaflow(reading.output),
     ].join("\n");
   }, [profile, reading.output]);
-
-  if (!profile) return <div className="text-center py-16 text-muted-foreground">Loading…</div>;
 
   const initials = profile.name
     .split(" ")

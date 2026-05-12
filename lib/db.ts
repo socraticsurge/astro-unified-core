@@ -5,7 +5,7 @@ let clientInstance: Client | null = null;
 
 function getClient() {
   if (clientInstance) return clientInstance;
-  
+
   const url = process.env.TURSO_DATABASE_URL;
   const authToken = process.env.TURSO_AUTH_TOKEN;
 
@@ -22,11 +22,25 @@ function getClient() {
 
 let schemaInitialized = false;
 
+// Bump this when schema changes. ensureSchema only runs migrations when
+// the stored version is lower than this — one round-trip on warm instances.
+const SCHEMA_VERSION = 3;
+
 export async function ensureSchema() {
   if (schemaInitialized) return;
-  
+
   const client = getClient();
   try {
+    // Fast path: single round-trip version check. On already-migrated DBs
+    // (the common case) this returns immediately without running any DDL.
+    const vr = await client.execute("PRAGMA user_version");
+    const dbVersion = Number(vr.rows[0]?.[0] ?? 0);
+    if (dbVersion >= SCHEMA_VERSION) {
+      schemaInitialized = true;
+      return;
+    }
+
+    // Slow path: first deploy or schema bump — run full setup.
     await client.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -81,22 +95,6 @@ export async function ensureSchema() {
       );
     `);
 
-    // Indexes for performance
-    await client.execute("CREATE INDEX IF NOT EXISTS idx_readings_lookup ON readings (profile_id, engine);");
-    await client.execute("CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles (user_id);");
-    await client.execute("CREATE INDEX IF NOT EXISTS idx_compatibility_user ON compatibility_checks (user_id);");
-
-    // Migrations for newly added columns
-    try { await client.execute("ALTER TABLE users ADD COLUMN created_at TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN relationship TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN gender TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_location TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_latitude REAL;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_longitude REAL;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone_offset REAL;"); } catch {}
-
-    // Feedback table
     await client.execute(`
       CREATE TABLE IF NOT EXISTS feedback (
         id TEXT PRIMARY KEY,
@@ -108,12 +106,24 @@ export async function ensureSchema() {
       );
     `);
 
-    await client.execute(`
-      CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
-      CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings(profile_id);
-      CREATE INDEX IF NOT EXISTS idx_compatibility_user ON compatibility_checks(user_id);
-    `);
-    
+    // Indexes — each statement in its own execute() call (libSQL does not
+    // support multiple statements in a single execute).
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_readings_lookup ON readings (profile_id, engine);");
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles (user_id);");
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_compatibility_user ON compatibility_checks (user_id);");
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings (profile_id);");
+
+    // Column migrations — only runs when dbVersion < SCHEMA_VERSION.
+    try { await client.execute("ALTER TABLE users ADD COLUMN created_at TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN relationship TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN gender TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_location TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_latitude REAL;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_longitude REAL;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone_offset REAL;"); } catch {}
+
+    await client.execute(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     schemaInitialized = true;
   } catch (e) {
     console.error("Failed to initialize schema:", e);
