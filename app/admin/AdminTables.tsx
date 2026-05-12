@@ -4,8 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar } from "lucide-react";
+import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback } from "@/lib/db";
 
-export function AdminTables({ users, profiles, feedback, compatibilityChecks }: { users: any[], profiles: any[], feedback: any[], compatibilityChecks: any[] }) {
+type Props = {
+  users: User[];
+  profiles: ProfileWithUser[];
+  feedback: Feedback[];
+  compatibilityChecks: CompatibilityCheckWithDetails[];
+};
+
+export function AdminTables({ users, profiles, feedback, compatibilityChecks }: Props) {
   const [userSortCol, setUserSortCol] = useState<string>("last_login");
   const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
   
@@ -35,26 +43,18 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks }: 
     return sortDir === "asc" ? <ChevronUp className="ml-1 h-3 w-3 inline" /> : <ChevronDown className="ml-1 h-3 w-3 inline" />;
   };
 
-  const sortedUsers = [...users].sort((a, b) => {
-    const aVal = String(a[userSortCol] || "");
-    const bVal = String(b[userSortCol] || "");
-    const cmp = aVal.localeCompare(bVal);
-    return userSortDir === "asc" ? cmp : -cmp;
-  });
+  function sortBy<T>(arr: T[], col: string, dir: "asc" | "desc"): T[] {
+    return [...arr].sort((a, b) => {
+      const aVal = String((a as Record<string, unknown>)[col] ?? "");
+      const bVal = String((b as Record<string, unknown>)[col] ?? "");
+      const cmp = aVal.localeCompare(bVal);
+      return dir === "asc" ? cmp : -cmp;
+    });
+  }
 
-  const sortedProfiles = [...profiles].sort((a, b) => {
-    const aVal = String(a[profileSortCol] || "");
-    const bVal = String(b[profileSortCol] || "");
-    const cmp = aVal.localeCompare(bVal);
-    return profileSortDir === "asc" ? cmp : -cmp;
-  });
-
-  const sortedComps = [...compatibilityChecks].sort((a, b) => {
-    const aVal = String(a[compSortCol] || "");
-    const bVal = String(b[compSortCol] || "");
-    const cmp = aVal.localeCompare(bVal);
-    return compSortDir === "asc" ? cmp : -cmp;
-  });
+  const sortedUsers = sortBy(users, userSortCol, userSortDir);
+  const sortedProfiles = sortBy(profiles, profileSortCol, profileSortDir);
+  const sortedComps = sortBy(compatibilityChecks, compSortCol, compSortDir);
 
   return (
     <Tabs defaultValue="users">

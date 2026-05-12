@@ -6,11 +6,6 @@ import type { Profile, CompatibilityCheck } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Heart, Loader2, AlertCircle } from "lucide-react";
 
-const KOOTA_MAX: Record<string, number> = {
-  Varna: 1, Vashya: 2, Dina: 3, Yoni: 4,
-  "Graha Maitri": 5, Gana: 6, Bhakoot: 7, Nadi: 8, Nakshatra: 8,
-};
-
 export function CompatibilityClient({
   initialProfiles,
   initialChecks,

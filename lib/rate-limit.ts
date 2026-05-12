@@ -1,47 +1,35 @@
-// Simple in-memory rate limiter for Next.js API routes.
-// Note: In serverless environments like Vercel, this state is isolated per lambda instance.
-// However, it is still highly effective for stopping single-node rapid spam.
+// In-memory rate limiter. Per-instance on serverless (not globally shared across
+// Lambda invocations). Adequate for abuse prevention; use Upstash Redis for
+// strict global limits.
 
-type RateLimitData = {
-  count: number;
-  lastReset: number;
-};
+const store = new Map<string, { count: number; expires: number }>();
 
-const rateLimitMap = new Map<string, RateLimitData>();
-
-// Limit: 5 requests per minute
-const LIMIT = 5;
-const WINDOW_MS = 60 * 1000;
-
-export function rateLimit(identifier: string) {
+export function rateLimit(
+  key: string,
+  limit: number,
+  windowMs: number
+): { success: boolean; limit: number; remaining: number } {
   const now = Date.now();
-  const windowData = rateLimitMap.get(identifier);
+  const record = store.get(key);
 
-  if (!windowData || now - windowData.lastReset > WINDOW_MS) {
-    rateLimitMap.set(identifier, { count: 1, lastReset: now });
-    return { success: true, limit: LIMIT, remaining: LIMIT - 1 };
+  if (!record || now > record.expires) {
+    store.set(key, { count: 1, expires: now + windowMs });
+    return { success: true, limit, remaining: limit - 1 };
   }
 
-  if (windowData.count >= LIMIT) {
-    return { success: false, limit: LIMIT, remaining: 0 };
+  if (record.count >= limit) {
+    return { success: false, limit, remaining: 0 };
   }
 
-  windowData.count++;
-  rateLimitMap.set(identifier, windowData);
-  return { success: true, limit: LIMIT, remaining: LIMIT - windowData.count };
+  record.count++;
+  return { success: true, limit, remaining: limit - record.count };
 }
 
-// Optionally clean up map periodically to prevent memory leaks over long lambda lifespans
-const cleanupInterval = setInterval(() => {
+const cleanup = setInterval(() => {
   const now = Date.now();
-  for (const [key, val] of rateLimitMap.entries()) {
-    if (now - val.lastReset > WINDOW_MS) {
-      rateLimitMap.delete(key);
-    }
+  for (const [key, record] of store.entries()) {
+    if (now > record.expires) store.delete(key);
   }
-}, WINDOW_MS);
+}, 60_000);
 
-// Allow the process to exit even if this interval is running
-if (cleanupInterval.unref) {
-  cleanupInterval.unref();
-}
+if (cleanup.unref) cleanup.unref();

@@ -5,7 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { fetchTransit } from "@/lib/engines/transit";
 import { extractEngineError } from "@/lib/engine-error";
-import { rateLimit } from "@/lib/security";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Transit cache is keyed by date so it auto-invalidates daily.
 // Format: "transit:YYYY-MM-DD"
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
 
   const { profile_id, transit_date } = await req.json();
 
-  if (!rateLimit(`refresh_transit_${profile_id}`, 5, 60000)) {
+  if (!rateLimit(`refresh_transit_${profile_id}`, 5, 60_000).success) {
     return NextResponse.json({ error: "Too many requests. Please wait a minute." }, { status: 429 });
   }
 

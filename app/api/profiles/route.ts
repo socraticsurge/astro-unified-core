@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate Limiting Check
-    const rateLimitResult = rateLimit(`create_profile_${userId}`);
+    const rateLimitResult = rateLimit(`create_profile_${userId}`, 5, 60_000);
     if (!rateLimitResult.success) {
       return NextResponse.json({ error: "Too many requests. Please wait a minute before creating another profile." }, { status: 429 });
     }

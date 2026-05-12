@@ -5,7 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { fetchDashaflow } from "@/lib/engines/dashaflow";
 import { extractEngineError } from "@/lib/engine-error";
-import { rateLimit } from "@/lib/security";
+import { rateLimit } from "@/lib/rate-limit";
 
 const ENGINE = "dashaflow";
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   const { profile_id } = await req.json();
   
-  if (!rateLimit(`refresh_${profile_id}`, 5, 60000)) {
+  if (!rateLimit(`refresh_${profile_id}`, 5, 60_000).success) {
     return NextResponse.json({ error: "Too many refresh requests. Please wait a minute." }, { status: 429 });
   }
 

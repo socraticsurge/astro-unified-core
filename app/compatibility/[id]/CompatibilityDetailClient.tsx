@@ -4,58 +4,10 @@ import { useSession } from "next-auth/react";
 import { ArrowLeft, LayoutDashboard, User, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
 import { useState } from "react";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
+import type { CompatResult, AdditionalKuta } from "@/lib/compatibility";
+import { KOOTA_MAX } from "@/lib/compatibility";
 import { Button } from "@/components/ui/button";
 import { isAdmin } from "@/lib/admin";
-
-const KOOTA_MAX: Record<string, number> = {
-  Varna: 1,
-  Vashya: 2,
-  Dina: 3, Tara: 3,
-  Yoni: 4,
-  "Graha Maitri": 5, GrahaMaitri: 5, Maitri: 5,
-  Gana: 6,
-  Bhakoot: 7, Rashi: 7,
-  Nadi: 8, Nakshatra: 8,
-};
-
-type KootaScores = Record<string, number>;
-
-type KujaBreakdownEntry = { house: number; sign: string; score: number };
-
-type KujaDosha = {
-  male?: { is_manglik?: boolean; total_score?: number; breakdown?: Record<string, KujaBreakdownEntry> };
-  female?: { is_manglik?: boolean; total_score?: number; breakdown?: Record<string, KujaBreakdownEntry> };
-  compatibility?: { result?: string; description?: string };
-};
-
-type ProfileDetails = {
-  moon_sign?: string;
-  nakshatra?: string;
-  gana?: string;
-  nadi?: string;
-  yoni?: string;
-};
-
-type AdditionalKuta = {
-  result?: string;
-  group?: string | null;
-  effect?: string;
-  issues?: string[];
-  description?: string;
-  male?: string;
-  female?: string;
-};
-
-type CompatResult = {
-  total_score: number;
-  scores?: KootaScores;
-  kuja_dosha?: KujaDosha;
-  male_details?: ProfileDetails;
-  female_details?: ProfileDetails;
-  additional_kutas?: Record<string, string | AdditionalKuta>;
-  exceptions?: string[];
-  is_match_approved?: boolean;
-};
 
 function initials(name: string) {
   return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
