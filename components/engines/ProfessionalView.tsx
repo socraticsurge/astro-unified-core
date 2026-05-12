@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashaflowView } from "./DashaflowView";
 import { VargaDashboard } from "./VargaDashboard";
 import { AntardashaTimeline } from "./AntardashaTimeline";
@@ -7,7 +7,7 @@ import { TransitView } from "./TransitView";
 import { CareerView } from "./CareerView";
 import { MuhurthaView } from "./MuhurthaView";
 import { useParams } from "next/navigation";
-import { Copy, Check, FileText } from "lucide-react";
+import { Copy, Check, FileText, RefreshCw } from "lucide-react";
 import { generateConsultationNote } from "@/lib/utils/consultation";
 import { Button } from "@/components/ui/button";
 
