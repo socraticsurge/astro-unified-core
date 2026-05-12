@@ -985,20 +985,20 @@ export function DashaflowView({ output, explainers }: Props) {
       )}
 
       {/* 18. Kaal Sarpa */}
-      {kaalSarpa && (
-        <SectionShell
-          sectionInView="Kaal Sarpa Yoga"
-          explainer={exp("Kaal Sarpa Yoga")}
-          accent={accent}
-          defaultOpen={false}
-        >
+      <SectionShell
+        sectionInView="Kaal Sarpa Yoga"
+        explainer={exp("Kaal Sarpa Yoga")}
+        accent={accent}
+        defaultOpen={kaalSarpa ? true : false}
+      >
+        {kaalSarpa ? (
           <div className={`${card} mt-2 border-l-4 ${kaalSarpa.type?.toString().toLowerCase().includes("partial") ? "border-teal-500" : "border-amber-500"}`}>
             <div className="flex items-center justify-between mb-3">
               <h3 className={`text-sm font-bold uppercase tracking-wider ${kaalSarpa.type?.toString().toLowerCase().includes("partial") ? "text-teal-400" : "text-amber-400"}`}>
                 {kaalSarpa.type?.toString() || "Kaal Sarpa Yoga"}
               </h3>
-              <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/10 text-muted-foreground uppercase">
-                {kaalSarpa.present ? "Present" : "Absent"}
+              <span className="text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 text-emerald-400 uppercase font-bold">
+                Detected
               </span>
             </div>
             
@@ -1017,8 +1017,34 @@ export function DashaflowView({ output, explainers }: Props) {
               {kaalSarpa.description?.toString() || "The nodal axis hems in the planets, creating a karmic pattern."}
             </p>
           </div>
-        </SectionShell>
-      )}
+        ) : (
+          <div className={`${card} mt-2 border-l-4 border-gray-700/50 opacity-80`}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Kaal Sarpa Yoga
+              </h3>
+              <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/10 text-muted-foreground uppercase">
+                Not Detected
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Rahu</p>
+                <p className="text-sm font-semibold text-muted-foreground/60">{planets["Rahu"]?.sign || "—"}</p>
+              </div>
+              <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Ketu</p>
+                <p className="text-sm font-semibold text-muted-foreground/60">{planets["Ketu"]?.sign || "—"}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground italic">
+              All seven planets are not hemmed between the Rahu-Ketu axis in this chart.
+            </p>
+          </div>
+        )}
+      </SectionShell>
     </div>
   );
 }
