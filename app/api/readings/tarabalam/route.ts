@@ -66,15 +66,23 @@ export async function POST(req: NextRequest) {
     transit_date: today,
   });
 
+  // Transit output has sign + degree (within sign), not a raw longitude field.
+  // Reconstruct: longitude = sign_index * 30 + degree_in_sign (already sidereal/Lahiri).
+  const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
   const transitPlanets = (transitResult.data as Record<string, unknown> | null)
-    ?.planets as Record<string, Record<string, unknown>> | undefined;
-  const moonLon = typeof transitPlanets?.Moon?.longitude === "number"
-    ? transitPlanets.Moon.longitude
+    ?.planets as Record<string, { sign?: string; degree?: number; nakshatra?: string }> | undefined;
+  const moonSign = transitPlanets?.Moon?.sign;
+  const moonDegree = transitPlanets?.Moon?.degree;
+  const signIdx = moonSign ? SIGNS.indexOf(moonSign) : -1;
+
+  const moonLon = signIdx !== -1 && typeof moonDegree === "number"
+    ? signIdx * 30 + moonDegree
     : null;
 
   if (moonLon === null) {
+    const detail = transitResult.error ?? `sign=${moonSign}, degree=${moonDegree}`;
     return NextResponse.json(
-      { error: "Could not compute today's Moon position. Please try again." },
+      { error: `Could not determine today's Moon position (${detail}). Please try again.` },
       { status: 502 }
     );
   }
