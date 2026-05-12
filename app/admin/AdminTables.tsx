@@ -207,12 +207,17 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks }: 
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <details className="relative">
-                        <summary className="text-xs text-sky-400 hover:text-sky-300 cursor-pointer list-none">View JSON</summary>
-                        <div className="absolute right-0 top-full mt-2 w-96 max-h-96 overflow-y-auto bg-zinc-950 border border-white/10 rounded-lg p-4 z-50 text-[10px] font-mono text-left shadow-2xl">
-                          <pre className="whitespace-pre-wrap text-muted-foreground">{JSON.stringify(JSON.parse(check.result_json), null, 2)}</pre>
-                        </div>
-                      </details>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link href={`/compatibility/${check.id}`} className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                          View
+                        </Link>
+                        <details className="relative">
+                          <summary className="text-xs text-sky-400 hover:text-sky-300 cursor-pointer list-none">JSON</summary>
+                          <div className="absolute right-0 top-full mt-2 w-96 max-h-96 overflow-y-auto bg-zinc-950 border border-white/10 rounded-lg p-4 z-50 text-[10px] font-mono text-left shadow-2xl">
+                            <pre className="whitespace-pre-wrap text-muted-foreground">{JSON.stringify(JSON.parse(check.result_json), null, 2)}</pre>
+                          </div>
+                        </details>
+                      </div>
                     </td>
                   </tr>
                 ))
