@@ -64,13 +64,31 @@ export async function POST(req: NextRequest) {
     const json = await res.json();
     const data = json.data;
     
-    // Save to DB
-    const check = await db.compatibility.save(userId, {
-      profile_id_1,
-      profile_id_2,
-      score: data.score || 0,
-      result_json: JSON.stringify(data),
-    });
+    // Rate limit: Max 6 checks per user
+    const existingChecks = await db.compatibility.list(userId);
+    if (existingChecks.length >= 6) {
+      return NextResponse.json({ error: "You have reached the maximum limit of 6 compatibility checks. Please delete some checks or contact support to run more." }, { status: 403 });
+    }
+
+    // Deduplication logic: Check if this exact pair already exists
+    const duplicate = existingChecks.find(c => 
+      (c.profile_id_1 === profile_id_1 && c.profile_id_2 === profile_id_2) ||
+      (c.profile_id_1 === profile_id_2 && c.profile_id_2 === profile_id_1)
+    );
+
+    let check;
+    if (duplicate) {
+      // Just return the existing check without saving a new one
+      check = duplicate;
+    } else {
+      // Save to DB
+      check = await db.compatibility.save(userId, {
+        profile_id_1,
+        profile_id_2,
+        score: data.total_score || 0,
+        result_json: JSON.stringify(data),
+      });
+    }
 
     return NextResponse.json(check);
   } catch (e) {

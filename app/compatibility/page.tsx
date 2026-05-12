@@ -163,7 +163,7 @@ export default function CompatibilityPage() {
                   {/* Results Display */}
                   <div className="text-center space-y-2">
                     <div className="inline-flex items-center justify-center h-24 w-24 rounded-full border-4 border-pink-500/30 bg-pink-500/10 text-3xl font-black text-pink-400">
-                      {result.score}/36
+                      {result.total_score}/36
                     </div>
                     <div className="text-sm font-medium text-pink-300">Guna Milan Score</div>
                     <p className="text-xs text-muted-foreground max-w-xs mx-auto">
@@ -178,18 +178,16 @@ export default function CompatibilityPage() {
                         <tr>
                           <th className="p-3 text-left">Koota</th>
                           <th className="p-3 text-center">Points</th>
-                          <th className="p-3 text-left">Max</th>
                           <th className="p-3 text-right">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {Object.entries(result.kootas || {}).map(([name, data]: [string, any]) => (
+                        {Object.entries(result.scores || {}).map(([name, score]: [string, any]) => (
                           <tr key={name}>
                             <td className="p-3 font-medium capitalize">{name}</td>
-                            <td className="p-3 text-center font-bold text-foreground">{data.score}</td>
-                            <td className="p-3 text-muted-foreground">{data.max}</td>
+                            <td className="p-3 text-center font-bold text-foreground">{score}</td>
                             <td className="p-3 text-right">
-                              {data.score > 0 ? (
+                              {score > 0 ? (
                                 <span className="text-green-500">Matched</span>
                               ) : (
                                 <span className="text-red-500">Unmatched</span>
@@ -203,13 +201,21 @@ export default function CompatibilityPage() {
 
                   {/* Dosha Status */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className={`p-4 rounded-lg border flex items-center justify-between ${result.mangal_dosha ? "border-red-500/50 bg-red-500/10" : "border-green-500/50 bg-green-500/10"}`}>
-                      <div className="text-xs font-semibold uppercase tracking-wider opacity-70">Mangal Dosha</div>
-                      <div className="font-bold">{result.mangal_dosha ? "Present" : "None"}</div>
+                    <div className={`p-4 rounded-lg border flex flex-col justify-center items-center text-center ${result.kuja_dosha?.male?.is_manglik || result.kuja_dosha?.female?.is_manglik ? "border-red-500/50 bg-red-500/10" : "border-green-500/50 bg-green-500/10"}`}>
+                      <div className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">Mangal Dosha</div>
+                      <div className="font-bold text-sm">
+                        {result.kuja_dosha?.male?.is_manglik || result.kuja_dosha?.female?.is_manglik ? "Present" : "None"}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-1">
+                        {result.kuja_dosha?.compatibility?.description || "Auspicious match"}
+                      </div>
                     </div>
-                    <div className={`p-4 rounded-lg border flex items-center justify-between ${result.bhakoot_dosha ? "border-red-500/50 bg-red-500/10" : "border-green-500/50 bg-green-500/10"}`}>
-                      <div className="text-xs font-semibold uppercase tracking-wider opacity-70">Bhakoot Dosha</div>
-                      <div className="font-bold">{result.bhakoot_dosha ? "Present" : "None"}</div>
+                    <div className={`p-4 rounded-lg border flex flex-col justify-center items-center text-center ${result.scores?.Bhakoot === 0 ? "border-red-500/50 bg-red-500/10" : "border-green-500/50 bg-green-500/10"}`}>
+                      <div className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">Bhakoot Dosha</div>
+                      <div className="font-bold text-sm">{result.scores?.Bhakoot === 0 ? "Present" : "None"}</div>
+                      <div className="text-[10px] text-muted-foreground mt-1">
+                        {result.scores?.Bhakoot === 0 ? "Unfavorable lunar alignment" : "Auspicious match"}
+                      </div>
                     </div>
                   </div>
                 </div>
