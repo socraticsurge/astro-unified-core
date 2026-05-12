@@ -4,14 +4,24 @@ import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { DashaflowView } from "@/components/engines/DashaflowView";
+import { ProfessionalView } from "@/components/engines/ProfessionalView";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check, Info, ExternalLink } from "lucide-react";
+import { 
+  RefreshCw, AlertCircle, CheckCircle, Code, Copy, Check, Info, 
+  ExternalLink, LayoutDashboard, User 
+} from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
 import { isAdmin } from "@/lib/admin";
-import { RelationshipBadge, GenderBadge, CurrentLocationBadge, BirthDetails, CurrentLocationDetails } from "@/components/profile-ui";
+import { 
+  RelationshipBadge, 
+  GenderBadge, 
+  CurrentLocationBadge, 
+  BirthDetails, 
+  CurrentLocationDetails 
+} from "@/components/profile-ui";
 
 type SectionExplainer = {
   title: string;
@@ -20,7 +30,7 @@ type SectionExplainer = {
   sources?: { text: string; chapter?: number | string; sloka?: number | string }[];
 };
 
-type EngineState = { output: unknown; loading: boolean; error?: string };
+type EngineState = { output: any; loading: boolean; error?: string };
 
 type Props = {
   explainers: Record<string, SectionExplainer>;
@@ -72,8 +82,14 @@ export function ProfileDetailClient({ explainers }: Props) {
   const { id } = useParams<{ id: string }>();
   const { data: session } = useSession();
   const showAdminTools = isAdmin(session);
+  
   const [profile, setProfile] = useState<Profile | null>(null);
   const [reading, setReading] = useState<EngineState>({ output: null, loading: true });
+  const [transit, setTransit] = useState<EngineState>({ output: null, loading: false });
+  const [career, setCareer] = useState<EngineState>({ output: null, loading: false });
+  const [transitDate, setTransitDate] = useState<string | undefined>();
+  
+  const [isProfessional, setIsProfessional] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
 
   const fetchReading = useCallback(
@@ -102,6 +118,37 @@ export function ProfileDetailClient({ explainers }: Props) {
     },
     [id]
   );
+
+  const fetchTransit = useCallback(async (force = false) => {
+    if (transit.output && !force) return;
+    setTransit({ output: null, loading: true });
+    try {
+      const res = force
+        ? await fetch(`/api/readings/transit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile_id: id }) })
+        : await fetch(`/api/readings/transit?profile_id=${id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Transit fetch failed");
+      setTransitDate(data.transit_date);
+      setTransit({ output: data.output, loading: false });
+    } catch (e) {
+      setTransit({ output: null, loading: false, error: e instanceof Error ? e.message : String(e) });
+    }
+  }, [id, transit.output]);
+
+  const fetchCareer = useCallback(async (force = false) => {
+    if (career.output && !force) return;
+    setCareer({ output: null, loading: true });
+    try {
+      const res = force
+        ? await fetch(`/api/readings/career`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile_id: id }) })
+        : await fetch(`/api/readings/career?profile_id=${id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Career fetch failed");
+      setCareer({ output: data.output, loading: false });
+    } catch (e) {
+      setCareer({ output: null, loading: false, error: e instanceof Error ? e.message : String(e) });
+    }
+  }, [id, career.output]);
 
   useEffect(() => {
     let cancelled = false;
@@ -141,7 +188,7 @@ export function ProfileDetailClient({ explainers }: Props) {
     .toUpperCase();
 
   return (
-    <div>
+    <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Missing Information Nudge */}
       {!profile.current_location && (
         <div className="mb-6 flex items-center justify-between gap-4 p-3 rounded-lg bg-red-950/20 border border-red-800/40 text-sm">
@@ -158,24 +205,24 @@ export function ProfileDetailClient({ explainers }: Props) {
       )}
 
       {/* Profile Header Card */}
-      <div className="mb-6 flex items-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10">
+      <div className="mb-8 flex items-start gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-sm">
         {/* Monogram Avatar */}
-        <div className="shrink-0 h-14 w-14 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg">
-          <span className="text-xl font-bold text-amber-950">{initials}</span>
+        <div className="shrink-0 h-16 w-16 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg border-2 border-white/10">
+          <span className="text-2xl font-bold text-amber-950 drop-shadow-md">{initials}</span>
         </div>
 
         {/* Identity + Birth Data */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold leading-tight">{profile.name}</h1>
-            <div className="flex gap-1.5 flex-wrap">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <h1 className="text-3xl font-bold leading-tight tracking-tight">{profile.name}</h1>
+            <div className="flex gap-1.5 flex-wrap pt-1">
               <RelationshipBadge value={profile.relationship} profileId={profile.id} />
               <GenderBadge value={profile.gender} profileId={profile.id} />
               <CurrentLocationBadge value={profile.current_location} profileId={profile.id} />
             </div>
           </div>
 
-          <div className="mt-3">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <BirthDetails
               date_of_birth={profile.date_of_birth}
               time_of_birth={profile.time_of_birth}
@@ -194,84 +241,105 @@ export function ProfileDetailClient({ explainers }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between py-3 border-b mb-4">
+      <div className="flex items-center justify-between py-3 border-b border-white/10 mb-6">
         <div className="flex items-center gap-2">
           {reading.error && <AlertCircle className="h-4 w-4 text-red-500" />}
           {reading.loading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
           <span className="text-sm font-medium text-green-400">
-            {reading.loading ? "Preparing your chart…" : reading.error ? "Error" : ""}
+            {reading.loading ? "Preparing your chart…" : reading.error ? "Error loading chart" : ""}
           </span>
         </div>
-        <div className="flex gap-1">
-          {showAdminTools && !!reading.output && (
+        
+        <div className="flex gap-2 items-center">
+          {showAdminTools && (
+            <div className="flex items-center bg-white/5 rounded-lg p-0.5 border border-white/10 shadow-inner">
+              <Button 
+                variant={isProfessional ? "ghost" : "secondary"} 
+                size="sm" 
+                onClick={() => setIsProfessional(false)}
+                className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider transition-all ${!isProfessional ? "bg-white/10 text-white shadow-sm" : "text-muted-foreground hover:text-white"}`}
+              >
+                <User className="h-3 w-3" />
+                Basic
+              </Button>
+              <Button 
+                variant={isProfessional ? "secondary" : "ghost"} 
+                size="sm" 
+                onClick={() => setIsProfessional(true)}
+                className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider transition-all ${isProfessional ? "bg-violet-500/20 text-violet-300 shadow-sm border border-violet-500/30" : "text-muted-foreground hover:text-white"}`}
+              >
+                <LayoutDashboard className="h-3 w-3" />
+                Professional
+              </Button>
+            </div>
+          )}
+
+          {showAdminTools && !!reading.output && !isProfessional && (
             <CopyButton getText={() => summaryText} label="Copy summary" />
           )}
           {showAdminTools && !!reading.output && (
-            <Button variant="ghost" size="sm" onClick={() => setShowRaw((r) => !r)} className="h-7 text-xs gap-1">
+            <Button variant="ghost" size="sm" onClick={() => setShowRaw(!showRaw)} className={`h-7 text-xs gap-1 ${showRaw ? "text-yellow-400 bg-yellow-400/10" : ""}`}>
               <Code className="h-3 w-3" />
-              {showRaw ? "Formatted" : "Raw JSON"}
+              {showRaw ? "JSON" : "Raw"}
             </Button>
           )}
-          {showAdminTools && (
-            <Button variant="ghost" size="sm" onClick={() => fetchReading(true)} disabled={reading.loading} className="h-7 text-xs gap-1">
-              <RefreshCw className="h-3 w-3" />
-              Refresh
-            </Button>
-          )}
-          {showAdminTools && (
-            <Link href={`/profiles/${id}/professional`}>
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-violet-400 hover:text-violet-300 hover:bg-violet-950/30">
-                <ExternalLink className="h-3 w-3" />
-                Professional
-              </Button>
-            </Link>
-          )}
+          <Button variant="ghost" size="sm" onClick={() => void fetchReading(true)} disabled={reading.loading} className="h-7 text-xs gap-1">
+            <RefreshCw className={`h-3 w-3 ${reading.loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
       </div>
 
-      {/* Permanent hint strip — always visible once chart is loaded */}
-      {!!reading.output && !reading.error && (
-        <div className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-lg bg-amber-950/20 border border-amber-800/30">
-          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400/80" />
-          <p className="text-xs text-amber-300/80 leading-relaxed">
-            Each section below has a <span className="text-amber-300 font-semibold">ⓘ</span> button. Tap it to read the classical Vedic interpretation for your chart.
-          </p>
-        </div>
-      )}
-
       {reading.error && (
-        <div className="text-sm text-red-400 bg-red-950/30 border border-red-800/50 rounded-lg p-3 mb-4">
+        <div className="mb-6 p-4 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 text-sm">
           {reading.error}
         </div>
       )}
 
-      {!reading.output && !reading.error && !reading.loading && (
-        <div className="text-center py-16 text-muted-foreground">
-          <Button onClick={() => fetchReading(true)} variant="outline">Generate chart</Button>
-        </div>
+      {showRaw && reading.output && (
+        <details className="mb-6 border border-white/10 rounded-lg overflow-hidden" open>
+          <summary className="cursor-pointer px-4 py-2 bg-white/5 text-xs font-mono font-bold text-muted-foreground hover:bg-white/10 border-b border-white/10">
+            Engine Output Snapshot
+          </summary>
+          <pre className="p-4 text-xs font-mono whitespace-pre-wrap break-all text-muted-foreground bg-black/40">
+            {JSON.stringify(reading.output, null, 2)}
+          </pre>
+        </details>
       )}
 
-      {!!reading.output && !(showAdminTools && showRaw) && (
-        <DashaflowView
-          output={reading.output as Record<string, unknown>}
+      {isProfessional && reading.output ? (
+        <ProfessionalView
+          chartOutput={reading.output}
+          transitOutput={transit.output}
+          careerOutput={career.output}
+          transitDate={transitDate}
           explainers={explainers}
+          onFetchTransit={fetchTransit}
+          onFetchCareer={fetchCareer}
+          isTransitLoading={transit.loading}
+          isCareerLoading={career.loading}
         />
+      ) : (
+        <>
+          {/* Permanent hint strip for basic view */}
+          {!!reading.output && (
+            <div className="flex items-start gap-2 mb-6 px-3 py-2.5 rounded-lg bg-amber-950/20 border border-amber-800/30">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400/80" />
+              <p className="text-xs text-amber-300/80 leading-relaxed">
+                Each section below has a <span className="text-amber-300 font-semibold">ⓘ</span> button. Tap it to read the classical Vedic interpretation for your chart.
+              </p>
+            </div>
+          )}
+          <DashaflowView output={reading.output} explainers={explainers} />
+        </>
       )}
 
-      {showAdminTools && !!reading.output && showRaw && (
-        <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-all bg-white/5 border border-white/10 rounded-lg p-4">
-          {JSON.stringify(reading.output, null, 2)}
-        </pre>
-      )}
-
-      <p className="text-xs text-muted-foreground mt-12 pt-4 border-t border-white/10">
-        Verses adapted from classical sources; rephrasings are by Dr. Vinay Kumar Chaganti.
-        See{" "}
-        <Link href="/credits" className="hover:underline">
-          credits
-        </Link>{" "}
-        for source attribution.
-      </p>
+      <footer className="mt-12 pt-6 border-t border-white/10">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Verses adapted from classical sources; rephrasings by Dr. Vinay Kumar Chaganti.
+          See <Link href="/credits" className="hover:underline text-violet-400">credits</Link> for source attribution.
+        </p>
+      </footer>
     </div>
   );
 }
