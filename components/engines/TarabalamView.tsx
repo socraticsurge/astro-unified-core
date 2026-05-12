@@ -28,7 +28,6 @@ type ApiResult = {
 type Props = {
   profileId: string;
   profiles: Profile[];
-  transitMoonLongitude?: number | null;
   explainer?: SectionExplainer | null;
 };
 
@@ -45,7 +44,7 @@ function formatDate(iso: string) {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-export function TarabalamView({ profileId, profiles, transitMoonLongitude, explainer }: Props) {
+export function TarabalamView({ profileId, profiles, explainer }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set([profileId]));
   const [startDate, setStartDate] = useState(isoToday());
   const [endDate, setEndDate] = useState(isoPlus(13));
@@ -65,7 +64,6 @@ export function TarabalamView({ profileId, profiles, transitMoonLongitude, expla
           profile_ids: ids,
           start_date: start,
           end_date: end,
-          transit_moon_longitude: transitMoonLongitude ?? undefined,
         }),
       });
       const data = await res.json();
@@ -76,7 +74,7 @@ export function TarabalamView({ profileId, profiles, transitMoonLongitude, expla
     } finally {
       setLoading(false);
     }
-  }, [transitMoonLongitude]);
+  }, []);
 
   // Auto-fetch on mount for the default selection
   useEffect(() => {

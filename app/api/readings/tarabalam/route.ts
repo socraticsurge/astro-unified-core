@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
+import { fetchTransit } from "@/lib/engines/transit";
 import { computeTara, extrapolateMoonNakshatra, type Tara } from "@/lib/tarabalam";
 
 export async function POST(req: NextRequest) {
@@ -12,25 +13,27 @@ export async function POST(req: NextRequest) {
   const userId = (session.user as { id: string }).id;
   const admin = isAdmin(session);
 
-  const { profile_ids, start_date, end_date, transit_moon_longitude } = await req.json() as {
+  const { profile_ids, start_date, end_date } = await req.json() as {
     profile_ids: string[];
     start_date: string;
     end_date: string;
-    transit_moon_longitude?: number | null;
   };
 
   if (!Array.isArray(profile_ids) || profile_ids.length === 0) {
     return NextResponse.json({ error: "profile_ids required" }, { status: 400 });
   }
 
-  // Resolve birth Moon nakshatra for each requested profile
+  // Collect birth Moon nakshatra for each profile from their dashaflow cache
   const profileData: Array<{ id: string; name: string; birth_moon_nakshatra: string | null }> = [];
+  let anchorProfile: Awaited<ReturnType<typeof db.profiles.getAny>> | undefined;
 
   for (const profileId of profile_ids) {
     const profile = admin
       ? await db.profiles.getAny(profileId)
       : await db.profiles.get(profileId, userId);
     if (!profile) continue;
+
+    if (!anchorProfile) anchorProfile = profile;
 
     const cached = await db.readings.latestByEngine(profileId, "dashaflow");
     let birthMoonNakshatra: string | null = null;
@@ -39,35 +42,44 @@ export async function POST(req: NextRequest) {
         const output = JSON.parse(cached.output_data as string);
         birthMoonNakshatra = output?.data?.planets?.Moon?.nakshatra ?? null;
       } catch {
-        // corrupted cache row — skip
+        // corrupted cache — skip
       }
     }
 
     profileData.push({ id: profileId, name: profile.name, birth_moon_nakshatra: birthMoonNakshatra });
   }
 
-  // Resolve current Moon longitude: client-supplied > DB transit cache > error
-  let moonLon: number | null = typeof transit_moon_longitude === "number" ? transit_moon_longitude : null;
-
-  if (moonLon === null) {
-    const transitCached = await db.readings.latestByEngine(profile_ids[0], "transit");
-    if (transitCached) {
-      try {
-        const output = JSON.parse(transitCached.output_data as string);
-        const lon = output?.data?.planets?.Moon?.longitude;
-        if (typeof lon === "number") moonLon = lon;
-      } catch {}
-    }
+  if (!anchorProfile) {
+    return NextResponse.json({ error: "No valid profiles found" }, { status: 404 });
   }
+
+  // Get today's Moon longitude from the sidecar using the first profile's birth data.
+  // We only need this to anchor the Moon's position; birth details don't affect the
+  // transit Moon longitude itself.
+  const today = new Date().toISOString().slice(0, 10);
+  const transitResult = await fetchTransit({
+    date_of_birth: anchorProfile.date_of_birth,
+    time_of_birth: anchorProfile.time_of_birth,
+    latitude: anchorProfile.latitude,
+    longitude: anchorProfile.longitude,
+    timezone: anchorProfile.timezone,
+    transit_date: today,
+  });
+
+  const transitPlanets = (transitResult.data as Record<string, unknown> | null)
+    ?.planets as Record<string, Record<string, unknown>> | undefined;
+  const moonLon = typeof transitPlanets?.Moon?.longitude === "number"
+    ? transitPlanets.Moon.longitude
+    : null;
 
   if (moonLon === null) {
     return NextResponse.json(
-      { error: "Moon position unavailable. Open the Transit tab for this profile first." },
-      { status: 422 }
+      { error: "Could not compute today's Moon position. Please try again." },
+      { status: 502 }
     );
   }
 
-  // Build date list from start_date to end_date (inclusive)
+  // Build the date list
   const dates: string[] = [];
   const cursor = new Date(start_date + "T00:00:00Z");
   const endDay = new Date(end_date + "T00:00:00Z");
@@ -76,13 +88,12 @@ export async function POST(req: NextRequest) {
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
-  // "Today" at midnight UTC — baseline for Moon extrapolation
-  const todayUtc = new Date();
-  todayUtc.setUTCHours(0, 0, 0, 0);
+  // Anchor baseline: today at midnight UTC
+  const todayMs = new Date(today + "T00:00:00Z").getTime();
 
   const taras = dates.map((date) => {
-    const daysFromToday = (new Date(date + "T00:00:00Z").getTime() - todayUtc.getTime()) / 86_400_000;
-    const transitNakshatra = extrapolateMoonNakshatra(moonLon!, daysFromToday);
+    const daysFromToday = (new Date(date + "T00:00:00Z").getTime() - todayMs) / 86_400_000;
+    const transitNakshatra = extrapolateMoonNakshatra(moonLon, daysFromToday);
 
     const profileTaras: Record<string, Tara | null> = {};
     for (const p of profileData) {

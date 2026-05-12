@@ -78,12 +78,6 @@ export function ProfessionalView({
     timeline?: Array<{ planet?: string; start?: string; end?: string }>;
   } | undefined;
 
-  const transitData = transitOutput?.data as Record<string, unknown> | undefined;
-  const transitPlanets = transitData?.planets as Record<string, Record<string, unknown>> | undefined;
-  const transitMoonLon = typeof transitPlanets?.Moon?.longitude === "number"
-    ? transitPlanets.Moon.longitude
-    : null;
-
   const handleCopyNote = () => {
     const note = generateConsultationNote(chartOutput, transitOutput, careerOutput, transitDate);
     navigator.clipboard.writeText(note);
@@ -197,7 +191,6 @@ export function ProfessionalView({
           <TarabalamView
             profileId={id}
             profiles={profiles}
-            transitMoonLongitude={transitMoonLon}
             explainer={explainers["Tarabalam"] ?? null}
           />
         )}
