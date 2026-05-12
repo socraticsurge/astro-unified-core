@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 import { DashaflowView } from "./DashaflowView";
 import { VargaDashboard } from "./VargaDashboard";
