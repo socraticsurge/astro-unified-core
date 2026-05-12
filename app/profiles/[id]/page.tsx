@@ -20,12 +20,15 @@ export default async function ProfileDetailPage({
   const { id } = await params;
   const userId = (session.user as { id: string }).id;
 
-  const [profile, profiles] = await Promise.all([
-    isAdmin(session) ? db.profiles.getAny(id) : db.profiles.get(id, userId),
-    db.profiles.list(userId),
-  ]);
+  const profile = isAdmin(session)
+    ? await db.profiles.getAny(id)
+    : await db.profiles.get(id, userId);
 
   if (!profile) notFound();
+
+  // Always fetch profiles belonging to the profile's owner, not the logged-in admin.
+  // This ensures Tarabalam shows the correct family when an admin views another user's profile.
+  const profiles = await db.profiles.list(profile.user_id);
 
   const sections = loadAllSections();
   const explainers: Record<
