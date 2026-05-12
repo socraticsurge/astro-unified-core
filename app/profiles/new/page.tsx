@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 
 export default async function NewProfilePage() {
   const session = await getServerSession(authOptions);
@@ -30,8 +31,13 @@ export default async function NewProfilePage() {
   }
 
   return (
-    <div className="py-8">
-      <h1 className="text-2xl font-bold mb-6 text-center">New Birth Profile</h1>
+    <div className="max-w-xl mx-auto space-y-6">
+      <div className="flex items-center gap-4">
+        <Link href="/dashboard" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors">
+          <ChevronLeft className="h-5 w-5" />
+        </Link>
+        <h1 className="text-3xl font-heading font-medium tracking-tight">New Birth Profile</h1>
+      </div>
       <ProfileForm />
     </div>
   );

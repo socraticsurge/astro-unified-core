@@ -28,8 +28,8 @@ export default async function EditProfilePage({
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Link 
-          href={`/dashboard`} 
+        <Link
+          href={`/profiles/${id}`}
           className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors"
         >
           <ChevronLeft className="h-5 w-5" />

@@ -100,7 +100,6 @@ export function ExplainerModal({
     if (!open || !hasChartEntries || !chartEntries) return;
     let cancelled = false;
     void (async () => {
-      await Promise.resolve();
       if (cancelled) return;
       // If every entry is already cached, skip the loading flicker.
       const allCached = chartEntries.every((e) =>
@@ -141,17 +140,9 @@ export function ExplainerModal({
     };
   }, [open, hasChartEntries, chartEntries]);
 
-  // Reset tab choice when the modal is opened with a different
-  // chartEntries presence. Deferred one microtask to keep the
-  // react-hooks/set-state-in-effect rule happy.
   useEffect(() => {
     if (!open) return;
-    let cancelled = false;
-    void (async () => {
-      await Promise.resolve();
-      if (!cancelled) setTab(hasChartEntries ? "chart" : "about");
-    })();
-    return () => { cancelled = true; };
+    setTab(hasChartEntries ? "chart" : "about");
   }, [open, hasChartEntries]);
 
   if (!open) return null;

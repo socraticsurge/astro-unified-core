@@ -4,7 +4,7 @@ import type { Profile } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Search, Trash2, Edit2 } from "lucide-react";
-import { RelationshipBadge, GenderBadge, CurrentLocationBadge, BirthDetails } from "@/components/profile-ui";
+import { ProfileBadges, BirthDetails } from "@/components/profile-ui";
 
 export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] }) {
   const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
@@ -89,11 +89,12 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
                 <h3 className="font-heading text-xl font-semibold text-foreground line-clamp-1">
                   {p.name}
                 </h3>
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <RelationshipBadge value={p.relationship} profileId={p.id} />
-                  <GenderBadge value={p.gender} profileId={p.id} />
-                  <CurrentLocationBadge value={p.current_location} profileId={p.id} />
-                </div>
+                <ProfileBadges
+                  relationship={p.relationship}
+                  gender={p.gender}
+                  current_location={p.current_location}
+                  profileId={p.id}
+                />
               </div>
               <Link href={`/profiles/${p.id}`} className="shrink-0">
                 <Button variant="secondary" size="sm" className="h-8 text-xs font-medium">

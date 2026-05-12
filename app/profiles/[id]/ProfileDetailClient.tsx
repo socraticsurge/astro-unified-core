@@ -13,12 +13,10 @@ import type { Profile } from "@/lib/db";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
 import { isAdmin } from "@/lib/admin";
-import { 
-  RelationshipBadge, 
-  GenderBadge, 
-  CurrentLocationBadge, 
-  BirthDetails, 
-  CurrentLocationDetails 
+import {
+  ProfileBadges,
+  BirthDetails,
+  CurrentLocationDetails,
 } from "@/components/profile-ui";
 
 type SectionExplainer = {
@@ -200,11 +198,12 @@ export function ProfileDetailClient({ explainers, profile }: Props) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <h1 className="text-3xl font-bold leading-tight tracking-tight">{profile.name}</h1>
-            <div className="flex gap-1.5 flex-wrap pt-1">
-              <RelationshipBadge value={profile.relationship} profileId={profile.id} />
-              <GenderBadge value={profile.gender} profileId={profile.id} />
-              <CurrentLocationBadge value={profile.current_location} profileId={profile.id} />
-            </div>
+            <ProfileBadges
+              relationship={profile.relationship}
+              gender={profile.gender}
+              current_location={profile.current_location}
+              profileId={profile.id}
+            />
           </div>
 
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">

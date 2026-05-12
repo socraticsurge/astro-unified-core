@@ -48,22 +48,62 @@ export function GenderBadge({ value, profileId }: { value?: string | null } & Ba
   );
 }
 
-/** Violet pill for Current Location, or a red "Add" link when absent. */
-export function CurrentLocationBadge({ value, profileId }: { value?: string | null } & BadgeProps) {
-  if (value) {
-    return (
-      <span className="inline-flex items-center rounded-full bg-violet-900/30 px-2.5 py-0.5 text-[10px] font-medium text-violet-300 ring-1 ring-inset ring-violet-800/40">
-        📍 {value}
-      </span>
-    );
-  }
+/** Violet pill for Current Location, or null when absent (see ProfileBadges). */
+export function CurrentLocationBadge({ value }: { value?: string | null }) {
+  if (!value) return null;
+  // Trim Nominatim's verbose display names to city + country only.
+  const parts = value.split(",").map((s) => s.trim());
+  const display = parts.length > 2 ? `${parts[0]}, ${parts[parts.length - 1]}` : value;
   return (
-    <Link
-      href={`/profiles/${profileId}/edit`}
-      className="inline-flex items-center rounded-full bg-red-950/30 px-2.5 py-0.5 text-[10px] font-medium text-red-400 ring-1 ring-inset ring-red-900/50 hover:bg-red-900/40 transition-colors"
+    <span
+      className="inline-flex items-center rounded-full bg-violet-900/30 px-2.5 py-0.5 text-[10px] font-medium text-violet-300 ring-1 ring-inset ring-violet-800/40 max-w-[160px] truncate"
+      title={value}
     >
-      + Add Current Location
-    </Link>
+      📍 {display}
+    </span>
+  );
+}
+
+/**
+ * Renders relationship, gender, and location badges together.
+ * Present fields show their individual colored pill; if any field is
+ * missing a single subtle "Complete profile" link replaces all the
+ * individual red "Add X" prompts.
+ */
+export function ProfileBadges({
+  relationship,
+  gender,
+  current_location,
+  profileId,
+}: {
+  relationship?: string | null;
+  gender?: string | null;
+  current_location?: string | null;
+  profileId: string;
+}) {
+  const incomplete = !relationship || !gender || !current_location;
+  return (
+    <div className="flex flex-wrap items-center gap-2 mt-1">
+      {relationship && (
+        <span className="inline-flex items-center rounded-full bg-amber-900/40 px-2.5 py-0.5 text-[10px] font-medium text-amber-300 ring-1 ring-inset ring-amber-800/50">
+          {relationship}
+        </span>
+      )}
+      {gender && (
+        <span className="inline-flex items-center rounded-full bg-blue-900/30 px-2.5 py-0.5 text-[10px] font-medium text-blue-300 ring-1 ring-inset ring-blue-800/40">
+          {gender}
+        </span>
+      )}
+      <CurrentLocationBadge value={current_location} />
+      {incomplete && (
+        <Link
+          href={`/profiles/${profileId}/edit`}
+          className="inline-flex items-center rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-white/10 hover:bg-white/10 hover:text-foreground transition-colors"
+        >
+          Complete profile →
+        </Link>
+      )}
+    </div>
   );
 }
 
