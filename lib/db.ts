@@ -326,6 +326,22 @@ export const db = {
       `);
       return rs.rows;
     },
+    async get(id: string, userId: string): Promise<CompatibilityCheck | undefined> {
+      await ensureSchema();
+      const rs = await getClient().execute({
+        sql: "SELECT * FROM compatibility_checks WHERE id = ? AND user_id = ?",
+        args: [id, userId],
+      });
+      return rs.rows[0] as unknown as CompatibilityCheck | undefined;
+    },
+    async getAny(id: string): Promise<CompatibilityCheck | undefined> {
+      await ensureSchema();
+      const rs = await getClient().execute({
+        sql: "SELECT * FROM compatibility_checks WHERE id = ?",
+        args: [id],
+      });
+      return rs.rows[0] as unknown as CompatibilityCheck | undefined;
+    },
     async save(userId: string, data: Omit<CompatibilityCheck, "id" | "created_at" | "user_id">): Promise<CompatibilityCheck> {
       await ensureSchema();
       const id = randomUUID();
