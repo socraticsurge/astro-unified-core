@@ -8,6 +8,7 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+<<<<<<< HEAD
 ## [2026-05-13] — Geocoding: Added tests for query variants
 
 ### Added
@@ -15,6 +16,52 @@ All notable changes to Astro Chaganti are recorded here.
 
 ### Changed
 - Exported `queryVariants` from `lib/geocode.ts` to enable unit testing.
+=======
+<<<<<<< HEAD
+## [2026-05-13] — Security: HTML Sanitization for ExplainerModal
+
+### Fixed
+- Dangerously Set Inner HTML vulnerability in `ExplainerModal.tsx`.
+- React Hooks violation in `ExplainerModal.tsx` (moved `useMemo` before conditional return).
+- Vulnerability in `app/credits/page.tsx` where raw HTML was rendered without sanitization.
+
+### Added
+- Custom HTML sanitization utility in `lib/sanitize.ts` using `DOMParser` (client-side) and a robust regex-based fallback (server-side), addressing XSS risks when external sanitization libraries cannot be installed.
+=======
+## [2026-05-13] — Admin dashboard: question stats + per-user activity counts
+
+### Added
+- Stats row now shows 6 cards: Users, Profiles, Compat Checks, Feedback, Written Q's, Live Sessions. Written and Live counts are all-time totals across all statuses.
+- Users table: three new columns — Profiles, Compat, Questions — showing per-user counts computed from data already loaded on the page (no extra DB queries).
+
+## [2026-05-13] — Live consultation slot booking
+
+### Added
+- Admin Settings tab: slot manager with IST datetime picker to add slots, list of all slots with availability/booked status, and delete buttons for unbooked slots.
+- `lib/db/consultation-slots.ts`: new `getById(id)` method used by the booking API.
+- Slot picker in Ask a Question form (Step 5, visible only when Live Consultation is selected). Shows upcoming slots 5+ days out in IST; requires a selection before the form can be submitted.
+- Consultation POST API (`/api/consultation-requests`): accepts `slot_id` for appointment mode, verifies the slot exists and is unbooked, books it atomically (race-condition-safe), and stores `slot_starts_at` on the request.
+- Admin Questions table: live consultation rows now show the selected slot date/time (IST) below the "Live" label in the Mode column, and in the expanded detail row.
+- `PendingCard`: shows the selected slot date/time for live consultations. Paid live consultations show "Request Reschedule" and "Request Cancellation" wa.me buttons (pre-filled with Ref and slot — Kalyani's number is never displayed in the UI).
+- WhatsApp payment confirmation message now includes the selected slot line for appointment-mode requests.
+
+### Changed
+- `app/admin/page.tsx` now loads `consultationSlots` and passes it to `AdminTables`.
+- `app/consultation/page.tsx` loads upcoming slots and filters to 5+ days out + unbooked before passing as `availableSlots` to `ConsultationForm`.
+- Switching delivery mode back to "Written" clears any slot selection.
+
+## [2026-05-13] — Pricing as admin setting + UX polish
+
+### Changed
+- Consultation fees are now configurable from the admin Settings tab (₹ inputs, "Save Pricing" button). Fees stored in `settings` table; API reads live values on each submission. Hardcoded constants remain only as DB-fallback defaults.
+- `AppSettings` type extended with `written_fee_paise` and `live_fee_paise`; `set()` accepts `boolean | number`.
+- Removed pricing callout banner from Ask a Question page.
+- DeliveryCard redesigned: price now appears on the right side of the title row instead of stacked below it.
+- Landing page journey paragraph: removed "The chart is free; written responses…" sentence.
+- Landing page bio: removed "payment coordination" from Kalyani's description.
+- FAQ cost answer: confident, no email reference, directs users to see pricing in-app.
+>>>>>>> development
+>>>>>>> development
 
 ---
 
