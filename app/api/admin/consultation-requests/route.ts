@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 
 // PATCH /api/admin/consultation-requests?id=<id>
+// body: { action: "mark_paid" } | { admin_note?: string }
 export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
   if (!isAdmin(session)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -14,8 +15,13 @@ export async function PATCH(request: Request) {
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const body = await request.json().catch(() => ({}));
-  const adminNote: string | undefined = body.admin_note ?? undefined;
 
+  if (body.action === "mark_paid") {
+    await db.consultationRequests.markPaid(id);
+    return NextResponse.json({ success: true });
+  }
+
+  const adminNote: string | undefined = body.admin_note ?? undefined;
   await db.consultationRequests.markAnswered(id, adminNote);
   return NextResponse.json({ success: true });
 }

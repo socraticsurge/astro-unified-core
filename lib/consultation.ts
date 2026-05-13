@@ -75,6 +75,17 @@ export const OPTIONS_GENERIC_PLACEHOLDER =
 
 export const MIN_FIELD_LENGTH = 30;
 
+export const WRITTEN_FEE_PAISE = 120000; // ₹1,200
+export const LIVE_FEE_PAISE = 500000;    // ₹5,000
+
+export function feeForMode(mode: DeliveryMode): number {
+  return mode === "written" ? WRITTEN_FEE_PAISE : LIVE_FEE_PAISE;
+}
+
+export function formatFee(paise: number): string {
+  return `₹${(paise / 100).toLocaleString("en-IN")}`;
+}
+
 export function assembleStatement(
   observation: string,
   constraint: string,

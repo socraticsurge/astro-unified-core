@@ -11,7 +11,9 @@ export type ConsultationRequest = {
   objective: string;
   options: string | null;       // nullable for legacy rows pre-v5
   delivery_mode: "written" | "appointment";
-  status: "pending" | "answered";
+  // "pending" = legacy pre-v6 rows; treat same as "pending_payment"
+  status: "pending_payment" | "paid" | "pending" | "answered";
+  amount_paise: number | null;  // nullable for legacy rows pre-v6
   admin_note: string | null;
   user_rating: "helpful" | "not_helpful" | null;
   user_feedback_note: string | null;
@@ -25,10 +27,11 @@ export type ConsultationRequestWithUser = ConsultationRequest & {
 };
 
 export const consultationRequests = {
+  // Returns any active (non-answered) request — covers pending_payment, paid, and legacy pending.
   async getPending(userId: string): Promise<ConsultationRequest | undefined> {
     await ensureSchema();
     const rs = await getClient().execute({
-      sql: "SELECT * FROM consultation_requests WHERE user_id = ? AND status = 'pending' LIMIT 1",
+      sql: "SELECT * FROM consultation_requests WHERE user_id = ? AND status != 'answered' LIMIT 1",
       args: [userId],
     });
     return rs.rows[0] as unknown as ConsultationRequest | undefined;
@@ -56,18 +59,27 @@ export const consultationRequests = {
 
   async create(
     userId: string,
-    data: Pick<ConsultationRequest, "profile_ids" | "life_area" | "observation" | "constraint_text" | "objective" | "options" | "delivery_mode">
+    data: Pick<ConsultationRequest, "profile_ids" | "life_area" | "observation" | "constraint_text" | "objective" | "options" | "delivery_mode"> & { amount_paise: number }
   ): Promise<ConsultationRequest> {
     await ensureSchema();
     const id = randomUUID();
     const created_at = new Date().toISOString();
     await getClient().execute({
       sql: `INSERT INTO consultation_requests
-            (id, user_id, profile_ids, life_area, observation, constraint_text, objective, options, delivery_mode, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-      args: [id, userId, data.profile_ids, data.life_area, data.observation, data.constraint_text, data.objective, data.options ?? null, data.delivery_mode, created_at],
+            (id, user_id, profile_ids, life_area, observation, constraint_text, objective, options, delivery_mode, status, amount_paise, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment', ?, ?)`,
+      args: [id, userId, data.profile_ids, data.life_area, data.observation, data.constraint_text, data.objective, data.options ?? null, data.delivery_mode, data.amount_paise, created_at],
     });
-    return { id, user_id: userId, status: "pending", admin_note: null, user_rating: null, user_feedback_note: null, answered_at: null, created_at, ...data };
+    const { amount_paise, ...rest } = data;
+    return { id, user_id: userId, status: "pending_payment", amount_paise, admin_note: null, user_rating: null, user_feedback_note: null, answered_at: null, created_at, ...rest };
+  },
+
+  async markPaid(id: string): Promise<void> {
+    await ensureSchema();
+    await getClient().execute({
+      sql: `UPDATE consultation_requests SET status = 'paid' WHERE id = ?`,
+      args: [id],
+    });
   },
 
   async markAnswered(id: string, adminNote?: string): Promise<void> {

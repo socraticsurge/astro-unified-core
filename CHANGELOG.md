@@ -8,6 +8,27 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Payment workflow: UPI + WhatsApp confirmation
+
+### Added
+- Pricing callout on Ask a Question page (always visible; ₹1,200 written / ₹5,000 live).
+- DeliveryCard shows price for each mode.
+- After question submission, user sees payment instructions: dynamic UPI QR code (amount pre-filled via `upi://` deep link), UPI ID with copy button, and a WhatsApp button to Kalyani with a pre-filled message containing user name, email, profile(s), life area, type, amount, and reference ID.
+- Status `paid` added — Kalyani (or admin) clicks "Mark as Paid" in admin panel after confirming payment. User sees "Payment confirmed — in the queue" state.
+- SCHEMA_VERSION bumped to 6: `amount_paise INTEGER` column on `consultation_requests`.
+- `feeForMode()` and `formatFee()` helpers in `lib/consultation.ts`; `WRITTEN_FEE_PAISE = 120000`, `LIVE_FEE_PAISE = 500000`.
+- `db.consultationRequests.markPaid(id)` method.
+- `POST /api/admin/consultation-requests?id=<id>` now accepts `{ action: "mark_paid" }` in addition to existing mark-answered body.
+- Landing page About section: added sentence introducing Kalyani Chaganti and her administrative role.
+
+### Changed
+- `getPending()` now returns any non-answered request (`status != 'answered'`) covering `pending_payment`, `paid`, and legacy `pending` rows.
+- `create()` sets initial status to `pending_payment` and stores `amount_paise`.
+- Admin Questions tab: status badges are now "Awaiting Payment" (amber) / "Paid" (blue) / "Answered" (green); "Mark as Paid" button shown for awaiting-payment rows; "Mark as Answered" shown only after payment confirmed — enforcing the payment → answer flow. Tab label changed from "N pending" to "N active".
+- `page.tsx` passes `userName` and `userEmail` to `ConsultationForm` for the WhatsApp pre-fill.
+
+---
+
 ## [2026-05-13] — Landing page: pricing clarity and tone
 
 ### Changed

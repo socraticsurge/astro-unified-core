@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { MIN_FIELD_LENGTH } from "@/lib/consultation";
+import { MIN_FIELD_LENGTH, feeForMode } from "@/lib/consultation";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET() {
@@ -61,6 +61,7 @@ export async function POST(request: Request) {
     objective: objective.trim(),
     options: options.trim(),
     delivery_mode,
+    amount_paise: feeForMode(delivery_mode),
   });
 
   return NextResponse.json(created, { status: 201 });

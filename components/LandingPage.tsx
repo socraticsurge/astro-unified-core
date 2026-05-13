@@ -217,6 +217,9 @@ export function LandingPage() {
             This platform is a free tool he built so that anyone can generate
             and explore their chart before reaching out. Written consultations
             are available through the app, with limited spots each month.
+            Kalyani Chaganti, his wife, assists with payment coordination and
+            administrative matters so that Dr. Chaganti can remain fully focused
+            on the charts.
           </p>
         </div>
       </section>

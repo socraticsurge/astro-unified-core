@@ -11,6 +11,9 @@ export default async function ConsultationPage() {
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) redirect("/auth/signin");
 
+  const userName = (session?.user as { name?: string } | undefined)?.name ?? "";
+  const userEmail = (session?.user as { email?: string } | undefined)?.email ?? "";
+
   const [allRequests, profiles, appSettings] = await Promise.all([
     db.consultationRequests.listByUser(userId),
     db.profiles.list(userId),
@@ -29,6 +32,8 @@ export default async function ConsultationPage() {
         allRequests={allRequests}
         profiles={profiles}
         liveConsultationEnabled={appSettings.live_consultation_enabled}
+        userName={userName}
+        userEmail={userEmail}
       />
     </div>
   );

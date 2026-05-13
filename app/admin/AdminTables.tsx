@@ -30,8 +30,10 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
   const [settingSaving, setSettingSaving] = useState(false);
 
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
+  const [paidIds, setPaidIds] = useState<Set<string>>(new Set());
   const [expandedQId, setExpandedQId] = useState<string | null>(null);
 
   const [qSortCol, setQSortCol] = useState<string>("created_at");
@@ -68,6 +70,20 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
       setLiveConsultation(next);
     } finally {
       setSettingSaving(false);
+    }
+  };
+
+  const markPaid = async (id: string) => {
+    setMarkingPaidId(id);
+    try {
+      const res = await fetch(`/api/admin/consultation-requests?id=${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mark_paid" }),
+      });
+      if (res.ok) setPaidIds(prev => new Set([...prev, id]));
+    } finally {
+      setMarkingPaidId(null);
     }
   };
 
@@ -122,7 +138,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
         <TabsTrigger value="compatibility">Compatibility ({compatibilityChecks.length})</TabsTrigger>
         <TabsTrigger value="feedback">Feedback ({feedback.length})</TabsTrigger>
         <TabsTrigger value="questions">
-          Questions ({consultationRequests.filter(r => r.status === "pending").length} pending)
+          Questions ({consultationRequests.filter(r => r.status !== "answered").length} active)
         </TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
@@ -343,7 +359,10 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 </tr>
               )}
               {sortedQuestions.map(req => {
-                const isDone = req.status === "answered" || markedIds.has(req.id);
+                const effectiveStatus = markedIds.has(req.id) ? "answered" : paidIds.has(req.id) ? "paid" : req.status;
+                const isDone = effectiveStatus === "answered";
+                const isPaid = effectiveStatus === "paid";
+                const awaitingPayment = !isDone && !isPaid; // pending_payment or legacy pending
                 const isExpanded = expandedQId === req.id;
                 const profileList = resolveProfileIds(req.profile_ids);
                 return (
@@ -375,10 +394,10 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                         {new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
                       </td>
                       <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isDone ? "bg-green-900/30 text-green-400" : "bg-amber-900/30 text-amber-400"}`}>
-                            {isDone ? "Answered" : "Pending"}
-                          </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {isDone && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-900/30 text-green-400">Answered</span>}
+                          {isPaid && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-400">Paid</span>}
+                          {awaitingPayment && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-900/30 text-amber-400">Awaiting Payment</span>}
                           {req.user_rating === "helpful" && <ThumbsUp className="h-3 w-3 text-green-400" />}
                           {req.user_rating === "not_helpful" && <ThumbsDown className="h-3 w-3 text-red-400" />}
                         </div>
@@ -417,7 +436,17 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                                 {req.user_feedback_note && <span>— "{req.user_feedback_note}"</span>}
                               </div>
                             )}
-                            {!isDone && (
+                            {awaitingPayment && (
+                              <button
+                                disabled={markingPaidId === req.id}
+                                onClick={() => markPaid(req.id)}
+                                className="flex items-center gap-1.5 text-xs bg-blue-700/20 hover:bg-blue-700/30 border border-blue-700/40 text-blue-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                {markingPaidId === req.id ? "Saving…" : "Mark as Paid"}
+                              </button>
+                            )}
+                            {isPaid && (
                               <div className="space-y-2 pt-1">
                                 <textarea
                                   rows={2}

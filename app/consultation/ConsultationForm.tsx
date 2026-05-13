@@ -4,22 +4,32 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Clock, ChevronRight, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
-import { LIFE_AREAS, LIFE_AREA_EXAMPLES, OPTIONS_GENERIC_PLACEHOLDER, MIN_FIELD_LENGTH, assembleStatement } from "@/lib/consultation";
+import {
+  LIFE_AREAS, LIFE_AREA_EXAMPLES, OPTIONS_GENERIC_PLACEHOLDER,
+  MIN_FIELD_LENGTH, assembleStatement,
+  WRITTEN_FEE_PAISE, LIVE_FEE_PAISE, feeForMode, formatFee,
+} from "@/lib/consultation";
 import type { ConsultationRequest, Profile } from "@/lib/db";
 import type { LifeArea, DeliveryMode } from "@/lib/consultation";
+
+const UPI_ID = "meherkalyanichaganti@okaxis";
+const WHATSAPP_NUMBER = "919704076544";
 
 type Props = {
   allRequests: ConsultationRequest[];
   profiles: Profile[];
   liveConsultationEnabled: boolean;
+  userName: string;
+  userEmail: string;
 };
 
 function isProfileComplete(p: Profile): boolean {
   return !!(p.gender && p.relationship && p.current_location && p.current_latitude != null && p.current_longitude != null);
 }
 
-export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled }: Props) {
+export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled, userName, userEmail }: Props) {
   const router = useRouter();
   const [selectedArea, setSelectedArea] = useState<LifeArea | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
@@ -31,7 +41,8 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pending = allRequests.find(r => r.status === "pending") ?? null;
+  // Any non-answered request blocks a new submission
+  const activeRequest = allRequests.find(r => r.status !== "answered") ?? null;
   const answered = allRequests.filter(r => r.status === "answered");
 
   const profileMap = new Map(profiles.map(p => [p.id, p.name]));
@@ -95,8 +106,27 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
 
   return (
     <div className="space-y-10">
-      {pending ? (
-        <PendingCard pending={pending} profileNames={resolveProfileNames(pending.profile_ids)} />
+      {/* Pricing — always visible */}
+      <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 flex flex-wrap gap-x-6 gap-y-1.5 items-center">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Consultation fee</span>
+        <span className="text-sm">
+          Written Response <span className="text-amber-300 font-semibold">{formatFee(WRITTEN_FEE_PAISE)}</span>
+        </span>
+        {liveConsultationEnabled && (
+          <span className="text-sm">
+            Live Consultation (25 min) <span className="text-amber-300 font-semibold">{formatFee(LIVE_FEE_PAISE)}</span>
+          </span>
+        )}
+        <span className="text-xs text-muted-foreground">· Chart generation is always free</span>
+      </div>
+
+      {activeRequest ? (
+        <PendingCard
+          pending={activeRequest}
+          profileNames={resolveProfileNames(activeRequest.profile_ids)}
+          userName={userName}
+          userEmail={userEmail}
+        />
       ) : (
         <div className="space-y-8">
           {/* Step 1: Life area */}
@@ -210,7 +240,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
               />
               <FieldBlock
                 label="Options you are considering"
-                hint="List the choices you are weighing. If no specific options have formed yet, describe what paths you are drawn to or what has been suggested."
+                hint="List the choices you are weighing. If no specific options have formed yet, describe what you are drawn to or what paths have been suggested."
                 placeholder={examples?.options ?? OPTIONS_GENERIC_PLACEHOLDER}
                 value={options}
                 onChange={setOptions}
@@ -238,8 +268,9 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
                 mode="written"
                 selected={deliveryMode === "written"}
                 onClick={() => setDeliveryMode("written")}
-                title="Written Answer"
-                description="Receive a detailed written response, typically within a few days."
+                title="Written Response"
+                price={formatFee(WRITTEN_FEE_PAISE)}
+                description="Detailed written answer, typically within a few days."
               />
               {liveConsultationEnabled && (
                 <DeliveryCard
@@ -247,7 +278,8 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
                   selected={deliveryMode === "appointment"}
                   onClick={() => setDeliveryMode("appointment")}
                   title="Live Consultation"
-                  description="Book a live appointment to discuss in person."
+                  price={formatFee(LIVE_FEE_PAISE)}
+                  description="25-minute live session to discuss in person."
                 />
               )}
             </div>
@@ -273,17 +305,32 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
   );
 }
 
-function PendingCard({ pending, profileNames }: { pending: ConsultationRequest; profileNames: string }) {
+function PendingCard({
+  pending,
+  profileNames,
+  userName,
+  userEmail,
+}: {
+  pending: ConsultationRequest;
+  profileNames: string;
+  userName: string;
+  userEmail: string;
+}) {
+  // Legacy "pending" rows pre-v6 are treated as pending_payment
+  const awaitingPayment = pending.status === "pending_payment" || pending.status === "pending";
+  const isPaid = pending.status === "paid";
+
   return (
     <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-6 space-y-4">
       <div className="flex items-center gap-2 text-amber-400">
         <Clock className="h-5 w-5" />
-        <span className="font-semibold">Your question is pending</span>
+        <span className="font-semibold">
+          {isPaid
+            ? "Payment confirmed — your question is in the queue"
+            : "Question submitted — payment required"}
+        </span>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Your question has been received. You will be notified when it is answered.
-        Once answered, you can submit your next question.
-      </p>
+
       <div className="space-y-3 rounded-lg border border-white/10 bg-white/5 p-4 text-sm">
         <div>
           <span className="text-xs uppercase tracking-wider text-muted-foreground">Life Area</span>
@@ -300,8 +347,8 @@ function PendingCard({ pending, profileNames }: { pending: ConsultationRequest; 
           </p>
         </div>
         <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Delivery Mode</span>
-          <p className="mt-0.5">{pending.delivery_mode === "written" ? "Written Answer" : "Live Consultation"}</p>
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">Delivery</span>
+          <p className="mt-0.5">{pending.delivery_mode === "written" ? "Written Response" : "Live Consultation (25 min)"}</p>
         </div>
         <div>
           <span className="text-xs uppercase tracking-wider text-muted-foreground">Submitted</span>
@@ -310,6 +357,119 @@ function PendingCard({ pending, profileNames }: { pending: ConsultationRequest; 
           </p>
         </div>
       </div>
+
+      {awaitingPayment && (
+        <PaymentInstructions
+          pending={pending}
+          profileNames={profileNames}
+          userName={userName}
+          userEmail={userEmail}
+        />
+      )}
+
+      {isPaid && (
+        <div className="rounded-lg border border-green-700/30 bg-green-950/20 px-4 py-3 flex items-center gap-2 text-green-400 text-sm">
+          <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+          <span>Payment confirmed. Dr. Chaganti will answer your question shortly.</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaymentInstructions({
+  pending,
+  profileNames,
+  userName,
+  userEmail,
+}: {
+  pending: ConsultationRequest;
+  profileNames: string;
+  userName: string;
+  userEmail: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const amountPaise = pending.amount_paise ?? feeForMode(pending.delivery_mode);
+  const amountRupees = amountPaise / 100;
+  const modeLabel = pending.delivery_mode === "written" ? "Written Response" : "Live Consultation (25 min)";
+  const ref = pending.id.substring(0, 8).toUpperCase();
+
+  const upiQrValue = `upi://pay?pa=${UPI_ID}&pn=Kalyani+Chaganti&am=${amountRupees}&cu=INR&tn=Astro+Chaganti+Consultation`;
+
+  const waMessage = encodeURIComponent(
+    `Hi Kalyani 🙏\n\nA consultation question has been submitted on Astro Chaganti.\n\n` +
+    `Name: ${userName || "Not provided"}\n` +
+    `Email: ${userEmail}\n` +
+    `Profile(s): ${profileNames}\n` +
+    `Life Area: ${pending.life_area}\n` +
+    `Type: ${modeLabel}\n` +
+    `Amount: ₹${amountRupees.toLocaleString("en-IN")}\n` +
+    `Ref: #${ref}\n\n` +
+    `Sending the payment now. Please confirm once received.`
+  );
+
+  const copyUpi = () => {
+    navigator.clipboard.writeText(UPI_ID).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border border-amber-700/40 bg-amber-950/30 p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-amber-200">Pay to confirm your question</p>
+          <span className="text-lg font-bold text-amber-300">
+            ₹{amountRupees.toLocaleString("en-IN")}
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 items-start">
+          {/* QR code */}
+          <div className="rounded-lg bg-white p-2 flex-shrink-0">
+            <QRCodeSVG value={upiQrValue} size={120} />
+          </div>
+          <div className="space-y-3 flex-1">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">UPI ID</p>
+              <div className="flex items-center gap-2">
+                <code className="text-sm font-mono text-foreground/90 bg-white/5 px-2.5 py-1 rounded border border-white/10">
+                  {UPI_ID}
+                </code>
+                <button
+                  onClick={copyUpi}
+                  className="text-xs text-amber-400 hover:text-amber-300 transition-colors px-2 py-1 border border-amber-400/20 rounded"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Scan the QR code with any UPI app (Google Pay, PhonePe, Paytm) or copy the UPI ID to pay manually. The amount is pre-filled.
+            </p>
+          </div>
+        </div>
+
+        <div className="border-t border-white/10 pt-3 space-y-2">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            After paying, send your payment screenshot to Kalyani on WhatsApp. She handles payment confirmation so Dr. Chaganti can stay focused on answering your question.
+          </p>
+          <a
+            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm bg-green-700/20 hover:bg-green-700/30 border border-green-700/40 text-green-400 px-4 py-2 rounded-md transition-colors font-medium"
+          >
+            <span>💬</span>
+            Send payment confirmation on WhatsApp
+          </a>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground/50">
+        Ref: #{ref} · {modeLabel}
+      </p>
     </div>
   );
 }
@@ -409,7 +569,6 @@ function HistorySection({
                     </p>
                   )}
 
-                  {/* Feedback */}
                   {!currentRating ? (
                     <div className="space-y-2 pt-1 border-t border-white/10">
                       <p className="text-xs text-muted-foreground">Was this answer helpful?</p>
@@ -506,12 +665,14 @@ function DeliveryCard({
   selected,
   onClick,
   title,
+  price,
   description,
 }: {
   mode: DeliveryMode;
   selected: boolean;
   onClick: () => void;
   title: string;
+  price: string;
   description: string;
 }) {
   return (
@@ -524,6 +685,7 @@ function DeliveryCard({
       }`}
     >
       <div className={`text-sm font-semibold ${selected ? "text-amber-300" : "text-foreground"}`}>{title}</div>
+      <div className={`text-base font-bold mt-0.5 ${selected ? "text-amber-400" : "text-amber-400/70"}`}>{price}</div>
       <div className="text-xs text-muted-foreground mt-1">{description}</div>
     </button>
   );
