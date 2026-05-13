@@ -54,7 +54,7 @@ export function FeedbackWidget() {
   };
 
   return (
-    <div ref={ref} className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
+    <div ref={ref} className="fixed bottom-24 sm:bottom-5 right-5 z-50 flex flex-col items-end gap-2">
       {/* Popover */}
       {open && (
         <div className="w-72 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
