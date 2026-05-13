@@ -8,6 +8,33 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Landing page overhaul
+
+### Changed
+- Hero: second CTA changed from `mailto:` link to in-app "Ask a Question" → `/auth/signin`
+- "How it works" Step 3 and Step 4 updated to describe the in-app question submission and
+  written response flow; email instruction removed
+- Consultation areas expanded from 3 cards to all 8 life areas (4×2 grid matching the app's
+  LIFE_AREAS): Career, Wealth, Marriage, Family, Health, Education, Travel, Dharma
+- "What's computed" section moved up (before About) for earlier credibility signal
+- Family recommendation section updated to reference submitting a question rather than emailing
+- About Dr. Chaganti: last paragraph updated to mention limited monthly availability
+- Bottom contact section replaced with a clean "Ready to begin?" CTA section; email demoted
+  to secondary line for general enquiries
+
+### Added
+- Compatibility (Ashtakoota Milan) callout below the 8-area grid
+- FAQ: "What is the difference between the free chart and a personal consultation?"
+- FAQ: "How does the in-app question submission work?"
+- FAQ "How should I prepare?" updated to four-part LPS framework with structured list
+- FAQ "What is the cost?" updated to reference in-app written response flow
+
+### Removed
+- Standalone contact section (email as primary CTA) — replaced by bottom sign-in CTA
+- FAQ referencing email as the consultation path
+
+---
+
 ## [2026-05-13] — Consultation: options field, profile guard, answer feedback
 
 ### Added

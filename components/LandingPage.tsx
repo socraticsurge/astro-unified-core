@@ -16,21 +16,21 @@ export function LandingPage() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
           <Link href="/auth/signin">
             <Button size="lg" className="bg-amber-500 hover:bg-amber-600 text-amber-950 font-semibold px-8">
-              Generate Your Chart — Free
+              Explore Your Chart — Free
             </Button>
           </Link>
-          <a href="mailto:astrochaganti@gmail.com">
+          <Link href="/auth/signin">
             <Button size="lg" variant="outline" className="px-8 border-white/20 hover:bg-white/5">
-              Request a Consultation
+              Ask a Question
             </Button>
-          </a>
+          </Link>
         </div>
         <p className="text-xs text-muted-foreground">
-          Sign in with Google · Up to 10 family profiles · No credit card
+          Sign in with Google · Up to 10 family profiles · No credit card required
         </p>
       </section>
 
-      {/* The journey: chart is the starting point, consultation is the destination */}
+      {/* The journey */}
       <section className="max-w-3xl mx-auto text-center space-y-4">
         <p className="text-base text-foreground/80 leading-relaxed">
           This platform generates a complete Vedic birth chart for you and your family —
@@ -38,58 +38,100 @@ export function LandingPage() {
           Dr. Chaganti&apos;s expertise comes in.
         </p>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          A personal consultation goes beyond the printout: it synthesizes your chart
-          against your specific life question, identifies the planetary forces at work,
-          and gives you a grounded, research-based answer.
+          Once your profiles are set up, you can submit a structured question directly
+          in the app. Dr. Chaganti reviews your chart against your specific life situation
+          and responds in writing — a grounded, research-based answer, not a generic reading.
         </p>
       </section>
 
-      {/* Consultation areas — the "why" */}
+      {/* Consultation areas — all 8 life areas */}
       <section className="max-w-4xl mx-auto">
-        <h2 className="font-heading text-3xl font-medium mb-2 text-center">What people consult Dr. Chaganti about</h2>
+        <h2 className="font-heading text-3xl font-medium mb-2 text-center">What people ask Dr. Chaganti about</h2>
         <p className="text-sm text-muted-foreground text-center mb-8 max-w-2xl mx-auto">
-          Every consultation is anchored to the charts you create here. These are the most
-          common areas where classical Vedic analysis makes a real difference.
+          Every consultation is anchored to the charts you create here. These are the
+          eight life areas where classical Vedic analysis makes a real difference.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
-              icon: "💍",
-              title: "Relationships & Marriage",
-              points: [
-                "Compatibility between two charts",
-                "Auspicious marriage timing (Muhurtha)",
-                "Family dynamics across multiple charts",
-                "Upapada, 7th house, and Venus analysis",
-              ],
-            },
-            {
               icon: "🎯",
-              title: "Career & Education",
+              title: "Career & Profession",
               points: [
                 "D10 Dashamsha career architecture",
-                "Which field suits your planetary makeup",
-                "Timing opportunities via dasha cycles",
-                "Education stream or professional pivot",
+                "Timing pivots via dasha cycles",
+                "Stay, switch, or go independent",
               ],
             },
             {
-              icon: "⏳",
-              title: "Life Timing & Events",
+              icon: "💰",
+              title: "Wealth & Finances",
               points: [
-                "Muhurtha for house-warming, travel, purchase",
-                "Reading your current dasha period",
-                "Transit impacts on your natal chart",
-                "When to act — and when to wait",
+                "Wealth accumulation indicators",
+                "Timing of financial growth",
+                "Best vehicle for your chart",
+              ],
+            },
+            {
+              icon: "💍",
+              title: "Marriage & Partnership",
+              points: [
+                "Ashtakoota compatibility analysis",
+                "7th house timing for marriage",
+                "What your chart says about partners",
+              ],
+            },
+            {
+              icon: "🏡",
+              title: "Family & Children",
+              points: [
+                "Timing for children (5th house)",
+                "Family dynamics across charts",
+                "Karmic patterns with parents",
+              ],
+            },
+            {
+              icon: "🌿",
+              title: "Health & Wellbeing",
+              points: [
+                "Dasha periods affecting vitality",
+                "Planetary factors behind conditions",
+                "When a difficult period will ease",
+              ],
+            },
+            {
+              icon: "📚",
+              title: "Education & Skills",
+              points: [
+                "Fields your 5th house supports",
+                "Timing for exams and study",
+                "Academic vs. vocational path",
+              ],
+            },
+            {
+              icon: "✈️",
+              title: "Travel & Relocation",
+              points: [
+                "Foreign settlement indicators",
+                "Whether a move is auspicious now",
+                "9th and 12th house analysis",
+              ],
+            },
+            {
+              icon: "🔥",
+              title: "Dharma & Life Purpose",
+              points: [
+                "Atmakaraka and soul direction",
+                "9th house dharmic alignment",
+                "Whether a life pivot is indicated",
               ],
             },
           ].map(({ icon, title, points }) => (
-            <div key={title} className="border border-white/10 rounded-xl p-5 bg-white/5 flex flex-col gap-3">
-              <div className="text-3xl">{icon}</div>
-              <div className="font-semibold text-foreground text-base">{title}</div>
-              <ul className="space-y-1.5">
+            <div key={title} className="border border-white/10 rounded-xl p-4 bg-white/5 flex flex-col gap-3">
+              <div className="text-2xl">{icon}</div>
+              <div className="font-semibold text-foreground text-sm">{title}</div>
+              <ul className="space-y-1">
                 {points.map((p) => (
-                  <li key={p} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <li key={p} className="flex items-start gap-2 text-xs text-muted-foreground">
                     <span className="text-amber-500 mt-0.5 shrink-0">·</span>
                     {p}
                   </li>
@@ -98,9 +140,20 @@ export function LandingPage() {
             </div>
           ))}
         </div>
+
+        {/* Compatibility callout */}
+        <div className="mt-6 rounded-lg border border-white/10 bg-white/5 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <span className="text-2xl shrink-0">🔗</span>
+          <div>
+            <span className="text-sm font-semibold">Marriage Compatibility (Ashtakoota Milan)</span>
+            <span className="text-sm text-muted-foreground ml-2">
+              Free for every registered user. Score two charts across all 36 compatibility parameters — Nadi, Gana, Bhakoot, Kuja Dosha, and more.
+            </span>
+          </div>
+        </div>
       </section>
 
-      {/* How the process works */}
+      {/* How it works */}
       <section className="max-w-3xl mx-auto">
         <h2 className="font-heading text-3xl font-medium mb-6">How it works</h2>
         <ol className="space-y-5">
@@ -108,22 +161,22 @@ export function LandingPage() {
             [
               "1",
               "Create your profiles — free",
-              "Sign in with Google and add birth profiles for yourself and your family. The full Vedic chart is computed automatically for each profile: lagna, dashas, yogas, divisional charts, and more.",
+              "Sign in with Google and add birth profiles for yourself and your family. The full Vedic chart is computed automatically: lagna, dashas, yogas, divisional charts, transits, and more. Up to 10 profiles at no cost.",
             ],
             [
               "2",
               "Explore your charts",
-              "Every section has a ⓘ button with the classical Vedic interpretation for your specific chart. Tap it to understand what each placement, yoga, or dasha means.",
+              "Every section has a ⓘ button with the classical Vedic interpretation for your specific placements. Tap it to understand what each yoga, dasha period, or divisional chart means for you.",
             ],
             [
               "3",
-              "Bring your question to Dr. Chaganti",
-              "When you have a specific life question, email astrochaganti@gmail.com with your profiles and a structured Life Problem Statement. Dr. Chaganti reviews the context and confirms appointment fees and availability.",
+              "Submit your question in the app",
+              "When you have a specific life question, use Ask a Question in the navigation. Choose a life area, select the relevant profiles, and describe your situation using the four-part Life Problem Statement — the form guides you through it. No email needed.",
             ],
             [
               "4",
-              "The consultation",
-              "A deep-dive research session built around your charts and your question — not a generic reading. You leave with a specific, actionable synthesis.",
+              "Receive Dr. Chaganti's answer",
+              "A deep-dive research response built around your charts and your specific question — not a generic reading. You can view the answer in your question history and submit a follow-up question once it is marked complete.",
             ],
           ].map(([n, title, body]) => (
             <li key={n} className="flex gap-4">
@@ -139,52 +192,11 @@ export function LandingPage() {
         </ol>
       </section>
 
-      {/* About the astrologer */}
-      <section className="max-w-3xl mx-auto">
-        <h2 className="font-heading text-3xl font-medium mb-4">About Dr. Chaganti</h2>
-        <div className="border border-white/10 rounded-lg p-6 bg-white/5 space-y-4">
-          <p className="text-base leading-relaxed">
-            <span className="font-semibold">Dr. Vinay Kumar Chaganti </span>brings a
-            researcher&apos;s discipline to his study and practice of Vedic astrology.
-            His approach is methodical, grounded in the classical Parashari tradition, and
-            attentive to the precision of sidereal calculations.
-          </p>
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            He treats each consultation as a careful research engagement, rooted in the
-            specifics of the chart rather than generic prediction. The goal is not to tell
-            you what will happen — but to decode the architecture of your situation and
-            identify where your agency lies.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            This platform is a free tool he offers so that birth charts are easy to
-            generate before a session. Consultations are available separately, by appointment.
-          </p>
-        </div>
-      </section>
-
-      {/* Family recommendation */}
-      <section className="max-w-3xl mx-auto">
-        <div className="border border-amber-700/40 rounded-lg p-6 bg-amber-950/20">
-          <h2 className="font-heading text-2xl font-medium mb-3 text-amber-300">
-            Build out your family&apos;s charts, not just your own
-          </h2>
-          <p className="text-sm text-foreground/90 leading-relaxed">
-            Astrological forces act on a family as a unit. Before a consultation, create
-            profiles for everyone relevant to your question — parents, spouse, children,
-            siblings. A marriage compatibility question needs both charts. A family decision
-            needs the full picture. The more context you bring, the more precise the reading.
-          </p>
-          <p className="text-sm text-muted-foreground mt-3">
-            You can create up to 10 profiles at no cost.
-          </p>
-        </div>
-      </section>
-
-      {/* What the chart includes — collapsed, for those who want details */}
+      {/* What's computed — moved up for credibility */}
       <section className="max-w-3xl mx-auto">
         <details className="border border-white/10 rounded-lg bg-white/5 group">
           <summary className="cursor-pointer list-none px-5 py-4 flex items-center justify-between font-heading text-lg font-medium">
-            <span>What's computed in every chart</span>
+            <span>What&apos;s computed in every chart</span>
             <span className="text-muted-foreground text-xs group-open:rotate-180 transition-transform">▾</span>
           </summary>
           <div className="px-5 pb-5 pt-1">
@@ -213,35 +225,91 @@ export function LandingPage() {
         </details>
       </section>
 
+      {/* About the astrologer */}
+      <section className="max-w-3xl mx-auto">
+        <h2 className="font-heading text-3xl font-medium mb-4">About Dr. Chaganti</h2>
+        <div className="border border-white/10 rounded-lg p-6 bg-white/5 space-y-4">
+          <p className="text-base leading-relaxed">
+            <span className="font-semibold">Dr. Vinay Kumar Chaganti </span>brings a
+            researcher&apos;s discipline to his study and practice of Vedic astrology.
+            His approach is methodical, grounded in the classical Parashari tradition, and
+            attentive to the precision of sidereal calculations.
+          </p>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            He treats each consultation as a careful research engagement, rooted in the
+            specifics of the chart rather than generic prediction. The goal is not to tell
+            you what will happen — but to decode the architecture of your situation and
+            identify where your agency lies.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            This platform is a free tool he offers so that birth charts are easy to
+            generate and explore before a session. Consultations are conducted by written
+            response through the app, with limited availability each month.
+          </p>
+        </div>
+      </section>
+
+      {/* Family recommendation */}
+      <section className="max-w-3xl mx-auto">
+        <div className="border border-amber-700/40 rounded-lg p-6 bg-amber-950/20">
+          <h2 className="font-heading text-2xl font-medium mb-3 text-amber-300">
+            Build your family&apos;s charts, not just your own
+          </h2>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            Astrological forces act on a family as a unit. Before submitting a question,
+            create profiles for everyone relevant — parents, spouse, children, siblings.
+            A marriage question needs both charts. A family decision needs the full picture.
+            The more context you bring, the more precise the answer.
+          </p>
+          <p className="text-sm text-muted-foreground mt-3">
+            You can create up to 10 profiles at no cost.
+          </p>
+        </div>
+      </section>
+
       {/* FAQs */}
       <section className="max-w-3xl mx-auto">
         <h2 className="font-heading text-3xl font-medium mb-6">Frequently asked questions</h2>
         <div className="space-y-2">
           {[
             {
-              q: "Which Ayanamsha and Zodiac system does this platform use?",
-              a: "This platform strictly utilizes the Sidereal Zodiac with the Chitra Paksha (Lahiri) Ayanamsha, the gold standard for Vedic Astrology (Jyotish). By integrating the Swiss Ephemeris, we provide planetary positions with sub-second accuracy, ensuring that your divisional charts (Vargas) are calculated with the highest possible mathematical integrity.",
+              q: "What is the difference between the free chart and a personal consultation?",
+              a: "The free chart platform generates a complete, accurate Vedic birth chart — every section includes a classical interpretation specific to your placements, designed for self-study and chart literacy. A personal consultation is different: Dr. Chaganti takes your specific life question, synthesises the relevant chart layers (natal, dasha, transits, divisional charts), and gives you a specific, research-based answer. The chart is your data — the consultation is the analysis.",
             },
             {
-              q: "Why does my chart look different here compared to Western astrology apps?",
-              a: "Western astrology uses the Tropical zodiac (based on seasons). Vedic astrology uses the Sidereal zodiac (fixed to the stars). Due to the Earth's axial precession, these systems are currently offset by approximately 24 degrees — meaning your planets and Lagna will likely fall nearly one full sign back compared to Western charts.",
+              q: "How does the in-app question submission work?",
+              a: "Once you sign in and create at least one profile, the Ask a Question link in the navigation takes you to a structured submission form. You choose a life area, select the relevant profile(s), and describe your situation using a four-part Life Problem Statement: what is happening, what is blocking you, what success looks like, and what options you are considering. Dr. Chaganti reviews your submission and responds in writing. You can have one active question at a time — once it is answered, you can submit the next.",
             },
             {
-              q: "What should I do if my exact birth village isn't listed?",
-              a: "Our geocoder maps to a global database of cities and districts. If your specific location is missing, select the nearest recognized town or district headquarters. Coordinates within a 15–20 km radius are sufficient — they do not materially impact the Lagna or Varga calculations.",
-            },
-            {
-              q: "How should I prepare for a consultation?",
+              q: "How should I prepare my question?",
               a: (
                 <div className="space-y-2">
-                  <p>Move away from vague questions toward a structured Life Problem Statement. Instead of "Which stream should I study?", try: "I am at a crossroads between Data Science and Management — does my chart support deep technical research or strategic leadership?"</p>
-                  <p>Use a three-point framework: <span className="text-foreground/80">Observation</span> (what is happening), <span className="text-foreground/80">Constraint</span> (the main obstacle), <span className="text-foreground/80">Objective</span> (what success looks like). Include birth profiles of all relevant family members.</p>
+                  <p>The Ask a Question form in the app walks you through this step by step with area-specific guidance. The four-part framework is:</p>
+                  <ul className="space-y-1 ml-2">
+                    <li><span className="text-foreground/80">Observation</span> — what is currently happening (the factual situation)</li>
+                    <li><span className="text-foreground/80">Constraint</span> — the main obstacle or uncertainty you face</li>
+                    <li><span className="text-foreground/80">Objective</span> — what success looks like for you</li>
+                    <li><span className="text-foreground/80">Options</span> — the specific choices you are weighing, or what paths have been suggested</li>
+                  </ul>
+                  <p>Where relevant, add profiles for all family members involved. A marriage question needs both charts; a family question benefits from parent and sibling profiles.</p>
                 </div>
               ),
             },
             {
-              q: "What is the cost, and how do I set up an appointment?",
-              a: "Consultations are conducted as deep-dive research sessions, available by appointment — typically on weekends. Email astrochaganti@gmail.com with your Life Problem Statement and the names of your profiles. You will receive current fees and a calendar link once your context is reviewed.",
+              q: "What is the cost, and how does the process work?",
+              a: "Chart generation and exploration are entirely free. Consultations with Dr. Chaganti are conducted as written responses via the in-app Ask a Question feature — submit your question, and Dr. Chaganti reviews the context and responds in writing. For live appointment availability and current fees, email astrochaganti@gmail.com.",
+            },
+            {
+              q: "Which Ayanamsha and Zodiac system does this platform use?",
+              a: "This platform strictly utilises the Sidereal Zodiac with the Chitra Paksha (Lahiri) Ayanamsha — the standard for Vedic astrology (Jyotish). Planetary positions are calculated via the Swiss Ephemeris with sub-second precision, ensuring that divisional charts (Vargas) carry the highest possible mathematical integrity.",
+            },
+            {
+              q: "Why does my chart look different here compared to Western astrology apps?",
+              a: "Western astrology uses the Tropical zodiac (based on seasons). Vedic astrology uses the Sidereal zodiac (fixed to the stars). Due to the Earth's axial precession, these systems are currently offset by approximately 24 degrees — meaning your planets and Lagna will likely fall nearly one full sign back compared to Western charts. This is expected and correct.",
+            },
+            {
+              q: "What should I do if my exact birth village is not listed?",
+              a: "Our geocoder maps to a global database of cities and districts. If your specific location is missing, select the nearest recognised town or district headquarters. Coordinates within a 15–20 km radius are sufficient and do not materially affect Lagna or Varga calculations.",
             },
             {
               q: "How is my personal birth data handled?",
@@ -263,20 +331,25 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Contact */}
+      {/* Bottom CTA */}
       <section className="max-w-2xl mx-auto text-center space-y-4">
-        <h2 className="font-heading text-3xl font-medium">Request a consultation</h2>
+        <h2 className="font-heading text-3xl font-medium">Ready to begin?</h2>
         <p className="text-sm text-muted-foreground">
-          Email Dr. Chaganti with your profiles and your Life Problem Statement.
+          Create your chart in minutes. Submit your question when you&apos;re ready —
+          Dr. Chaganti responds in writing, directly in the app.
         </p>
-        <a
-          href="mailto:astrochaganti@gmail.com"
-          className="inline-block border border-white/10 rounded-lg px-6 py-3 bg-white/5 hover:bg-white/10 font-mono text-base transition-colors"
-        >
-          astrochaganti@gmail.com
-        </a>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <Link href="/auth/signin">
+            <Button size="lg" className="bg-amber-500 hover:bg-amber-600 text-amber-950 font-semibold px-8">
+              Sign in with Google — Free
+            </Button>
+          </Link>
+        </div>
         <p className="text-xs text-muted-foreground">
-          Appointments are typically on weekends. Dr. Chaganti will confirm fees and share a calendar link.
+          For general enquiries:{" "}
+          <a href="mailto:astrochaganti@gmail.com" className="hover:text-foreground transition-colors underline underline-offset-2">
+            astrochaganti@gmail.com
+          </a>
         </p>
       </section>
 
