@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { renderMarkdown } from "@/lib/content/markdown";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export const metadata = { title: "Credits — Astro Chaganti" };
 
@@ -12,7 +13,7 @@ export default function CreditsPage() {
   let html = "";
   try {
     const md = fs.readFileSync(filePath, "utf8");
-    html = renderMarkdown(md);
+    html = sanitizeHtml(renderMarkdown(md));
   } catch {
     html = "<p>Credits file unavailable.</p>";
   }
