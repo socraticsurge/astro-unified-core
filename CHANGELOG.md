@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Geocoding: Added tests for query variants
+
+### Added
+- Comprehensive test suite for `queryVariants` in `lib/geocode.test.ts` covering edge cases like multiple commas, whitespace, and empty strings.
+
+### Changed
+- Exported `queryVariants` from `lib/geocode.ts` to enable unit testing.
+
+---
+
 ## [2026-05-13] — Payment workflow: UPI + WhatsApp confirmation
 
 ### Added

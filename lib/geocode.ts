@@ -30,7 +30,7 @@ async function nominatimQuery(query: string, limit = 3): Promise<NominatimRow[]>
 
 // Build a cascade of progressively-relaxed query variants.
 // We try each in order and pick the first that returns results.
-function queryVariants(input: string): string[] {
+export function queryVariants(input: string): string[] {
   const trimmed = input.trim();
   const variants = new Set<string>();
   variants.add(trimmed);
