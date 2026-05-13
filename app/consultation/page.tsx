@@ -32,6 +32,8 @@ export default async function ConsultationPage() {
         allRequests={allRequests}
         profiles={profiles}
         liveConsultationEnabled={appSettings.live_consultation_enabled}
+        writtenFeePaise={appSettings.written_fee_paise}
+        liveFeePaise={appSettings.live_fee_paise}
         userName={userName}
         userEmail={userEmail}
       />

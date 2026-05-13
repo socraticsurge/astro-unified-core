@@ -28,6 +28,9 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
 
   const [liveConsultation, setLiveConsultation] = useState(appSettings.live_consultation_enabled);
   const [settingSaving, setSettingSaving] = useState(false);
+  const [writtenFeeRs, setWrittenFeeRs] = useState(Math.round(appSettings.written_fee_paise / 100));
+  const [liveFeeRs, setLiveFeeRs] = useState(Math.round(appSettings.live_fee_paise / 100));
+  const [feeSaving, setFeeSaving] = useState(false);
 
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
@@ -56,6 +59,22 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
   const toggleCompSort = (col: string) => {
     if (compSortCol === col) setCompSortDir(d => d === "asc" ? "desc" : "asc");
     else { setCompSortCol(col); setCompSortDir("asc"); }
+  };
+
+  const saveFees = async () => {
+    setFeeSaving(true);
+    try {
+      await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          written_fee_paise: writtenFeeRs * 100,
+          live_fee_paise: liveFeeRs * 100,
+        }),
+      });
+    } finally {
+      setFeeSaving(false);
+    }
   };
 
   const toggleLiveConsultation = async () => {
@@ -480,6 +499,42 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
       <TabsContent value="settings">
         <div className="max-w-md space-y-6">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">App Settings</h2>
+
+          {/* Consultation pricing */}
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-4">
+            <p className="text-sm font-medium">Consultation Pricing</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Written Response (₹)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={writtenFeeRs}
+                  onChange={e => setWrittenFeeRs(parseInt(e.target.value, 10) || 0)}
+                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Live Consultation (₹)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={liveFeeRs}
+                  onChange={e => setLiveFeeRs(parseInt(e.target.value, 10) || 0)}
+                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                />
+              </div>
+            </div>
+            <button
+              disabled={feeSaving}
+              onClick={saveFees}
+              className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+            >
+              {feeSaving ? "Saving…" : "Save Pricing"}
+            </button>
+          </div>
+
+          {/* Live consultation toggle */}
           <div className="rounded-lg border border-white/10 bg-white/5 p-4 flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Live Consultation Option</p>

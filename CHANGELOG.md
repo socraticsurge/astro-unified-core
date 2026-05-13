@@ -8,6 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Pricing as admin setting + UX polish
+
+### Changed
+- Consultation fees are now configurable from the admin Settings tab (₹ inputs, "Save Pricing" button). Fees stored in `settings` table; API reads live values on each submission. Hardcoded constants remain only as DB-fallback defaults.
+- `AppSettings` type extended with `written_fee_paise` and `live_fee_paise`; `set()` accepts `boolean | number`.
+- Removed pricing callout banner from Ask a Question page.
+- DeliveryCard redesigned: price now appears on the right side of the title row instead of stacked below it.
+- Landing page journey paragraph: removed "The chart is free; written responses…" sentence.
+- Landing page bio: removed "payment coordination" from Kalyani's description.
+- FAQ cost answer: confident, no email reference, directs users to see pricing in-app.
+
+---
+
 ## [2026-05-13] — Payment workflow: UPI + WhatsApp confirmation
 
 ### Added

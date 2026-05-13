@@ -42,8 +42,7 @@ export function LandingPage() {
           Once your profiles are set up, you can submit a question directly in
           the app. Dr. Chaganti reviews your chart alongside your specific
           situation and responds in writing — a focused answer, not a generic
-          reading. The chart is free; written responses and live consultations
-          are chargeable, with pricing that varies between the two.
+          reading.
         </p>
       </section>
 
@@ -217,9 +216,8 @@ export function LandingPage() {
             This platform is a free tool he built so that anyone can generate
             and explore their chart before reaching out. Written consultations
             are available through the app, with limited spots each month.
-            Kalyani Chaganti, his wife, assists with payment coordination and
-            administrative matters so that Dr. Chaganti can remain fully focused
-            on the charts.
+            Kalyani Chaganti, his wife, assists with administrative matters so
+            that Dr. Chaganti can remain fully focused on the charts.
           </p>
         </div>
       </section>
@@ -273,7 +271,7 @@ export function LandingPage() {
             },
             {
               q: "What is the cost, and how does the process work?",
-              a: "Generating and exploring your chart is entirely free. Consultations are chargeable — written responses (submitted through the in-app Ask a Question feature) and live appointments are priced differently. For current fees on either, email astrochaganti@gmail.com.",
+              a: "Generating and exploring your chart is entirely free. Consultations — whether a written response or a live appointment — are chargeable. You will see the current fee for each option when you submit a question through the app.",
             },
             {
               q: "Which Ayanamsha and Zodiac system does this platform use?",

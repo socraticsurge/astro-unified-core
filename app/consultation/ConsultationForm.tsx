@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   LIFE_AREAS, LIFE_AREA_EXAMPLES, OPTIONS_GENERIC_PLACEHOLDER,
   MIN_FIELD_LENGTH, assembleStatement,
-  WRITTEN_FEE_PAISE, LIVE_FEE_PAISE, feeForMode, formatFee,
+  WRITTEN_FEE_PAISE, LIVE_FEE_PAISE, formatFee,
 } from "@/lib/consultation";
 import type { ConsultationRequest, Profile } from "@/lib/db";
 import type { LifeArea, DeliveryMode } from "@/lib/consultation";
@@ -21,6 +21,8 @@ type Props = {
   allRequests: ConsultationRequest[];
   profiles: Profile[];
   liveConsultationEnabled: boolean;
+  writtenFeePaise: number;
+  liveFeePaise: number;
   userName: string;
   userEmail: string;
 };
@@ -29,7 +31,7 @@ function isProfileComplete(p: Profile): boolean {
   return !!(p.gender && p.relationship && p.current_location && p.current_latitude != null && p.current_longitude != null);
 }
 
-export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled, userName, userEmail }: Props) {
+export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled, writtenFeePaise, liveFeePaise, userName, userEmail }: Props) {
   const router = useRouter();
   const [selectedArea, setSelectedArea] = useState<LifeArea | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
@@ -106,20 +108,6 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
 
   return (
     <div className="space-y-10">
-      {/* Pricing — always visible */}
-      <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 flex flex-wrap gap-x-6 gap-y-1.5 items-center">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Consultation fee</span>
-        <span className="text-sm">
-          Written Response <span className="text-amber-300 font-semibold">{formatFee(WRITTEN_FEE_PAISE)}</span>
-        </span>
-        {liveConsultationEnabled && (
-          <span className="text-sm">
-            Live Consultation (25 min) <span className="text-amber-300 font-semibold">{formatFee(LIVE_FEE_PAISE)}</span>
-          </span>
-        )}
-        <span className="text-xs text-muted-foreground">· Chart generation is always free</span>
-      </div>
-
       {activeRequest ? (
         <PendingCard
           pending={activeRequest}
@@ -269,7 +257,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
                 selected={deliveryMode === "written"}
                 onClick={() => setDeliveryMode("written")}
                 title="Written Response"
-                price={formatFee(WRITTEN_FEE_PAISE)}
+                price={formatFee(writtenFeePaise)}
                 description="Detailed written answer, typically within a few days."
               />
               {liveConsultationEnabled && (
@@ -278,7 +266,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
                   selected={deliveryMode === "appointment"}
                   onClick={() => setDeliveryMode("appointment")}
                   title="Live Consultation"
-                  price={formatFee(LIVE_FEE_PAISE)}
+                  price={formatFee(liveFeePaise)}
                   description="25-minute live session to discuss in person."
                 />
               )}
@@ -390,7 +378,7 @@ function PaymentInstructions({
 }) {
   const [copied, setCopied] = useState(false);
 
-  const amountPaise = pending.amount_paise ?? feeForMode(pending.delivery_mode);
+  const amountPaise = pending.amount_paise ?? (pending.delivery_mode === "written" ? WRITTEN_FEE_PAISE : LIVE_FEE_PAISE);
   const amountRupees = amountPaise / 100;
   const modeLabel = pending.delivery_mode === "written" ? "Written Response" : "Live Consultation (25 min)";
   const ref = pending.id.substring(0, 8).toUpperCase();
@@ -684,8 +672,10 @@ function DeliveryCard({
           : "border-white/10 bg-white/5 hover:bg-white/10"
       }`}
     >
-      <div className={`text-sm font-semibold ${selected ? "text-amber-300" : "text-foreground"}`}>{title}</div>
-      <div className={`text-base font-bold mt-0.5 ${selected ? "text-amber-400" : "text-amber-400/70"}`}>{price}</div>
+      <div className="flex items-center justify-between gap-3">
+        <div className={`text-sm font-semibold ${selected ? "text-amber-300" : "text-foreground"}`}>{title}</div>
+        <div className={`text-sm font-bold flex-shrink-0 ${selected ? "text-amber-400" : "text-amber-400/60"}`}>{price}</div>
+      </div>
       <div className="text-xs text-muted-foreground mt-1">{description}</div>
     </button>
   );

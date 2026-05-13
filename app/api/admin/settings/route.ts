@@ -20,8 +20,8 @@ export async function PATCH(request: Request) {
   const body: Partial<AppSettings> = await request.json();
 
   for (const [key, value] of Object.entries(body)) {
-    if (typeof value === "boolean") {
-      await db.settings.set(key as keyof AppSettings, value);
+    if (typeof value === "boolean" || typeof value === "number") {
+      await db.settings.set(key as keyof AppSettings, value as boolean | number);
     }
   }
 
