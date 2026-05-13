@@ -10,11 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-<<<<<<< HEAD
-    "test": "vitest run"
-=======
-    "test": "jest"
->>>>>>> development
+    "test": "jest",
+    "test:vitest": "vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
