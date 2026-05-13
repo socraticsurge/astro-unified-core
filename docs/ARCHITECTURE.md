@@ -1,5 +1,7 @@
 # Astro Chaganti — Architecture & Module Reference
 
+<!-- last-updated: 2026-05-13 -->
+
 > **Companion to [`PROJECT.md`](./PROJECT.md)** — that file covers env vars,
 > deployment gotchas, and the auth model. This file covers the code itself:
 > every module's purpose, how the pieces connect, and the user journeys they
@@ -7,11 +9,16 @@
 >
 > All file links point to `main` on GitHub:
 > `https://github.com/socraticsurge/astro-unified-core`
+>
+> **Maintenance rule:** Update the `<!-- last-updated -->` stamp and the
+> affected section(s) on every push that changes structure, routes, or journeys.
+> See [`CLAUDE.md`](../CLAUDE.md) for the full documentation hygiene rules.
 
 ---
 
 ## Table of Contents
 
+0. [User Types](#0-user-types)
 1. [Repository Layout](#1-repository-layout)
 2. [Entry Points & Routing](#2-entry-points--routing)
 3. [Authentication Layer](#3-authentication-layer)
@@ -24,6 +31,33 @@
 10. [Utility Modules](#10-utility-modules)
 11. [User Journey Traces](#11-user-journey-traces)
 12. [Code Organisation Assessment](#12-code-organisation-assessment)
+
+---
+
+## 0. User Types
+
+<!-- last-updated: 2026-05-13 -->
+
+Three personas access the app. Every feature decision and user journey should
+be reasoned against all three.
+
+### Guest (unauthenticated)
+- Can access: `/` (landing), `/privacy`, `/terms`, `/credits`
+- Cannot access: anything under `/dashboard`, `/profiles`, `/compatibility`, `/admin`
+- All protected routes redirect to `/auth/signin` via [`proxy.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/proxy.ts) middleware
+
+### Registered User
+- Can access: full app — dashboard, profile CRUD, charts, compatibility
+- Scoped to own data only: `db.profiles.list(userId)`, `db.compatibility.list(userId)`
+- Limits: 10 profiles max, 6 compatibility checks max, rate-limited on refresh
+- Cannot see: other users' profiles, admin panel, professional views
+
+### Admin
+- Defined by `ADMIN_EMAILS` env var (see [`lib/admin.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/admin.ts))
+- Can access: everything a Registered User can + admin panel at `/admin`
+- Elevated data access: `db.profiles.getAny(id)`, `db.compatibility.getAny(id)`, `db.profiles.listAllWithUser()`
+- Professional view toggle on all profile and compatibility detail pages
+- Can trigger sidecar backfill (`/api/admin/backfill`) and clear compatibility history (`/api/admin/clear-compatibility`)
 
 ---
 
@@ -147,11 +181,22 @@ the NextAuth OAuth flow.
 
 ## 4. Database Layer
 
-### Client & Schema
-[`lib/db.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db.ts)
+<!-- last-updated: 2026-05-13 -->
 
-Single source of truth for all database access. Built on `@libsql/client`
-(Turso's HTTP SQLite driver).
+### Client & Schema
+[`lib/db/`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/) — modular DB layer. `lib/db.ts` is a one-line re-export shim so all existing `import { db } from "@/lib/db"` imports continue to work.
+
+| File | Responsibility |
+|---|---|
+| [`lib/db/client.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/client.ts) | Turso client singleton, `ensureSchema()`, `SCHEMA_VERSION` |
+| [`lib/db/users.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/users.ts) | `User` type, `users.upsert`, `users.list` |
+| [`lib/db/profiles.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/profiles.ts) | `Profile`, `ProfileWithUser` types, full profiles CRUD |
+| [`lib/db/readings.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/readings.ts) | `Reading` type, cache save/fetch/delete |
+| [`lib/db/compatibility.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/compatibility.ts) | `CompatibilityCheck`, `CompatibilityCheckWithDetails` types, compatibility CRUD |
+| [`lib/db/feedback.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/feedback.ts) | `Feedback` type, feedback save/list |
+| [`lib/db/index.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/index.ts) | Re-exports all types; assembles the `db` object |
+
+Built on `@libsql/client` (Turso's HTTP SQLite driver).
 
 **Tables:**
 
@@ -712,37 +757,25 @@ small team — no migration runner required.
 call (instead of one per day) is a clean design. The accuracy trade-off
 (mean motion vs true position) is explicitly documented.
 
-### Areas to Watch
+### Resolved (2026-05-13)
 
-**Two rate-limiter modules** — [`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts) and [`lib/security.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/security.ts) do the same thing with slightly different APIs. These should be consolidated into one as the API surface grows.
+- ~~Two rate-limiter modules~~ — `lib/security.ts` deleted; `lib/rate-limit.ts` is now the single configurable source.
+- ~~`KOOTA_MAX` duplicated~~ — moved to [`lib/compatibility.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/compatibility.ts) along with all shared compatibility types.
+- ~~`db.ts` monolith~~ — split into `lib/db/` modules (see Section 4).
+- ~~`any` types in `AdminTables`~~ — replaced with `User[]`, `ProfileWithUser[]`, `CompatibilityCheckWithDetails[]`, `Feedback[]`.
 
-**`KOOTA_MAX` is duplicated** — the lookup table that maps koota names to
-their maximum scores exists in both
-[`CompatibilityDetailClient.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/compatibility/%5Bid%5D/CompatibilityDetailClient.tsx)
-and
-[`CompatibilityClient.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/compatibility/CompatibilityClient.tsx).
-It should live in a shared `lib/compatibility.ts`.
+### Still to address
 
-**In-memory rate limiting.** Both rate limiters store state per Lambda instance.
-On Vercel, separate requests can land on separate instances, so limits are not
-globally enforced. Acceptable for current traffic; would need Redis/Upstash for
-stricter guarantees.
+**In-memory rate limiting** — per Lambda instance, not global. See `BACKLOG.md` item D7 for the Upstash Redis upgrade path.
 
-**`db.ts` is a monolith.** All table logic (schema bootstrap, queries for every
-table) lives in one 400-line file. This is fine at current scale but would
-benefit from splitting into `lib/db/profiles.ts`, `lib/db/compatibility.ts`,
-etc. as the schema grows.
+**Sidecar unauthenticated** — low risk currently. See `BACKLOG.md` item D1.
 
-**`any` types in admin data.** `AdminTables.tsx` uses `any[]` for all data
-props. These could be typed using the `Profile` and `CompatibilityCheck` types
-from `lib/db.ts` to catch shape errors at compile time.
+**`scratch_test_rate_limit.ts`** at project root — dev scratch file, should be deleted. See `BACKLOG.md` T1.
 
-**Sidecar is unauthenticated.** The Python sidecar at `dashaflow-sidecar.vercel.app`
-has no auth. Anyone with the URL can POST arbitrary birth coordinates. Low risk
-(stateless, no PII stored there), but a shared-secret header in `DASHAFLOW_SIDECAR_URL`
-calls would harden this.
+**`proxy.ts`** non-standard name — Next.js convention is `middleware.ts`. See `BACKLOG.md` T2.
 
 ---
 
-*Last updated: May 2026.*
 *For env vars, deployment gotchas, and auth model see [`PROJECT.md`](./PROJECT.md).*
+*For the full issue/debt list see [`BACKLOG.md`](./BACKLOG.md).*
+*For recent changes see [`CHANGELOG.md`](../CHANGELOG.md).*
