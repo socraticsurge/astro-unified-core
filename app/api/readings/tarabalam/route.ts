@@ -31,15 +31,27 @@ export async function POST(req: NextRequest) {
   const profileData: Array<{ id: string; name: string; birth_moon_nakshatra: string | null }> = [];
   let anchorProfile: Awaited<ReturnType<typeof db.profiles.getAny>> | undefined;
 
-  for (const profileId of profile_ids) {
-    const profile = admin
-      ? await db.profiles.getAny(profileId)
-      : await db.profiles.get(profileId, userId);
-    if (!profile) continue;
+  // 1. Fetch profiles in batch
+  const profiles = admin
+    ? await db.profiles.getManyAny(profile_ids)
+    : await db.profiles.getMany(profile_ids, userId);
 
-    if (!anchorProfile) anchorProfile = profile;
+  const validProfiles = profiles.filter((p) => p !== undefined && p !== null);
 
-    const cached = await db.readings.latestByEngine(profileId, "dashaflow");
+  if (validProfiles.length > 0) {
+    anchorProfile = validProfiles[0];
+  } else {
+    return NextResponse.json({ error: "No valid profiles found" }, { status: 404 });
+  }
+
+  // 2. Fetch all cached readings in batch
+  const validProfileIds = validProfiles.map((p) => p.id);
+  const cachedReadings = await db.readings.latestByEngineMany(validProfileIds, "dashaflow");
+  const readingMap = new Map(cachedReadings.map((r) => [r.profile_id, r]));
+
+  // 3. Map readings back to profileData
+  for (const profile of validProfiles) {
+    const cached = readingMap.get(profile.id);
     let birthMoonNakshatra: string | null = null;
     if (cached) {
       try {
@@ -50,11 +62,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    profileData.push({ id: profileId, name: profile.name, birth_moon_nakshatra: birthMoonNakshatra });
-  }
-
-  if (!anchorProfile) {
-    return NextResponse.json({ error: "No valid profiles found" }, { status: 404 });
+    profileData.push({ id: profile.id, name: profile.name, birth_moon_nakshatra: birthMoonNakshatra });
   }
 
   // Get today's Moon longitude from the sidecar using the first profile's birth data.
