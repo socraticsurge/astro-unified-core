@@ -8,6 +8,12 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Admin dashboard: question stats + per-user activity counts
+
+### Added
+- Stats row now shows 6 cards: Users, Profiles, Compat Checks, Feedback, Written Q's, Live Sessions. Written and Live counts are all-time totals across all statuses.
+- Users table: three new columns — Profiles, Compat, Questions — showing per-user counts computed from data already loaded on the page (no extra DB queries).
+
 ## [2026-05-13] — Live consultation slot booking
 
 ### Added

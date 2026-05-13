@@ -176,6 +176,16 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
   const sortedComps = sortBy(compatibilityChecks, compSortCol, compSortDir);
   const sortedQuestions = sortBy(consultationRequests, qSortCol, qSortDir);
 
+  // Per-user activity counts derived from existing prop data — no extra DB queries
+  const profileCountByUser = new Map<string, number>();
+  for (const p of profiles) profileCountByUser.set(p.user_id, (profileCountByUser.get(p.user_id) ?? 0) + 1);
+
+  const compatCountByUser = new Map<string, number>();
+  for (const c of compatibilityChecks) compatCountByUser.set(c.user_id, (compatCountByUser.get(c.user_id) ?? 0) + 1);
+
+  const questionCountByUser = new Map<string, number>();
+  for (const r of consultationRequests) questionCountByUser.set(r.user_id, (questionCountByUser.get(r.user_id) ?? 0) + 1);
+
   const profileNameMap = new Map(profiles.map(p => [p.id, p.name]));
   function resolveProfileIds(profileIdsJson: string): Array<{ id: string; name: string }> {
     try {
@@ -210,6 +220,9 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("id")}>User ID {renderSortIcon("id", userSortCol, userSortDir)}</th>
                 <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("created_at")}>Created {renderSortIcon("created_at", userSortCol, userSortDir)}</th>
                 <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("last_login")}>Last Login {renderSortIcon("last_login", userSortCol, userSortDir)}</th>
+                <th className="px-3 py-2 font-medium text-center whitespace-nowrap">Profiles</th>
+                <th className="px-3 py-2 font-medium text-center whitespace-nowrap">Compat</th>
+                <th className="px-3 py-2 font-medium text-center whitespace-nowrap">Questions</th>
               </tr>
             </thead>
             <tbody>
@@ -224,11 +237,14 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                     {u.last_login ? new Date(String(u.last_login)).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : "—"}
                   </td>
+                  <td className="px-3 py-2 text-center tabular-nums">{profileCountByUser.get(String(u.id)) ?? 0}</td>
+                  <td className="px-3 py-2 text-center tabular-nums">{compatCountByUser.get(String(u.id)) ?? 0}</td>
+                  <td className="px-3 py-2 text-center tabular-nums">{questionCountByUser.get(String(u.id)) ?? 0}</td>
                 </tr>
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">No users yet</td>
+                  <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">No users yet</td>
                 </tr>
               )}
             </tbody>
