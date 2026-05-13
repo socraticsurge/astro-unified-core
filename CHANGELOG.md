@@ -9,6 +9,15 @@ All notable changes to Astro Chaganti are recorded here.
 ---
 
 <<<<<<< HEAD
+## [2026-05-13] — Geocoding: Added tests for query variants
+
+### Added
+- Comprehensive test suite for `queryVariants` in `lib/geocode.test.ts` covering edge cases like multiple commas, whitespace, and empty strings.
+
+### Changed
+- Exported `queryVariants` from `lib/geocode.ts` to enable unit testing.
+=======
+<<<<<<< HEAD
 ## [2026-05-13] — Security: HTML Sanitization for ExplainerModal
 
 ### Fixed
@@ -51,6 +60,7 @@ All notable changes to Astro Chaganti are recorded here.
 - Landing page journey paragraph: removed "The chart is free; written responses…" sentence.
 - Landing page bio: removed "payment coordination" from Kalyani's description.
 - FAQ cost answer: confident, no email reference, directs users to see pricing in-app.
+>>>>>>> development
 >>>>>>> development
 
 ---
