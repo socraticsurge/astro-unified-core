@@ -8,6 +8,24 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Jules Integration: Security, Performance, and Tests
+
+### Added
+- **Security Hardening**: Implemented `isomorphic-dompurify` for HTML sanitization in `ExplainerModal.tsx` and `credits/page.tsx` to mitigate XSS risks.
+- **Performance Optimization**: 
+  - Added batching for profile and reading lookups in `Tarabalam` service to eliminate N+1 database queries.
+  - Memoized markdown rendering in `ExplainerModal` to reduce CPU overhead.
+- **Comprehensive Testing**: 
+  - Added unit tests for `Dashaflow` API integration and chart summary logic.
+  - Added Vitest coverage for Markdown rendering components.
+  - Added unit tests for rating calculation and rate-limiting logic.
+  - Added UI tests for `ConsultationForm` and engine error handling.
+  - Added tests for geocoding query variants.
+
+### Fixed
+- Fixed `dangerouslySetInnerHTML` vulnerabilities across the application.
+- Fixed React Hook violations in `ExplainerModal.tsx` by moving `useMemo` before conditional returns.
+
 ## [2026-05-13] — Admin dashboard: question stats + per-user activity counts
 
 ### Added
