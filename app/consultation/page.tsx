@@ -11,8 +11,8 @@ export default async function ConsultationPage() {
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) redirect("/auth/signin");
 
-  const [pending, profiles, appSettings] = await Promise.all([
-    db.consultationRequests.getPending(userId),
+  const [allRequests, profiles, appSettings] = await Promise.all([
+    db.consultationRequests.listByUser(userId),
     db.profiles.list(userId),
     db.settings.getAll(),
   ]);
@@ -26,7 +26,7 @@ export default async function ConsultationPage() {
         </p>
       </div>
       <ConsultationForm
-        pending={pending ?? null}
+        allRequests={allRequests}
         profiles={profiles}
         liveConsultationEnabled={appSettings.live_consultation_enabled}
       />
