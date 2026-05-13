@@ -15,13 +15,14 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings] = await Promise.all([
+  const [users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings, consultationSlots] = await Promise.all([
     db.users.list(),
     db.profiles.listAllWithUser(),
     db.feedback.list(),
     db.compatibility.listAllWithDetails(),
     db.consultationRequests.listAllWithUser(),
     db.settings.getAll(),
+    db.consultationSlots.listAll(),
   ]);
 
   return (
@@ -34,14 +35,14 @@ export default async function AdminPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-4 max-w-2xl">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 max-w-4xl">
         <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
           <div className="text-3xl font-bold">{users.length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Total Users</div>
+          <div className="text-xs text-muted-foreground mt-1">Users</div>
         </div>
         <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
           <div className="text-3xl font-bold">{profiles.length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Total Profiles</div>
+          <div className="text-xs text-muted-foreground mt-1">Profiles</div>
         </div>
         <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
           <div className="text-3xl font-bold">{compatibilityChecks.length}</div>
@@ -51,6 +52,14 @@ export default async function AdminPage() {
           <div className="text-3xl font-bold">{feedback.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Feedback</div>
         </div>
+        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+          <div className="text-3xl font-bold">{consultationRequests.filter(r => r.delivery_mode === "written").length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Written Q&apos;s</div>
+        </div>
+        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+          <div className="text-3xl font-bold">{consultationRequests.filter(r => r.delivery_mode === "appointment").length}</div>
+          <div className="text-xs text-muted-foreground mt-1">Live Sessions</div>
+        </div>
       </div>
 
       <AdminTables
@@ -59,6 +68,7 @@ export default async function AdminPage() {
         feedback={feedback}
         compatibilityChecks={compatibilityChecks}
         consultationRequests={consultationRequests}
+        consultationSlots={consultationSlots}
         appSettings={appSettings}
       />
     </div>

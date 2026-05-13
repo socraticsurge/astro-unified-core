@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar, CheckCircle2, ThumbsUp, ThumbsDown } from "lucide-react";
-import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings } from "@/lib/db";
+import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings, ConsultationSlot } from "@/lib/db";
 import { assembleStatement } from "@/lib/consultation";
 
 type Props = {
@@ -13,10 +13,11 @@ type Props = {
   feedback: Feedback[];
   compatibilityChecks: CompatibilityCheckWithDetails[];
   consultationRequests: ConsultationRequestWithUser[];
+  consultationSlots: ConsultationSlot[];
   appSettings: AppSettings;
 };
 
-export function AdminTables({ users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings }: Props) {
+export function AdminTables({ users, profiles, feedback, compatibilityChecks, consultationRequests, consultationSlots: initialSlots, appSettings }: Props) {
   const [userSortCol, setUserSortCol] = useState<string>("last_login");
   const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
   
@@ -28,6 +29,45 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
 
   const [liveConsultation, setLiveConsultation] = useState(appSettings.live_consultation_enabled);
   const [settingSaving, setSettingSaving] = useState(false);
+  const [writtenFeeRs, setWrittenFeeRs] = useState(Math.round(appSettings.written_fee_paise / 100));
+  const [liveFeeRs, setLiveFeeRs] = useState(Math.round(appSettings.live_fee_paise / 100));
+  const [feeSaving, setFeeSaving] = useState(false);
+
+  const [slots, setSlots] = useState<ConsultationSlot[]>(initialSlots);
+  const [newSlotInput, setNewSlotInput] = useState("");
+  const [slotAdding, setSlotAdding] = useState(false);
+  const [slotDeletingId, setSlotDeletingId] = useState<string | null>(null);
+
+  const addSlot = async () => {
+    if (!newSlotInput) return;
+    setSlotAdding(true);
+    try {
+      // Treat input as IST: append +05:30 offset before converting to UTC ISO
+      const startsAt = new Date(newSlotInput + ":00+05:30").toISOString();
+      const res = await fetch("/api/admin/consultation-slots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ starts_at: startsAt }),
+      });
+      if (res.ok) {
+        const slot = await res.json() as ConsultationSlot;
+        setSlots(prev => [...prev, slot].sort((a, b) => a.starts_at.localeCompare(b.starts_at)));
+        setNewSlotInput("");
+      }
+    } finally {
+      setSlotAdding(false);
+    }
+  };
+
+  const deleteSlot = async (id: string) => {
+    setSlotDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/consultation-slots?id=${id}`, { method: "DELETE" });
+      if (res.ok) setSlots(prev => prev.filter(s => s.id !== id));
+    } finally {
+      setSlotDeletingId(null);
+    }
+  };
 
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
@@ -56,6 +96,22 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
   const toggleCompSort = (col: string) => {
     if (compSortCol === col) setCompSortDir(d => d === "asc" ? "desc" : "asc");
     else { setCompSortCol(col); setCompSortDir("asc"); }
+  };
+
+  const saveFees = async () => {
+    setFeeSaving(true);
+    try {
+      await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          written_fee_paise: writtenFeeRs * 100,
+          live_fee_paise: liveFeeRs * 100,
+        }),
+      });
+    } finally {
+      setFeeSaving(false);
+    }
   };
 
   const toggleLiveConsultation = async () => {
@@ -120,6 +176,16 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
   const sortedComps = sortBy(compatibilityChecks, compSortCol, compSortDir);
   const sortedQuestions = sortBy(consultationRequests, qSortCol, qSortDir);
 
+  // Per-user activity counts derived from existing prop data — no extra DB queries
+  const profileCountByUser = new Map<string, number>();
+  for (const p of profiles) profileCountByUser.set(p.user_id, (profileCountByUser.get(p.user_id) ?? 0) + 1);
+
+  const compatCountByUser = new Map<string, number>();
+  for (const c of compatibilityChecks) compatCountByUser.set(c.user_id, (compatCountByUser.get(c.user_id) ?? 0) + 1);
+
+  const questionCountByUser = new Map<string, number>();
+  for (const r of consultationRequests) questionCountByUser.set(r.user_id, (questionCountByUser.get(r.user_id) ?? 0) + 1);
+
   const profileNameMap = new Map(profiles.map(p => [p.id, p.name]));
   function resolveProfileIds(profileIdsJson: string): Array<{ id: string; name: string }> {
     try {
@@ -154,6 +220,9 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("id")}>User ID {renderSortIcon("id", userSortCol, userSortDir)}</th>
                 <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("created_at")}>Created {renderSortIcon("created_at", userSortCol, userSortDir)}</th>
                 <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("last_login")}>Last Login {renderSortIcon("last_login", userSortCol, userSortDir)}</th>
+                <th className="px-3 py-2 font-medium text-center whitespace-nowrap">Profiles</th>
+                <th className="px-3 py-2 font-medium text-center whitespace-nowrap">Compat</th>
+                <th className="px-3 py-2 font-medium text-center whitespace-nowrap">Questions</th>
               </tr>
             </thead>
             <tbody>
@@ -168,11 +237,14 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
                     {u.last_login ? new Date(String(u.last_login)).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : "—"}
                   </td>
+                  <td className="px-3 py-2 text-center tabular-nums">{profileCountByUser.get(String(u.id)) ?? 0}</td>
+                  <td className="px-3 py-2 text-center tabular-nums">{compatCountByUser.get(String(u.id)) ?? 0}</td>
+                  <td className="px-3 py-2 text-center tabular-nums">{questionCountByUser.get(String(u.id)) ?? 0}</td>
                 </tr>
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">No users yet</td>
+                  <td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">No users yet</td>
                 </tr>
               )}
             </tbody>
@@ -348,6 +420,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 <th className="px-3 py-2 font-medium whitespace-nowrap">Profile(s)</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("delivery_mode")}>Mode {renderSortIcon("delivery_mode", qSortCol, qSortDir)}</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("created_at")}>Date {renderSortIcon("created_at", qSortCol, qSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Ref</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("status")}>Status {renderSortIcon("status", qSortCol, qSortDir)}</th>
                 <th className="px-3 py-2 font-medium text-right whitespace-nowrap">Details</th>
               </tr>
@@ -355,7 +428,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
             <tbody>
               {sortedQuestions.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">No consultation requests yet.</td>
+                  <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">No consultation requests yet.</td>
                 </tr>
               )}
               {sortedQuestions.map(req => {
@@ -388,10 +461,22 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                         </div>
                       </td>
                       <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap text-xs">
-                        {req.delivery_mode === "written" ? "Written" : "Live"}
+                        {req.delivery_mode === "written" ? "Written" : (
+                          <div>
+                            <div>Live</div>
+                            {req.slot_starts_at && (
+                              <div className="text-[10px] text-amber-300/70 mt-0.5">
+                                {new Date(req.slot_starts_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "short", timeStyle: "short" })} IST
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap text-xs">
                         {new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        #{req.id.substring(0, 8).toUpperCase()}
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -413,7 +498,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                     </tr>
                     {isExpanded && (
                       <tr key={`${req.id}-detail`} className="border-t border-white/5">
-                        <td colSpan={7} className="px-4 py-4 bg-white/[0.02]">
+                        <td colSpan={8} className="px-4 py-4 bg-white/[0.02]">
                           <div className="space-y-3 max-w-2xl">
                             <div>
                               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Question</p>
@@ -421,6 +506,14 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                                 {assembleStatement(req.observation, req.constraint_text, req.objective, req.options)}
                               </p>
                             </div>
+                            {req.delivery_mode === "appointment" && req.slot_starts_at && (
+                              <div className="rounded-md border border-amber-700/30 bg-amber-900/20 px-3 py-2">
+                                <p className="text-xs uppercase tracking-wider text-amber-400 mb-0.5">Selected Slot</p>
+                                <p className="text-xs text-foreground/70">
+                                  {new Date(req.slot_starts_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })} IST
+                                </p>
+                              </div>
+                            )}
                             {req.admin_note && (
                               <div className="rounded-md border border-green-700/30 bg-green-900/20 px-3 py-2">
                                 <p className="text-xs uppercase tracking-wider text-green-400 mb-0.5">Your note</p>
@@ -480,6 +573,42 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
       <TabsContent value="settings">
         <div className="max-w-md space-y-6">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">App Settings</h2>
+
+          {/* Consultation pricing */}
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-4">
+            <p className="text-sm font-medium">Consultation Pricing</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Written Response (₹)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={writtenFeeRs}
+                  onChange={e => setWrittenFeeRs(parseInt(e.target.value, 10) || 0)}
+                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Live Consultation (₹)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={liveFeeRs}
+                  onChange={e => setLiveFeeRs(parseInt(e.target.value, 10) || 0)}
+                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                />
+              </div>
+            </div>
+            <button
+              disabled={feeSaving}
+              onClick={saveFees}
+              className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+            >
+              {feeSaving ? "Saving…" : "Save Pricing"}
+            </button>
+          </div>
+
+          {/* Live consultation toggle */}
           <div className="rounded-lg border border-white/10 bg-white/5 p-4 flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Live Consultation Option</p>
@@ -496,6 +625,80 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${liveConsultation ? "translate-x-5" : "translate-x-0"}`}
               />
             </button>
+          </div>
+
+          {/* Slot management */}
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-4">
+            <div>
+              <p className="text-sm font-medium">Live Consultation Slots</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Enter date and time in IST. Users only see slots at least 5 days away that are not yet booked.
+              </p>
+            </div>
+            <div className="flex gap-2 items-end">
+              <div className="space-y-1 flex-1">
+                <label className="text-xs text-muted-foreground">Date &amp; Time (IST)</label>
+                <input
+                  type="datetime-local"
+                  value={newSlotInput}
+                  onChange={e => setNewSlotInput(e.target.value)}
+                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                />
+              </div>
+              <button
+                disabled={!newSlotInput || slotAdding}
+                onClick={addSlot}
+                className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-2 rounded-md transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {slotAdding ? "Adding…" : "Add Slot"}
+              </button>
+            </div>
+            <div className="space-y-1.5 max-h-72 overflow-y-auto">
+              {slots.length === 0 && (
+                <p className="text-xs text-muted-foreground py-2">No slots created yet.</p>
+              )}
+              {slots.map(slot => {
+                const isPast = new Date(slot.starts_at) < new Date();
+                const label = new Date(slot.starts_at).toLocaleString("en-IN", {
+                  timeZone: "Asia/Kolkata",
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+                return (
+                  <div
+                    key={slot.id}
+                    className={`flex items-center justify-between px-3 py-1.5 rounded-md border ${
+                      isPast ? "border-white/5 bg-white/[0.02] opacity-50" : "border-white/10 bg-white/5"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">{label} IST</span>
+                      {slot.is_booked ? (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-900/30 text-green-400">Booked</span>
+                      ) : isPast ? (
+                        <span className="text-[10px] text-muted-foreground">Past</span>
+                      ) : (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-900/30 text-amber-400">Available</span>
+                      )}
+                    </div>
+                    {!slot.is_booked && (
+                      <button
+                        disabled={slotDeletingId === slot.id}
+                        onClick={() => deleteSlot(slot.id)}
+                        className="text-[10px] text-red-400/70 hover:text-red-400 transition-colors disabled:opacity-50 ml-3"
+                      >
+                        {slotDeletingId === slot.id ? "…" : "Delete"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </TabsContent>

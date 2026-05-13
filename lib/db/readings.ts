@@ -37,6 +37,29 @@ export const readings = {
     return rs.rows[0] as unknown as Reading | undefined;
   },
 
+  async latestByEngineMany(profile_ids: string[], engine: string): Promise<Reading[]> {
+    if (profile_ids.length === 0) return [];
+    await ensureSchema();
+    const placeholders = profile_ids.map(() => "?").join(",");
+    const rs = await getClient().execute({
+      sql: `
+        SELECT r.*
+        FROM readings r
+        INNER JOIN (
+          SELECT profile_id, engine, MAX(created_at) as max_created_at
+          FROM readings
+          WHERE engine = ? AND profile_id IN (${placeholders})
+          GROUP BY profile_id, engine
+        ) latest
+        ON r.profile_id = latest.profile_id
+        AND r.engine = latest.engine
+        AND r.created_at = latest.max_created_at
+      `,
+      args: [engine, ...profile_ids],
+    });
+    return rs.rows as unknown as Reading[];
+  },
+
   async deleteByProfile(profile_id: string): Promise<void> {
     await ensureSchema();
     await getClient().execute({

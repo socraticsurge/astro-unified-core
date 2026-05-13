@@ -6,6 +6,7 @@ export type { CompatibilityCheck, CompatibilityCheckWithDetails } from "./compat
 export type { Feedback } from "./feedback";
 export type { AppSettings } from "./settings";
 export type { ConsultationRequest, ConsultationRequestWithUser } from "./consultation-requests";
+export type { ConsultationSlot } from "./consultation-slots";
 
 import { users } from "./users";
 import { profiles } from "./profiles";
@@ -14,5 +15,6 @@ import { compatibility } from "./compatibility";
 import { feedback } from "./feedback";
 import { settings } from "./settings";
 import { consultationRequests } from "./consultation-requests";
+import { consultationSlots } from "./consultation-slots";
 
-export const db = { users, profiles, readings, compatibility, feedback, settings, consultationRequests };
+export const db = { users, profiles, readings, compatibility, feedback, settings, consultationRequests, consultationSlots };

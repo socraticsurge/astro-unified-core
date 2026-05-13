@@ -13,7 +13,7 @@ export default function CreditsPage() {
   let html = "";
   try {
     const md = fs.readFileSync(filePath, "utf8");
-    html = renderMarkdown(md);
+    html = sanitizeHtml(renderMarkdown(md));
   } catch {
     html = "<p>Credits file unavailable.</p>";
   }

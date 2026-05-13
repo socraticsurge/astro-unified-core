@@ -10,8 +10,13 @@ marked.setOptions({
   breaks: false,
 });
 
+const markdownCache = new Map<string, string>();
+
 export function renderMarkdown(md: string): string {
-  return marked.parse(md, { async: false }) as string;
+  if (markdownCache.has(md)) return markdownCache.get(md)!;
+  const result = marked.parse(md, { async: false }) as string;
+  markdownCache.set(md, result);
+  return result;
 }
 
 /**
