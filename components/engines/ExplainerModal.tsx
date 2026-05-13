@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Loader2, X } from "lucide-react";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 type Source = { text: string; chapter?: number | string; sloka?: number | string };
 
@@ -145,13 +146,15 @@ export function ExplainerModal({
     setTab(hasChartEntries ? "chart" : "about");
   }, [open, hasChartEntries]);
 
+  const sanitizedAboutHtml = useMemo(() => sanitizeHtml(bodyHtml), [bodyHtml]);
+
   if (!open) return null;
 
   const renderedAbout = (
     <>
       <div
         className={`px-5 py-4 ${proseClasses}`}
-        dangerouslySetInnerHTML={{ __html: bodyHtml }}
+        dangerouslySetInnerHTML={{ __html: sanitizedAboutHtml }}
       />
       {sources && sources.length > 0 && (
         <div className="px-5 pb-4 -mt-2 text-xs text-muted-foreground">
@@ -180,7 +183,7 @@ export function ExplainerModal({
               </h3>
               <div
                 className={proseClasses}
-                dangerouslySetInnerHTML={{ __html: entry.bodyHtml }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(entry.bodyHtml) }}
               />
             </section>
           );

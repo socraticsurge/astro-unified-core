@@ -8,6 +8,18 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Security: HTML Sanitization for ExplainerModal
+
+### Fixed
+- Dangerously Set Inner HTML vulnerability in `ExplainerModal.tsx`.
+- React Hooks violation in `ExplainerModal.tsx` (moved `useMemo` before conditional return).
+- Vulnerability in `app/credits/page.tsx` where raw HTML was rendered without sanitization.
+
+### Added
+- Custom HTML sanitization utility in `lib/sanitize.ts` using `DOMParser` (client-side) and a robust regex-based fallback (server-side), addressing XSS risks when external sanitization libraries cannot be installed.
+
+---
+
 ## [2026-05-13] — Payment workflow: UPI + WhatsApp confirmation
 
 ### Added

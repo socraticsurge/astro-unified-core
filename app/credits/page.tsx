@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { renderMarkdown } from "@/lib/content/markdown";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export const metadata = { title: "Credits — Astro Chaganti" };
 
@@ -23,7 +24,7 @@ export default function CreditsPage() {
         prose-headings:font-heading prose-headings:font-medium
         prose-p:leading-relaxed
         prose-a:text-blue-300 prose-a:no-underline hover:prose-a:underline"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
     />
   );
 }
