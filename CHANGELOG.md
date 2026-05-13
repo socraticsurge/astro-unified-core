@@ -8,6 +8,17 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+<<<<<<< HEAD
+## [2026-05-13] — Security: HTML Sanitization for ExplainerModal
+
+### Fixed
+- Dangerously Set Inner HTML vulnerability in `ExplainerModal.tsx`.
+- React Hooks violation in `ExplainerModal.tsx` (moved `useMemo` before conditional return).
+- Vulnerability in `app/credits/page.tsx` where raw HTML was rendered without sanitization.
+
+### Added
+- Custom HTML sanitization utility in `lib/sanitize.ts` using `DOMParser` (client-side) and a robust regex-based fallback (server-side), addressing XSS risks when external sanitization libraries cannot be installed.
+=======
 ## [2026-05-13] — Admin dashboard: question stats + per-user activity counts
 
 ### Added
@@ -40,6 +51,7 @@ All notable changes to Astro Chaganti are recorded here.
 - Landing page journey paragraph: removed "The chart is free; written responses…" sentence.
 - Landing page bio: removed "payment coordination" from Kalyani's description.
 - FAQ cost answer: confident, no email reference, directs users to see pricing in-app.
+>>>>>>> development
 
 ---
 

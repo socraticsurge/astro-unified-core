@@ -24,7 +24,7 @@ export default function CreditsPage() {
         prose-headings:font-heading prose-headings:font-medium
         prose-p:leading-relaxed
         prose-a:text-blue-300 prose-a:no-underline hover:prose-a:underline"
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
     />
   );
 }
