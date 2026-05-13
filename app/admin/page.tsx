@@ -15,11 +15,13 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, profiles, feedback, compatibilityChecks] = await Promise.all([
+  const [users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings] = await Promise.all([
     db.users.list(),
     db.profiles.listAllWithUser(),
     db.feedback.list(),
     db.compatibility.listAllWithDetails(),
+    db.consultationRequests.listAllWithUser(),
+    db.settings.getAll(),
   ]);
 
   return (
@@ -51,7 +53,14 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <AdminTables users={users} profiles={profiles} feedback={feedback} compatibilityChecks={compatibilityChecks} />
+      <AdminTables
+        users={users}
+        profiles={profiles}
+        feedback={feedback}
+        compatibilityChecks={compatibilityChecks}
+        consultationRequests={consultationRequests}
+        appSettings={appSettings}
+      />
     </div>
   );
 }

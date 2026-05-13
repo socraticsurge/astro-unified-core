@@ -20,7 +20,7 @@ let schemaInitialized = false;
 // (not PRAGMA user_version — Turso's HTTP API rejects PRAGMA writes). Warm
 // Lambda instances skip all DDL via the in-memory flag; cold instances do one
 // SELECT to check the version.
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 export async function ensureSchema() {
   if (schemaInitialized) return;
@@ -110,6 +110,34 @@ export async function ensureSchema() {
     await client.execute("CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles (user_id);");
     await client.execute("CREATE INDEX IF NOT EXISTS idx_compatibility_user ON compatibility_checks (user_id);");
     await client.execute("CREATE INDEX IF NOT EXISTS idx_readings_profile ON readings (profile_id);");
+
+    // New in v4: consultation requests + app settings
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS consultation_requests (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        profile_ids TEXT NOT NULL,
+        life_area TEXT NOT NULL,
+        observation TEXT NOT NULL,
+        constraint_text TEXT NOT NULL,
+        objective TEXT NOT NULL,
+        delivery_mode TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        admin_note TEXT,
+        created_at TEXT NOT NULL,
+        answered_at TEXT
+      );
+    `);
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_consultation_requests_user ON consultation_requests (user_id, status);");
+    // Seed default settings — ignore conflict if already seeded.
+    await client.execute(`INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES ('live_consultation_enabled', 'false', '${new Date().toISOString()}')`);
 
     // Column migrations — silently skip if column already exists.
     try { await client.execute("ALTER TABLE users ADD COLUMN created_at TEXT;"); } catch {}

@@ -8,6 +8,36 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Consultation question queue (MVP)
+
+### Added
+- **Consultation feature** — users can submit one structured question at a time to the astrologer.
+  - `/consultation` page with step-by-step form: life area selection (8 MECE areas), profile selector,
+    3-part Life Problem Statement (Observation / Constraint / Objective), live preview, delivery mode.
+  - "Ask a Question" link in `NavBar` (authenticated users only).
+  - Pending question status card shown when a question is awaiting answer.
+- **DB layer** — `consultation_requests` and `settings` tables (SCHEMA_VERSION bumped to 4).
+  - `lib/db/settings.ts` — `AppSettings` type, `getAll()` and `set()` methods.
+  - `lib/db/consultation-requests.ts` — full CRUD: `getPending`, `listByUser`, `listAllWithUser`,
+    `create`, `markAnswered`.
+  - Both modules exported from `lib/db/index.ts`.
+- **Shared types/constants** — `lib/consultation.ts`: `LIFE_AREAS`, `LifeArea`, `DeliveryMode`,
+  `LIFE_AREA_EXAMPLES` (placeholder text per area × 3 fields), `MIN_FIELD_LENGTH = 30`, `assembleStatement`.
+- **API routes**:
+  - `GET/POST /api/consultation-requests` — user: list own requests / submit new (enforces one-pending limit, rate-limited 5/min).
+  - `PATCH /api/admin/consultation-requests?id=<id>` — admin: mark answered with optional note.
+  - `GET/PATCH /api/admin/settings` — admin: read and update app-wide settings.
+- **Admin panel** — two new tabs:
+  - *Questions* — lists all consultation requests sorted newest-first; pending cards show the assembled question, user email, life area, delivery mode, and a "Mark as Answered" action with optional admin note textarea.
+  - *Settings* — toggle switch for `live_consultation_enabled` (default OFF).
+
+### Design decisions
+- One pending question per user enforced server-side; the form is replaced with a status card while a question is awaiting answer.
+- Live Consultation delivery option is hidden from users until the admin enables it via the Settings tab.
+- No payment integration yet — handled offline for MVP.
+
+---
+
 ## [2026-05-13] — Code organisation refactoring + full documentation
 
 ### Added

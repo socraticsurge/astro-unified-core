@@ -194,6 +194,8 @@ the NextAuth OAuth flow.
 | [`lib/db/readings.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/readings.ts) | `Reading` type, cache save/fetch/delete |
 | [`lib/db/compatibility.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/compatibility.ts) | `CompatibilityCheck`, `CompatibilityCheckWithDetails` types, compatibility CRUD |
 | [`lib/db/feedback.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/feedback.ts) | `Feedback` type, feedback save/list |
+| [`lib/db/settings.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/settings.ts) | `AppSettings` type, `getAll()`, `set(key, value)` |
+| [`lib/db/consultation-requests.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/consultation-requests.ts) | `ConsultationRequest`, `ConsultationRequestWithUser` types; `getPending`, `listByUser`, `listAllWithUser`, `create`, `markAnswered` |
 | [`lib/db/index.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/index.ts) | Re-exports all types; assembles the `db` object |
 
 Built on `@libsql/client` (Turso's HTTP SQLite driver).
@@ -207,34 +209,31 @@ Built on `@libsql/client` (Turso's HTTP SQLite driver).
 | `readings` | Cache of sidecar responses. One row per `(profile_id, engine)`. |
 | `compatibility_checks` | Results of Ashtakoota Milan runs. Stores full JSON payload. |
 | `feedback` | User-submitted feedback/ratings. |
+| `consultation_requests` | User questions (Life Problem Statements). One pending row per user at a time. |
+| `settings` | Key-value app settings (e.g. `live_consultation_enabled`). Seeded with defaults. |
 | `schema_version` | Single-row version table for schema migration tracking. |
 
 **Schema management**: `ensureSchema()` runs lazily on the first DB call per
 Lambda instance. It checks `schema_version`; if the stored version is behind
-`SCHEMA_VERSION` (currently `3`), it runs all DDL statements. Column additions
+`SCHEMA_VERSION` (currently `4`), it runs all DDL statements. Column additions
 use `ALTER TABLE … ADD COLUMN` wrapped in `try/catch` to handle re-runs.
 
 **Key exported namespaces:**
 
 ```
-db.users       — upsert, list
-db.profiles    — list, listAll, listAllWithUser, get, getAny, create, update, delete
-db.readings    — save, latestByEngine, deleteByProfile
-db.compatibility — list, listAllWithDetails, get, getAny, save
-db.feedback    — save, list
+db.users                — upsert, list
+db.profiles             — list, listAll, listAllWithUser, get, getAny, create, update, delete
+db.readings             — save, latestByEngine, deleteByProfile
+db.compatibility        — list, listAllWithDetails, get, getAny, save
+db.feedback             — save, list
+db.settings             — getAll, set
+db.consultationRequests — getPending, listByUser, listAllWithUser, create, markAnswered
 ```
 
 ### Rate Limiting
-[`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts)
-[`lib/security.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/security.ts)
+[`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts) — unified in-memory rate limiter: `rateLimit(key, limit, windowMs)` → `{ success, limit, remaining }`. Per-instance (not shared across Lambdas); adequate for abuse prevention on a small app.
 
-Two in-memory rate limiters (both per-instance, not shared across Lambdas).
-`rate-limit.ts` is used in the profiles creation route (5 req/min per email).
-`security.ts` is used in the career route.
-
-> Note: since Vercel runs each Lambda independently, the limit is per-instance,
-> not global. This is adequate for abuse prevention on a small app but would
-> need Redis/Upstash for strict global enforcement at scale.
+> For global enforcement at scale, replace with Redis/Upstash.
 
 ---
 
@@ -408,6 +407,22 @@ cached readings. Used when the sidecar is updated and stale caches need refreshi
 Admin-only. Deletes all rows from `compatibility_checks`. Exposed in the admin
 UI as the "Clear History" button.
 
+**[`app/api/admin/consultation-requests/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/admin/consultation-requests/route.ts)**
+
+Admin-only. `PATCH ?id=<id>` marks a consultation request as answered and saves an optional admin note.
+
+**[`app/api/admin/settings/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/admin/settings/route.ts)**
+
+Admin-only. `GET` returns all app settings. `PATCH` updates one or more settings (boolean values only).
+
+### Consultation Requests
+
+**[`app/api/consultation-requests/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/consultation-requests/route.ts)**
+
+- `GET` — returns the authenticated user's consultation request history.
+- `POST` — submits a new consultation request. Enforces one-pending-at-a-time. Rate-limited 5/min.
+  Validates all three Life Problem Statement fields meet `MIN_FIELD_LENGTH = 30`.
+
 ---
 
 ## 7. Page Components
@@ -498,17 +513,35 @@ Client component. Admin-only Basic / Professional toggle.
 **[`app/admin/page.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/admin/page.tsx)**
 
 Server component. Admin-gated. Loads users, profiles (with user email join),
-compatibility checks (with profile name join), and feedback. Renders
-`AdminTables`.
+compatibility checks (with profile name join), feedback, all consultation requests,
+and app settings. Renders `AdminTables`.
 
 **[`app/admin/AdminTables.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/admin/AdminTables.tsx)**
 
-Client component. Four sortable tabs:
+Client component. Six tabs:
 - **Users** — sign-in history, emails
 - **Profiles** — all profiles across users with birth data
-- **Compatibility** — all checks with **View** link (→ `/compatibility/[id]`)
-  and JSON dropdown
+- **Compatibility** — all checks with **View** link (→ `/compatibility/[id]`) and JSON dropdown
 - **Feedback** — submitted ratings and messages
+- **Questions** — consultation requests; pending cards show the assembled question and a "Mark as Answered" action with optional admin note
+- **Settings** — toggle switch for `live_consultation_enabled`
+
+### Consultation
+
+**[`app/consultation/page.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/consultation/page.tsx)**
+
+Server component. Auth-gated (middleware). Loads: pending consultation request, user's profiles, app settings. Renders `ConsultationForm`.
+
+**[`app/consultation/ConsultationForm.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/consultation/ConsultationForm.tsx)**
+
+Client component. Steps:
+1. Select one of 8 life areas (Career, Wealth, Marriage, Family, Health, Education, Travel, Dharma)
+2. Select one or more profiles the question is about
+3. Fill the three Life Problem Statement fields (Observation / Constraint / Objective) — live char count, per-area placeholder examples
+4. Live assembled preview panel
+5. Delivery mode: Written Answer (always shown) | Live Consultation (shown only when `live_consultation_enabled = true`)
+
+When a pending question exists, renders `PendingCard` instead of the form — shows the submitted question and admin note if present.
 
 ---
 
