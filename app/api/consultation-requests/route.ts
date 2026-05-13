@@ -31,16 +31,17 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { profile_ids, life_area, observation, constraint_text, objective, delivery_mode } = body;
+  const { profile_ids, life_area, observation, constraint_text, objective, options, delivery_mode } = body;
 
-  if (!profile_ids || !life_area || !observation || !constraint_text || !objective || !delivery_mode) {
+  if (!profile_ids || !life_area || !observation || !constraint_text || !objective || !options || !delivery_mode) {
     return NextResponse.json({ error: "All fields are required" }, { status: 400 });
   }
 
   if (
     observation.trim().length < MIN_FIELD_LENGTH ||
     constraint_text.trim().length < MIN_FIELD_LENGTH ||
-    objective.trim().length < MIN_FIELD_LENGTH
+    objective.trim().length < MIN_FIELD_LENGTH ||
+    options.trim().length < MIN_FIELD_LENGTH
   ) {
     return NextResponse.json(
       { error: `Each field must be at least ${MIN_FIELD_LENGTH} characters` },
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
     observation: observation.trim(),
     constraint_text: constraint_text.trim(),
     objective: objective.trim(),
+    options: options.trim(),
     delivery_mode,
   });
 

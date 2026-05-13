@@ -20,7 +20,7 @@ let schemaInitialized = false;
 // (not PRAGMA user_version — Turso's HTTP API rejects PRAGMA writes). Warm
 // Lambda instances skip all DDL via the in-memory flag; cold instances do one
 // SELECT to check the version.
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 export async function ensureSchema() {
   if (schemaInitialized) return;
@@ -148,6 +148,11 @@ export async function ensureSchema() {
     try { await client.execute("ALTER TABLE profiles ADD COLUMN current_longitude REAL;"); } catch {}
     try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone TEXT;"); } catch {}
     try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone_offset REAL;"); } catch {}
+
+    // v5: options field + user feedback on consultation requests
+    try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN options TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN user_rating TEXT;"); } catch {}
+    try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN user_feedback_note TEXT;"); } catch {}
 
     await client.execute(
       `INSERT OR REPLACE INTO schema_version (id, version) VALUES (1, ${SCHEMA_VERSION})`

@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, Clock, ChevronRight, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LIFE_AREAS, LIFE_AREA_EXAMPLES, MIN_FIELD_LENGTH, assembleStatement } from "@/lib/consultation";
+import { LIFE_AREAS, LIFE_AREA_EXAMPLES, OPTIONS_GENERIC_PLACEHOLDER, MIN_FIELD_LENGTH, assembleStatement } from "@/lib/consultation";
 import type { ConsultationRequest, Profile } from "@/lib/db";
 import type { LifeArea, DeliveryMode } from "@/lib/consultation";
 
@@ -14,6 +15,10 @@ type Props = {
   liveConsultationEnabled: boolean;
 };
 
+function isProfileComplete(p: Profile): boolean {
+  return !!(p.gender && p.relationship && p.current_location && p.current_latitude != null && p.current_longitude != null);
+}
+
 export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled }: Props) {
   const router = useRouter();
   const [selectedArea, setSelectedArea] = useState<LifeArea | null>(null);
@@ -21,6 +26,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
   const [observation, setObservation] = useState("");
   const [constraint, setConstraint] = useState("");
   const [objective, setObjective] = useState("");
+  const [options, setOptions] = useState("");
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("written");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,14 +45,18 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
     }
   }
 
+  const completeProfiles = profiles.filter(isProfileComplete);
+  const incompleteProfiles = profiles.filter(p => !isProfileComplete(p));
+
   const examples = selectedArea ? LIFE_AREA_EXAMPLES[selectedArea] : null;
-  const assembled = assembleStatement(observation, constraint, objective);
+  const assembled = assembleStatement(observation, constraint, objective, options);
   const canSubmit =
     selectedArea &&
     selectedProfiles.length > 0 &&
     observation.trim().length >= MIN_FIELD_LENGTH &&
     constraint.trim().length >= MIN_FIELD_LENGTH &&
-    objective.trim().length >= MIN_FIELD_LENGTH;
+    objective.trim().length >= MIN_FIELD_LENGTH &&
+    options.trim().length >= MIN_FIELD_LENGTH;
 
   const toggleProfile = (id: string) => {
     setSelectedProfiles(prev =>
@@ -68,6 +78,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
           observation: observation.trim(),
           constraint_text: constraint.trim(),
           objective: objective.trim(),
+          options: options.trim(),
           delivery_mode: deliveryMode,
         }),
       });
@@ -84,12 +95,11 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
 
   return (
     <div className="space-y-10">
-      {/* Pending question or new question form */}
       {pending ? (
         <PendingCard pending={pending} profileNames={resolveProfileNames(pending.profile_ids)} />
       ) : (
         <div className="space-y-8">
-          {/* Step 1: Select life area */}
+          {/* Step 1: Life area */}
           <section className="space-y-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               1. Choose a life area
@@ -111,7 +121,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
             </div>
           </section>
 
-          {/* Step 2: Select profiles */}
+          {/* Step 2: Profiles */}
           <section className="space-y-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               2. Select profile(s) this is about
@@ -122,20 +132,48 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
                 <a href="/dashboard" className="underline text-amber-400">Create one first.</a>
               </p>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {profiles.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => toggleProfile(p.id)}
-                    className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
-                      selectedProfiles.includes(p.id)
-                        ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
-                        : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10 hover:text-foreground"
-                    }`}
-                  >
-                    {p.name}
-                  </button>
-                ))}
+              <div className="space-y-2">
+                {completeProfiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {completeProfiles.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => toggleProfile(p.id)}
+                        className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                          selectedProfiles.includes(p.id)
+                            ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
+                            : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10 hover:text-foreground"
+                        }`}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {incompleteProfiles.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3 text-amber-500/70" />
+                      The following profiles are missing required information and cannot be selected:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {incompleteProfiles.map(p => (
+                        <span
+                          key={p.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/5 bg-white/3 text-sm text-muted-foreground/50"
+                        >
+                          {p.name}
+                          <Link
+                            href={`/profiles/${p.id}/edit`}
+                            className="text-xs text-amber-400/70 hover:text-amber-400 underline"
+                          >
+                            Complete →
+                          </Link>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </section>
@@ -146,7 +184,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
               3. Describe your situation
             </h2>
             <p className="text-xs text-muted-foreground">
-              Structure your question as three parts. Be specific — the more precise your input, the more targeted the answer.
+              Structure your question as four parts. Be specific — the more precise your input, the more targeted the answer.
             </p>
             <div className="space-y-4">
               <FieldBlock
@@ -169,6 +207,13 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
                 placeholder={examples?.objective ?? "e.g. I want to know whether to persist here or make a lateral move before year-end"}
                 value={objective}
                 onChange={setObjective}
+              />
+              <FieldBlock
+                label="Options you are considering"
+                hint="List the choices you are weighing. If no specific options have formed yet, describe what paths you are drawn to or what has been suggested."
+                placeholder={examples?.options ?? OPTIONS_GENERIC_PLACEHOLDER}
+                value={options}
+                onChange={setOptions}
               />
             </div>
           </section>
@@ -221,7 +266,6 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
         </div>
       )}
 
-      {/* Past questions archive — always visible if any answered */}
       {answered.length > 0 && (
         <HistorySection answered={answered} resolveProfileNames={resolveProfileNames} />
       )}
@@ -252,7 +296,7 @@ function PendingCard({ pending, profileNames }: { pending: ConsultationRequest; 
         <div>
           <span className="text-xs uppercase tracking-wider text-muted-foreground">Your Question</span>
           <p className="mt-0.5 text-foreground/80 leading-relaxed">
-            {assembleStatement(pending.observation, pending.constraint_text, pending.objective)}
+            {assembleStatement(pending.observation, pending.constraint_text, pending.objective, pending.options)}
           </p>
         </div>
         <div>
@@ -278,6 +322,31 @@ function HistorySection({
   resolveProfileNames: (ids: string) => string;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [ratings, setRatings] = useState<Record<string, "helpful" | "not_helpful">>(() => {
+    const initial: Record<string, "helpful" | "not_helpful"> = {};
+    for (const req of answered) {
+      if (req.user_rating) initial[req.id] = req.user_rating;
+    }
+    return initial;
+  });
+  const [ratingNote, setRatingNote] = useState<Record<string, string>>({});
+  const [showNoteFor, setShowNoteFor] = useState<string | null>(null);
+  const [submittingFeedback, setSubmittingFeedback] = useState<string | null>(null);
+
+  const submitFeedback = async (id: string, rating: "helpful" | "not_helpful") => {
+    setSubmittingFeedback(id);
+    try {
+      await fetch(`/api/consultation-requests/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, note: ratingNote[id] ?? undefined }),
+      });
+      setRatings(prev => ({ ...prev, [id]: rating }));
+      setShowNoteFor(null);
+    } finally {
+      setSubmittingFeedback(null);
+    }
+  };
 
   return (
     <section className="space-y-3">
@@ -287,6 +356,7 @@ function HistorySection({
       <div className="space-y-2">
         {answered.map(req => {
           const isOpen = expandedId === req.id;
+          const currentRating = ratings[req.id] ?? null;
           return (
             <div key={req.id} className="rounded-lg border border-white/10 bg-white/5 overflow-hidden">
               <button
@@ -302,21 +372,26 @@ function HistorySection({
                     </span>
                   </div>
                 </div>
-                {isOpen ? (
-                  <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {currentRating === "helpful" && <ThumbsUp className="h-3.5 w-3.5 text-green-400" />}
+                  {currentRating === "not_helpful" && <ThumbsDown className="h-3.5 w-3.5 text-red-400" />}
+                  {isOpen ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
               </button>
 
               {isOpen && (
-                <div className="px-4 pb-4 space-y-3 border-t border-white/10 pt-3">
+                <div className="px-4 pb-4 space-y-4 border-t border-white/10 pt-3">
                   <div>
                     <span className="text-xs uppercase tracking-wider text-muted-foreground">Your Question</span>
                     <p className="mt-1 text-sm text-foreground/80 leading-relaxed">
-                      {assembleStatement(req.observation, req.constraint_text, req.objective)}
+                      {assembleStatement(req.observation, req.constraint_text, req.objective, req.options)}
                     </p>
                   </div>
+
                   {req.admin_note ? (
                     <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4 space-y-1">
                       <div className="flex items-center gap-1.5 text-green-400 text-xs font-semibold uppercase tracking-wider">
@@ -327,9 +402,59 @@ function HistorySection({
                   ) : (
                     <p className="text-xs text-muted-foreground italic">No written note was added for this answer.</p>
                   )}
+
                   {req.answered_at && (
                     <p className="text-xs text-muted-foreground">
                       Answered {new Date(req.answered_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+                    </p>
+                  )}
+
+                  {/* Feedback */}
+                  {!currentRating ? (
+                    <div className="space-y-2 pt-1 border-t border-white/10">
+                      <p className="text-xs text-muted-foreground">Was this answer helpful?</p>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={!!submittingFeedback}
+                          onClick={() => setShowNoteFor(showNoteFor === req.id ? null : req.id)}
+                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
+                            showNoteFor === req.id
+                              ? "border-green-600/50 bg-green-900/20 text-green-400"
+                              : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
+                          }`}
+                        >
+                          <ThumbsUp className="h-3.5 w-3.5" /> Helpful
+                        </button>
+                        <button
+                          disabled={!!submittingFeedback}
+                          onClick={() => submitFeedback(req.id, "not_helpful")}
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors disabled:opacity-50"
+                        >
+                          <ThumbsDown className="h-3.5 w-3.5" /> Not helpful
+                        </button>
+                      </div>
+                      {showNoteFor === req.id && (
+                        <div className="space-y-2">
+                          <textarea
+                            rows={2}
+                            placeholder="Optional: what was most useful? (helps improve future answers)"
+                            value={ratingNote[req.id] ?? ""}
+                            onChange={e => setRatingNote(prev => ({ ...prev, [req.id]: e.target.value }))}
+                            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-green-400/50 resize-none"
+                          />
+                          <button
+                            disabled={submittingFeedback === req.id}
+                            onClick={() => submitFeedback(req.id, "helpful")}
+                            className="text-xs bg-green-700/20 hover:bg-green-700/30 border border-green-700/40 text-green-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                          >
+                            {submittingFeedback === req.id ? "Submitting…" : "Submit"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-white/10">
+                      {currentRating === "helpful" ? "You marked this answer as helpful." : "You marked this answer as not helpful."}
                     </p>
                   )}
                 </div>

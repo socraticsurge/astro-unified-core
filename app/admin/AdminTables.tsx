@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar, CheckCircle2 } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar, CheckCircle2, ThumbsUp, ThumbsDown } from "lucide-react";
 import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings } from "@/lib/db";
 import { assembleStatement } from "@/lib/consultation";
 
@@ -375,9 +375,13 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                         {new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isDone ? "bg-green-900/30 text-green-400" : "bg-amber-900/30 text-amber-400"}`}>
-                          {isDone ? "Answered" : "Pending"}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isDone ? "bg-green-900/30 text-green-400" : "bg-amber-900/30 text-amber-400"}`}>
+                            {isDone ? "Answered" : "Pending"}
+                          </span>
+                          {req.user_rating === "helpful" && <ThumbsUp className="h-3 w-3 text-green-400" />}
+                          {req.user_rating === "not_helpful" && <ThumbsDown className="h-3 w-3 text-red-400" />}
+                        </div>
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         <button
@@ -395,13 +399,22 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                             <div>
                               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Question</p>
                               <p className="text-sm text-foreground/80 leading-relaxed">
-                                {assembleStatement(req.observation, req.constraint_text, req.objective)}
+                                {assembleStatement(req.observation, req.constraint_text, req.objective, req.options)}
                               </p>
                             </div>
                             {req.admin_note && (
                               <div className="rounded-md border border-green-700/30 bg-green-900/20 px-3 py-2">
                                 <p className="text-xs uppercase tracking-wider text-green-400 mb-0.5">Your note</p>
                                 <p className="text-xs text-foreground/70">{req.admin_note}</p>
+                              </div>
+                            )}
+                            {req.user_rating && (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {req.user_rating === "helpful"
+                                  ? <ThumbsUp className="h-3 w-3 text-green-400" />
+                                  : <ThumbsDown className="h-3 w-3 text-red-400" />}
+                                <span>User feedback: {req.user_rating === "helpful" ? "Helpful" : "Not helpful"}</span>
+                                {req.user_feedback_note && <span>— "{req.user_feedback_note}"</span>}
                               </div>
                             )}
                             {!isDone && (

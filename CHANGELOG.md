@@ -8,6 +8,26 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Consultation: options field, profile guard, answer feedback
+
+### Added
+- **Options field** — 4th mandatory field in the Life Problem Statement form ("Options you are considering").
+  Per-area placeholder examples provided; generic fallback guides users who haven't narrowed options yet.
+  Stored as `options TEXT` (nullable for legacy rows). Included in assembled question preview and all views.
+- **Profile completeness guard** — profiles missing `gender`, `relationship`, or `current_location` are
+  shown grayed-out with a "Complete →" link to their edit page. Only complete profiles are selectable.
+- **Answer feedback** — users can rate answered questions as Helpful / Not helpful directly in the history
+  card. "Helpful" shows an optional note textarea before submitting. Rating shown as icon in admin table.
+  Admin detail row shows full feedback including the user's note.
+- `user_rating` and `user_feedback_note` columns added to `consultation_requests` (SCHEMA_VERSION 5).
+- `POST /api/consultation-requests/[id]` — submit feedback for an owned, answered request.
+
+### Changed
+- `assembleStatement()` accepts optional 4th `options` param — backward compatible.
+- `LIFE_AREA_EXAMPLES` extended with `options` placeholder for all 8 life areas.
+
+---
+
 ## [2026-05-13] — Consultation question queue (MVP)
 
 ### Added
