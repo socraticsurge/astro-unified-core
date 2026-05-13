@@ -15,13 +15,14 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings] = await Promise.all([
+  const [users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings, consultationSlots] = await Promise.all([
     db.users.list(),
     db.profiles.listAllWithUser(),
     db.feedback.list(),
     db.compatibility.listAllWithDetails(),
     db.consultationRequests.listAllWithUser(),
     db.settings.getAll(),
+    db.consultationSlots.listAll(),
   ]);
 
   return (
@@ -59,6 +60,7 @@ export default async function AdminPage() {
         feedback={feedback}
         compatibilityChecks={compatibilityChecks}
         consultationRequests={consultationRequests}
+        consultationSlots={consultationSlots}
         appSettings={appSettings}
       />
     </div>

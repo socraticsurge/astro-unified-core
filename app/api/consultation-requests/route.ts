@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { profile_ids, life_area, observation, constraint_text, objective, options, delivery_mode } = body;
+  const { profile_ids, life_area, observation, constraint_text, objective, options, delivery_mode, slot_id } = body;
 
   if (!profile_ids || !life_area || !observation || !constraint_text || !objective || !options || !delivery_mode) {
     return NextResponse.json({ error: "All fields are required" }, { status: 400 });
@@ -53,6 +53,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid delivery mode" }, { status: 400 });
   }
 
+  if (delivery_mode === "appointment" && !slot_id) {
+    return NextResponse.json({ error: "A slot selection is required for live consultation" }, { status: 400 });
+  }
+
+  // Verify and book the slot for appointment mode
+  let slot_starts_at: string | null = null;
+  if (delivery_mode === "appointment") {
+    const slot = await db.consultationSlots.getById(slot_id);
+    if (!slot) {
+      return NextResponse.json({ error: "Selected slot not found" }, { status: 400 });
+    }
+    if (slot.is_booked) {
+      return NextResponse.json({ error: "This slot has already been booked. Please choose another." }, { status: 409 });
+    }
+    const booked = await db.consultationSlots.book(slot_id);
+    if (!booked) {
+      return NextResponse.json({ error: "This slot has already been booked. Please choose another." }, { status: 409 });
+    }
+    slot_starts_at = slot.starts_at;
+  }
+
   const appSettings = await db.settings.getAll();
   const amount_paise = delivery_mode === "written"
     ? appSettings.written_fee_paise
@@ -67,6 +88,7 @@ export async function POST(request: Request) {
     options: options.trim(),
     delivery_mode,
     amount_paise,
+    slot_starts_at,
   });
 
   return NextResponse.json(created, { status: 201 });

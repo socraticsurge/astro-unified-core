@@ -11,7 +11,7 @@ import {
   MIN_FIELD_LENGTH, assembleStatement,
   WRITTEN_FEE_PAISE, LIVE_FEE_PAISE, formatFee,
 } from "@/lib/consultation";
-import type { ConsultationRequest, Profile } from "@/lib/db";
+import type { ConsultationRequest, Profile, ConsultationSlot } from "@/lib/db";
 import type { LifeArea, DeliveryMode } from "@/lib/consultation";
 
 const UPI_ID = "meherkalyanichaganti@okaxis";
@@ -23,6 +23,7 @@ type Props = {
   liveConsultationEnabled: boolean;
   writtenFeePaise: number;
   liveFeePaise: number;
+  availableSlots: ConsultationSlot[];
   userName: string;
   userEmail: string;
 };
@@ -31,7 +32,7 @@ function isProfileComplete(p: Profile): boolean {
   return !!(p.gender && p.relationship && p.current_location && p.current_latitude != null && p.current_longitude != null);
 }
 
-export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled, writtenFeePaise, liveFeePaise, userName, userEmail }: Props) {
+export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled, writtenFeePaise, liveFeePaise, availableSlots, userName, userEmail }: Props) {
   const router = useRouter();
   const [selectedArea, setSelectedArea] = useState<LifeArea | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
@@ -40,6 +41,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
   const [objective, setObjective] = useState("");
   const [options, setOptions] = useState("");
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("written");
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,7 +71,8 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
     observation.trim().length >= MIN_FIELD_LENGTH &&
     constraint.trim().length >= MIN_FIELD_LENGTH &&
     objective.trim().length >= MIN_FIELD_LENGTH &&
-    options.trim().length >= MIN_FIELD_LENGTH;
+    options.trim().length >= MIN_FIELD_LENGTH &&
+    (deliveryMode !== "appointment" || !!selectedSlotId);
 
   const toggleProfile = (id: string) => {
     setSelectedProfiles(prev =>
@@ -93,6 +96,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
           objective: objective.trim(),
           options: options.trim(),
           delivery_mode: deliveryMode,
+          ...(deliveryMode === "appointment" && selectedSlotId ? { slot_id: selectedSlotId } : {}),
         }),
       });
       if (!res.ok) {
@@ -255,7 +259,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
               <DeliveryCard
                 mode="written"
                 selected={deliveryMode === "written"}
-                onClick={() => setDeliveryMode("written")}
+                onClick={() => { setDeliveryMode("written"); setSelectedSlotId(null); }}
                 title="Written Response"
                 price={formatFee(writtenFeePaise)}
                 description="Detailed written answer, typically within a few days."
@@ -272,6 +276,49 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
               )}
             </div>
           </section>
+
+          {/* Step 5: Slot picker — only for live consultation */}
+          {liveConsultationEnabled && deliveryMode === "appointment" && (
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                5. Choose a consultation slot
+              </h2>
+              <p className="text-xs text-muted-foreground">All times are in IST (Indian Standard Time).</p>
+              {availableSlots.length === 0 ? (
+                <p className="text-sm text-muted-foreground rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+                  No slots are currently available. Please check back later or reach out to Kalyani on WhatsApp to arrange a time.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {availableSlots.map(slot => {
+                    const label = new Date(slot.starts_at).toLocaleString("en-IN", {
+                      timeZone: "Asia/Kolkata",
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    });
+                    return (
+                      <button
+                        key={slot.id}
+                        onClick={() => setSelectedSlotId(slot.id)}
+                        className={`text-left px-4 py-3 rounded-lg border text-sm transition-colors ${
+                          selectedSlotId === slot.id
+                            ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
+                            : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10 hover:text-foreground"
+                        }`}
+                      >
+                        {label} IST
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          )}
 
           {error && (
             <p className="text-sm text-red-400 bg-red-950/30 border border-red-900/40 rounded-lg px-4 py-3">
@@ -338,6 +385,23 @@ function PendingCard({
           <span className="text-xs uppercase tracking-wider text-muted-foreground">Delivery</span>
           <p className="mt-0.5">{pending.delivery_mode === "written" ? "Written Response" : "Live Consultation (25 min)"}</p>
         </div>
+        {pending.delivery_mode === "appointment" && pending.slot_starts_at && (
+          <div>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Selected Slot</span>
+            <p className="mt-0.5 font-medium text-amber-300/90">
+              {new Date(pending.slot_starts_at).toLocaleString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })} IST
+            </p>
+          </div>
+        )}
         <div>
           <span className="text-xs uppercase tracking-wider text-muted-foreground">Submitted</span>
           <p className="mt-0.5 text-muted-foreground text-xs">
@@ -356,11 +420,67 @@ function PendingCard({
       )}
 
       {isPaid && (
-        <div className="rounded-lg border border-green-700/30 bg-green-950/20 px-4 py-3 flex items-center gap-2 text-green-400 text-sm">
-          <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-          <span>Payment confirmed. Dr. Chaganti will answer your question shortly.</span>
+        <div className="space-y-3">
+          <div className="rounded-lg border border-green-700/30 bg-green-950/20 px-4 py-3 flex items-center gap-2 text-green-400 text-sm">
+            <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+            <span>
+              {pending.delivery_mode === "appointment"
+                ? "Payment confirmed. You will receive a Google Meet link for your slot."
+                : "Payment confirmed. Dr. Chaganti will answer your question shortly."}
+            </span>
+          </div>
+          {pending.delivery_mode === "appointment" && pending.slot_starts_at && (
+            <SlotActions pending={pending} />
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function SlotActions({ pending }: { pending: ConsultationRequest }) {
+  const ref = pending.id.substring(0, 8).toUpperCase();
+  const slotLabel = pending.slot_starts_at
+    ? new Date(pending.slot_starts_at).toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }) + " IST"
+    : "";
+
+  const rescheduleMsg = encodeURIComponent(
+    `Hi Kalyani 🙏\n\nI need to reschedule my live consultation.\n\nRef: #${ref}\nSlot: ${slotLabel}\n\nCould you please help me find an alternative slot?`
+  );
+  const cancelMsg = encodeURIComponent(
+    `Hi Kalyani 🙏\n\nI need to cancel my live consultation.\n\nRef: #${ref}\nSlot: ${slotLabel}\n\nPlease process the cancellation and let me know next steps.`
+  );
+
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 space-y-2">
+      <p className="text-xs text-muted-foreground">Need to change your slot? Reach out to Kalyani on WhatsApp:</p>
+      <div className="flex flex-wrap gap-2">
+        <a
+          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${rescheduleMsg}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-md transition-colors"
+        >
+          <span>💬</span> Request Reschedule
+        </a>
+        <a
+          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${cancelMsg}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-md transition-colors"
+        >
+          <span>💬</span> Request Cancellation
+        </a>
+      </div>
     </div>
   );
 }
@@ -387,6 +507,10 @@ function PaymentInstructions({
 
   const question = assembleStatement(pending.observation, pending.constraint_text, pending.objective, pending.options);
 
+  const slotLine = pending.slot_starts_at
+    ? `Slot: ${new Date(pending.slot_starts_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })} IST\n`
+    : "";
+
   const waMessage = encodeURIComponent(
     `Hi Kalyani 🙏\n\nPayment pending for a consultation on Astro Chaganti.\n\n` +
     `Name: ${userName || "Not provided"}\n` +
@@ -394,6 +518,7 @@ function PaymentInstructions({
     `Profile(s): ${profileNames}\n` +
     `Life Area: ${pending.life_area}\n` +
     `Type: ${modeLabel}\n` +
+    slotLine +
     `Amount: ₹${amountRupees.toLocaleString("en-IN")}\n` +
     `Ref: #${ref}\n\n` +
     `Question:\n${question}\n\n` +

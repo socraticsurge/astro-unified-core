@@ -20,7 +20,7 @@ let schemaInitialized = false;
 // (not PRAGMA user_version — Turso's HTTP API rejects PRAGMA writes). Warm
 // Lambda instances skip all DDL via the in-memory flag; cold instances do one
 // SELECT to check the version.
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 export async function ensureSchema() {
   if (schemaInitialized) return;
@@ -156,6 +156,17 @@ export async function ensureSchema() {
 
     // v6: payment tracking
     try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN amount_paise INTEGER;"); } catch {}
+
+    // v7: live consultation slot booking
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS consultation_slots (
+        id TEXT PRIMARY KEY,
+        starts_at TEXT NOT NULL,
+        is_booked INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_slots_starts_at ON consultation_slots (starts_at);");
+    try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN slot_starts_at TEXT;"); } catch {}
 
     await client.execute(
       `INSERT OR REPLACE INTO schema_version (id, version) VALUES (1, ${SCHEMA_VERSION})`
