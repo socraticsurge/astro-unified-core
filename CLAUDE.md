@@ -77,12 +77,12 @@ Tailwind v4, shadcn/ui. Deployed on Vercel.
 
 **Never push directly to `main`.** The workflow is:
 
-1. **Work on `develop`** — create it if it doesn't exist (`git checkout -b develop`).
-2. **Push `develop`** — Vercel automatically creates a preview deployment for every push to a non-production branch. Share or visit the preview URL to verify the feature works end-to-end.
-3. **Only merge to `main` after the user confirms** the preview looks good. Then: `git checkout main && git merge develop && git push origin main`.
+1. **Work on `development`** — the branch already exists. Always `git checkout development` before starting work.
+2. **Push `development`** — Vercel automatically creates a preview deployment for every push to a non-production branch. Share or visit the preview URL to verify the feature works end-to-end.
+3. **Only merge to `main` after the user confirms** the preview looks good. Then: `git checkout main && git merge development && git push origin main`.
 
 `main` = production. Every push to `main` triggers a live deployment visible to real users.
-Skipping `develop` means untested code goes straight to production.
+Do NOT create new branches (e.g. `develop`, `feature/*`) — use `development`.
 
 ---
 
