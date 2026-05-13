@@ -73,6 +73,19 @@ Tailwind v4, shadcn/ui. Deployed on Vercel.
 
 ---
 
+## Branch workflow — required for every feature or fix
+
+**Never push directly to `main`.** The workflow is:
+
+1. **Work on `develop`** — create it if it doesn't exist (`git checkout -b develop`).
+2. **Push `develop`** — Vercel automatically creates a preview deployment for every push to a non-production branch. Share or visit the preview URL to verify the feature works end-to-end.
+3. **Only merge to `main` after the user confirms** the preview looks good. Then: `git checkout main && git merge develop && git push origin main`.
+
+`main` = production. Every push to `main` triggers a live deployment visible to real users.
+Skipping `develop` means untested code goes straight to production.
+
+---
+
 ## Hard constraints
 
 - **Always pass `authOptions` to `getServerSession(authOptions)`** — without it,
