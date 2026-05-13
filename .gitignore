@@ -37,4 +37,8 @@ next-env.d.ts
 *.pyc
 public/data/hip_main.dat
 .env*.local
+<<<<<<< HEAD
 coverage
+=======
+coverage/
+>>>>>>> development
