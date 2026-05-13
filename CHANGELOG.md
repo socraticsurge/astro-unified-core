@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Landing page copy & design polish
+
+### Changed
+- Hero subhead: removed "researcher's rigor" → warmer, benefit-focused copy
+- Journey paragraph: "grounded, research-based answer" → "focused answer, not a generic reading"
+- Life area cards: replaced `<ul>` bullet lists with free-flowing `<p>` text (~2-3 sentences per area); no more widow words
+- Compatibility callout: redesigned from plain horizontal bar with 🔗 emoji to amber-tinted card (matching family callout style) with 💞 emoji; removed technical jargon (Nadi, Gana, Bhakoot) aimed at first-time visitors; warmer heading "Checking compatibility before marriage?"
+- About Dr. Chaganti: removed "researcher's discipline", "careful research engagement", "decode the architecture of your situation" → plain, warm language
+- Step 4 "How it works": "deep-dive research response" → "written answer built around your charts"
+- FAQ Ayanamsha answer: "strictly utilises" → "uses"; removed "highest possible mathematical integrity"
+- FAQ consultation answer: "synthesises" → "brings together"
+
+---
+
 ## [2026-05-13] — Landing page overhaul
 
 ### Changed
