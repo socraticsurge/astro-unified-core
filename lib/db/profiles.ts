@@ -72,6 +72,28 @@ export const profiles = {
     return rs.rows[0] as unknown as Profile | undefined;
   },
 
+  async getMany(ids: string[], userId: string): Promise<Profile[]> {
+    if (ids.length === 0) return [];
+    await ensureSchema();
+    const placeholders = ids.map(() => "?").join(",");
+    const rs = await getClient().execute({
+      sql: `SELECT * FROM profiles WHERE id IN (${placeholders}) AND user_id = ?`,
+      args: [...ids, userId],
+    });
+    return rs.rows as unknown as Profile[];
+  },
+
+  async getManyAny(ids: string[]): Promise<Profile[]> {
+    if (ids.length === 0) return [];
+    await ensureSchema();
+    const placeholders = ids.map(() => "?").join(",");
+    const rs = await getClient().execute({
+      sql: `SELECT * FROM profiles WHERE id IN (${placeholders})`,
+      args: [...ids],
+    });
+    return rs.rows as unknown as Profile[];
+  },
+
   async create(userId: string, data: Omit<Profile, "id" | "created_at" | "user_id">): Promise<Profile> {
     await ensureSchema();
     const id = randomUUID();
