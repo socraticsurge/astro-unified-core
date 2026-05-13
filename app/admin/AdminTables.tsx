@@ -367,6 +367,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 <th className="px-3 py-2 font-medium whitespace-nowrap">Profile(s)</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("delivery_mode")}>Mode {renderSortIcon("delivery_mode", qSortCol, qSortDir)}</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("created_at")}>Date {renderSortIcon("created_at", qSortCol, qSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Ref</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("status")}>Status {renderSortIcon("status", qSortCol, qSortDir)}</th>
                 <th className="px-3 py-2 font-medium text-right whitespace-nowrap">Details</th>
               </tr>
@@ -374,7 +375,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
             <tbody>
               {sortedQuestions.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">No consultation requests yet.</td>
+                  <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">No consultation requests yet.</td>
                 </tr>
               )}
               {sortedQuestions.map(req => {
@@ -412,6 +413,9 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                       <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap text-xs">
                         {new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
                       </td>
+                      <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        #{req.id.substring(0, 8).toUpperCase()}
+                      </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {isDone && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-900/30 text-green-400">Answered</span>}
@@ -432,7 +436,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                     </tr>
                     {isExpanded && (
                       <tr key={`${req.id}-detail`} className="border-t border-white/5">
-                        <td colSpan={7} className="px-4 py-4 bg-white/[0.02]">
+                        <td colSpan={8} className="px-4 py-4 bg-white/[0.02]">
                           <div className="space-y-3 max-w-2xl">
                             <div>
                               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Question</p>

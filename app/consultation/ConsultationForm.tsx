@@ -385,8 +385,10 @@ function PaymentInstructions({
 
   const upiQrValue = `upi://pay?pa=${UPI_ID}&pn=Kalyani+Chaganti&am=${amountRupees}&cu=INR&tn=Astro+Chaganti+Consultation`;
 
+  const question = assembleStatement(pending.observation, pending.constraint_text, pending.objective, pending.options);
+
   const waMessage = encodeURIComponent(
-    `Hi Kalyani 🙏\n\nA consultation question has been submitted on Astro Chaganti.\n\n` +
+    `Hi Kalyani 🙏\n\nPayment pending for a consultation on Astro Chaganti.\n\n` +
     `Name: ${userName || "Not provided"}\n` +
     `Email: ${userEmail}\n` +
     `Profile(s): ${profileNames}\n` +
@@ -394,6 +396,7 @@ function PaymentInstructions({
     `Type: ${modeLabel}\n` +
     `Amount: ₹${amountRupees.toLocaleString("en-IN")}\n` +
     `Ref: #${ref}\n\n` +
+    `Question:\n${question}\n\n` +
     `Sending the payment now. Please confirm once received.`
   );
 
