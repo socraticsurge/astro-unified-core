@@ -8,6 +8,15 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-13] — Landing page: pricing clarity and tone
+
+### Changed
+- Life areas subtitle: "makes a real difference" → "can offer guidance" (humbler, suggestive tone)
+- Journey section: added explicit note that the chart is free, written responses and live consultations are chargeable and priced differently
+- FAQ "What is the cost?": rewritten to clearly distinguish free chart vs. chargeable written responses vs. chargeable live appointments; directs to email for current pricing
+
+---
+
 ## [2026-05-13] — Landing page copy & design polish
 
 ### Changed

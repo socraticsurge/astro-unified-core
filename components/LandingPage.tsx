@@ -42,7 +42,8 @@ export function LandingPage() {
           Once your profiles are set up, you can submit a question directly in
           the app. Dr. Chaganti reviews your chart alongside your specific
           situation and responds in writing — a focused answer, not a generic
-          reading.
+          reading. The chart is free; written responses and live consultations
+          are chargeable, with pricing that varies between the two.
         </p>
       </section>
 
@@ -51,8 +52,8 @@ export function LandingPage() {
         <h2 className="font-heading text-3xl font-medium mb-2 text-center">What people ask Dr. Chaganti about</h2>
         <p className="text-sm text-muted-foreground text-center mb-8 max-w-2xl mx-auto">
           Every consultation is anchored to the charts you create here. These
-          are the eight life areas where classical Vedic analysis makes a real
-          difference.
+          are the eight life areas where classical Vedic analysis can offer
+          guidance.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -269,7 +270,7 @@ export function LandingPage() {
             },
             {
               q: "What is the cost, and how does the process work?",
-              a: "Chart generation and exploration are entirely free. Consultations with Dr. Chaganti are conducted as written responses via the in-app Ask a Question feature — submit your question, and Dr. Chaganti reviews the context and responds in writing. For live appointment availability and current fees, email astrochaganti@gmail.com.",
+              a: "Generating and exploring your chart is entirely free. Consultations are chargeable — written responses (submitted through the in-app Ask a Question feature) and live appointments are priced differently. For current fees on either, email astrochaganti@gmail.com.",
             },
             {
               q: "Which Ayanamsha and Zodiac system does this platform use?",
