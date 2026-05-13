@@ -1,14 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { rateLimit } from './rate-limit';
 
 describe('rateLimit', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
+    jest.useRealTimers();
+    jest.clearAllMocks();
   });
 
   it('should allow the first request', () => {
@@ -59,7 +58,7 @@ describe('rateLimit', () => {
     expect(result.success).toBe(false);
 
     // Advance time past the expiration window
-    vi.advanceTimersByTime(60_001);
+    jest.advanceTimersByTime(60_001);
 
     // Request should be allowed again
     result = rateLimit(key, 1, 60_000);

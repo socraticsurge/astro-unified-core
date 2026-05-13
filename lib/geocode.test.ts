@@ -1,70 +1,41 @@
 import { queryVariants } from "./geocode";
-import assert from "node:assert";
 
-function testQueryVariants() {
-  console.log("Running tests for queryVariants...");
+describe("queryVariants", () => {
+  it("handles a simple string without comma", () => {
+    const res = queryVariants("Hyderabad");
+    expect(res).toEqual(["Hyderabad", "Hyderabad, India"]);
+  });
 
-  // Case 1: Simple string without comma
-  console.log("Test Case 1: Simple string without comma");
-  const res1 = queryVariants("Hyderabad");
-  assert.deepStrictEqual(res1, ["Hyderabad", "Hyderabad, India"]);
+  it("handles a string with leading/trailing whitespace", () => {
+    const res = queryVariants("  Mumbai  ");
+    expect(res).toEqual(["Mumbai", "Mumbai, India"]);
+  });
 
-  // Case 2: String with leading/trailing whitespace
-  console.log("Test Case 2: String with leading/trailing whitespace");
-  const res2 = queryVariants("  Mumbai  ");
-  assert.deepStrictEqual(res2, ["Mumbai", "Mumbai, India"]);
+  it("handles a string with one comma", () => {
+    const res = queryVariants("Vishakhapatnam, AP");
+    expect(res).toContain("Vishakhapatnam, AP");
+    expect(res).toContain("Vishakhapatnam");
+    expect(res).toContain("Vishakhapatnam, India");
+    expect(res).toContain("AP");
+    expect(res.length).toBe(4);
+  });
 
-  // Case 3: String with one comma
-  console.log("Test Case 3: String with one comma");
-  const res3 = queryVariants("Vishakhapatnam, AP");
-  // Expected:
-  // 1. "Vishakhapatnam, AP" (trimmed)
-  // 2. "Vishakhapatnam" (first segment)
-  // 3. "Vishakhapatnam, India" (first segment + India)
-  // 4. "AP" (last segment)
-  // 5. "Vishakhapatnam" (all but last) - Duplicate of 2
-  assert.ok(res3.includes("Vishakhapatnam, AP"));
-  assert.ok(res3.includes("Vishakhapatnam"));
-  assert.ok(res3.includes("Vishakhapatnam, India"));
-  assert.ok(res3.includes("AP"));
-  assert.strictEqual(res3.length, 4);
+  it("handles multiple segments", () => {
+    const res = queryVariants("Village, Mandal, District, State");
+    expect(res).toContain("Village, Mandal, District, State");
+    expect(res).toContain("Village");
+    expect(res).toContain("Village, India");
+    expect(res).toContain("State");
+    expect(res).toContain("Village, Mandal, District");
+  });
 
-  // Case 4: Multiple segments
-  console.log("Test Case 4: Multiple segments");
-  const res4 = queryVariants("Village, Mandal, District, State");
-  // Expected variants include:
-  // - "Village, Mandal, District, State"
-  // - "Village"
-  // - "Village, India"
-  // - "State"
-  // - "Village, Mandal, District"
-  assert.ok(res4.includes("Village, Mandal, District, State"));
-  assert.ok(res4.includes("Village"));
-  assert.ok(res4.includes("Village, India"));
-  assert.ok(res4.includes("State"));
-  assert.ok(res4.includes("Village, Mandal, District"));
+  it("handles empty string", () => {
+    const res = queryVariants("");
+    expect(res).toEqual(["", ", India"]);
+  });
 
-  // Case 5: Empty or whitespace only (though likely handled upstream)
-  console.log("Test Case 5: Empty string");
-  const res5 = queryVariants("");
-  assert.deepStrictEqual(res5, ["", ", India"]);
-
-  // Case 6: Single comma only
-  console.log("Test Case 6: Single comma only");
-  const res6 = queryVariants(",");
-  // trimmed is ","
-  // firstSegment is ""
-  // lastSegment is ""
-  // allButLast is ""
-  assert.deepStrictEqual(res6, [","]);
-
-  console.log("All tests for queryVariants passed!");
-}
-
-try {
-  testQueryVariants();
-} catch (error) {
-  console.error("Tests failed!");
-  console.error(error);
-  process.exit(1);
-}
+  it("handles single comma only", () => {
+    const res = queryVariants(",");
+    expect(res).toEqual([","]);
+  });
+});

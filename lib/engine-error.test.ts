@@ -1,4 +1,3 @@
-import { expect, test, describe } from "vitest";
 import { extractEngineError } from "./engine-error";
 
 describe("extractEngineError", () => {

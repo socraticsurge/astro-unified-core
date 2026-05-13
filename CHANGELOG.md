@@ -8,26 +8,24 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
-<<<<<<< HEAD
-## [2026-05-13] — Geocoding: Added tests for query variants
+## [2026-05-13] — Jules Integration: Security, Performance, and Tests
 
 ### Added
-- Comprehensive test suite for `queryVariants` in `lib/geocode.test.ts` covering edge cases like multiple commas, whitespace, and empty strings.
-
-### Changed
-- Exported `queryVariants` from `lib/geocode.ts` to enable unit testing.
-=======
-<<<<<<< HEAD
-## [2026-05-13] — Security: HTML Sanitization for ExplainerModal
+- **Security Hardening**: Implemented `isomorphic-dompurify` for HTML sanitization in `ExplainerModal.tsx` and `credits/page.tsx` to mitigate XSS risks.
+- **Performance Optimization**: 
+  - Added batching for profile and reading lookups in `Tarabalam` service to eliminate N+1 database queries.
+  - Memoized markdown rendering in `ExplainerModal` to reduce CPU overhead.
+- **Comprehensive Testing**: 
+  - Added unit tests for `Dashaflow` API integration and chart summary logic.
+  - Added Vitest coverage for Markdown rendering components.
+  - Added unit tests for rating calculation and rate-limiting logic.
+  - Added UI tests for `ConsultationForm` and engine error handling.
+  - Added tests for geocoding query variants.
 
 ### Fixed
-- Dangerously Set Inner HTML vulnerability in `ExplainerModal.tsx`.
-- React Hooks violation in `ExplainerModal.tsx` (moved `useMemo` before conditional return).
-- Vulnerability in `app/credits/page.tsx` where raw HTML was rendered without sanitization.
+- Fixed `dangerouslySetInnerHTML` vulnerabilities across the application.
+- Fixed React Hook violations in `ExplainerModal.tsx` by moving `useMemo` before conditional returns.
 
-### Added
-- Custom HTML sanitization utility in `lib/sanitize.ts` using `DOMParser` (client-side) and a robust regex-based fallback (server-side), addressing XSS risks when external sanitization libraries cannot be installed.
-=======
 ## [2026-05-13] — Admin dashboard: question stats + per-user activity counts
 
 ### Added
@@ -60,8 +58,6 @@ All notable changes to Astro Chaganti are recorded here.
 - Landing page journey paragraph: removed "The chart is free; written responses…" sentence.
 - Landing page bio: removed "payment coordination" from Kalyani's description.
 - FAQ cost answer: confident, no email reference, directs users to see pricing in-app.
->>>>>>> development
->>>>>>> development
 
 ---
 
