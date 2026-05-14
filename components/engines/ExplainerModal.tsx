@@ -107,31 +107,72 @@ export function ExplainerModal({
         entryCache.has(`${e.type}:${e.key}`)
       );
       if (!allCached) setChartLoading(true);
-      const results = await Promise.all(
-        chartEntries.map(async (e) => {
-          const cacheKey = `${e.type}:${e.key}`;
-          const cached = entryCache.get(cacheKey);
-          if (cached === "missing") return null;
-          if (cached) {
-            return { heading: e.heading, bodyHtml: cached.bodyHtml };
-          }
-          try {
-            const r = await fetch(`/api/content/${e.type}/${e.key}`);
-            if (r.status === 404) {
-              entryCache.set(cacheKey, "missing");
-              return null;
+      // Separate entries into cached vs uncached
+      const uncachedQueries: string[] = [];
+      const cacheKeys: string[] = [];
+      const cachedResults: Array<FetchedEntry | null> = [];
+
+      for (const e of chartEntries) {
+        const cacheKey = `${e.type}:${e.key}`;
+        cacheKeys.push(cacheKey);
+        const cached = entryCache.get(cacheKey);
+
+        if (cached === "missing") {
+          cachedResults.push(null);
+        } else if (cached) {
+          cachedResults.push({ heading: e.heading, bodyHtml: cached.bodyHtml });
+        } else {
+          uncachedQueries.push(`${e.type}:${e.key}`);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          cachedResults.push(undefined as any); // placeholder
+        }
+      }
+
+      // Fetch all uncached entries in one batch request
+      if (uncachedQueries.length > 0) {
+        try {
+          const qParam = uncachedQueries.join(",");
+          const r = await fetch(`/api/content/batch?q=${qParam}`);
+          if (r.ok) {
+            const json = await r.json();
+            const fetchedResults = json.results || [];
+
+            let fetchedIdx = 0;
+            for (let i = 0; i < chartEntries.length; i++) {
+              if (cachedResults[i] === undefined) {
+                const e = chartEntries[i];
+                const res = fetchedResults[fetchedIdx++];
+                const cacheKey = cacheKeys[i];
+
+                if (res && !res.error && res.bodyHtml) {
+                  const fetched = { heading: e.heading, bodyHtml: res.bodyHtml };
+                  entryCache.set(cacheKey, fetched);
+                  cachedResults[i] = fetched;
+                } else {
+                  entryCache.set(cacheKey, "missing");
+                  cachedResults[i] = null;
+                }
+              }
             }
-            if (!r.ok) return null;
-            const json = (await r.json()) as { bodyHtml?: string };
-            if (!json.bodyHtml) return null;
-            const fetched = { heading: e.heading, bodyHtml: json.bodyHtml };
-            entryCache.set(cacheKey, fetched);
-            return fetched;
-          } catch {
-            return null;
+          } else {
+            // Batch fetch failed, fallback to missing
+            for (let i = 0; i < chartEntries.length; i++) {
+              if (cachedResults[i] === undefined) {
+                entryCache.set(cacheKeys[i], "missing");
+                cachedResults[i] = null;
+              }
+            }
           }
-        })
-      );
+        } catch {
+          for (let i = 0; i < chartEntries.length; i++) {
+            if (cachedResults[i] === undefined) {
+              cachedResults[i] = null;
+            }
+          }
+        }
+      }
+
+      const results = cachedResults;
       if (cancelled) return;
       setChartFetched(results);
       setChartLoading(false);
