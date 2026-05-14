@@ -485,3 +485,6 @@ All notable changes to Astro Chaganti are recorded here.
   table from those engines are harmless.
 - Python sidecar deployed as a separate Vercel project because Next.js claims
   all of `/api/*`, preventing co-deployment of Python serverless functions.
+## [2026-05-14] - Optimize re-renders in CompatibilityClient
+### Changed
+- Memoized profile filtering in CompatibilityClient.tsx to prevent unnecessary recalculations on every re-render

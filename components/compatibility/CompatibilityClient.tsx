@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
@@ -19,8 +19,18 @@ export function CompatibilityClient({
   const [calcError, setCalcError] = useState<string | null>(null);
   const [selection, setSelection] = useState<{ p1: string; p2: string }>({ p1: "", p2: "" });
 
-  const maleProfiles = initialProfiles.filter((p) => p.gender?.toLowerCase() === "male");
-  const femaleProfiles = initialProfiles.filter((p) => p.gender?.toLowerCase() === "female");
+  // ⚡ Bolt Optimization: Memoize profile filtering to prevent O(N) recalculations on every re-render.
+  // Re-renders happen frequently here on user typing, dropdown selections, etc.
+  const maleProfiles = useMemo(
+    () => initialProfiles.filter((p) => p.gender?.toLowerCase() === "male"),
+    [initialProfiles]
+  );
+
+  const femaleProfiles = useMemo(
+    () => initialProfiles.filter((p) => p.gender?.toLowerCase() === "female"),
+    [initialProfiles]
+  );
+
   const atLimit = checks.length >= 6;
 
   const handleCalculate = async () => {
