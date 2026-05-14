@@ -11,7 +11,7 @@ import {
   lookupDashaPair,
   lookupPlanetInHouse,
 } from "@/lib/content/lookup";
-import type { ChatMessage } from "@/lib/engines/groq";
+import type { ChatMessage, GroqModelKey } from "@/lib/engines/groq";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { profile_id, messages } = body as { profile_id?: string; messages?: ChatMessage[] };
+  const { profile_id, messages, model } = body as { profile_id?: string; messages?: ChatMessage[]; model?: GroqModelKey };
 
   if (!profile_id || !messages?.length) {
     return NextResponse.json({ error: "profile_id and messages required" }, { status: 400 });
@@ -102,7 +102,7 @@ ${chartSummary}
 ${contentSection}`;
 
   try {
-    const response = await callGroq(systemPrompt, messages);
+    const response = await callGroq(systemPrompt, messages, model);
     return NextResponse.json({ response }, {
       headers: { "Cache-Control": "private, max-age=0" },
     });

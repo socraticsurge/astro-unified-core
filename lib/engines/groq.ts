@@ -1,9 +1,27 @@
-export const GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+export const GROQ_MODELS = {
+  scout: {
+    id: "meta-llama/llama-4-scout-17b-16e-instruct",
+    label: "Llama 4 Scout",
+    note: "30K TPM",
+  },
+  compound: {
+    id: "compound-beta",
+    label: "Compound Beta",
+    note: "70K TPM",
+  },
+} as const;
+
+export type GroqModelKey = keyof typeof GROQ_MODELS;
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
-export async function callGroq(systemPrompt: string, messages: ChatMessage[]): Promise<string> {
+export async function callGroq(
+  systemPrompt: string,
+  messages: ChatMessage[],
+  model: GroqModelKey = "scout",
+): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error("GROQ_API_KEY is not set");
 
@@ -11,13 +29,14 @@ export async function callGroq(systemPrompt: string, messages: ChatMessage[]): P
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: GROQ_MODEL,
+      model: GROQ_MODELS[model].id,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
-      temperature: 0.3,
-      max_tokens: 2048,
+      temperature: 0.65,
+      max_tokens: 8192,
+      top_p: 0.9,
     }),
   });
 

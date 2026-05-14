@@ -2,19 +2,20 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { ChatMessage } from "@/lib/engines/groq";
+import { GROQ_MODELS } from "@/lib/engines/groq";
+import type { ChatMessage, GroqModelKey } from "@/lib/engines/groq";
 
 type Props = {
   profileId: string;
 };
 
 export function ProfileChat({ profileId }: Props) {
+  const [model, setModel] = useState<GroqModelKey>("scout");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,14 +35,13 @@ export function ProfileChat({ profileId }: Props) {
       const res = await fetch("/api/readings/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile_id: profileId, messages: next }),
+        body: JSON.stringify({ profile_id: profileId, messages: next, model }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
       setMessages([...next, { role: "assistant", content: data.response }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-      // revert optimistic user message
       setMessages(messages);
     } finally {
       setLoading(false);
@@ -55,30 +55,50 @@ export function ProfileChat({ profileId }: Props) {
     }
   };
 
+  const clearChat = () => { setMessages([]); setError(null); };
+
   return (
-    <div className="flex flex-col rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ height: "600px" }}>
+    <div className="flex flex-col rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ height: "620px" }}>
+
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
-        <span className="text-xs text-muted-foreground">
-          Llama 4 Scout · chart-grounded · in-memory only
-        </span>
-        {messages.length > 0 && (
-          <button
-            onClick={() => { setMessages([]); setError(null); }}
-            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-white/60 transition-colors"
-          >
-            <Trash2 className="h-3 w-3" />
-            Clear
-          </button>
-        )}
+      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-white/5">
+        {/* Model selector */}
+        <div className="flex items-center gap-1">
+          {(Object.entries(GROQ_MODELS) as [GroqModelKey, typeof GROQ_MODELS[GroqModelKey]][]).map(([key, m]) => (
+            <button
+              key={key}
+              onClick={() => setModel(key)}
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                model === key
+                  ? "bg-violet-700/50 text-violet-200 border border-violet-600/50"
+                  : "text-muted-foreground hover:text-white/60 border border-transparent hover:border-white/10"
+              }`}
+            >
+              {m.label}
+              <span className="ml-1 opacity-50">{m.note}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-white/20">chart-grounded · in-memory</span>
+          {messages.length > 0 && (
+            <button
+              onClick={clearChat}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-white/60 transition-colors"
+            >
+              <Trash2 className="h-3 w-3" />
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && !loading && (
           <p className="text-xs text-muted-foreground text-center py-10 italic leading-relaxed">
-            Ask anything about this chart.<br />
-            The model cites chart factors and content sources in every answer.
+            Ask anything about this chart.
           </p>
         )}
 
@@ -112,7 +132,6 @@ export function ProfileChat({ profileId }: Props) {
       {/* Input */}
       <div className="border-t border-white/10 p-3 flex gap-2 items-end">
         <textarea
-          ref={inputRef}
           rows={2}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -134,13 +153,11 @@ export function ProfileChat({ profileId }: Props) {
   );
 }
 
-// Renders the assistant's markdown-ish text: preserves paragraphs, bold, inline code
 function MessageContent({ content }: { content: string }) {
   const paragraphs = content.split(/\n\n+/);
   return (
     <div className="space-y-2">
       {paragraphs.map((para, i) => {
-        // Bullet list
         if (para.trim().startsWith("- ") || para.trim().startsWith("* ")) {
           const items = para.split("\n").filter((l) => l.trim());
           return (
@@ -154,11 +171,10 @@ function MessageContent({ content }: { content: string }) {
             </ul>
           );
         }
-        // Heading (## or ###)
-        if (para.trim().startsWith("## ") || para.trim().startsWith("### ")) {
+        if (para.trim().match(/^#{1,3}\s/)) {
           return (
             <p key={i} className="text-sm font-semibold text-white/90">
-              {para.replace(/^#{2,3}\s*/, "")}
+              {para.replace(/^#{1,3}\s*/, "")}
             </p>
           );
         }
@@ -173,17 +189,14 @@ function MessageContent({ content }: { content: string }) {
 }
 
 function InlineText({ text }: { text: string }) {
-  // Split on **bold** and `code` patterns
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
   return (
     <>
       {parts.map((part, i) => {
-        if (part.startsWith("**") && part.endsWith("**")) {
+        if (part.startsWith("**") && part.endsWith("**"))
           return <strong key={i} className="font-semibold text-white/90">{part.slice(2, -2)}</strong>;
-        }
-        if (part.startsWith("`") && part.endsWith("`")) {
+        if (part.startsWith("`") && part.endsWith("`"))
           return <code key={i} className="font-mono text-xs bg-white/10 px-1 rounded text-violet-300">{part.slice(1, -1)}</code>;
-        }
         return <span key={i}>{part}</span>;
       })}
     </>
