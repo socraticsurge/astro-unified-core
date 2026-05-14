@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Send, Trash2 } from "lucide-react";
+import { Send, Trash2, Copy, Check } from "lucide-react";
 import { ModelPicker } from "@/components/ui/ModelPicker";
 import { DEFAULT_CHAT_MODEL, type AiModelKey } from "@/lib/engines/models";
 import type { ChatMessage } from "@/lib/engines/groq";
@@ -40,7 +40,14 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const copyMessage = async (idx: number, text: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(i => i === idx ? null : i), 2000);
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -106,6 +113,17 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
             )}
             <div className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm ${m.role === "user" ? "bg-amber-900/30 border border-amber-800/30 text-amber-100" : "bg-white/[0.04] border border-white/8 text-foreground/90"}`}>
               {m.role === "assistant" ? <MessageContent text={m.content} /> : <p>{m.content}</p>}
+              {m.role === "assistant" && (
+                <div className="flex justify-end mt-1.5">
+                  <button
+                    onClick={() => copyMessage(i, m.content)}
+                    className="flex items-center gap-1 text-[10px] text-white/25 hover:text-white/50 transition-colors"
+                    title="Copy response"
+                  >
+                    {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ThumbsUp, ThumbsDown, ChevronDown } from "lucide-react";
+import { ThumbsUp, ThumbsDown, ChevronDown, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { TabInsight } from "@/lib/ai-insight";
 
@@ -13,6 +13,17 @@ type Props = {
 export function AIInsightCard({ insight, readingId, initialRating }: Props) {
   const [rating, setRating] = useState<1 | -1 | null>(initialRating);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState(false);
+
+  const copyInsight = async () => {
+    const lines = insight.sections.map(s => `${s.title}\n${s.interpretation}`).join("\n\n");
+    const themes = insight.key_themes.length > 0
+      ? `\nKey Themes:\n${insight.key_themes.map(t => `• ${t}`).join("\n")}`
+      : "";
+    await navigator.clipboard.writeText(lines + themes);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const toggleSection = (id: string) =>
     setExpandedSections((prev) => {
@@ -103,12 +114,21 @@ export function AIInsightCard({ insight, readingId, initialRating }: Props) {
         </div>
       )}
 
-      {/* Footer: model info + rating */}
+      {/* Footer: model info + copy + rating */}
       <div className="flex items-center justify-between pt-1 border-t border-white/5">
         <span className="text-[10px] text-white/20">
           {insight.model} · prompt v{insight.prompt_version} · {new Date(insight.generated_at).toLocaleDateString()}
         </span>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-white/30 hover:text-white/60"
+            onClick={copyInsight}
+            title="Copy insight"
+          >
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+          </Button>
           <Button
             variant="ghost"
             size="sm"

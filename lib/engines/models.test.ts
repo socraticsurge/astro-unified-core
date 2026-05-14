@@ -5,7 +5,7 @@ describe("resolveModel", () => {
   it("passes through a valid model key unchanged", () => {
     expect(resolveModel("gemini-flash", DEFAULT_INSIGHT_MODEL)).toBe("gemini-flash");
     expect(resolveModel("groq-scout", DEFAULT_CHAT_MODEL)).toBe("groq-scout");
-    expect(resolveModel("groq-gemma", DEFAULT_DRAFT_MODEL)).toBe("groq-gemma");
+    expect(resolveModel("groq-scout", DEFAULT_DRAFT_MODEL)).toBe("groq-scout");
   });
 
   it("returns the fallback for an unrecognised string", () => {

@@ -1,16 +1,17 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Send, RefreshCw, Trash2 } from "lucide-react";
+import { Send, RefreshCw, Trash2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GROQ_MODELS } from "@/lib/engines/groq";
-import type { ChatMessage, GroqModelKey } from "@/lib/engines/groq";
+import { ModelPicker } from "@/components/ui/ModelPicker";
+import { DEFAULT_CHAT_MODEL, type AiModelKey } from "@/lib/engines/models";
+import type { ChatMessage } from "@/lib/engines/groq";
 
 type Props = {
   profileId: string;
 };
 
 export function ProfileChat({ profileId }: Props) {
-  const [model, setModel] = useState<GroqModelKey>("scout");
+  const [model, setModel] = useState<AiModelKey>(DEFAULT_CHAT_MODEL);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -56,28 +57,19 @@ export function ProfileChat({ profileId }: Props) {
   };
 
   const clearChat = () => { setMessages([]); setError(null); };
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const copyMessage = async (idx: number, text: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(i => i === idx ? null : i), 2000);
+  };
 
   return (
     <div className="flex flex-col rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ height: "620px" }}>
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-white/5">
-        {/* Model selector */}
-        <div className="flex items-center gap-1">
-          {(Object.entries(GROQ_MODELS) as [GroqModelKey, typeof GROQ_MODELS[GroqModelKey]][]).map(([key, m]) => (
-            <button
-              key={key}
-              onClick={() => setModel(key)}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
-                model === key
-                  ? "bg-violet-700/50 text-violet-200 border border-violet-600/50"
-                  : "text-muted-foreground hover:text-white/60 border border-transparent hover:border-white/10"
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+        <ModelPicker value={model} onChange={setModel} disabled={loading} />
 
         <div className="flex items-center gap-3">
           <span className="text-[10px] text-white/20">chart-grounded · in-memory</span>
@@ -109,6 +101,17 @@ export function ProfileChat({ profileId }: Props) {
                 : "bg-white/[0.05] border border-white/10 text-foreground/90"
             }`}>
               <MessageContent content={m.content} />
+              {m.role === "assistant" && (
+                <div className="flex justify-end mt-1.5">
+                  <button
+                    onClick={() => copyMessage(i, m.content)}
+                    className="flex items-center gap-1 text-[10px] text-white/25 hover:text-white/50 transition-colors"
+                    title="Copy response"
+                  >
+                    {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}

@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
-import { callGroq } from "@/lib/engines/groq";
+import { callAIForText } from "@/lib/engines/ai-caller";
+import { resolveModel, DEFAULT_CHAT_MODEL, type AiModelKey } from "@/lib/engines/models";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import {
   lookupAscendant,
@@ -11,7 +12,7 @@ import {
   lookupDashaPair,
   lookupPlanetInHouse,
 } from "@/lib/content/lookup";
-import type { ChatMessage, GroqModelKey } from "@/lib/engines/groq";
+import type { ChatMessage } from "@/lib/engines/groq";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
   if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { profile_id, messages, model } = body as { profile_id?: string; messages?: ChatMessage[]; model?: GroqModelKey };
+  const { profile_id, messages, model } = body as { profile_id?: string; messages?: ChatMessage[]; model?: AiModelKey };
 
   if (!profile_id || !messages?.length) {
     return NextResponse.json({ error: "profile_id and messages required" }, { status: 400 });
@@ -116,10 +117,11 @@ ${contentSection}`;
       ? `${systemPrompt}\n\n=== ADDITIONAL INSTRUCTIONS ===\n${chatConfig.custom_instructions}`
       : systemPrompt;
 
-    const response = await callGroq(finalSystemPrompt, messages, model, {
+    const chosenModel: AiModelKey = resolveModel(model, DEFAULT_CHAT_MODEL);
+    const response = await callAIForText(chosenModel, finalSystemPrompt, messages, {
       temperature: chatConfig.temperature,
-      max_tokens: chatConfig.max_tokens,
-      top_p: chatConfig.top_p,
+      maxTokens: chatConfig.max_tokens,
+      topP: chatConfig.top_p,
     });
     return NextResponse.json({ response }, {
       headers: { "Cache-Control": "private, max-age=0" },

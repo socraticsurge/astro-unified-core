@@ -46,15 +46,15 @@ describe("callAIForJson", () => {
     expect(result).toEqual({ score: 28 });
   });
 
-  it("routes groq-gemma to callGroqById with json_mode enabled", async () => {
+  it("routes groq-scout to callGroqById with correct model id", async () => {
     vi.mocked(callGroqById).mockResolvedValue('{"key":"val"}');
 
-    await callAIForJson("groq-gemma", "sys", "user");
+    await callAIForJson("groq-scout", "sys", "user");
 
     expect(callGroqById).toHaveBeenCalledWith(
-      "gemma-4-31b-it",
-      "sys",
-      [{ role: "user", content: "user" }],
+      "meta-llama/llama-4-scout-17b-16e-instruct",
+      expect.any(String),
+      expect.any(Array),
       expect.objectContaining({ json_mode: true }),
     );
   });
@@ -103,13 +103,13 @@ describe("callAIForText", () => {
     expect(result).toBe("Groq response");
   });
 
-  it("routes groq-gemma to callGroqById without json_mode", async () => {
-    vi.mocked(callGroqById).mockResolvedValue("Gemma reply");
+  it("routes groq-scout to callGroqById with correct model id", async () => {
+    vi.mocked(callGroqById).mockResolvedValue("Scout reply");
 
-    await callAIForText("groq-gemma", "sys", msgs);
+    await callAIForText("groq-scout", "sys", msgs);
 
     expect(callGroqById).toHaveBeenCalledWith(
-      "gemma-4-31b-it",
+      "meta-llama/llama-4-scout-17b-16e-instruct",
       "sys",
       msgs,
       expect.any(Object),

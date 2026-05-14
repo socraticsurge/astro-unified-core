@@ -27,7 +27,7 @@ vi.mock("@/lib/ai-insight-compat", () => ({
 vi.mock("@/lib/engines/models", () => ({
   DEFAULT_INSIGHT_MODEL: "gemini-flash",
   resolveModel: vi.fn((key: unknown, fallback: string) =>
-    key === "gemini-flash" || key === "groq-scout" || key === "groq-gemma" ? key : fallback
+    key === "gemini-flash" || key === "groq-scout" ? key : fallback
   ),
 }));
 

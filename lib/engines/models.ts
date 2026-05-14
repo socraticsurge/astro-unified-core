@@ -12,11 +12,6 @@ export const AI_MODELS = {
     provider: "groq" as const,
     id: "meta-llama/llama-4-scout-17b-16e-instruct",
   },
-  "groq-gemma": {
-    label: "Gemma 4 31B",
-    provider: "groq" as const,
-    id: "gemma-4-31b-it",
-  },
 } as const;
 
 export type AiModelKey = keyof typeof AI_MODELS;
