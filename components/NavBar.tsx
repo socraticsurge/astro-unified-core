@@ -2,13 +2,12 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { isAdmin } from "@/lib/admin";
 import { Users, Heart, MessageSquare, ShieldCheck } from "lucide-react";
 
 export function NavBar() {
   const { data: session, status } = useSession();
   const isLoggedIn = status === "authenticated";
-  const showAdmin = isAdmin(session);
+  const showAdmin = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true;
 
   return (
     <nav className="border-b bg-background sticky top-0 z-10">

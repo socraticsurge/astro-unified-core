@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { db } from "@/lib/db";
+import { ADMIN_EMAILS } from "@/lib/admin";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -24,7 +25,9 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id: string }).id = token.sub as string;
+        (session.user as { id: string; isAdmin: boolean }).id = token.sub as string;
+        (session.user as { id: string; isAdmin: boolean }).isAdmin =
+          ADMIN_EMAILS.includes(session.user.email?.toLowerCase() ?? "");
       }
       return session;
     },
