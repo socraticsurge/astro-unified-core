@@ -70,13 +70,13 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name">Full Name <span className="text-destructive">*</span></Label>
             <Input id="name" name="name" value={form.name} onChange={handleChange} required maxLength={100} placeholder="e.g. Ramanujan" />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label htmlFor="relationship">Relationship</Label>
+              <Label htmlFor="relationship">Relationship <span className="text-destructive">*</span></Label>
               <select 
                 id="relationship" 
                 name="relationship" 
@@ -97,7 +97,7 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
               </select>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="gender">Gender</Label>
+              <Label htmlFor="gender">Gender <span className="text-destructive">*</span></Label>
               <select 
                 id="gender" 
                 name="gender" 
@@ -114,11 +114,11 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
             </div>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="date_of_birth">Date of Birth</Label>
+            <Label htmlFor="date_of_birth">Date of Birth <span className="text-destructive">*</span></Label>
             <Input id="date_of_birth" name="date_of_birth" type="date" value={form.date_of_birth} onChange={handleChange} required />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="time_of_birth">Time of Birth</Label>
+            <Label htmlFor="time_of_birth">Time of Birth <span className="text-destructive">*</span></Label>
             <Input id="time_of_birth" name="time_of_birth" type="time" value={form.time_of_birth} onChange={handleChange} required />
             <p className="text-xs text-muted-foreground pt-1">
               24-hour format — for example, 14:30 means 2:30 PM. Use the most accurate
@@ -127,7 +127,7 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
           </div>
           <div className="space-y-4 pt-2 border-t border-white/10">
             <div className="space-y-1">
-              <Label htmlFor="place_of_birth">Place of Birth</Label>
+              <Label htmlFor="place_of_birth">Place of Birth <span className="text-destructive">*</span></Label>
               <Input id="place_of_birth" name="place_of_birth" value={form.place_of_birth} onChange={handleChange} required maxLength={100} placeholder="e.g. Erode, Tamil Nadu, India" />
               <p className="text-xs text-muted-foreground pt-1">
                 Tip: if your village or town isn&apos;t recognized, use the nearest larger city or
