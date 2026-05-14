@@ -8,6 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Fix admin visibility in all client components
+
+### Fixed
+- `ProfileDetailClient` and `CompatibilityDetailClient` both called `isAdmin(session)` directly inside `"use client"` components where `process.env.ADMIN_EMAILS` is not visible. Replaced with `session.user.isAdmin` (stamped server-side in the session callback). Basic/Professional toggle and all admin tools in profile and compatibility views are now visible to admin users again.
+
+---
+
 ## [2026-05-14] — Jules PRs #16-29 merged + full security/performance audit fixes
 
 ### Added

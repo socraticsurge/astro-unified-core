@@ -7,7 +7,7 @@ import type { Profile, CompatibilityCheck } from "@/lib/db";
 import type { CompatResult, AdditionalKuta } from "@/lib/compatibility";
 import { KOOTA_MAX } from "@/lib/compatibility";
 import { Button } from "@/components/ui/button";
-import { isAdmin } from "@/lib/admin";
+
 
 function initials(name: string) {
   return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -44,7 +44,7 @@ type Props = {
 
 export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) {
   const { data: session } = useSession();
-  const showAdminTools = isAdmin(session);
+  const showAdminTools = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true;
   const [isProfessional, setIsProfessional] = useState(false);
 
   let result: CompatResult | null = null;

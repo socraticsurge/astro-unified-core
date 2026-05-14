@@ -12,7 +12,7 @@ import {
 import type { Profile } from "@/lib/db";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
-import { isAdmin } from "@/lib/admin";
+
 import {
   ProfileBadges,
   BirthDetails,
@@ -79,7 +79,7 @@ function CopyButton({ getText, label = "Copy" }: { getText: () => string; label?
 export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
   const id = profile.id;
   const { data: session } = useSession();
-  const showAdminTools = isAdmin(session);
+  const showAdminTools = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true;
 
   const [reading, setReading] = useState<EngineState>({ output: null, loading: true });
   const [transit, setTransit] = useState<EngineState>({ output: null, loading: false });
