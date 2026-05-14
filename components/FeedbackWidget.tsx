@@ -69,7 +69,7 @@ export function FeedbackWidget() {
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
                 <p className="text-sm font-semibold">Share Feedback</p>
-                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center sm:min-h-0 sm:min-w-0 touch-manipulation">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -85,7 +85,7 @@ export function FeedbackWidget() {
                         key={r.value}
                         title={r.label}
                         onClick={() => setRating(r.value)}
-                        className={`text-3xl p-2 rounded-xl transition-all hover:scale-125 ${
+                        className={`text-3xl p-2 min-h-[44px] min-w-[44px] flex items-center justify-center sm:min-h-0 sm:min-w-0 touch-manipulation rounded-xl transition-all hover:scale-125 ${
                           rating === r.value
                             ? "bg-amber-900/40 scale-125 ring-2 ring-amber-500/50"
                             : "hover:bg-white/5"
@@ -114,7 +114,7 @@ export function FeedbackWidget() {
                 <button
                   onClick={handleSubmit}
                   disabled={!rating || loading}
-                  className="w-full py-2 rounded-lg text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-amber-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full py-2 min-h-[44px] sm:min-h-0 touch-manipulation rounded-lg text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-amber-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {loading ? "Sending…" : "Send Feedback"}
                 </button>
@@ -127,7 +127,7 @@ export function FeedbackWidget() {
       {/* Trigger Button */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium shadow-lg transition-all hover:scale-105 ${
+        className={`flex items-center justify-center gap-2 px-3 py-2 min-h-[44px] sm:min-h-0 touch-manipulation rounded-full text-xs font-medium shadow-lg transition-all hover:scale-105 ${
           open
             ? "bg-zinc-700 text-foreground"
             : "bg-zinc-800/90 text-muted-foreground hover:text-foreground border border-white/10"
