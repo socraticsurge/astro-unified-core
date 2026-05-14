@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { buildCompatibilityInsight, COMPAT_ENGINE } from "@/lib/ai-insight-compat";
-import { type AiModelKey, DEFAULT_INSIGHT_MODEL } from "@/lib/engines/models";
+import { resolveModel, DEFAULT_INSIGHT_MODEL, type AiModelKey } from "@/lib/engines/models";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   if (!check_id) return NextResponse.json({ error: "check_id required" }, { status: 400 });
 
-  const chosenModel: AiModelKey = model ?? DEFAULT_INSIGHT_MODEL;
+  const chosenModel: AiModelKey = resolveModel(model, DEFAULT_INSIGHT_MODEL);
 
   if (!force) {
     const existing = await db.readings.latestByEngine(check_id, COMPAT_ENGINE);
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         reading_id: existing.id,
         rating: existing.rating ?? null,
         cached: true,
-      });
+      }, { headers: { "Cache-Control": "private, max-age=0" } });
     }
   }
 

@@ -12,19 +12,18 @@ import {
   lookupDashaPair,
   lookupPlanetInHouse,
 } from "@/lib/content/lookup";
-import { type AiModelKey, DEFAULT_DRAFT_MODEL } from "@/lib/engines/models";
+import { resolveModel, DEFAULT_DRAFT_MODEL, type AiModelKey } from "@/lib/engines/models";
 
 export const dynamic = "force-dynamic";
+
+import type { Profile } from "@/lib/db";
+import type { Reading } from "@/lib/db/readings";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-async function buildChartContext(profileId: string) {
-  const profile = await db.profiles.getAny(profileId);
-  if (!profile) return null;
-
-  const reading = await db.readings.latestByEngine(profile.id, "dashaflow");
+function buildChartContext(profile: Profile, reading: Reading | undefined) {
   if (!reading) return { profile, summary: "(no chart data)", blocks: [] as { key: string; text: string }[], lagna: "", moonNak: "", maha: "", antar: "" };
 
   const output = JSON.parse(reading.output_data) as Record<string, unknown>;
@@ -68,13 +67,17 @@ export async function POST(req: NextRequest) {
   if (!request) return NextResponse.json({ error: "Consultation request not found" }, { status: 404 });
 
   const profileIds: string[] = JSON.parse(request.profile_ids);
-  const chartContexts = await Promise.all(profileIds.map(buildChartContext));
-  const validContexts = chartContexts.filter(Boolean);
+  const [profiles, readings] = await Promise.all([
+    db.profiles.getManyAny(profileIds),
+    db.readings.latestByEngineMany(profileIds, "dashaflow"),
+  ]);
+  const readingMap = new Map(readings.map(r => [r.profile_id, r]));
+  const validContexts = profiles.map(p => buildChartContext(p, readingMap.get(p.id)));
 
   const question = assembleStatement(request.observation, request.constraint_text, request.objective, request.options);
 
   const draftConfig = await db.settings.getDraftLlm();
-  const chosenModel: AiModelKey = model ?? DEFAULT_DRAFT_MODEL;
+  const chosenModel: AiModelKey = resolveModel(model, DEFAULT_DRAFT_MODEL);
 
   const chartSection = validContexts.map(ctx => {
     if (!ctx) return "";

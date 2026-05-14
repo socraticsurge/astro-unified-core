@@ -24,3 +24,9 @@ export type AiModelKey = keyof typeof AI_MODELS;
 export const DEFAULT_INSIGHT_MODEL: AiModelKey = "gemini-flash";
 export const DEFAULT_CHAT_MODEL: AiModelKey = "groq-scout";
 export const DEFAULT_DRAFT_MODEL: AiModelKey = "groq-scout";
+
+const VALID_KEYS = new Set(Object.keys(AI_MODELS));
+
+export function resolveModel(key: unknown, fallback: AiModelKey): AiModelKey {
+  return typeof key === "string" && VALID_KEYS.has(key) ? (key as AiModelKey) : fallback;
+}

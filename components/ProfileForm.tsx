@@ -6,9 +6,6 @@ function safeJson(text: string): { id?: string; error?: string } | null {
   try { return JSON.parse(text); } catch { return null; }
 }
 
-const SIDECAR_URL =
-  process.env.NEXT_PUBLIC_DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
-
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,9 +27,8 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
   });
 
   // Pre-warm the Python sidecar so the chart fetches faster after submit.
-  // Fire-and-forget on mount; ignore failures.
   useEffect(() => {
-    fetch(`${SIDECAR_URL}/health`, { mode: "cors", cache: "no-store" }).catch(() => {});
+    fetch("/api/sidecar-warmup").catch(() => {});
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>

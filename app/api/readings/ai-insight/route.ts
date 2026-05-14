@@ -5,7 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { buildInsightForTab, TAB_ENGINE, INSIGHT_TABS } from "@/lib/ai-insight";
 import type { InsightTab } from "@/lib/ai-insight";
-import { type AiModelKey, DEFAULT_INSIGHT_MODEL } from "@/lib/engines/models";
+import { resolveModel, DEFAULT_INSIGHT_MODEL, type AiModelKey } from "@/lib/engines/models";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "profile_id and valid tab required" }, { status: 400 });
   }
 
-  const chosenModel: AiModelKey = model ?? DEFAULT_INSIGHT_MODEL;
+  const chosenModel: AiModelKey = resolveModel(model, DEFAULT_INSIGHT_MODEL);
   const engine = TAB_ENGINE[tab];
 
   // Return cached unless force=true
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
         reading_id: existing.id,
         rating: existing.rating ?? null,
         cached: true,
-      });
+      }, { headers: { "Cache-Control": "private, max-age=0" } });
     }
   }
 

@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 // PATCH /api/admin/ai-insights/[id]/rating
 // Body: { rating: 1 | -1 | null }
 export async function PATCH(

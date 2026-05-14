@@ -11,7 +11,7 @@ import {
   lookupDashaPair,
   lookupPlanetInHouse,
 } from "@/lib/content/lookup";
-import { type AiModelKey, DEFAULT_CHAT_MODEL } from "@/lib/engines/models";
+import { resolveModel, DEFAULT_CHAT_MODEL, type AiModelKey } from "@/lib/engines/models";
 import type { ChatMessage } from "@/lib/engines/groq";
 
 export const dynamic = "force-dynamic";
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     : "";
 
   const chatConfig = await db.settings.getChatLlm();
-  const chosenModel: AiModelKey = model ?? DEFAULT_CHAT_MODEL;
+  const chosenModel: AiModelKey = resolveModel(model, DEFAULT_CHAT_MODEL);
 
   const systemPrompt = `You are an expert Vedic astrologer analysing the compatibility between ${profile1.name} and ${profile2.name}.
 
