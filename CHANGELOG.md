@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Remove dead files; clear T1 from backlog
+
+### Removed
+- `scratch_test_rate_limit.ts`, `test_get_many.ts` — dev scratch console scripts
+- `jest.config.js` — stale Jest config (project uses Vitest)
+- `DEPLOYMENT_STRATEGY.md` — superseded by `docs/PROJECT.md`
+- `docs/ai_astrology_design.md` — deferred AI librarian design, never implemented
+- `docs/superpowers/plans/2026-05-04-multi-engine-astrology.md` — stale agent planning doc
+
+### Changed
+- `docs/BACKLOG.md` — removed T1 (scratch file) since it is now resolved
+
+---
+
 ## [2026-05-14] — Documentation restructure: 9-document system
 
 ### Added

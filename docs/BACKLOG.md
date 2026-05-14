@@ -45,7 +45,6 @@ Things that work but are suboptimal. Prioritise when there is slack.
 
 | # | Description | File(s) | Effort |
 |---|---|---|---|
-| T1 | `scratch_test_rate_limit.ts` in project root. Dev scratch file, not a real test. | `scratch_test_rate_limit.ts` | Trivial — delete or move to `scripts/` |
 | T2 | `proxy.ts` is the NextAuth middleware but uses a non-standard name. Next.js convention is `middleware.ts`. | `proxy.ts` | Small — rename + update any references |
 | T3 | `db.users.list()` and `db.feedback.list()` cast rows via `as unknown as T[]`. A Zod schema parse would catch DB/schema drift at runtime. | `lib/db/users.ts`, `lib/db/feedback.ts` | Medium |
 | T4 | Admin panel `AdminTables.tsx` sort uses string-indexed sort with `Record<string, unknown>` cast. | `app/admin/AdminTables.tsx` | Small |
