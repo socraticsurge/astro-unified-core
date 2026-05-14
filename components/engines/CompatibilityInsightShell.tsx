@@ -23,7 +23,8 @@ type Props = {
 export function CompatibilityInsightShell({ checkId, name1, name2 }: Props) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<InsightState>(null);
-  const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [model, setModel] = useState<AiModelKey>(DEFAULT_INSIGHT_MODEL);
 
@@ -39,7 +40,7 @@ export function CompatibilityInsightShell({ checkId, name1, name2 }: Props) {
           setOpen(true);
         }
       } catch { /* ignore */ }
-      finally { if (!cancelled) setLoading(false); }
+      finally { if (!cancelled) setChecking(false); }
     }
     fetchCached();
     return () => { cancelled = true; };
@@ -82,12 +83,12 @@ export function CompatibilityInsightShell({ checkId, name1, name2 }: Props) {
           AI Compatibility Insight — {name1} &amp; {name2}
         </span>
 
-        <ModelPicker value={model} onChange={setModel} disabled={loading} />
+        <ModelPicker value={model} onChange={setModel} disabled={checking || loading} />
 
         <Button
           variant="ghost"
           size="sm"
-          disabled={loading}
+          disabled={checking || loading}
           onClick={(e) => { e.stopPropagation(); generate(!!state); }}
           className="h-6 px-2 text-[11px] text-violet-300 hover:text-violet-100 hover:bg-violet-900/40 gap-1 ml-1"
         >

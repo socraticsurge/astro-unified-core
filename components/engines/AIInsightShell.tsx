@@ -21,7 +21,8 @@ type InsightState = {
 export function AIInsightShell({ profileId, tab }: Props) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<InsightState>(null);
-  const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [model, setModel] = useState<AiModelKey>(DEFAULT_INSIGHT_MODEL);
 
@@ -43,7 +44,7 @@ export function AIInsightShell({ profileId, tab }: Props) {
       } catch {
         // silently ignore
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setChecking(false);
       }
     }
     fetchCached();
@@ -79,13 +80,13 @@ export function AIInsightShell({ profileId, tab }: Props) {
           AI Insight
         </span>
 
-        <ModelPicker value={model} onChange={setModel} disabled={loading} />
+        <ModelPicker value={model} onChange={setModel} disabled={checking || loading} />
 
         {/* Generate (first time) or Regenerate (already has insight) */}
         <Button
           variant="ghost"
           size="sm"
-          disabled={loading}
+          disabled={checking || loading}
           onClick={(e) => { e.stopPropagation(); generate(!!state); }}
           className="h-6 px-2 text-[11px] text-violet-300 hover:text-violet-100 hover:bg-violet-900/40 gap-1 ml-1"
         >

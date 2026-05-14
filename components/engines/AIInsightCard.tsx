@@ -71,26 +71,26 @@ export function AIInsightCard({ insight, readingId, initialRating }: Props) {
                 <p className="text-sm text-muted-foreground leading-relaxed">{section.interpretation}</p>
               </div>
 
-              {section.technical_basis.length > 0 && (
+              {(section.technical_basis?.length ?? 0) > 0 && (
                 <div className="border-t border-white/5">
                   <button
                     onClick={() => toggleSection(section.id)}
                     className="w-full flex items-center gap-1.5 px-4 py-2 text-[11px] text-muted-foreground hover:text-white/70 transition-colors"
                   >
                     <ChevronDown className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`} />
-                    {expanded ? "Hide" : "Show"} chart factors ({section.technical_basis.length})
+                    {expanded ? "Hide" : "Show"} chart factors ({section.technical_basis!.length})
                   </button>
                   {expanded && (
                     <div className="px-4 pb-3 space-y-1">
-                      {section.technical_basis.map((f, i) => (
+                      {section.technical_basis!.map((f, i) => (
                         <div key={i} className="flex gap-2 text-[11px]">
                           <span className="text-violet-400/80 font-medium min-w-[80px]">{f.factor}</span>
                           <span className="text-muted-foreground">{f.value}{f.nakshatra ? ` · ${f.nakshatra}` : ""}</span>
                         </div>
                       ))}
-                      {section.content_sources.length > 0 && (
+                      {(section.content_sources?.length ?? 0) > 0 && (
                         <div className="pt-1 text-[10px] text-white/20">
-                          Sources: {section.content_sources.join(", ")}
+                          Sources: {section.content_sources!.join(", ")}
                         </div>
                       )}
                     </div>

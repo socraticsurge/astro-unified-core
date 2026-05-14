@@ -8,6 +8,14 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Fix AIInsightCard crash on compat insight data; fix misleading spinner
+
+### Fixed
+- **`components/engines/AIInsightCard.tsx`** — `section.technical_basis` and `section.content_sources` are `TabInsight`-only fields absent from `CompatInsight`. Accessing `.length` on them unconditionally threw a TypeError whenever a cached compat insight auto-expanded. Guarded with optional chaining.
+- **`components/engines/CompatibilityInsightShell.tsx`** and **`components/engines/AIInsightShell.tsx`** — Separated the initial cache-check state (`checking`) from the generation state (`loading`). The Generate button now only spins during actual AI generation, not during the silent initial GET cache check, eliminating the confusing "auto-generating" appearance on mount.
+
+---
+
 ## [2026-05-14] — Fix AI insight bars invisible when cache-check fetch is slow
 
 ### Fixed
