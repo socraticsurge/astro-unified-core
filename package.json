@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
-    "test:vitest": "vitest run"
+    "test:vitest": "vitest run lib/content/markdown.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -55,6 +55,7 @@
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.9",
+    "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.6"

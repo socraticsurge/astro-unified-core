@@ -8,4 +8,12 @@ module.exports = {
   transform: {
     ...tsJestTransformCfg,
   },
+  moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/$1",
+    "^marked$": "<rootDir>/node_modules/marked/lib/marked.umd.js"
+  },
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "<rootDir>/lib/content/markdown.test.ts"
+  ]
 };
