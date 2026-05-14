@@ -21,9 +21,8 @@ type InsightState = {
 export function AIInsightShell({ profileId, tab }: Props) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<InsightState>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [initialized, setInitialized] = useState(false);
   const [model, setModel] = useState<AiModelKey>(DEFAULT_INSIGHT_MODEL);
 
   // On mount: check for cached insight
@@ -44,7 +43,7 @@ export function AIInsightShell({ profileId, tab }: Props) {
       } catch {
         // silently ignore
       } finally {
-        if (!cancelled) setInitialized(true);
+        if (!cancelled) setLoading(false);
       }
     }
     fetchCached();
@@ -70,8 +69,6 @@ export function AIInsightShell({ profileId, tab }: Props) {
       setLoading(false);
     }
   }, [profileId, tab, model]);
-
-  if (!initialized) return null;
 
   return (
     <div className="mb-5 rounded-xl border border-violet-800/30 bg-violet-950/10 overflow-hidden">

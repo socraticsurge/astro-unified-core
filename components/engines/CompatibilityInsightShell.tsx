@@ -23,9 +23,8 @@ type Props = {
 export function CompatibilityInsightShell({ checkId, name1, name2 }: Props) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<InsightState>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [initialized, setInitialized] = useState(false);
   const [model, setModel] = useState<AiModelKey>(DEFAULT_INSIGHT_MODEL);
 
   useEffect(() => {
@@ -40,7 +39,7 @@ export function CompatibilityInsightShell({ checkId, name1, name2 }: Props) {
           setOpen(true);
         }
       } catch { /* ignore */ }
-      finally { if (!cancelled) setInitialized(true); }
+      finally { if (!cancelled) setLoading(false); }
     }
     fetchCached();
     return () => { cancelled = true; };
@@ -65,8 +64,6 @@ export function CompatibilityInsightShell({ checkId, name1, name2 }: Props) {
       setLoading(false);
     }
   }, [checkId, model]);
-
-  if (!initialized) return null;
 
   // CompatInsight maps to TabInsight shape for AIInsightCard reuse
   const cardInsight = state?.insight

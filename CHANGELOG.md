@@ -8,6 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Fix AI insight bars invisible when cache-check fetch is slow
+
+### Fixed
+- **`components/engines/CompatibilityInsightShell.tsx`** and **`components/engines/AIInsightShell.tsx`** — Both components hid themselves entirely (`return null`) while the initial cache-check GET request was in flight. If that request was slow (DB latency, Turso hiccup) or hung, the Generate button never appeared. Changed `loading` to start `true` and removed the `initialized` guard so the bar renders immediately and the Generate button is simply disabled until the check completes.
+
+---
+
 ## [2026-05-14] — Fix compatibility chat crash on AI provider errors; add route tests
 
 ### Fixed
