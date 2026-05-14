@@ -23,7 +23,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.3",
-    "geo-tz": "^8.1.6",
+    "geo-tz": "^8.1.7",
     "gray-matter": "^4.0.3",
     "isomorphic-dompurify": "^3.12.0",
     "lucide-react": "^1.14.0",
