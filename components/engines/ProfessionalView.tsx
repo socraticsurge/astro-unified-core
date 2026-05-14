@@ -8,6 +8,7 @@ import { CareerView } from "./CareerView";
 import { MuhurthaView } from "./MuhurthaView";
 import { TarabalamView } from "./TarabalamView";
 import { AIInsightShell } from "./AIInsightShell";
+import { ProfileChat } from "./ProfileChat";
 import { useParams } from "next/navigation";
 import type { InsightTab } from "@/lib/ai-insight";
 import { Copy, Check, FileText, RefreshCw } from "lucide-react";
@@ -37,9 +38,9 @@ type Props = {
   isAdmin?: boolean;
 };
 
-type TabKey = "natal" | "vargas" | "dashas" | "career" | "transit" | "muhurtha" | "tarabalam";
+type TabKey = "natal" | "vargas" | "dashas" | "career" | "transit" | "muhurtha" | "tarabalam" | "chat";
 
-const TABS: { key: TabKey; label: string }[] = [
+const BASE_TABS: { key: TabKey; label: string }[] = [
   { key: "natal", label: "Natal Chart" },
   { key: "vargas", label: "Varga Dashboard" },
   { key: "dashas", label: "Dasha Timeline" },
@@ -47,6 +48,10 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "transit", label: "Transit (Gochar)" },
   { key: "muhurtha", label: "Muhurtha" },
   { key: "tarabalam", label: "Tarabalam" },
+];
+
+const ADMIN_TABS: { key: TabKey; label: string }[] = [
+  { key: "chat", label: "Chat" },
 ];
 
 export function ProfessionalView({
@@ -63,6 +68,7 @@ export function ProfessionalView({
   profileId,
   isAdmin,
 }: Props) {
+  const tabs = isAdmin ? [...BASE_TABS, ...ADMIN_TABS] : BASE_TABS;
   const [activeTab, setActiveTab] = useState<TabKey>("natal");
   const [copied, setCopied] = useState(false);
   const { id } = useParams<{ id: string }>();
@@ -96,7 +102,7 @@ export function ProfessionalView({
       {/* ─── Top-level Tab Navigation ─── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 border-b border-white/10">
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -213,6 +219,10 @@ export function ProfessionalView({
               explainer={explainers["Tarabalam"] ?? null}
             />
           </>
+        )}
+
+        {activeTab === "chat" && isAdmin && profileId && (
+          <ProfileChat profileId={profileId} />
         )}
       </div>
     </div>

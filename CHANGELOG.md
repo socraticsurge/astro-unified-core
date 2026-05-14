@@ -8,6 +8,28 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Chart Chat tab (admin-only, Llama 4 Scout via Groq)
+
+### Added
+- **`lib/engines/groq.ts`** — Groq API caller (OpenAI-compatible, `meta-llama/llama-4-scout-17b-16e-instruct`, temperature 0.3). Requires `GROQ_API_KEY` env variable.
+- **`app/api/readings/chat/route.ts`** — `POST` endpoint (admin-only, stateless). Loads full chart data + all content blocks for the profile, builds system prompt with zero-trust credibility rules, proxies conversation to Groq.
+- **`components/engines/ProfileChat.tsx`** — chat UI: in-memory message history, textarea input (Enter to send), auto-scroll, basic markdown rendering (bold, code, bullets, headings), Clear button.
+- **`components/engines/ProfessionalView.tsx`** — "Chat" tab appended for admin-only; visible only when `isAdmin` prop is true.
+
+### Notes
+- Requires `GROQ_API_KEY` in Vercel env vars (same setup as `GOOGLE_GEMINI_API_KEY`).
+- Conversation is never persisted — resets on page reload.
+- System prompt enforces: cite chart factors per claim, cite content source keys, label general-knowledge reasoning separately, admit gaps.
+
+---
+
+## [2026-05-14] — Fix vargas tab AI insight: build actual per-planet varga table
+
+### Fixed
+- `lib/ai-insight.ts` vargas tab was looking for `data.lagna.vargas` (doesn't exist in chart output). Now builds a proper planet×divisional-chart table from `planets[name].d9_sign`, `d10_sign`, etc. — all 14 varga columns for 9 planets sent as tab-separated data. Also attempts to look up D9 and D10 ascendant content if derivable from chart.
+
+---
+
 ## [2026-05-14] — Per-tab AI insights with Gemini
 
 ### Added
