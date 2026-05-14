@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Fix compatibility chat crash on AI provider errors; add route tests
+
+### Fixed
+- **`app/api/readings/chat/compatibility/route.ts`** — Expanded try-catch to cover context-building and settings fetch. Previously, errors from `buildProfileContext` (malformed chart JSON, DB timeout) or `getChatLlm()` escaped the error handler and returned an HTML 500 page, causing the client's `res.json()` to throw and surface as "page could not load". Now all errors return `{ error: message }` JSON with status 500.
+
+### Added
+- **`app/api/readings/chat/compatibility/route.test.ts`** — 8 tests covering auth gating, input validation, 404 paths, successful response, and two crash scenarios: AI provider unavailable (e.g. Gemini high-demand error) and DB connection timeout. The Gemini-unavailable test directly reproduces the reported production failure.
+
+---
+
 ## [2026-05-14] — Unified AI model selection, compatibility AI insight + chat, consultation draft assistant
 
 ### Added

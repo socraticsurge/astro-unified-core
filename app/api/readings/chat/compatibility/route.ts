@@ -48,55 +48,56 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "One or both profiles not found" }, { status: 404 });
   }
 
-  let compatResult: Record<string, unknown> = {};
-  try { compatResult = JSON.parse(check.result_json) as Record<string, unknown>; } catch { /* empty */ }
+  try {
+    let compatResult: Record<string, unknown> = {};
+    try { compatResult = JSON.parse(check.result_json) as Record<string, unknown>; } catch { /* empty */ }
 
-  const scores = compatResult?.scores as Record<string, number> | undefined;
-  const totalScore = compatResult?.total_score as number ?? check.score;
-  const isApproved = compatResult?.is_match_approved as boolean ?? false;
+    const scores = compatResult?.scores as Record<string, number> | undefined;
+    const totalScore = compatResult?.total_score as number ?? check.score;
+    const isApproved = compatResult?.is_match_approved as boolean ?? false;
 
-  // Build context for both profiles
-  async function buildProfileContext(p: typeof profile1) {
-    const reading = await db.readings.latestByEngine(p!.id, "dashaflow");
-    if (!reading) return { summary: "(no chart data)", blocks: [] as { key: string; text: string }[], lagna: "", moonNak: "", maha: "", antar: "" };
+    // Build context for both profiles
+    async function buildProfileContext(p: typeof profile1) {
+      const reading = await db.readings.latestByEngine(p!.id, "dashaflow");
+      if (!reading) return { summary: "(no chart data)", blocks: [] as { key: string; text: string }[], lagna: "", moonNak: "", maha: "", antar: "" };
 
-    const output = JSON.parse(reading.output_data) as Record<string, unknown>;
-    const summary = summarizeDashaflow(output);
-    const data = output?.data as Record<string, unknown> | undefined;
-    const lagnaSign = (data?.lagna as Record<string, unknown> | undefined)?.sign as string ?? "";
-    const planets = data?.planets as Record<string, { sign?: string; house?: number; nakshatra?: string }> | undefined;
-    const dashas = data?.dashas as Record<string, { planet?: string }> | undefined;
-    const moonNak = planets?.Moon?.nakshatra ?? planets?.moon?.nakshatra ?? "";
-    const maha = dashas?.maha?.planet ?? "";
-    const antar = dashas?.antar?.planet ?? "";
+      const output = JSON.parse(reading.output_data) as Record<string, unknown>;
+      const summary = summarizeDashaflow(output);
+      const data = output?.data as Record<string, unknown> | undefined;
+      const lagnaSign = (data?.lagna as Record<string, unknown> | undefined)?.sign as string ?? "";
+      const planets = data?.planets as Record<string, { sign?: string; house?: number; nakshatra?: string }> | undefined;
+      const dashas = data?.dashas as Record<string, { planet?: string }> | undefined;
+      const moonNak = planets?.Moon?.nakshatra ?? planets?.moon?.nakshatra ?? "";
+      const maha = dashas?.maha?.planet ?? "";
+      const antar = dashas?.antar?.planet ?? "";
 
-    const blocks: { key: string; text: string }[] = [];
-    if (lagnaSign) { const e = lookupAscendant(lagnaSign); if (e) blocks.push({ key: `ascendant/${lagnaSign.toLowerCase()}`, text: stripHtml(e.body) }); }
-    if (moonNak) { const e = lookupNakshatra(moonNak); if (e) blocks.push({ key: `nakshatra/${moonNak.toLowerCase()}`, text: stripHtml(e.body) }); }
-    if (maha && antar) { const e = lookupDashaPair(maha, antar); if (e) blocks.push({ key: `dasha/${maha.toLowerCase()}-${antar.toLowerCase()}`, text: stripHtml(e.body) }); }
-    if (planets) {
-      for (const [name, pl] of Object.entries(planets)) {
-        if (pl.house === 7 || pl.house === 1 || pl.house === 5) {
-          const e = lookupPlanetInHouse(name, pl.house);
-          if (e) blocks.push({ key: `planet-in-house/${name.toLowerCase()}-${pl.house}`, text: stripHtml(e.body) });
+      const blocks: { key: string; text: string }[] = [];
+      if (lagnaSign) { const e = lookupAscendant(lagnaSign); if (e) blocks.push({ key: `ascendant/${lagnaSign.toLowerCase()}`, text: stripHtml(e.body) }); }
+      if (moonNak) { const e = lookupNakshatra(moonNak); if (e) blocks.push({ key: `nakshatra/${moonNak.toLowerCase()}`, text: stripHtml(e.body) }); }
+      if (maha && antar) { const e = lookupDashaPair(maha, antar); if (e) blocks.push({ key: `dasha/${maha.toLowerCase()}-${antar.toLowerCase()}`, text: stripHtml(e.body) }); }
+      if (planets) {
+        for (const [name, pl] of Object.entries(planets)) {
+          if (pl.house === 7 || pl.house === 1 || pl.house === 5) {
+            const e = lookupPlanetInHouse(name, pl.house);
+            if (e) blocks.push({ key: `planet-in-house/${name.toLowerCase()}-${pl.house}`, text: stripHtml(e.body) });
+          }
         }
       }
+      return { summary, blocks, lagna: lagnaSign, moonNak, maha, antar };
     }
-    return { summary, blocks, lagna: lagnaSign, moonNak, maha, antar };
-  }
 
-  const [ctx1, ctx2] = await Promise.all([buildProfileContext(profile1), buildProfileContext(profile2)]);
+    const [ctx1, ctx2] = await Promise.all([buildProfileContext(profile1), buildProfileContext(profile2)]);
 
-  const contentSection = [...ctx1.blocks.map(b => `[${profile1.name}] ${b.key}\n${b.text}`), ...ctx2.blocks.map(b => `[${profile2.name}] ${b.key}\n${b.text}`)].join("\n\n---\n\n");
+    const contentSection = [...ctx1.blocks.map(b => `[${profile1.name}] ${b.key}\n${b.text}`), ...ctx2.blocks.map(b => `[${profile2.name}] ${b.key}\n${b.text}`)].join("\n\n---\n\n");
 
-  const scoreSummary = scores
-    ? Object.entries(scores).map(([k, v]) => `${k}: ${v}`).join(" | ")
-    : "";
+    const scoreSummary = scores
+      ? Object.entries(scores).map(([k, v]) => `${k}: ${v}`).join(" | ")
+      : "";
 
-  const chatConfig = await db.settings.getChatLlm();
-  const chosenModel: AiModelKey = resolveModel(model, DEFAULT_CHAT_MODEL);
+    const chatConfig = await db.settings.getChatLlm();
+    const chosenModel: AiModelKey = resolveModel(model, DEFAULT_CHAT_MODEL);
 
-  const systemPrompt = `You are an expert Vedic astrologer analysing the compatibility between ${profile1.name} and ${profile2.name}.
+    const systemPrompt = `You are an expert Vedic astrologer analysing the compatibility between ${profile1.name} and ${profile2.name}.
 
 You have both their complete charts and the Ashtakoota Milan scores. Your role: give real, grounded insight — not a recitation of texts. Apply astrological reasoning to help understand this pairing as two specific people with specific placements.
 
@@ -126,7 +127,6 @@ ${scoreSummary}
 === INTERPRETATION TEXTS ===
 ${contentSection}${chatConfig.custom_instructions ? `\n\n=== ADDITIONAL INSTRUCTIONS ===\n${chatConfig.custom_instructions}` : ""}`;
 
-  try {
     const response = await callAIForText(chosenModel, systemPrompt, messages, {
       temperature: chatConfig.temperature,
       maxTokens: chatConfig.max_tokens,
