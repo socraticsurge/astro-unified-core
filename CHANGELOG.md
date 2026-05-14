@@ -8,6 +8,26 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Per-tab AI insights with Gemini
+
+### Added
+- **`lib/engines/gemini.ts`** — direct Gemini API caller using `fetch` (no SDK); `gemini-3.1-flash-lite`, `responseMimeType: "application/json"`, temperature 0.15.
+- **`lib/ai-insight.ts`** — server-only insight builder. Per-tab content selection (ascendant, planet-in-house, nakshatra, dasha-pair lookups), strict system prompt (verbatim `chart_verification`, grounded-only synthesis), `buildInsightForTab(profile, tab)`.
+- **`app/api/readings/ai-insight/route.ts`** — `GET` returns cached insight; `POST` generates + caches (transit always regenerates, others permanent).
+- **`app/api/admin/ai-insights/[id]/rating/route.ts`** — `PATCH` endpoint for thumbs-up / thumbs-down / null.
+- **`components/engines/AIInsightCard.tsx`** — renders `TabInsight` JSON: chart-verification pill strip, collapsible technical-basis disclosure per section, key themes, model/version footer, rating buttons.
+- **`components/engines/AIInsightShell.tsx`** — collapsible admin-only shell per tab; checks cache on mount, shows Generate button if uncached (or always for transit tab), spinner during fetch.
+
+### Changed
+- **`lib/db/client.ts`** — schema v8: added `rating INTEGER` and `rated_at TEXT` columns to `readings` table.
+- **`lib/db/readings.ts`** — added `rate()`, `aiInsightStats()` methods; updated `Reading` type with optional `rating`, `rated_at`.
+- **`components/engines/ProfessionalView.tsx`** — accepts `profileId` + `isAdmin` props; renders `AIInsightShell` at the top of natal, vargas, dashas, career, transit, tarabalam tabs (admin-only).
+- **`app/profiles/[id]/ProfileDetailClient.tsx`** — passes `profileId` and `isAdmin` to `ProfessionalView`.
+- **`app/admin/page.tsx`** — fetches `db.readings.aiInsightStats()` and passes to `AdminTables`.
+- **`app/admin/AdminTables.tsx`** — new "AI Insights" tab showing per-engine rating summary table.
+
+---
+
 ## [2026-05-14] — Remove dead files; clear T1 from backlog
 
 ### Removed

@@ -304,6 +304,8 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
           onFetchCareer={fetchCareer}
           isTransitLoading={transit.loading}
           isCareerLoading={career.loading}
+          profileId={id}
+          isAdmin={showAdminTools}
         />
       ) : (
         <>

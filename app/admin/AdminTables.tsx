@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar, CheckCircle2, ThumbsUp, ThumbsDown } from "lucide-react";
 import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings, ConsultationSlot } from "@/lib/db";
+import type { AiInsightStat } from "@/lib/db/readings";
 import { assembleStatement } from "@/lib/consultation";
 
 type Props = {
@@ -15,9 +16,10 @@ type Props = {
   consultationRequests: ConsultationRequestWithUser[];
   consultationSlots: ConsultationSlot[];
   appSettings: AppSettings;
+  aiInsightStats: AiInsightStat[];
 };
 
-export function AdminTables({ users, profiles, feedback, compatibilityChecks, consultationRequests, consultationSlots: initialSlots, appSettings }: Props) {
+export function AdminTables({ users, profiles, feedback, compatibilityChecks, consultationRequests, consultationSlots: initialSlots, appSettings, aiInsightStats }: Props) {
   const [userSortCol, setUserSortCol] = useState<string>("last_login");
   const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
   
@@ -206,6 +208,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
         <TabsTrigger value="questions">
           Questions ({consultationRequests.filter(r => r.status !== "answered").length} active)
         </TabsTrigger>
+        <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
 
@@ -568,6 +571,44 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
             </tbody>
           </table>
         </div>
+      </TabsContent>
+
+      <TabsContent value="ai-insights">
+        {aiInsightStats.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6">No AI insights generated yet.</p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Thumbs up/down ratings you gave to generated AI insights per tab.</p>
+            <div className="overflow-x-auto rounded-lg border border-white/10">
+              <table className="w-full text-sm">
+                <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Tab</th>
+                    <th className="px-3 py-2 font-medium text-center">Total</th>
+                    <th className="px-3 py-2 font-medium text-center text-emerald-400">
+                      <ThumbsUp className="h-3 w-3 inline mr-1" />Up
+                    </th>
+                    <th className="px-3 py-2 font-medium text-center text-red-400">
+                      <ThumbsDown className="h-3 w-3 inline mr-1" />Down
+                    </th>
+                    <th className="px-3 py-2 font-medium text-center text-muted-foreground">Unrated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {aiInsightStats.map((s) => (
+                    <tr key={s.engine} className="border-t border-white/10 hover:bg-white/5">
+                      <td className="px-3 py-2 font-medium capitalize">{s.engine.replace("ai-", "")}</td>
+                      <td className="px-3 py-2 text-center tabular-nums">{s.total}</td>
+                      <td className="px-3 py-2 text-center tabular-nums text-emerald-400">{s.thumbs_up}</td>
+                      <td className="px-3 py-2 text-center tabular-nums text-red-400">{s.thumbs_down}</td>
+                      <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">{s.unrated}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </TabsContent>
 
       <TabsContent value="settings">

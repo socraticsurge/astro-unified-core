@@ -7,7 +7,9 @@ import { TransitView } from "./TransitView";
 import { CareerView } from "./CareerView";
 import { MuhurthaView } from "./MuhurthaView";
 import { TarabalamView } from "./TarabalamView";
+import { AIInsightShell } from "./AIInsightShell";
 import { useParams } from "next/navigation";
+import type { InsightTab } from "@/lib/ai-insight";
 import { Copy, Check, FileText, RefreshCw } from "lucide-react";
 import { generateConsultationNote } from "@/lib/utils/consultation";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,8 @@ type Props = {
   onFetchCareer?: () => void;
   isTransitLoading?: boolean;
   isCareerLoading?: boolean;
+  profileId?: string;
+  isAdmin?: boolean;
 };
 
 type TabKey = "natal" | "vargas" | "dashas" | "career" | "transit" | "muhurtha" | "tarabalam";
@@ -56,6 +60,8 @@ export function ProfessionalView({
   onFetchCareer,
   isTransitLoading,
   isCareerLoading,
+  profileId,
+  isAdmin,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("natal");
   const [copied, setCopied] = useState(false);
@@ -121,26 +127,36 @@ export function ProfessionalView({
       {/* ─── Tab Content ─── */}
       <div className="min-h-[50vh]">
         {activeTab === "natal" && (
-          <DashaflowView output={chartOutput} explainers={explainers} />
+          <>
+            {isAdmin && profileId && <AIInsightShell profileId={profileId} tab={"natal" as InsightTab} />}
+            <DashaflowView output={chartOutput} explainers={explainers} />
+          </>
         )}
 
         {activeTab === "vargas" && (
-          <VargaDashboard
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            planets={planets as any}
-            explainer={explainers["Varga Chart Dashboard (D1–D60)"] ?? null}
-          />
+          <>
+            {isAdmin && profileId && <AIInsightShell profileId={profileId} tab={"vargas" as InsightTab} />}
+            <VargaDashboard
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              planets={planets as any}
+              explainer={explainers["Varga Chart Dashboard (D1–D60)"] ?? null}
+            />
+          </>
         )}
 
         {activeTab === "dashas" && (
-          <AntardashaTimeline
-            dashas={dashas}
-            explainer={explainers["Antardasha Timeline (Full Dasha Tree)"] ?? null}
-          />
+          <>
+            {isAdmin && profileId && <AIInsightShell profileId={profileId} tab={"dashas" as InsightTab} />}
+            <AntardashaTimeline
+              dashas={dashas}
+              explainer={explainers["Antardasha Timeline (Full Dasha Tree)"] ?? null}
+            />
+          </>
         )}
 
         {activeTab === "career" && (
           <>
+            {isAdmin && profileId && <AIInsightShell profileId={profileId} tab={"career" as InsightTab} />}
             {isCareerLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground border border-white/5 rounded-xl bg-white/[0.02]">
                 <RefreshCw className="h-8 w-8 animate-spin text-violet-400" />
@@ -161,6 +177,7 @@ export function ProfessionalView({
 
         {activeTab === "transit" && (
           <>
+            {isAdmin && profileId && <AIInsightShell profileId={profileId} tab={"transit" as InsightTab} />}
             {isTransitLoading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground border border-white/5 rounded-xl bg-white/[0.02]">
                 <RefreshCw className="h-8 w-8 animate-spin text-sky-400" />
@@ -188,11 +205,14 @@ export function ProfessionalView({
         )}
 
         {activeTab === "tarabalam" && (
-          <TarabalamView
-            profileId={id}
-            profiles={profiles}
-            explainer={explainers["Tarabalam"] ?? null}
-          />
+          <>
+            {isAdmin && profileId && <AIInsightShell profileId={profileId} tab={"tarabalam" as InsightTab} />}
+            <TarabalamView
+              profileId={id}
+              profiles={profiles}
+              explainer={explainers["Tarabalam"] ?? null}
+            />
+          </>
         )}
       </div>
     </div>

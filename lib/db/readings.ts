@@ -8,6 +8,16 @@ export type Reading = {
   input_snapshot: string;
   output_data: string;
   created_at: string;
+  rating?: number | null;
+  rated_at?: string | null;
+};
+
+export type AiInsightStat = {
+  engine: string;
+  total: number;
+  thumbs_up: number;
+  thumbs_down: number;
+  unrated: number;
 };
 
 export const readings = {
@@ -66,5 +76,36 @@ export const readings = {
       sql: "DELETE FROM readings WHERE profile_id = ?",
       args: [profile_id],
     });
+  },
+
+  async rate(id: string, rating: 1 | -1 | null): Promise<void> {
+    await ensureSchema();
+    await getClient().execute({
+      sql: "UPDATE readings SET rating = ?, rated_at = ? WHERE id = ?",
+      args: [rating, rating !== null ? new Date().toISOString() : null, id],
+    });
+  },
+
+  async aiInsightStats(): Promise<AiInsightStat[]> {
+    await ensureSchema();
+    const rs = await getClient().execute(`
+      SELECT
+        engine,
+        COUNT(*) as total,
+        SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as thumbs_up,
+        SUM(CASE WHEN rating = -1 THEN 1 ELSE 0 END) as thumbs_down,
+        SUM(CASE WHEN rating IS NULL THEN 1 ELSE 0 END) as unrated
+      FROM readings
+      WHERE engine LIKE 'ai-%'
+      GROUP BY engine
+      ORDER BY engine
+    `);
+    return rs.rows.map((r) => ({
+      engine: r[0] as string,
+      total: Number(r[1]),
+      thumbs_up: Number(r[2]),
+      thumbs_down: Number(r[3]),
+      unrated: Number(r[4]),
+    }));
   },
 };
