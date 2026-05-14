@@ -3,7 +3,16 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
 
 export { GEMINI_MODEL };
 
-export async function callGemini(systemPrompt: string, userPrompt: string): Promise<unknown> {
+export type GeminiCallOpts = {
+  temperature?: number;
+  maxOutputTokens?: number;
+};
+
+export async function callGemini(
+  systemPrompt: string,
+  userPrompt: string,
+  opts?: GeminiCallOpts,
+): Promise<unknown> {
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_GEMINI_API_KEY is not set");
 
@@ -15,8 +24,8 @@ export async function callGemini(systemPrompt: string, userPrompt: string): Prom
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       generationConfig: {
         responseMimeType: "application/json",
-        temperature: 0.15,
-        maxOutputTokens: 4096,
+        temperature: opts?.temperature ?? 0.5,
+        maxOutputTokens: opts?.maxOutputTokens ?? 4096,
       },
     }),
   });

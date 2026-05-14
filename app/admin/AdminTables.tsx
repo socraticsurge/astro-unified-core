@@ -4,9 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar, CheckCircle2, ThumbsUp, ThumbsDown } from "lucide-react";
-import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings, ConsultationSlot } from "@/lib/db";
+import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings, ConsultationSlot, AiInsightsLlmConfig, ChatLlmConfig } from "@/lib/db";
 import type { AiInsightStat } from "@/lib/db/readings";
 import { assembleStatement } from "@/lib/consultation";
+import { LlmSettingsPanel } from "@/components/admin/LlmSettingsPanel";
 
 type Props = {
   users: User[];
@@ -17,9 +18,10 @@ type Props = {
   consultationSlots: ConsultationSlot[];
   appSettings: AppSettings;
   aiInsightStats: AiInsightStat[];
+  llmSettings: { ai_insights: AiInsightsLlmConfig; chat: ChatLlmConfig };
 };
 
-export function AdminTables({ users, profiles, feedback, compatibilityChecks, consultationRequests, consultationSlots: initialSlots, appSettings, aiInsightStats }: Props) {
+export function AdminTables({ users, profiles, feedback, compatibilityChecks, consultationRequests, consultationSlots: initialSlots, appSettings, aiInsightStats, llmSettings }: Props) {
   const [userSortCol, setUserSortCol] = useState<string>("last_login");
   const [userSortDir, setUserSortDir] = useState<"asc" | "desc">("desc");
   
@@ -209,6 +211,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
           Questions ({consultationRequests.filter(r => r.status !== "answered").length} active)
         </TabsTrigger>
         <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
+        <TabsTrigger value="llm-settings">LLM Settings</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
 
@@ -609,6 +612,13 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
             </div>
           </div>
         )}
+      </TabsContent>
+
+      <TabsContent value="llm-settings">
+        <LlmSettingsPanel
+          initialAiInsights={llmSettings.ai_insights}
+          initialChat={llmSettings.chat}
+        />
       </TabsContent>
 
       <TabsContent value="settings">

@@ -127,11 +127,14 @@ Generate the insight for the ${TAB_LABELS[tab]} tab. Sections to produce: ${sect
 // Sections to generate per tab
 const TAB_SECTIONS: Record<InsightTab, { id: string; title: string }[]> = {
   natal: [
-    { id: "core-nature", title: "Core Nature" },
-    { id: "key-strengths", title: "Key Strengths" },
-    { id: "challenges", title: "Challenges & Growth Areas" },
-    { id: "relationships", title: "Relationships & Family" },
-    { id: "current-period", title: "Current Life Period" },
+    { id: "career-profession", title: "Career & Profession" },
+    { id: "wealth-finances", title: "Wealth & Finances" },
+    { id: "marriage-partnership", title: "Marriage & Partnership" },
+    { id: "family-children", title: "Family & Children" },
+    { id: "health-wellbeing", title: "Health & Wellbeing" },
+    { id: "education-skills", title: "Education & Skills" },
+    { id: "travel-relocation", title: "Travel & Relocation" },
+    { id: "dharma-life-purpose", title: "Dharma & Life Purpose" },
   ],
   vargas: [
     { id: "overall-pattern", title: "Overall Divisional Pattern" },
@@ -389,8 +392,16 @@ export async function buildInsightForTab(
     throw new Error(`No interpretation content found for tab: ${tab}`);
   }
 
+  const llmConfig = await db.settings.getAiInsightsLlm();
+  const systemPrompt = llmConfig.custom_instructions
+    ? `${SYSTEM_PROMPT}\n\n=== ADDITIONAL INSTRUCTIONS ===\n${llmConfig.custom_instructions}`
+    : SYSTEM_PROMPT;
+
   const userPrompt = buildUserPrompt(profile, chartSummary, tab, contentBlocks, tabSpecificData);
-  const raw = await callGemini(SYSTEM_PROMPT, userPrompt) as TabInsight;
+  const raw = await callGemini(systemPrompt, userPrompt, {
+    temperature: llmConfig.temperature,
+    maxOutputTokens: llmConfig.max_tokens,
+  }) as TabInsight;
 
   // Stamp model + prompt_version regardless of what Gemini returned
   return {

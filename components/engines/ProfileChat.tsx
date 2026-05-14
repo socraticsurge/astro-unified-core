@@ -75,7 +75,6 @@ export function ProfileChat({ profileId }: Props) {
               }`}
             >
               {m.label}
-              <span className="ml-1 opacity-50">{m.note}</span>
             </button>
           ))}
         </div>

@@ -4,12 +4,10 @@ export const GROQ_MODELS = {
   scout: {
     id: "meta-llama/llama-4-scout-17b-16e-instruct",
     label: "Llama 4 Scout",
-    note: "30K TPM",
   },
   compound: {
-    id: "gemma-4-26b-a4b-it",
-    label: "Gemma 4 26B",
-    note: "70K TPM",
+    id: "gemma-4-31b-it",
+    label: "Gemma 4 31B",
   },
 } as const;
 
@@ -17,10 +15,17 @@ export type GroqModelKey = keyof typeof GROQ_MODELS;
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
+export type GroqCallOpts = {
+  temperature?: number;
+  max_tokens?: number;
+  top_p?: number;
+};
+
 export async function callGroq(
   systemPrompt: string,
   messages: ChatMessage[],
   model: GroqModelKey = "scout",
+  opts?: GroqCallOpts,
 ): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error("GROQ_API_KEY is not set");
@@ -34,9 +39,9 @@ export async function callGroq(
     body: JSON.stringify({
       model: GROQ_MODELS[model].id,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
-      temperature: 0.65,
-      max_tokens: 8192,
-      top_p: 0.9,
+      temperature: opts?.temperature ?? 0.65,
+      max_tokens: opts?.max_tokens ?? 8192,
+      top_p: opts?.top_p ?? 0.9,
     }),
   });
 

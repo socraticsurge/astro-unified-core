@@ -111,7 +111,16 @@ ${chartSummary}
 ${contentSection}`;
 
   try {
-    const response = await callGroq(systemPrompt, messages, model);
+    const chatConfig = await db.settings.getChatLlm();
+    const finalSystemPrompt = chatConfig.custom_instructions
+      ? `${systemPrompt}\n\n=== ADDITIONAL INSTRUCTIONS ===\n${chatConfig.custom_instructions}`
+      : systemPrompt;
+
+    const response = await callGroq(finalSystemPrompt, messages, model, {
+      temperature: chatConfig.temperature,
+      max_tokens: chatConfig.max_tokens,
+      top_p: chatConfig.top_p,
+    });
     return NextResponse.json({ response }, {
       headers: { "Cache-Control": "private, max-age=0" },
     });
