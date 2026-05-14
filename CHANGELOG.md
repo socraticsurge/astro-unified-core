@@ -8,6 +8,22 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Documentation restructure: 9-document system
+
+### Added
+- **`docs/STANDARDS.md`** — new cross-agent source of truth: task lifecycle, branch workflow, Vitest rules, auth patterns (isAdmin JWT-stamping), security patterns (Cache-Control, NEXT_PUBLIC_, force-dynamic), DB conventions, rate limiting, API conventions, doc hygiene.
+- **`docs/PRODUCT.md`** — product story, 3 user personas, feature map, consultation fee structure, 8 plain-language user journeys (J1–J8), content philosophy, product roadmap.
+- **`docs/TESTING.md`** — test coverage status per module, how-to-run instructions, test plans for all 8 user journeys, manual QA log template with 2026-05-13 entry.
+
+### Changed
+- **`docs/ARCHITECTURE.md`** — added Section 1 "Server / Client Boundary Map": complete table of every page (server vs client), every client component with what it cannot do, the `isAdmin` JWT pattern with a flow diagram, and a `process.env` availability table. Renumbered old sections 1–12 → 2–13. Fixed schema version reference (4 → 7). Updated admin guard description to reflect JWT-stamping pattern.
+- **`docs/BACKLOG.md`** — added "Session Decisions" section (S1–S7, capturing all architectural decisions from the prior two sessions) and "Product Roadmap" section (near/medium/long-term). Updated `last-updated` stamp.
+- **`docs/PROJECT.md`** — fixed stale `ADMIN_EMAILS` description (was "optional override of hardcoded email", now correctly "required; if unset no one is admin"). Updated auth model section. Added "Runbook" section with procedures for: changing admin users, running backfill, verifying failed deployments, updating env vars via REST API, schema migration, clearing compatibility history.
+- **`CLAUDE.md`** — trimmed to thin wrapper (~70 lines). Removed duplicated hard constraints (→ `STANDARDS.md`). Added documentation map table. References `docs/STANDARDS.md` as source of truth.
+- **`AGENTS.md`** — trimmed to pre-flight checklist + 7 repeated-failure rules + reference to `docs/STANDARDS.md`. Target was ~80 lines.
+
+---
+
 ## [2026-05-14] — Fix admin visibility in all client components
 
 ### Fixed

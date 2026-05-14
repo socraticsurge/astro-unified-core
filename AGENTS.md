@@ -6,123 +6,104 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ---
 
-# Rules for AI Agents (Jules and others)
+# Rules for AI Agents (Jules, Gemini, and others)
 
-These rules exist because agents have violated them before and caused rework.
-Every rule below maps to a real incident. Follow them without exception.
-
----
-
-## 1. Branch — PRs must target `development`, never `main`
-
-- All PRs must set **`development`** as the base branch.
-- `main` is production. A PR to `main` deploys directly to real users.
-- Before opening a PR, run: `gh pr list` and confirm your branch targets `development`.
-- Do NOT create new branch names like `feature/*` or `fix/*` to merge into `main`.
-
-**Why this matters:** 13 of 15 Jules PRs in one session targeted `main`. Every one had to be manually retargeted before merging.
+> **Full coding standards** are in [`docs/STANDARDS.md`](docs/STANDARDS.md).
+> Read that file for the complete set of rules.
+>
+> This file contains the **pre-flight checklist** and the bugs we have seen
+> agents introduce repeatedly. Every rule below maps to a real incident.
 
 ---
 
-## 2. Test framework — use Vitest, not Jest
+## Pre-flight checklist — required before opening ANY PR
 
-This project uses **Vitest**. Do not use Jest APIs.
+- [ ] Base branch is `development` — NEVER `main`
+- [ ] `gh pr list --state open` shows no existing PR for the same issue
+- [ ] No `.jules/`, `.cursor/`, `.aider/` entries in `git status`
+- [ ] `./node_modules/.bin/tsc --noEmit` — zero errors
+- [ ] All test mocks satisfy their TypeScript types
+- [ ] `npx vitest run` — all pass
+- [ ] No `public` Cache-Control on auth-gated routes
+- [ ] No `isAdmin(session)` calls inside `"use client"` components
+- [ ] `CHANGELOG.md` updated with today's dated entry
+- [ ] PR is not a draft
 
-| Wrong (Jest) | Correct (Vitest) |
+---
+
+## Repeated agent failures — read before writing code
+
+### 1. PRs must target `development`, never `main`
+
+`main` is production. Every merge triggers a live deploy to real users.
+Always: `gh pr create --base development`.
+
+**Why:** 13 of 15 Jules PRs in one session targeted `main`.
+
+---
+
+### 2. Use Vitest, not Jest
+
+| Wrong | Correct |
 |---|---|
 | `jest.fn()` | `vi.fn()` |
 | `jest.mock(...)` | `vi.mock(...)` |
-| `jest.spyOn(...)` | `vi.spyOn(...)` |
 | `jest.Mock` | `ReturnType<typeof vi.fn>` |
 | `@jest/globals` | `vitest` |
 
-Config is in `vitest.config.ts`. Globals (`vi`, `describe`, `it`, `expect`) are enabled — no imports needed.
-Run tests with: `npx vitest run`
+Run tests with `npx vitest run`. Config is in `vitest.config.ts`.
 
-**Why this matters:** PR #22 used Jest syntax throughout. The tests could not run.
-
----
-
-## 3. Never commit AI working files
-
-Do not commit any files from `.jules/`, `.cursor/`, `.aider/`, or any other AI-tool scratch directories. These are internal agent notes and have no place in the repository.
-
-Add them to `.gitignore` if they are not already listed. Check `git status` before committing — if you see `.jules/` or similar, `rm -rf` it and do not stage it.
-
-**Why this matters:** PRs #18, #23, #26 all included `.jules/bolt.md`, causing a merge conflict that had to be manually resolved.
+**Why:** PR #22 used Jest syntax throughout. Tests could not run.
 
 ---
 
-## 4. Check for existing PRs before opening a new one
+### 3. Never commit AI scratch files
 
-Before opening a PR, run:
-```bash
-gh pr list --state open
-```
-If an open PR already covers the same file or issue, do not open a duplicate. Instead, either build on the existing branch or note the overlap in a comment.
+If `.jules/`, `.cursor/`, or `.aider/` appear in `git status`, `rm -rf` them.
+Do not stage them.
 
-**Why this matters:** Jules opened 3 separate PRs (#6, #11, #15) all targeting the same XSS vulnerability in the same two files.
+**Why:** PRs #18, #23, #26 all included `.jules/bolt.md`, causing merge conflicts.
 
 ---
 
-## 5. Test mocks must satisfy TypeScript types
+### 4. Never call `isAdmin(session)` in a `"use client"` component
 
-When mocking a typed object in tests, provide all required fields. Use `Partial<T>` or cast via `as T` only when you have verified the test genuinely doesn't need the missing fields.
+`process.env.ADMIN_EMAILS` is `undefined` in the browser. Calling `isAdmin()` in
+client code always returns `false`.
 
-To check: run `./node_modules/.bin/tsc --noEmit` before submitting. Zero errors required.
-
-**Why this matters:** PR #28 mocked `Profile` as `{ id: string; name: string }`, missing 8 required fields. It failed the type checker.
-
----
-
-## 6. Never use `public` Cache-Control on authenticated routes
-
-Any API route protected by `getServerSession` must use:
+**Correct client pattern:**
 ```ts
-"Cache-Control": "private, max-age=<seconds>"
+const showAdminTools = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true;
 ```
 
-Never use `public`, `s-maxage`, or `stale-while-revalidate` on routes that check auth. Public CDN caches do not scope by user — one user's data can be served to another.
-
-**Why this matters:** PR #26 added `Cache-Control: public, s-maxage=86400` to an auth-gated endpoint.
+**Why:** NavBar, ProfileDetailClient, and CompatibilityDetailClient all had this bug. Admin features were invisible to admins.
 
 ---
 
-## 7. Never call `isAdmin(session)` in a client component
+### 5. Test mocks must satisfy TypeScript types
 
-`isAdmin()` reads `process.env.ADMIN_EMAILS`. That env var is **not available in the browser**. Calling it in a `"use client"` component always returns `false`.
+When mocking typed objects, provide all required fields. Run
+`./node_modules/.bin/tsc --noEmit` before submitting. Zero errors required.
 
-**Correct pattern for client components:**
-```ts
-const showAdminTools = (session?.user as { isAdmin?: boolean })?.isAdmin === true;
-```
-
-The `isAdmin` flag is stamped into the session server-side in `lib/auth.ts`. Read it from the session object; never re-evaluate it on the client.
-
-**Why this matters:** NavBar, ProfileDetailClient, and CompatibilityDetailClient all had this bug. Admin features were invisible to admin users.
+**Why:** PR #28 mocked `Profile` with 8 missing required fields. Type checker failed.
 
 ---
 
-## 8. No draft PRs
+### 6. No `public` Cache-Control on authenticated routes
 
-Do not open draft PRs. Only open a PR when the work is complete and the tests pass. Incomplete drafts queue up and create confusion about what needs review.
+Auth-gated API routes must use `"Cache-Control": "private, max-age=N"`. Never
+`public`, `s-maxage`, or `stale-while-revalidate` — CDN caches do not scope by user.
 
----
-
-## 9. One PR per concern
-
-Each PR should do one thing: one bug fix, one feature, one refactor. Do not bundle unrelated changes. If you are fixing a security issue and notice a performance issue, open two PRs.
+**Why:** PR #26 added `public, s-maxage=86400` to an auth-gated endpoint.
 
 ---
 
-## Summary checklist before opening any PR
+### 7. One PR per concern; no draft PRs
 
-- [ ] Base branch is `development`
-- [ ] No `.jules/` or other AI scratch files in `git status`
-- [ ] `gh pr list` shows no existing PR for the same issue
-- [ ] `./node_modules/.bin/tsc --noEmit` passes with zero errors
-- [ ] All test mocks satisfy their TypeScript types
-- [ ] `npx vitest run` passes
-- [ ] No `public` Cache-Control on auth-gated routes
-- [ ] No `isAdmin(session)` calls inside `"use client"` components
-- [ ] PR is not a draft
+One PR = one bug fix, one feature, or one refactor. Only open a PR when
+work is complete and tests pass.
+
+---
+
+*For the complete standards — branch workflow, DB conventions, rate limiting,
+auth patterns, security rules — read [`docs/STANDARDS.md`](docs/STANDARDS.md).*

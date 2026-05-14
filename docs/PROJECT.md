@@ -132,7 +132,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `TURSO_DATABASE_URL`       | libSQL DSN                                                    |
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
 | `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`                        |
-| `ADMIN_EMAILS` (optional)  | Comma-sep override of the hardcoded `cvk.atreya@gmail.com`    |
+| `ADMIN_EMAILS` (required)  | Comma-separated list of admin email addresses. If unset, no one has admin access. |
 
 ### Sidecar — none required.
 
@@ -197,9 +197,11 @@ harmless dead data.
 - `lib/auth.ts` exports `authOptions`, which **must** be passed to every
   `getServerSession(authOptions)` call — without it, the session callback
   doesn't fire and `user.id` is `undefined`.
-- `lib/admin.ts` exposes `isAdmin(session)`. Hardcoded fallback is
-  `cvk.atreya@gmail.com`; can be overridden with the `ADMIN_EMAILS`
-  comma-separated env var.
+- `lib/admin.ts` exposes `isAdmin(session)` — **server-side only**. Reads
+  `ADMIN_EMAILS` env var (no hardcoded fallback; if unset, no one is admin).
+  The `session` callback in `lib/auth.ts` stamps `user.isAdmin` into the JWT at
+  sign-in so client components can read it without re-evaluating env vars.
+  See `docs/STANDARDS.md §5` for the full isAdmin pattern.
 
 Admin can read any user's profile and chart (override applied in
 `/api/profiles/[id]` GET and `/api/readings/dashaflow` GET/POST). Admin
@@ -491,3 +493,67 @@ These came up but were left out of scope. None block the live site.
 - **Old `readings` rows**: dead rows for removed engines (`bazi`,
   `vedastro`, etc.) sit in the DB. Cosmetic. One-line cleanup if you want:
   `DELETE FROM readings WHERE engine != 'dashaflow';`.
+- **Profile editing not available**: only DELETE is supported on
+  `/api/profiles/[id]`. No PATCH; to fix a typo, delete and recreate.
+
+---
+
+## Runbook
+
+Common operational procedures for deployment, maintenance, and debugging.
+
+### Add or change admin users
+
+1. Update `ADMIN_EMAILS` env var in the Vercel dashboard (Production + Preview scopes).
+2. Existing admin users must **sign out and sign back in** — the `isAdmin` flag
+   is baked into the JWT at sign-in time. Changing env vars does not retroactively
+   update existing sessions.
+
+### Run a sidecar backfill (refresh all cached charts)
+
+1. Sign in as an admin.
+2. Navigate to `/admin` → use the backfill button.
+3. Monitor Vercel function logs for errors (`GET /v13/deployments/{id}` via API
+   if logs CLI is flaky — see Lesson 13 in this file).
+
+### Verify a failed deployment
+
+```bash
+# Find the deployment ID
+curl -s "https://api.vercel.com/v6/deployments?teamId=TEAM_ID" \
+  -H "Authorization: Bearer TOKEN" | jq '.deployments[0]'
+
+# Read the failure reason
+curl -s "https://api.vercel.com/v13/deployments/DEPLOYMENT_ID" \
+  -H "Authorization: Bearer TOKEN" | jq '.readyStateReason, .errorLink'
+```
+
+### Update a Vercel env var without the CLI
+
+The CLI sometimes fails on preview scopes. Use the REST API directly:
+
+```bash
+curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"key":"ENV_KEY","value":"VALUE","type":"plain","target":["preview"]}'
+```
+
+### Schema migration
+
+1. Add DDL in `lib/db/client.ts` inside `ensureSchema()`.
+2. Bump `SCHEMA_VERSION` (currently `7`).
+3. Deploy. `ensureSchema()` will auto-run the DDL on the next DB call.
+4. Update `docs/ARCHITECTURE.md §5` and `docs/PROJECT.md` schema section.
+
+### Clear stale compatibility history (admin)
+
+1. Sign in as admin → `/admin` → Settings tab → "Clear History" button.
+2. Or directly via API: `POST /api/admin/clear-compatibility` with a valid admin session.
+
+---
+
+*See `docs/STANDARDS.md` for coding standards, `docs/ARCHITECTURE.md` for system
+design, `docs/BACKLOG.md §Session Decisions` for historical architectural choices.*
+
+*Last updated: 2026-05-14*

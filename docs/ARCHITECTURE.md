@@ -1,6 +1,6 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-05-13 -->
+<!-- last-updated: 2026-05-14 -->
 
 > **Companion to [`PROJECT.md`](./PROJECT.md)** — that file covers env vars,
 > deployment gotchas, and the auth model. This file covers the code itself:
@@ -12,25 +12,26 @@
 >
 > **Maintenance rule:** Update the `<!-- last-updated -->` stamp and the
 > affected section(s) on every push that changes structure, routes, or journeys.
-> See [`CLAUDE.md`](../CLAUDE.md) for the full documentation hygiene rules.
+> See [`STANDARDS.md`](./STANDARDS.md) for the full documentation hygiene rules.
 
 ---
 
 ## Table of Contents
 
 0. [User Types](#0-user-types)
-1. [Repository Layout](#1-repository-layout)
-2. [Entry Points & Routing](#2-entry-points--routing)
-3. [Authentication Layer](#3-authentication-layer)
-4. [Database Layer](#4-database-layer)
-5. [Astrology Engine Layer](#5-astrology-engine-layer)
-6. [API Routes](#6-api-routes)
-7. [Page Components](#7-page-components)
-8. [Shared UI Components](#8-shared-ui-components)
-9. [Content Library (Markdown CMS)](#9-content-library-markdown-cms)
-10. [Utility Modules](#10-utility-modules)
-11. [User Journey Traces](#11-user-journey-traces)
-12. [Code Organisation Assessment](#12-code-organisation-assessment)
+1. [Server / Client Boundary Map](#1-server--client-boundary-map)
+2. [Repository Layout](#2-repository-layout)
+3. [Entry Points & Routing](#3-entry-points--routing)
+4. [Authentication Layer](#4-authentication-layer)
+5. [Database Layer](#5-database-layer)
+6. [Astrology Engine Layer](#6-astrology-engine-layer)
+7. [API Routes](#7-api-routes)
+8. [Page Components](#8-page-components)
+9. [Shared UI Components](#9-shared-ui-components)
+10. [Content Library (Markdown CMS)](#10-content-library-markdown-cms)
+11. [Utility Modules](#11-utility-modules)
+12. [User Journey Traces](#12-user-journey-traces)
+13. [Code Organisation Assessment](#13-code-organisation-assessment)
 
 ---
 
@@ -61,7 +62,106 @@ be reasoned against all three.
 
 ---
 
-## 1. Repository Layout
+## 1. Server / Client Boundary Map
+
+<!-- last-updated: 2026-05-14 -->
+
+This is the most important section for anyone touching the codebase. Understanding
+what runs where prevents the class of bugs where env vars are missing, `getServerSession`
+returns null, or admin features silently disappear.
+
+### The rule
+
+**Server** = runs in a Node.js Lambda on Vercel. Has access to all env vars
+(including secrets). Can call the DB, sidecar, and `getServerSession(authOptions)`.
+Never runs in the browser.
+
+**Client** = runs in the browser. Has NO access to server env vars.
+`process.env.ADMIN_EMAILS` is `undefined`. `process.env.NEXTAUTH_SECRET` is `undefined`.
+Must receive data via props, `useSession()`, or fetch calls to API routes.
+
+### Page and layout components
+
+| File | Runtime | Why |
+|---|---|---|
+| `app/layout.tsx` | Server | Root HTML shell, font loading, analytics |
+| `app/page.tsx` | Server | Session check → redirect or LandingPage |
+| `app/dashboard/page.tsx` | Server + `force-dynamic` | DB read (`db.profiles.list`) |
+| `app/profiles/new/page.tsx` | Server | Static form shell |
+| `app/profiles/[id]/page.tsx` | Server + `force-dynamic` | DB read (profile + sections) |
+| `app/profiles/[id]/edit/page.tsx` | Server + `force-dynamic` | DB read (profile pre-fill) |
+| `app/compatibility/page.tsx` | Server + `force-dynamic` | DB read (profiles + checks) |
+| `app/compatibility/[id]/page.tsx` | Server + `force-dynamic` | DB read (check + profiles) |
+| `app/admin/page.tsx` | Server + `force-dynamic` | Admin guard + all DB reads |
+| `app/consultation/page.tsx` | Server + `force-dynamic` | DB read (pending request + settings) |
+| `app/auth/signin/page.tsx` | Server | Static sign-in form |
+| `app/privacy/page.tsx` | Server | Static |
+| `app/terms/page.tsx` | Server | Static |
+| `app/credits/page.tsx` | Server | Renders CREDITS.md |
+
+### Client components (`"use client"`)
+
+| File | Why client | What it cannot do |
+|---|---|---|
+| `app/profiles/[id]/ProfileDetailClient.tsx` | Interactive chart, fetch on demand, Basic/Pro toggle | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
+| `app/compatibility/[id]/CompatibilityDetailClient.tsx` | Interactive detail tabs | Same — reads `session.user.isAdmin` |
+| `app/admin/AdminTables.tsx` | Tabs, sort, inline actions | Cannot call `isAdmin()` — admin gate is on the server page |
+| `app/consultation/ConsultationForm.tsx` | Multi-step form with live preview | Receives settings as props from server |
+| `components/NavBar.tsx` | `useSession`, `signOut` | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
+| `components/compatibility/CompatibilityClient.tsx` | Profile selection, check submission | Receives profiles + checks as props |
+| `components/engines/DashaflowView.tsx` | Collapsible sections, explainer modals | Receives chart output as props |
+| `components/engines/ProfessionalView.tsx` | Tab container, fetch-on-tab | Fetch triggered by user action |
+| `components/engines/TransitView.tsx` | Date picker, transit fetch | |
+| `components/engines/CareerView.tsx` | Lazy load on tab | |
+| `components/engines/MuhurthaView.tsx` | Event picker | |
+| `components/engines/TarabalamView.tsx` | Date range + multi-profile picker | |
+| `components/engines/VargaDashboard.tsx` | D-chart tabs | |
+| `components/engines/AntardashaTimeline.tsx` | Visual timeline | |
+| `components/FeedbackWidget.tsx` | Floating overlay, form submit | |
+| `components/ProfileForm.tsx` | Geocode-on-submit, controlled form | |
+| `components/dashboard/ProfileList.tsx` | Interactive profile cards | |
+| `components/auth/NextAuthProvider.tsx` | `SessionProvider` mount | |
+
+### API routes (all server-side, all in `app/api/`)
+
+Every API route runs on the server. The client calls them via `fetch()`.
+See [Section 7: API Routes](#7-api-routes) for the full route table.
+
+### The `isAdmin` pattern
+
+```
+lib/auth.ts session callback (server)
+  → evaluates ADMIN_EMAILS env var
+  → stamps user.isAdmin = true/false into the JWT
+
+lib/admin.ts isAdmin(session) (server-only)
+  → called only in server components and API routes
+  → NEVER in "use client" components
+
+Client components (browser)
+  → const showAdmin = (session?.user as { isAdmin?: boolean })?.isAdmin === true
+  → reads the flag from the JWT, already evaluated server-side
+```
+
+If `isAdmin` is ever invisible to admin users after a code change, the
+cause is almost always `isAdmin(session)` being called in a client component.
+
+### What `process.env` is available where
+
+| Variable | Server component | API route | Client component |
+|---|---|---|---|
+| `TURSO_DATABASE_URL` | Yes | Yes | No (never expose) |
+| `TURSO_AUTH_TOKEN` | Yes | Yes | No (never expose) |
+| `NEXTAUTH_SECRET` | Yes | Yes | No (never expose) |
+| `ADMIN_EMAILS` | Yes | Yes | No (never expose) |
+| `DASHAFLOW_SIDECAR_URL` | Yes | Yes | No |
+| `GOOGLE_CLIENT_ID` | Yes | Yes | No |
+| `NEXTAUTH_URL` | Yes | Yes | No |
+| `NEXT_PUBLIC_SENTRY_DSN` | Yes | Yes | Yes (`NEXT_PUBLIC_` is bundled) |
+
+---
+
+## 2. Repository Layout
 
 ```
 astrounified/
@@ -102,7 +202,7 @@ astrounified/
 
 ---
 
-## 2. Entry Points & Routing
+## 3. Entry Points & Routing
 
 ### Root Layout
 [`app/layout.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/layout.tsx)
@@ -139,7 +239,7 @@ Sticky top bar. Conditionally renders:
 
 ---
 
-## 3. Authentication Layer
+## 4. Authentication Layer
 
 ### NextAuth Configuration
 [`lib/auth.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/auth.ts)
@@ -158,12 +258,16 @@ Central `authOptions` object used by every `getServerSession()` call:
 ### Admin Guard
 [`lib/admin.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/admin.ts)
 
-Exports `isAdmin(session)`. Reads a comma-separated `ADMIN_EMAILS` env var;
-falls back to `cvk.atreya@gmail.com, astrochaganti@gmail.com`. Used in:
+Exports `isAdmin(session)`. Reads a comma-separated `ADMIN_EMAILS` env var
+(no hardcoded fallback). Used **server-side only** in:
 - `app/admin/page.tsx` — gates the admin panel
 - Every API route that needs to return data for *any* user (not just the caller)
-- `CompatibilityDetailClient` / `ProfileDetailClient` — toggles the
-  Professional view
+
+`lib/auth.ts` session callback evaluates `ADMIN_EMAILS` server-side at sign-in
+time and stamps `user.isAdmin = true/false` into the JWT. Client components
+(`NavBar`, `ProfileDetailClient`, `CompatibilityDetailClient`) read
+`session.user.isAdmin` from the JWT — they never call `isAdmin()` directly.
+See [Section 1](#1-server--client-boundary-map) for the full pattern.
 
 ### Session Provider
 [`components/auth/NextAuthProvider.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/auth/NextAuthProvider.tsx)
@@ -179,7 +283,7 @@ the NextAuth OAuth flow.
 
 ---
 
-## 4. Database Layer
+## 5. Database Layer
 
 <!-- last-updated: 2026-05-13 -->
 
@@ -215,7 +319,7 @@ Built on `@libsql/client` (Turso's HTTP SQLite driver).
 
 **Schema management**: `ensureSchema()` runs lazily on the first DB call per
 Lambda instance. It checks `schema_version`; if the stored version is behind
-`SCHEMA_VERSION` (currently `4`), it runs all DDL statements. Column additions
+`SCHEMA_VERSION` (currently `7`), it runs all DDL statements. Column additions
 use `ALTER TABLE … ADD COLUMN` wrapped in `try/catch` to handle re-runs.
 
 **Key exported namespaces:**
@@ -237,7 +341,7 @@ db.consultationRequests — getPending, listByUser, listAllWithUser, create, mar
 
 ---
 
-## 5. Astrology Engine Layer
+## 6. Astrology Engine Layer
 
 All computation-heavy work runs in the Python sidecar
 ([`socraticsurge/dashaflow-sidecar`](https://github.com/socraticsurge/dashaflow-sidecar), private).
@@ -309,7 +413,7 @@ surface a human-readable error instead of rendering broken data.
 
 ---
 
-## 6. API Routes
+## 7. API Routes
 
 All routes authenticate via `getServerSession(authOptions)` and return JSON.
 Admin routes additionally check `isAdmin(session)`.
@@ -425,7 +529,7 @@ Admin-only. `GET` returns all app settings. `PATCH` updates one or more settings
 
 ---
 
-## 7. Page Components
+## 8. Page Components
 
 ### Dashboard
 **[`app/dashboard/page.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/dashboard/page.tsx)**
@@ -545,7 +649,7 @@ When a pending question exists, renders `PendingCard` instead of the form — sh
 
 ---
 
-## 8. Shared UI Components
+## 9. Shared UI Components
 
 ### Chart Engine Components
 [`components/engines/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/)
@@ -577,7 +681,7 @@ and Tailwind.
 
 ---
 
-## 9. Content Library (Markdown CMS)
+## 10. Content Library (Markdown CMS)
 
 ### Loader & Renderer
 [`lib/content/loader.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/content/loader.ts) — Reads and caches markdown files by type + key. Uses `gray-matter` for YAML frontmatter.
@@ -609,7 +713,7 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 ---
 
-## 10. Utility Modules
+## 11. Utility Modules
 
 | Module | Purpose |
 |---|---|
@@ -620,7 +724,7 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 ---
 
-## 11. User Journey Traces
+## 12. User Journey Traces
 
 ### Journey 1: New User Sign-In
 
@@ -764,7 +868,7 @@ User visits https://astro-unified-core-pfni.vercel.app/
 
 ---
 
-## 12. Code Organisation Assessment
+## 13. Code Organisation Assessment
 
 ### What Works Well
 
