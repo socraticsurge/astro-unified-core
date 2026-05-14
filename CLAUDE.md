@@ -84,6 +84,12 @@ Tailwind v4, shadcn/ui. Deployed on Vercel.
 `main` = production. Every push to `main` triggers a live deployment visible to real users.
 Do NOT create new branches (e.g. `develop`, `feature/*`) — use `development`.
 
+**Integrating Jules PRs:**
+1. Use `gh pr list --author google-labs-jules` to find open PRs.
+2. Provide a summary & assessment table (Reason, Risk, Verdict).
+3. **Wait for USER approval** on the list before merging.
+4. Merge to `development`, resolve conflicts, verify tests, update `CHANGELOG`.
+
 ---
 
 ## Hard constraints
