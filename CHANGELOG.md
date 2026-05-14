@@ -8,6 +8,14 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Fix Muhurtha event type mismatch
+
+### Fixed
+- **`components/engines/MuhurthaView.tsx`** — Dropdown option values updated to match what the sidecar accepts: `marriage`, `house_entry`, `business`, `travel`, `education`, `medical`. Previous values (`"General"`, `"House Warming"`, `"Vehicle Purchase"`, `"Property"`) did not match any sidecar-accepted event type, causing all Muhurtha searches to fail or return empty results. Default changed from `"General"` to `"marriage"`. Empty-state message no longer references the removed `"General"` sentinel.
+- **`app/api/readings/muhurtha/route.ts`** — Fallback `event_type` default changed from `"General"` to `"marriage"` to stay consistent.
+
+---
+
 ## [2026-05-14] — Harden AIInsightCard against all nullable insight fields
 
 ### Fixed

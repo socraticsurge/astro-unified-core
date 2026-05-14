@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
           longitude: p.current_longitude,
           timezone: p.current_timezone || "UTC",
         },
-        event_type: event_type || "General",
+        event_type: event_type || "marriage",
         start_date,
         end_date,
       }),
