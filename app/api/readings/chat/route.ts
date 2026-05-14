@@ -64,7 +64,14 @@ export async function POST(req: NextRequest) {
     if (entry) contentBlocks.push({ key: `dasha-pair/${maha.toLowerCase()}-${antar.toLowerCase()}`, text: stripHtml(entry.body) });
   }
   if (planets) {
-    for (const [planet, p] of Object.entries(planets)) {
+    // Prioritise kendra/trikona houses (1,4,5,7,9,10) then remaining
+    const HOUSE_PRIORITY = [1, 10, 5, 9, 4, 7, 2, 3, 6, 8, 11, 12];
+    const sorted = Object.entries(planets).sort(([, a], [, b]) => {
+      const ai = HOUSE_PRIORITY.indexOf(a.house ?? 0);
+      const bi = HOUSE_PRIORITY.indexOf(b.house ?? 0);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+    for (const [planet, p] of sorted) {
       if (p.house && p.house > 0) {
         const entry = lookupPlanetInHouse(planet, p.house);
         if (entry) contentBlocks.push({ key: `planet-in-house/${planet.toLowerCase()}-${p.house}`, text: stripHtml(entry.body) });
@@ -72,7 +79,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Truncate each block and cap total to stay within Groq's request size limit
+  const BLOCK_MAX = 600;
+  const CONTENT_MAX = 10_000;
+  let total = 0;
   const contentSection = contentBlocks
+    .map((b) => {
+      const text = b.text.length > BLOCK_MAX ? b.text.slice(0, BLOCK_MAX) + "…" : b.text;
+      return { key: b.key, text };
+    })
+    .filter((b) => {
+      if (total >= CONTENT_MAX) return false;
+      total += b.text.length + b.key.length + 10;
+      return true;
+    })
     .map((b) => `--- ${b.key} ---\n${b.text}`)
     .join("\n\n");
 
