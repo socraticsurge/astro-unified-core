@@ -17,7 +17,7 @@ export function AIInsightCard({ insight, readingId, initialRating }: Props) {
 
   const copyInsight = async () => {
     const lines = insight.sections.map(s => `${s.title}\n${s.interpretation}`).join("\n\n");
-    const themes = insight.key_themes.length > 0
+    const themes = (insight.key_themes?.length ?? 0) > 0
       ? `\nKey Themes:\n${insight.key_themes.map(t => `• ${t}`).join("\n")}`
       : "";
     await navigator.clipboard.writeText(lines + themes);
@@ -103,7 +103,7 @@ export function AIInsightCard({ insight, readingId, initialRating }: Props) {
       </div>
 
       {/* Key themes */}
-      {insight.key_themes.length > 0 && (
+      {(insight.key_themes?.length ?? 0) > 0 && (
         <div className="px-3 py-2.5 rounded-lg bg-amber-950/20 border border-amber-800/20">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-400/60 mb-1.5">Key Themes</p>
           <ul className="space-y-0.5">

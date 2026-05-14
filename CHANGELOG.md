@@ -8,6 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Harden AIInsightCard against all nullable insight fields
+
+### Fixed
+- **`components/engines/AIInsightCard.tsx`** — Added optional chaining guards for `insight.key_themes` (render and copyInsight) to match the earlier guards on `section.technical_basis` and `section.content_sources`. Any cached insight where the AI returned null for these fields would have crashed on `.length`. All field accesses on insight data are now null-safe.
+
+---
+
 ## [2026-05-14] — Fix AIInsightCard crash on compat insight data; fix misleading spinner
 
 ### Fixed
