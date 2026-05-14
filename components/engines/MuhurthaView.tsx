@@ -22,7 +22,7 @@ export function MuhurthaView({ profileId, explainer }: Props) {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [form, setForm] = useState({
-    event_type: "General",
+    event_type: "marriage",
     start_date: new Date().toISOString().split("T")[0],
     end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
   });
@@ -57,11 +57,12 @@ export function MuhurthaView({ profileId, explainer }: Props) {
               value={form.event_type}
               onChange={(e) => setForm({ ...form, event_type: e.target.value })}
             >
-              <option value="General">General/Panchanga</option>
-              <option value="Marriage">Marriage</option>
-              <option value="House Warming">House Warming</option>
-              <option value="Vehicle Purchase">Vehicle Purchase</option>
-              <option value="Property">Property</option>
+              <option value="marriage">Marriage</option>
+              <option value="house_entry">House Warming / Griha Pravesh</option>
+              <option value="business">Business / New Venture</option>
+              <option value="travel">Travel</option>
+              <option value="education">Education</option>
+              <option value="medical">Medical</option>
             </select>
           </div>
           <div className="space-y-1.5">
@@ -102,7 +103,7 @@ export function MuhurthaView({ profileId, explainer }: Props) {
             </div>
           ) : !loading && (
             <div className="py-12 text-center text-sm text-muted-foreground italic border border-dashed border-white/10 rounded-lg">
-              {results.length === 0 && form.event_type !== "General" ? "No highly auspicious timings found in this window." : "Search for auspicious timings by selecting an event and date range."}
+              {"No highly auspicious timings found in this date range. Try widening the window."}
             </div>
           )}
         </div>
