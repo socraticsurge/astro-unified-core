@@ -1,11 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
+  const ip = request.headers.get("x-forwarded-for") ?? "anon";
+  const { success } = rateLimit(`feedback:${ip}`, 5, 60_000);
+  if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const body = await request.json();
   const { rating, message, page_url } = body;
 

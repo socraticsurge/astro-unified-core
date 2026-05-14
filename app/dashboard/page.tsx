@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { ProfileList } from "@/components/dashboard/ProfileList";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/auth/signin");

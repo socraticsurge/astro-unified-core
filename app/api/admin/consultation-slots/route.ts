@@ -21,6 +21,9 @@ export async function POST(request: Request) {
   if (!starts_at || typeof starts_at !== "string") {
     return NextResponse.json({ error: "starts_at is required" }, { status: 400 });
   }
+  if (isNaN(Date.parse(starts_at))) {
+    return NextResponse.json({ error: "starts_at must be a valid ISO date string" }, { status: 400 });
+  }
 
   const slot = await db.consultationSlots.create(starts_at);
   return NextResponse.json(slot, { status: 201 });

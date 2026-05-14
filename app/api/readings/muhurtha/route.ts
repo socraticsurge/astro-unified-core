@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 const SIDECAR_URL =
-  process.env.NEXT_PUBLIC_DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
+  process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
 
 export async function POST(req: NextRequest) {
   try {

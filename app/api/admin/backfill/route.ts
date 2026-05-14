@@ -5,7 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { createClient } from "@libsql/client";
 
-export async function GET() {
+export async function POST() {
   const session = await getServerSession(authOptions);
   
   if (!isAdmin(session)) {

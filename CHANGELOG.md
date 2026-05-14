@@ -8,6 +8,37 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Jules PRs #16-29 merged + full security/performance audit fixes
+
+### Added
+- **Mobile bottom navigation** (PR #17): Thumb-friendly nav bar on mobile screens
+- **Batch content API** (PR #26): `GET /api/content/batch?q=...` reduces N individual fetches to 1; ExplainerModal updated to use it
+- **Security headers** (PR #23): X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy added via `next.config.ts`
+- **Memoized sanitization** (PR #18): HTML sanitization results cached to reduce CPU on repeated renders
+- **Test coverage** (PRs #19-22, #24-25, #27-29): Tests for Dashaflow engine, geocoding, consultation note assembly, transit API, profile creation, astro-utils, content loader caching, and profile GET missing-ID path
+- **`unbook()` method** on `consultationSlots` for compensating rollback
+
+### Changed
+- **CRIT-1**: Resolved merge conflict markers in `.gitignore` (coverage/ entry)
+- **CRIT-3**: Consultation request creation now unbookmarks the slot if `create()` throws, preventing orphaned bookings
+- **HIGH-1**: `/api/admin/clear-compatibility` and `/api/admin/backfill` changed from `GET` to `POST` to prevent CSRF
+- **HIGH-2**: Removed hardcoded admin email fallback from `lib/admin.ts`; removed admin email display from admin page HTML
+- **HIGH-3**: Added `export const dynamic = "force-dynamic"` to `app/dashboard/page.tsx` and `app/compatibility/page.tsx`
+- **HIGH-4**: Admin settings `PATCH` route now validates against an explicit allowlist of known keys
+- **HIGH-5**: Consultation form fields now enforce a 2000-character maximum
+- **HIGH-6**: Compatibility limit check now runs *before* sidecar call; added rate limiting (10 req/min per user)
+- **HIGH-7**: `users.upsert` now updates `id` on email conflict (handles provider-ID changes)
+- **MED-1**: `NEXT_PUBLIC_DASHAFLOW_SIDECAR_URL` → `DASHAFLOW_SIDECAR_URL` in API routes (was exposing server env var to client bundle)
+- **MED-2**: Consultation request POST now validates all profile_ids belong to the requesting user
+- **MED-3**: Consultation slot POST validates `starts_at` is a parseable ISO date
+- **MED-4**: Transit POST validates `transit_date` matches `YYYY-MM-DD` format
+- **MED-5**: Feedback POST rate-limited at 5 requests/min per IP
+- **MED-6**: Tarabalam POST rate-limited at 20 req/min; date range capped at 90 days
+- **LOW-2**: `authOptions` now includes explicit `secret: process.env.NEXTAUTH_SECRET`
+- **LOW-4**: Content API routes (`/api/content/...`) Cache-Control changed from `public` to `private`
+- **PR #16**: Required field indicators added to ProfileForm
+- **tsconfig.json**: Test files excluded from main type-checking; tests run under vitest's own env
+
 ## [2026-05-13] — Jules Integration: Security, Performance, and Tests
 
 ### Added

@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { CompatibilityClient } from "@/components/compatibility/CompatibilityClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function CompatibilityPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/auth/signin");

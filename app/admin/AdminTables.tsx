@@ -305,7 +305,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
           <button 
             onClick={async () => {
               if (confirm("Are you sure you want to clear ALL compatibility checks? This cannot be undone.")) {
-                const res = await fetch("/api/admin/clear-compatibility");
+                const res = await fetch("/api/admin/clear-compatibility", { method: "POST" });
                 const data = await res.json();
                 if (data.success) {
                   alert(data.message);

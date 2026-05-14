@@ -4,11 +4,14 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 import { fetchTransit } from "@/lib/engines/transit";
+import { rateLimit } from "@/lib/rate-limit";
 import {
   computeTara, computeTithi,
   extrapolateMoonLongitude, extrapolateMoonNakshatra, extrapolateSunLongitude,
   type Tara, type Tithi,
 } from "@/lib/tarabalam";
+
+const MAX_DAYS = 90;
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -16,6 +19,9 @@ export async function POST(req: NextRequest) {
 
   const userId = (session.user as { id: string }).id;
   const admin = isAdmin(session);
+
+  const { success } = rateLimit(`tarabalam:${userId}`, 20, 60_000);
+  if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const { profile_ids, start_date, end_date } = await req.json() as {
     profile_ids: string[];
@@ -25,6 +31,20 @@ export async function POST(req: NextRequest) {
 
   if (!Array.isArray(profile_ids) || profile_ids.length === 0) {
     return NextResponse.json({ error: "profile_ids required" }, { status: 400 });
+  }
+
+  if (!start_date || !end_date) {
+    return NextResponse.json({ error: "start_date and end_date are required" }, { status: 400 });
+  }
+
+  const startMs = new Date(start_date + "T00:00:00Z").getTime();
+  const endMs = new Date(end_date + "T00:00:00Z").getTime();
+  if (isNaN(startMs) || isNaN(endMs)) {
+    return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+  }
+  const daysDiff = (endMs - startMs) / 86_400_000;
+  if (daysDiff > MAX_DAYS) {
+    return NextResponse.json({ error: `Date range cannot exceed ${MAX_DAYS} days` }, { status: 400 });
   }
 
   // Collect birth Moon nakshatra for each profile from their dashaflow cache

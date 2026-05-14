@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
-import { isAdmin, ADMIN_EMAILS } from "@/lib/admin";
+import { isAdmin } from "@/lib/admin";
 import { AdminTables } from "./AdminTables";
 
 export const dynamic = "force-dynamic";
@@ -29,9 +29,7 @@ export default async function AdminPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold mb-1">Admin Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Visible only to {ADMIN_EMAILS.join(", ")}
-        </p>
+        <p className="text-sm text-muted-foreground">Admin access only</p>
       </div>
 
       {/* Stats row */}

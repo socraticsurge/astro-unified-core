@@ -53,6 +53,14 @@ export const consultationSlots = {
     return rs.rows[0] as unknown as ConsultationSlot | undefined;
   },
 
+  async unbook(id: string): Promise<void> {
+    await ensureSchema();
+    await getClient().execute({
+      sql: "UPDATE consultation_slots SET is_booked = 0 WHERE id = ?",
+      args: [id],
+    });
+  },
+
   async delete(id: string): Promise<void> {
     await ensureSchema();
     await getClient().execute({

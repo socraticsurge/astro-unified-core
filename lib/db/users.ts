@@ -16,6 +16,7 @@ export const users = {
       sql: `INSERT INTO users (id, name, email, image, last_login, created_at)
            VALUES (?, ?, ?, ?, ?, ?)
            ON CONFLICT(email) DO UPDATE SET
+           id = excluded.id,
            last_login = excluded.last_login,
            name = excluded.name,
            image = excluded.image`,

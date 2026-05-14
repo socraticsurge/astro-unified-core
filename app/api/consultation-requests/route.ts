@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { MIN_FIELD_LENGTH } from "@/lib/consultation";
 import { rateLimit } from "@/lib/rate-limit";
+import { isAdmin } from "@/lib/admin";
+
+const MAX_FIELD_LENGTH = 2000;
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -49,12 +52,34 @@ export async function POST(request: Request) {
     );
   }
 
+  if (
+    observation.trim().length > MAX_FIELD_LENGTH ||
+    constraint_text.trim().length > MAX_FIELD_LENGTH ||
+    objective.trim().length > MAX_FIELD_LENGTH ||
+    options.trim().length > MAX_FIELD_LENGTH
+  ) {
+    return NextResponse.json(
+      { error: `Each field must be at most ${MAX_FIELD_LENGTH} characters` },
+      { status: 400 }
+    );
+  }
+
   if (delivery_mode !== "written" && delivery_mode !== "appointment") {
     return NextResponse.json({ error: "Invalid delivery mode" }, { status: 400 });
   }
 
   if (delivery_mode === "appointment" && !slot_id) {
     return NextResponse.json({ error: "A slot selection is required for live consultation" }, { status: 400 });
+  }
+
+  // Validate profile_ids belong to the requesting user
+  const profileIdsArray: string[] = Array.isArray(profile_ids) ? profile_ids : [profile_ids];
+  const admin = isAdmin(session);
+  for (const pid of profileIdsArray) {
+    const profile = admin ? await db.profiles.getAny(pid) : await db.profiles.get(pid, userId);
+    if (!profile) {
+      return NextResponse.json({ error: "One or more profiles not found" }, { status: 404 });
+    }
   }
 
   // Verify and book the slot for appointment mode
@@ -79,17 +104,25 @@ export async function POST(request: Request) {
     ? appSettings.written_fee_paise
     : appSettings.live_fee_paise;
 
-  const created = await db.consultationRequests.create(userId, {
-    profile_ids: JSON.stringify(Array.isArray(profile_ids) ? profile_ids : [profile_ids]),
-    life_area,
-    observation: observation.trim(),
-    constraint_text: constraint_text.trim(),
-    objective: objective.trim(),
-    options: options.trim(),
-    delivery_mode,
-    amount_paise,
-    slot_starts_at,
-  });
-
-  return NextResponse.json(created, { status: 201 });
+  try {
+    const created = await db.consultationRequests.create(userId, {
+      profile_ids: JSON.stringify(profileIdsArray),
+      life_area,
+      observation: observation.trim(),
+      constraint_text: constraint_text.trim(),
+      objective: objective.trim(),
+      options: options.trim(),
+      delivery_mode,
+      amount_paise,
+      slot_starts_at,
+    });
+    return NextResponse.json(created, { status: 201 });
+  } catch (err) {
+    // If create fails after a slot was booked, release the slot to prevent orphaning
+    if (slot_starts_at && slot_id) {
+      await db.consultationSlots.unbook(slot_id).catch(() => {});
+    }
+    console.error("Failed to create consultation request:", err);
+    return NextResponse.json({ error: "Failed to submit request" }, { status: 500 });
+  }
 }

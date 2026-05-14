@@ -1,6 +1,6 @@
 import type { Session } from "next-auth";
 
-export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "cvk.atreya@gmail.com,astrochaganti@gmail.com")
+export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
   .split(",")
   .map((s) => s.trim().toLowerCase())
   .filter(Boolean);

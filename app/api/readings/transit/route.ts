@@ -84,6 +84,10 @@ export async function POST(req: NextRequest) {
 
   const { profile_id, transit_date } = await req.json();
 
+  if (transit_date && !/^\d{4}-\d{2}-\d{2}$/.test(transit_date)) {
+    return NextResponse.json({ error: "transit_date must be in YYYY-MM-DD format" }, { status: 400 });
+  }
+
   if (!rateLimit(`refresh_transit_${profile_id}`, 5, 60_000).success) {
     return NextResponse.json({ error: "Too many requests. Please wait a minute." }, { status: 429 });
   }
