@@ -42,7 +42,9 @@ export async function callGroq(
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`Groq API error ${response.status}: ${err}`);
+    let detail = err;
+    try { detail = JSON.parse(err)?.error?.message ?? err; } catch { /* keep raw */ }
+    throw new Error(`[${GROQ_MODELS[model].label}] ${response.status}: ${detail}`);
   }
 
   const result = await response.json();

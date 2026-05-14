@@ -79,20 +79,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Truncate each block and cap total to stay within Groq's request size limit
-  const BLOCK_MAX = 600;
-  const CONTENT_MAX = 10_000;
-  let total = 0;
+  // Content files are small (~700–2900 chars each, ~3K tokens total for all 12 blocks).
+  // 131K token context window means we send everything at full length.
   const contentSection = contentBlocks
-    .map((b) => {
-      const text = b.text.length > BLOCK_MAX ? b.text.slice(0, BLOCK_MAX) + "…" : b.text;
-      return { key: b.key, text };
-    })
-    .filter((b) => {
-      if (total >= CONTENT_MAX) return false;
-      total += b.text.length + b.key.length + 10;
-      return true;
-    })
     .map((b) => `--- ${b.key} ---\n${b.text}`)
     .join("\n\n");
 
