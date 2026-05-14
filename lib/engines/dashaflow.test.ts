@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, afterEach } from "vitest";
 import { fetchDashaflow, DashaflowInput } from "./dashaflow";
 
 describe("fetchDashaflow", () => {
@@ -10,12 +11,12 @@ describe("fetchDashaflow", () => {
   };
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("should return data successfully on 200 OK", async () => {
     const mockData = { planets: [], houses: [] };
-    jest.spyOn(global, "fetch").mockResolvedValueOnce({
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: async () => ({ status: "success", data: mockData }),
     } as Response);
@@ -26,7 +27,7 @@ describe("fetchDashaflow", () => {
   });
 
   it("should return error detail on non-200 with JSON detail", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValueOnce({
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: false,
       status: 400,
       statusText: "Bad Request",
@@ -39,21 +40,20 @@ describe("fetchDashaflow", () => {
   });
 
   it("should return default error on non-200 with no JSON detail", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValueOnce({
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
-      json: async () => ({}), // Empty JSON object, no 'detail' property
+      json: async () => ({}),
     } as Response);
 
     const result = await fetchDashaflow(mockInput);
     expect(result.data).toBeNull();
-    // In current implementation, if err.detail is undefined, it defaults to Sidecar HTTP <status>
     expect(result.error).toBe("Sidecar HTTP 500");
   });
 
   it("should return statusText if JSON parsing fails on non-200", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValueOnce({
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: false,
       status: 503,
       statusText: "Service Unavailable",
@@ -66,7 +66,7 @@ describe("fetchDashaflow", () => {
   });
 
   it("should handle network errors (fetch throws)", async () => {
-    jest.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Network Error"));
+    vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Network Error"));
 
     const result = await fetchDashaflow(mockInput);
     expect(result.data).toBeNull();

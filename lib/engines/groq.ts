@@ -7,8 +7,8 @@ export const GROQ_MODELS = {
     note: "30K TPM",
   },
   compound: {
-    id: "groq/compound",
-    label: "Compound Beta",
+    id: "gemma-4-26b-a4b-it",
+    label: "Gemma 4 26B",
     note: "70K TPM",
   },
 } as const;

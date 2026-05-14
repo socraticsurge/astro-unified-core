@@ -1,7 +1,7 @@
+import { vi, describe, it, expect, beforeEach } from "vitest";
 import { queryVariants, geocodePlace } from "./geocode";
 
-// Setup global fetch mock
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe("queryVariants", () => {
   it("handles a simple string without comma", () => {
@@ -45,11 +45,11 @@ describe("queryVariants", () => {
 
 describe("geocodePlace", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it("throws the last error if all fetch attempts fail", async () => {
-    (global.fetch as jest.Mock).mockRejectedValue(new Error("Network Error"));
+    vi.mocked(global.fetch).mockRejectedValue(new Error("Network Error"));
 
     await expect(geocodePlace("Unknown Place")).rejects.toThrow("Network Error");
 
@@ -58,10 +58,10 @@ describe("geocodePlace", () => {
   });
 
   it("throws a default error if no results are found and no HTTP errors occur", async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       json: async () => [],
-    });
+    } as Response);
 
     await expect(geocodePlace("Nowhere")).rejects.toThrow(
       'We couldn\'t find "Nowhere". Try the nearest larger city — for example, the closest district headquarters.'
@@ -69,12 +69,12 @@ describe("geocodePlace", () => {
   });
 
   it("succeeds if an early variant fails but a later one succeeds", async () => {
-    (global.fetch as jest.Mock)
+    vi.mocked(global.fetch)
       .mockRejectedValueOnce(new Error("Network Error 1"))
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [{ lat: "17.3850", lon: "78.4867", display_name: "Hyderabad" }],
-      });
+      } as Response);
 
     const result = await geocodePlace("Hyderabad");
     expect(result.latitude).toBe(17.385);

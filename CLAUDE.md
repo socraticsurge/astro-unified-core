@@ -52,7 +52,7 @@ Full detail in [`docs/STANDARDS.md §1`](docs/STANDARDS.md).
 
 **Adding a new DB table or column:**
 1. Write DDL in `lib/db/client.ts` (`ensureSchema`).
-2. Bump `SCHEMA_VERSION` (currently `7`).
+2. Bump `SCHEMA_VERSION` (currently `8`).
 3. Add module in `lib/db/your-table.ts`, export from `lib/db/index.ts`.
 
 ---

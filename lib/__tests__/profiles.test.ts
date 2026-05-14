@@ -1,18 +1,19 @@
+import { vi, describe, it, expect, beforeEach } from "vitest";
 import { profiles } from "../db/profiles";
 import { getClient, ensureSchema } from "../db/client";
 
-jest.mock("../db/client");
+vi.mock("../db/client");
 
 describe("profiles db", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("update", () => {
     it("should throw when db throws in update", async () => {
-      const mockExecute = jest.fn().mockRejectedValue(new Error("DB Connection Error"));
-      (getClient as jest.Mock).mockReturnValue({ execute: mockExecute });
-      (ensureSchema as jest.Mock).mockResolvedValue(undefined);
+      const mockExecute = vi.fn().mockRejectedValue(new Error("DB Connection Error"));
+      vi.mocked(getClient).mockReturnValue({ execute: mockExecute } as ReturnType<typeof getClient>);
+      vi.mocked(ensureSchema).mockResolvedValue(undefined);
 
       const updateData = {
         name: "Test Name",
@@ -30,7 +31,7 @@ describe("profiles db", () => {
       expect(ensureSchema).toHaveBeenCalled();
       expect(mockExecute).toHaveBeenCalledTimes(1);
       expect(mockExecute).toHaveBeenCalledWith(expect.objectContaining({
-        sql: expect.stringContaining("UPDATE profiles SET")
+        sql: expect.stringContaining("UPDATE profiles SET"),
       }));
     });
   });

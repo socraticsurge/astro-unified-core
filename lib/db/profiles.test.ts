@@ -1,24 +1,23 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { profiles } from "./profiles";
 import { getClient, ensureSchema } from "./client";
 
-jest.mock("./client", () => ({
-  getClient: jest.fn(),
-  ensureSchema: jest.fn(),
+vi.mock("./client", () => ({
+  getClient: vi.fn(),
+  ensureSchema: vi.fn(),
 }));
 
 describe("profiles.create", () => {
-  let mockExecute: jest.Mock;
+  let mockExecute: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    mockExecute = jest.fn();
-    (getClient as jest.Mock).mockReturnValue({
-      execute: mockExecute,
-    });
-    (ensureSchema as jest.Mock).mockResolvedValue(undefined);
+    mockExecute = vi.fn();
+    vi.mocked(getClient).mockReturnValue({ execute: mockExecute } as ReturnType<typeof getClient>);
+    vi.mocked(ensureSchema).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should create a profile with required fields", async () => {
@@ -42,7 +41,6 @@ describe("profiles.create", () => {
     const callArgs = mockExecute.mock.calls[0][0];
     expect(callArgs.sql).toContain("INSERT INTO profiles");
 
-    // Check arguments passed to execute
     expect(callArgs.args[1]).toBe(userId);
     expect(callArgs.args[2]).toBe(data.name);
     expect(callArgs.args[3]).toBe(data.date_of_birth);
@@ -61,10 +59,7 @@ describe("profiles.create", () => {
     expect(callArgs.args[16]).toBeNull(); // current_timezone
     expect(callArgs.args[17]).toBeNull(); // current_timezone_offset
 
-    expect(result).toMatchObject({
-      user_id: userId,
-      ...data,
-    });
+    expect(result).toMatchObject({ user_id: userId, ...data });
     expect(typeof result.id).toBe("string");
     expect(typeof result.created_at).toBe("string");
   });
@@ -104,9 +99,6 @@ describe("profiles.create", () => {
     expect(callArgs.args[16]).toBe(data.current_timezone);
     expect(callArgs.args[17]).toBe(data.current_timezone_offset);
 
-    expect(result).toMatchObject({
-      user_id: userId,
-      ...data,
-    });
+    expect(result).toMatchObject({ user_id: userId, ...data });
   });
 });
