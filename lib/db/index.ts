@@ -4,7 +4,7 @@ export type { Profile, ProfileWithUser } from "./profiles";
 export type { Reading } from "./readings";
 export type { CompatibilityCheck, CompatibilityCheckWithDetails } from "./compatibility";
 export type { Feedback } from "./feedback";
-export type { AppSettings, AiInsightsLlmConfig, ChatLlmConfig } from "./settings";
+export type { AppSettings, AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig } from "./settings";
 export type { ConsultationRequest, ConsultationRequestWithUser } from "./consultation-requests";
 export type { ConsultationSlot } from "./consultation-slots";
 

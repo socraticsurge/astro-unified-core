@@ -5,20 +5,22 @@ import { Button } from "@/components/ui/button";
 import { ModelPicker } from "@/components/ui/ModelPicker";
 import { AIInsightCard } from "./AIInsightCard";
 import { DEFAULT_INSIGHT_MODEL, type AiModelKey } from "@/lib/engines/models";
-import type { InsightTab, TabInsight } from "@/lib/ai-insight";
-
-type Props = {
-  profileId: string;
-  tab: InsightTab;
-};
+import type { CompatInsight } from "@/lib/ai-insight-compat";
+import type { TabInsight } from "@/lib/ai-insight";
 
 type InsightState = {
-  insight: TabInsight;
+  insight: CompatInsight;
   readingId: string;
   rating: 1 | -1 | null;
 } | null;
 
-export function AIInsightShell({ profileId, tab }: Props) {
+type Props = {
+  checkId: string;
+  name1: string;
+  name2: string;
+};
+
+export function CompatibilityInsightShell({ checkId, name1, name2 }: Props) {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<InsightState>(null);
   const [loading, setLoading] = useState(false);
@@ -26,40 +28,33 @@ export function AIInsightShell({ profileId, tab }: Props) {
   const [initialized, setInitialized] = useState(false);
   const [model, setModel] = useState<AiModelKey>(DEFAULT_INSIGHT_MODEL);
 
-  // On mount: check for cached insight
   useEffect(() => {
     let cancelled = false;
     async function fetchCached() {
       try {
-        const res = await fetch(
-          `/api/readings/ai-insight?profile_id=${profileId}&tab=${tab}`,
-          { cache: "no-store" }
-        );
+        const res = await fetch(`/api/readings/ai-insight/compatibility?check_id=${checkId}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled && data.insight) {
           setState({ insight: data.insight, readingId: data.reading_id, rating: data.rating });
           setOpen(true);
         }
-      } catch {
-        // silently ignore
-      } finally {
-        if (!cancelled) setInitialized(true);
-      }
+      } catch { /* ignore */ }
+      finally { if (!cancelled) setInitialized(true); }
     }
     fetchCached();
     return () => { cancelled = true; };
-  }, [profileId, tab]);
+  }, [checkId]);
 
   const generate = useCallback(async (force = false) => {
     setLoading(true);
     setError(null);
     setOpen(true);
     try {
-      const res = await fetch("/api/readings/ai-insight", {
+      const res = await fetch("/api/readings/ai-insight/compatibility", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile_id: profileId, tab, model, force }),
+        body: JSON.stringify({ check_id: checkId, model, force }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to generate insight");
@@ -69,22 +64,29 @@ export function AIInsightShell({ profileId, tab }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [profileId, tab, model]);
+  }, [checkId, model]);
 
   if (!initialized) return null;
 
+  // CompatInsight maps to TabInsight shape for AIInsightCard reuse
+  const cardInsight = state?.insight
+    ? {
+        ...state.insight,
+        tab: "compat" as never,
+        key_themes: state.insight.key_themes,
+      } as unknown as TabInsight
+    : null;
+
   return (
     <div className="mb-5 rounded-xl border border-violet-800/30 bg-violet-950/10 overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2.5">
         <Sparkles className="h-3.5 w-3.5 text-violet-400 shrink-0" />
         <span className="text-xs font-semibold uppercase tracking-wider text-violet-300 flex-1">
-          AI Insight
+          AI Compatibility Insight — {name1} &amp; {name2}
         </span>
 
         <ModelPicker value={model} onChange={setModel} disabled={loading} />
 
-        {/* Generate (first time) or Regenerate (already has insight) */}
         <Button
           variant="ghost"
           size="sm"
@@ -92,9 +94,7 @@ export function AIInsightShell({ profileId, tab }: Props) {
           onClick={(e) => { e.stopPropagation(); generate(!!state); }}
           className="h-6 px-2 text-[11px] text-violet-300 hover:text-violet-100 hover:bg-violet-900/40 gap-1 ml-1"
         >
-          {loading
-            ? <RefreshCw className="h-3 w-3 animate-spin" />
-            : <RefreshCw className="h-3 w-3" />}
+          {loading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
           {state ? "Regenerate" : "Generate"}
         </Button>
 
@@ -102,28 +102,24 @@ export function AIInsightShell({ profileId, tab }: Props) {
           <button
             onClick={() => setOpen((o) => !o)}
             className="p-0.5 text-violet-400/60 hover:text-violet-300 transition-colors"
-            aria-expanded={open}
           >
             <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
           </button>
         )}
       </div>
 
-      {/* Body */}
       {open && (
         <div className="px-4 pb-4 border-t border-violet-800/20 pt-3">
           {loading && (
             <div className="flex items-center gap-2 py-6 justify-center text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin text-violet-400" />
-              Generating insight…
+              Generating compatibility insight…
             </div>
           )}
-          {error && !loading && (
-            <p className="text-xs text-red-400 py-3">{error}</p>
-          )}
-          {state && !loading && (
+          {error && !loading && <p className="text-xs text-red-400 py-3">{error}</p>}
+          {cardInsight && state && !loading && (
             <AIInsightCard
-              insight={state.insight}
+              insight={cardInsight}
               readingId={state.readingId}
               initialRating={state.rating}
             />

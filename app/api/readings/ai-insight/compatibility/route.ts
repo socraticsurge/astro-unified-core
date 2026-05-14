@@ -3,26 +3,21 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
-import { buildInsightForTab, TAB_ENGINE, INSIGHT_TABS } from "@/lib/ai-insight";
-import type { InsightTab } from "@/lib/ai-insight";
+import { buildCompatibilityInsight, COMPAT_ENGINE } from "@/lib/ai-insight-compat";
 import { type AiModelKey, DEFAULT_INSIGHT_MODEL } from "@/lib/engines/models";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/readings/ai-insight?profile_id=X&tab=Y
+// GET /api/readings/ai-insight/compatibility?check_id=X
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { searchParams } = new URL(req.url);
-  const profile_id = searchParams.get("profile_id");
-  const tab = searchParams.get("tab") as InsightTab | null;
+  const check_id = new URL(req.url).searchParams.get("check_id");
+  if (!check_id) return NextResponse.json({ error: "check_id required" }, { status: 400 });
 
-  if (!profile_id || !tab || !INSIGHT_TABS.includes(tab)) {
-    return NextResponse.json({ error: "profile_id and valid tab required" }, { status: 400 });
-  }
-
-  const reading = await db.readings.latestByEngine(profile_id, TAB_ENGINE[tab]);
+  // check.id is stored as profile_id in readings for compatibility insights
+  const reading = await db.readings.latestByEngine(check_id, COMPAT_ENGINE);
   if (!reading) return NextResponse.json({ insight: null, reading_id: null });
 
   return NextResponse.json({
@@ -32,31 +27,25 @@ export async function GET(req: NextRequest) {
   }, { headers: { "Cache-Control": "private, max-age=0" } });
 }
 
-// POST /api/readings/ai-insight
-// Body: { profile_id, tab, model?, force? }
-// force=true bypasses the cache and always regenerates.
+// POST /api/readings/ai-insight/compatibility
+// Body: { check_id, model?, force? }
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { profile_id, tab, model, force } = body as {
-    profile_id?: string;
-    tab?: InsightTab;
+  const { check_id, model, force } = body as {
+    check_id?: string;
     model?: AiModelKey;
     force?: boolean;
   };
 
-  if (!profile_id || !tab || !INSIGHT_TABS.includes(tab)) {
-    return NextResponse.json({ error: "profile_id and valid tab required" }, { status: 400 });
-  }
+  if (!check_id) return NextResponse.json({ error: "check_id required" }, { status: 400 });
 
   const chosenModel: AiModelKey = model ?? DEFAULT_INSIGHT_MODEL;
-  const engine = TAB_ENGINE[tab];
 
-  // Return cached unless force=true
   if (!force) {
-    const existing = await db.readings.latestByEngine(profile_id, engine);
+    const existing = await db.readings.latestByEngine(check_id, COMPAT_ENGINE);
     if (existing) {
       return NextResponse.json({
         insight: JSON.parse(existing.output_data),
@@ -67,16 +56,27 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const profile = await db.profiles.getAny(profile_id);
-  if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+  const check = await db.compatibility.getAny(check_id);
+  if (!check) return NextResponse.json({ error: "Compatibility check not found" }, { status: 404 });
+
+  const [profile1, profile2] = await Promise.all([
+    db.profiles.getAny(check.profile_id_1),
+    db.profiles.getAny(check.profile_id_2),
+  ]);
+  if (!profile1 || !profile2) {
+    return NextResponse.json({ error: "One or both profiles not found" }, { status: 404 });
+  }
+
+  let compatResult: Record<string, unknown> = {};
+  try { compatResult = JSON.parse(check.result_json) as Record<string, unknown>; } catch { /* use empty */ }
 
   try {
-    const insight = await buildInsightForTab(profile, tab, chosenModel);
+    const insight = await buildCompatibilityInsight(profile1, profile2, compatResult, chosenModel);
 
     const reading = await db.readings.save({
-      profile_id,
-      engine,
-      input_snapshot: { model: insight.model, prompt_version: insight.prompt_version, tab, profile_id },
+      profile_id: check_id,
+      engine: COMPAT_ENGINE,
+      input_snapshot: { model: insight.model, check_id },
       output_data: insight,
     });
 

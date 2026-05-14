@@ -19,6 +19,12 @@ export type ChatLlmConfig = {
   custom_instructions: string;
 };
 
+export type DraftLlmConfig = {
+  temperature: number;
+  max_tokens: number;
+  custom_instructions: string;
+};
+
 const AI_INSIGHTS_LLM_DEFAULTS: AiInsightsLlmConfig = {
   temperature: 0.5,
   max_tokens: 4096,
@@ -29,6 +35,12 @@ const CHAT_LLM_DEFAULTS: ChatLlmConfig = {
   temperature: 0.65,
   max_tokens: 8192,
   top_p: 0.9,
+  custom_instructions: "",
+};
+
+const DRAFT_LLM_DEFAULTS: DraftLlmConfig = {
+  temperature: 0.55,
+  max_tokens: 4096,
   custom_instructions: "",
 };
 
@@ -101,6 +113,31 @@ export const settings = {
     await getClient().execute({
       sql: "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
       args: ["chat_llm", JSON.stringify(next), new Date().toISOString()],
+    });
+    return next;
+  },
+
+  async getDraftLlm(): Promise<DraftLlmConfig> {
+    await ensureSchema();
+    const rs = await getClient().execute({
+      sql: "SELECT value FROM settings WHERE key = ?",
+      args: ["draft_llm"],
+    });
+    if (!rs.rows.length) return { ...DRAFT_LLM_DEFAULTS };
+    try {
+      return { ...DRAFT_LLM_DEFAULTS, ...JSON.parse(rs.rows[0][0] as string) };
+    } catch {
+      return { ...DRAFT_LLM_DEFAULTS };
+    }
+  },
+
+  async setDraftLlm(config: Partial<DraftLlmConfig>): Promise<DraftLlmConfig> {
+    await ensureSchema();
+    const current = await this.getDraftLlm();
+    const next = { ...current, ...config };
+    await getClient().execute({
+      sql: "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
+      args: ["draft_llm", JSON.stringify(next), new Date().toISOString()],
     });
     return next;
   },

@@ -1,6 +1,8 @@
 import "server-only";
-import { callGemini, GEMINI_MODEL } from "./engines/gemini";
+import { callAIForJson } from "./engines/ai-caller";
+import { GEMINI_MODEL } from "./engines/gemini";
 import { summarizeDashaflow } from "./chart-summary";
+import { type AiModelKey, DEFAULT_INSIGHT_MODEL } from "./engines/models";
 import {
   lookupAscendant,
   lookupDashaPair,
@@ -241,10 +243,11 @@ function extractMoonNakshatra(chartOutput: Record<string, unknown>): string {
   return planets?.Moon?.nakshatra ?? planets?.moon?.nakshatra ?? "";
 }
 
-// Main entry point — builds content, calls Gemini, returns TabInsight
+// Main entry point — builds content, calls chosen model, returns TabInsight
 export async function buildInsightForTab(
   profile: Profile,
   tab: InsightTab,
+  model: AiModelKey = DEFAULT_INSIGHT_MODEL,
 ): Promise<TabInsight> {
   // Fetch chart reading from DB
   const chartReading = await db.readings.latestByEngine(profile.id, "dashaflow");
@@ -398,16 +401,15 @@ export async function buildInsightForTab(
     : SYSTEM_PROMPT;
 
   const userPrompt = buildUserPrompt(profile, chartSummary, tab, contentBlocks, tabSpecificData);
-  const raw = await callGemini(systemPrompt, userPrompt, {
+  const raw = await callAIForJson(model, systemPrompt, userPrompt, {
     temperature: llmConfig.temperature,
-    maxOutputTokens: llmConfig.max_tokens,
+    maxTokens: llmConfig.max_tokens,
   }) as TabInsight;
 
-  // Stamp model + prompt_version regardless of what Gemini returned
   return {
     ...raw,
     tab,
-    model: GEMINI_MODEL,
+    model: model === "gemini-flash" ? GEMINI_MODEL : model,
     prompt_version: PROMPT_VERSION,
     generated_at: new Date().toISOString(),
   };

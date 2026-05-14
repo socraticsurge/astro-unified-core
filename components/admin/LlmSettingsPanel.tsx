@@ -1,10 +1,11 @@
 "use client";
 import { useState } from "react";
-import type { AiInsightsLlmConfig, ChatLlmConfig } from "@/lib/db";
+import type { AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig } from "@/lib/db";
 
 type Props = {
   initialAiInsights: AiInsightsLlmConfig;
   initialChat: ChatLlmConfig;
+  initialDraft: DraftLlmConfig;
 };
 
 function NumberInput({
@@ -36,15 +37,19 @@ function NumberInput({
   );
 }
 
-export function LlmSettingsPanel({ initialAiInsights, initialChat }: Props) {
+export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft }: Props) {
   const [aiConfig, setAiConfig] = useState<AiInsightsLlmConfig>(initialAiInsights);
   const [chatConfig, setChatConfig] = useState<ChatLlmConfig>(initialChat);
+  const [draftConfig, setDraftConfig] = useState<DraftLlmConfig>(initialDraft);
   const [aiSaving, setAiSaving] = useState(false);
   const [chatSaving, setChatSaving] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
   const [aiSaved, setAiSaved] = useState(false);
   const [chatSaved, setChatSaved] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
 
   const saveAiInsights = async () => {
     setAiSaving(true);
@@ -83,6 +88,26 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat }: Props) {
       setChatError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setChatSaving(false);
+    }
+  };
+
+  const saveDraft = async () => {
+    setDraftSaving(true);
+    setDraftError(null);
+    setDraftSaved(false);
+    try {
+      const res = await fetch("/api/admin/llm-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "draft", config: draftConfig }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Save failed");
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 2500);
+    } catch (e) {
+      setDraftError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setDraftSaving(false);
     }
   };
 
@@ -190,6 +215,53 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat }: Props) {
           className="text-xs bg-violet-700/20 hover:bg-violet-700/30 border border-violet-700/40 text-violet-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
         >
           {chatSaving ? "Saving…" : chatSaved ? "Saved ✓" : "Save Chat Settings"}
+        </button>
+      </div>
+
+      {/* Draft — Consultation Assistant */}
+      <div className="rounded-lg border border-white/10 bg-white/5 p-5 space-y-5">
+        <div>
+          <p className="text-sm font-medium">Consultation Draft Assistant</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Used when generating draft answers for written consultation requests in the admin questions panel.
+          </p>
+        </div>
+
+        <NumberInput
+          label="Temperature (0 = precise, 1 = creative)"
+          value={draftConfig.temperature}
+          onChange={v => setDraftConfig(c => ({ ...c, temperature: v }))}
+          min={0} max={1} step={0.05}
+        />
+
+        <NumberInput
+          label="Max Output Tokens"
+          value={draftConfig.max_tokens}
+          onChange={v => setDraftConfig(c => ({ ...c, max_tokens: v }))}
+          min={512} max={8192} step={256}
+        />
+
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground">
+            Additional Instructions (appended to system prompt)
+          </label>
+          <textarea
+            rows={4}
+            value={draftConfig.custom_instructions}
+            onChange={e => setDraftConfig(c => ({ ...c, custom_instructions: e.target.value }))}
+            placeholder="e.g. Always end with a timing window for the next 6 months. Keep responses under 350 words."
+            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
+          />
+        </div>
+
+        {draftError && <p className="text-xs text-red-400">{draftError}</p>}
+
+        <button
+          disabled={draftSaving}
+          onClick={saveDraft}
+          className="text-xs bg-violet-700/20 hover:bg-violet-700/30 border border-violet-700/40 text-violet-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+        >
+          {draftSaving ? "Saving…" : draftSaved ? "Saved ✓" : "Save Draft Settings"}
         </button>
       </div>
     </div>

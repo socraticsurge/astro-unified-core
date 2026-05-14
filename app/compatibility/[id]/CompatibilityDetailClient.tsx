@@ -1,12 +1,14 @@
 "use client";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, LayoutDashboard, User, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, User, CheckCircle2, XCircle, MinusCircle, MessageSquare, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
 import type { CompatResult, AdditionalKuta } from "@/lib/compatibility";
 import { KOOTA_MAX } from "@/lib/compatibility";
 import { Button } from "@/components/ui/button";
+import { CompatibilityInsightShell } from "@/components/engines/CompatibilityInsightShell";
+import { CompatibilityChat } from "@/components/engines/CompatibilityChat";
 
 
 function initials(name: string) {
@@ -46,6 +48,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
   const { data: session } = useSession();
   const showAdminTools = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true;
   const [isProfessional, setIsProfessional] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   let result: CompatResult | null = null;
   try { result = JSON.parse(check.result_json); } catch {}
@@ -241,6 +244,38 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
       {/* ── PROFESSIONAL VIEW ── */}
       {isProfessional && result && (
         <div className="space-y-6">
+
+          {/* AI Insight + Chat (admin only) */}
+          {showAdminTools && (
+            <>
+              <CompatibilityInsightShell
+                checkId={check.id}
+                name1={profile1?.name ?? "Profile 1"}
+                name2={profile2?.name ?? "Profile 2"}
+              />
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                <button
+                  onClick={() => setShowChat(o => !o)}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-left"
+                >
+                  <MessageSquare className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-amber-300 flex-1">
+                    Compatibility Chat
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-white/40 transition-transform ${showChat ? "rotate-180" : ""}`} />
+                </button>
+                {showChat && (
+                  <div className="border-t border-white/5">
+                    <CompatibilityChat
+                      checkId={check.id}
+                      name1={profile1?.name ?? "Profile 1"}
+                      name2={profile2?.name ?? "Profile 2"}
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Overall verdict banner */}
           <div className={`rounded-xl border px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between

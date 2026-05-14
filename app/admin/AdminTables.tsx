@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar, CheckCircle2, ThumbsUp, ThumbsDown } from "lucide-react";
-import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings, ConsultationSlot, AiInsightsLlmConfig, ChatLlmConfig } from "@/lib/db";
+import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar, CheckCircle2, ThumbsUp, ThumbsDown, Sparkles, Copy } from "lucide-react";
+import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings, ConsultationSlot, AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig } from "@/lib/db";
 import type { AiInsightStat } from "@/lib/db/readings";
 import { assembleStatement } from "@/lib/consultation";
 import { LlmSettingsPanel } from "@/components/admin/LlmSettingsPanel";
+import { ModelPicker } from "@/components/ui/ModelPicker";
+import { DEFAULT_DRAFT_MODEL, type AiModelKey } from "@/lib/engines/models";
 
 type Props = {
   users: User[];
@@ -18,7 +20,7 @@ type Props = {
   consultationSlots: ConsultationSlot[];
   appSettings: AppSettings;
   aiInsightStats: AiInsightStat[];
-  llmSettings: { ai_insights: AiInsightsLlmConfig; chat: ChatLlmConfig };
+  llmSettings: { ai_insights: AiInsightsLlmConfig; chat: ChatLlmConfig; draft: DraftLlmConfig };
 };
 
 export function AdminTables({ users, profiles, feedback, compatibilityChecks, consultationRequests, consultationSlots: initialSlots, appSettings, aiInsightStats, llmSettings }: Props) {
@@ -79,6 +81,38 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
   const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
   const [paidIds, setPaidIds] = useState<Set<string>>(new Set());
   const [expandedQId, setExpandedQId] = useState<string | null>(null);
+  const [draftModel, setDraftModel] = useState<AiModelKey>(DEFAULT_DRAFT_MODEL);
+  const [draftGenerating, setDraftGenerating] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [draftErrors, setDraftErrors] = useState<Record<string, string>>({});
+  const [draftCopied, setDraftCopied] = useState<string | null>(null);
+
+  const generateDraft = async (requestId: string) => {
+    setDraftGenerating(requestId);
+    setDraftErrors(prev => { const next = { ...prev }; delete next[requestId]; return next; });
+    try {
+      const res = await fetch("/api/admin/consultation-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request_id: requestId, model: draftModel }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to generate draft");
+      setDrafts(prev => ({ ...prev, [requestId]: data.draft }));
+    } catch (e) {
+      setDraftErrors(prev => ({ ...prev, [requestId]: e instanceof Error ? e.message : "Failed" }));
+    } finally {
+      setDraftGenerating(null);
+    }
+  };
+
+  const copyDraft = async (requestId: string) => {
+    const text = drafts[requestId];
+    if (!text) return;
+    await navigator.clipboard.writeText(text);
+    setDraftCopied(requestId);
+    setTimeout(() => setDraftCopied(prev => prev === requestId ? null : prev), 2000);
+  };
 
   const [qSortCol, setQSortCol] = useState<string>("created_at");
   const [qSortDir, setQSortDir] = useState<"asc" | "desc">("desc");
@@ -546,7 +580,40 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                               </button>
                             )}
                             {isPaid && (
-                              <div className="space-y-2 pt-1">
+                              <div className="space-y-3 pt-1">
+                                {/* Draft Assistant */}
+                                <div className="rounded-md border border-violet-700/30 bg-violet-950/10 p-3 space-y-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-1.5">
+                                      <Sparkles className="h-3 w-3 text-violet-400" />
+                                      <span className="text-xs font-semibold text-violet-300">Draft Assistant</span>
+                                    </div>
+                                    <ModelPicker value={draftModel} onChange={setDraftModel} disabled={draftGenerating === req.id} />
+                                  </div>
+                                  <button
+                                    disabled={draftGenerating === req.id}
+                                    onClick={() => generateDraft(req.id)}
+                                    className="text-xs bg-violet-700/20 hover:bg-violet-700/30 border border-violet-700/40 text-violet-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                                  >
+                                    {draftGenerating === req.id ? "Generating…" : drafts[req.id] ? "Regenerate Draft" : "Generate Draft"}
+                                  </button>
+                                  {draftErrors[req.id] && <p className="text-xs text-red-400">{draftErrors[req.id]}</p>}
+                                  {drafts[req.id] && (
+                                    <div className="space-y-1.5">
+                                      <div className="rounded border border-white/10 bg-white/5 p-2.5 text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto">
+                                        {drafts[req.id]}
+                                      </div>
+                                      <button
+                                        onClick={() => copyDraft(req.id)}
+                                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white/70 transition-colors"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                        {draftCopied === req.id ? "Copied!" : "Copy to clipboard"}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+
                                 <textarea
                                   rows={2}
                                   placeholder="Optional: add a written note or answer for the user"
@@ -618,6 +685,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
         <LlmSettingsPanel
           initialAiInsights={llmSettings.ai_insights}
           initialChat={llmSettings.chat}
+          initialDraft={llmSettings.draft}
         />
       </TabsContent>
 

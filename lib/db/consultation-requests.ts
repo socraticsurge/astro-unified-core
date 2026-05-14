@@ -58,6 +58,15 @@ export const consultationRequests = {
     return rs.rows as unknown as ConsultationRequestWithUser[];
   },
 
+  async getById(id: string): Promise<ConsultationRequest | undefined> {
+    await ensureSchema();
+    const rs = await getClient().execute({
+      sql: "SELECT * FROM consultation_requests WHERE id = ? LIMIT 1",
+      args: [id],
+    });
+    return rs.rows[0] as unknown as ConsultationRequest | undefined;
+  },
+
   async create(
     userId: string,
     data: Pick<ConsultationRequest, "profile_ids" | "life_area" | "observation" | "constraint_text" | "objective" | "options" | "delivery_mode"> & { amount_paise: number; slot_starts_at?: string | null }

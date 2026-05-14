@@ -8,6 +8,35 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-14] — Unified AI model selection, compatibility AI insight + chat, consultation draft assistant
+
+### Added
+- **`lib/engines/models.ts`** — Unified model registry: Gemini Flash, Llama 4 Scout, Gemma 4 31B. Single source of truth (`AiModelKey`, `DEFAULT_INSIGHT_MODEL`, `DEFAULT_CHAT_MODEL`, `DEFAULT_DRAFT_MODEL`).
+- **`lib/engines/ai-caller.ts`** — `callAIForJson` and `callAIForText` routing functions; dispatches to Gemini or Groq based on model provider. Groq supports `json_mode` for structured output.
+- **`lib/engines/gemini.ts`** — Added `callGeminiText` for prose output (non-JSON mode). Default temperature raised to 0.5.
+- **`lib/engines/groq.ts`** — Added `callGroqById` low-level function and `json_mode` option for structured JSON output from Groq models.
+- **`components/ui/ModelPicker.tsx`** — Reusable chip-group model picker; used consistently across all AI features.
+- **`components/engines/AIInsightShell.tsx`** — Regenerate button (always visible after first generation), ModelPicker in header, auto-opens on cached insight.
+- **`lib/ai-insight-compat.ts`** — `buildCompatibilityInsight`: dual-chart AI analysis with 5 sections (overall, dynamics, strengths/friction, growth, timing).
+- **`app/api/readings/ai-insight/compatibility/route.ts`** — GET cached insight, POST generate/force-regenerate for compatibility pair.
+- **`app/api/readings/chat/compatibility/route.ts`** — POST chat endpoint; loads both charts, builds dual-profile system prompt with Ashtakoota scores.
+- **`components/engines/CompatibilityInsightShell.tsx`** — Insight shell for compatibility pairs, reuses `AIInsightCard`.
+- **`components/engines/CompatibilityChat.tsx`** — Chat UI for compatibility pairs.
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — Professional view now shows AI Insight Shell + collapsible Chat (admin-only).
+- **`app/api/admin/consultation-draft/route.ts`** — POST endpoint; loads profile chart(s), builds context from dashaflow + content blocks, generates draft consultation answer via any model.
+- **`lib/db/settings.ts`** — Added `DraftLlmConfig` type with `getDraftLlm()`/`setDraftLlm()` methods (temperature 0.55, max_tokens 4096).
+- **`lib/db/consultation-requests.ts`** — Added `getById(id)` method.
+- **`app/api/admin/llm-settings/route.ts`** — Now handles `type === "draft"`.
+- **`components/admin/LlmSettingsPanel.tsx`** — Added Draft section with temperature, max tokens, custom instructions.
+- **`app/admin/AdminTables.tsx`** — Draft Assistant in expanded paid question row: ModelPicker, Generate/Regenerate, draft display, copy-to-clipboard.
+
+### Changed
+- AI insight sections (natal tab) restructured to match 8 consultation life areas instead of generic chart sections.
+- Groq compound model ID corrected to `gemma-4-31b-it`. TPM notes removed from model chips.
+- Admin LLM settings now cover 3 engines: AI Insights, Chat, Draft.
+
+---
+
 ## [2026-05-14] — Chart Chat tab (admin-only, Llama 4 Scout via Groq)
 
 ### Added
