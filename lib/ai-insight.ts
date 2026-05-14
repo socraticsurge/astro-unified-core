@@ -288,14 +288,34 @@ export async function buildInsightForTab(
       const entry = lookupAscendant(lagnaSign);
       if (entry) contentBlocks.push({ key: `ascendant/${lagnaSign.toLowerCase()}`, text: stripHtml(entry.body) });
     }
-    // D9 and D10 lagna data from chart
+    // Build per-planet varga table from planets[name].d9_sign / d10_sign etc.
     const data = chartOutput?.data as Record<string, unknown> | undefined;
-    const lagna = data?.lagna as Record<string, unknown> | undefined;
-    const vargas = lagna?.vargas as Record<string, { sign?: string }> | undefined;
-    if (vargas) {
-      tabSpecificData = Object.entries(vargas)
-        .map(([d, v]) => `${d}: ${v.sign ?? "unknown"}`)
-        .join("\n");
+    const planets = data?.planets as Record<string, Record<string, string | undefined>> | undefined;
+    if (planets) {
+      const PLANET_ORDER = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+      const VARGA_KEYS = ["d2_sign","d3_sign","d4_sign","d7_sign","d9_sign","d10_sign","d12_sign","d16_sign","d20_sign","d24_sign","d27_sign","d30_sign","d40_sign","d60_sign"];
+      // Header
+      const header = ["Planet", ...VARGA_KEYS.map(k => k.replace("_sign", "").toUpperCase())].join("\t");
+      const rows = PLANET_ORDER
+        .filter(name => planets[name])
+        .map(name => {
+          const p = planets[name];
+          return [name, ...VARGA_KEYS.map(k => p[k] ?? "—")].join("\t");
+        });
+      tabSpecificData = [header, ...rows].join("\n");
+
+      // Look up D9 and D10 ascendant content if we can derive their signs from Lagna planet entry
+      const lagna = data?.lagna as Record<string, unknown> | undefined;
+      const d9LagnaSign = (lagna?.d9_sign ?? (planets["Lagna"] as Record<string, unknown> | undefined)?.d9_sign) as string | undefined;
+      const d10LagnaSign = (lagna?.d10_sign ?? (planets["Lagna"] as Record<string, unknown> | undefined)?.d10_sign) as string | undefined;
+      if (d9LagnaSign) {
+        const entry = lookupAscendant(d9LagnaSign);
+        if (entry) contentBlocks.push({ key: `d9-ascendant/${d9LagnaSign.toLowerCase()}`, text: stripHtml(entry.body) });
+      }
+      if (d10LagnaSign) {
+        const entry = lookupAscendant(d10LagnaSign);
+        if (entry) contentBlocks.push({ key: `d10-ascendant/${d10LagnaSign.toLowerCase()}`, text: stripHtml(entry.body) });
+      }
     }
   }
 
