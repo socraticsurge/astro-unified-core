@@ -1,4 +1,7 @@
-import { queryVariants } from "./geocode";
+import { queryVariants, geocodePlace } from "./geocode";
+
+// Setup global fetch mock
+global.fetch = jest.fn();
 
 describe("queryVariants", () => {
   it("handles a simple string without comma", () => {
@@ -37,5 +40,46 @@ describe("queryVariants", () => {
   it("handles single comma only", () => {
     const res = queryVariants(",");
     expect(res).toEqual([","]);
+  });
+});
+
+describe("geocodePlace", () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it("throws the last error if all fetch attempts fail", async () => {
+    (global.fetch as jest.Mock).mockRejectedValue(new Error("Network Error"));
+
+    await expect(geocodePlace("Unknown Place")).rejects.toThrow("Network Error");
+
+    // "Unknown Place" yields 2 variants: ["Unknown Place", "Unknown Place, India"]
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws a default error if no results are found and no HTTP errors occur", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    });
+
+    await expect(geocodePlace("Nowhere")).rejects.toThrow(
+      'We couldn\'t find "Nowhere". Try the nearest larger city — for example, the closest district headquarters.'
+    );
+  });
+
+  it("succeeds if an early variant fails but a later one succeeds", async () => {
+    (global.fetch as jest.Mock)
+      .mockRejectedValueOnce(new Error("Network Error 1"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ lat: "17.3850", lon: "78.4867", display_name: "Hyderabad" }],
+      });
+
+    const result = await geocodePlace("Hyderabad");
+    expect(result.latitude).toBe(17.385);
+    expect(result.longitude).toBe(78.4867);
+    expect(result.display_name).toBe("Hyderabad");
+    expect(result.timezone).toBe("Asia/Kolkata");
   });
 });
