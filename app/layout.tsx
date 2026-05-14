@@ -36,9 +36,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${inter.variable} ${cormorant.variable} font-sans antialiased`}>
         <NextAuthProvider session={session}>
           <NavBar />
-          <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
+          <main className="max-w-7xl mx-auto px-4 pt-8 pb-24 sm:py-8">{children}</main>
           <FeedbackWidget />
-          <footer className="border-t border-white/10 mt-16 py-6 text-center text-xs text-muted-foreground space-x-4">
+          <footer className="border-t border-white/10 mt-16 pb-24 pt-6 sm:py-6 text-center text-xs text-muted-foreground space-x-4">
             <span>© {CURRENT_YEAR} Astro Chaganti</span>
             <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
             <Link href="/terms" className="hover:underline">Terms of Service</Link>
