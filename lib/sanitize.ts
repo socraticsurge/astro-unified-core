@@ -22,17 +22,28 @@ const ALLOWED_ATTRS = new Set([
   'href', 'title', 'alt', 'src', 'width', 'height', 'class', 'id', 'target', 'rel'
 ]);
 
+const sanitizeCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 1000;
+
 /**
  * Sanitizes an HTML string to remove dangerous tags and attributes.
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
+  if (sanitizeCache.has(html)) return sanitizeCache.get(html)!;
 
+  let result = '';
   if (typeof window !== 'undefined' && typeof DOMParser !== 'undefined') {
-    return sanitizeClientSide(html);
+    result = sanitizeClientSide(html);
+  } else {
+    result = sanitizeServerSide(html);
   }
 
-  return sanitizeServerSide(html);
+  if (sanitizeCache.size >= MAX_CACHE_SIZE) {
+    sanitizeCache.clear();
+  }
+  sanitizeCache.set(html, result);
+  return result;
 }
 
 function sanitizeClientSide(html: string): string {
@@ -78,7 +89,7 @@ function sanitizeClientSide(html: string): string {
 
     sanitizeNode(doc.body);
     return doc.body.innerHTML;
-  } catch (e) {
+  } catch (_e) {
     return sanitizeServerSide(html);
   }
 }
