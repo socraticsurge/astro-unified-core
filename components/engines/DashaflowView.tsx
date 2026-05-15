@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import { SectionShell } from "./SectionShell";
 import type { ChartEntry } from "./ExplainerModal";
 
@@ -64,7 +65,13 @@ const DIV_LABELS: Record<string, string> = {
 
 const PLANET_ORDER = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"];
 
-export function DashaflowView({ output, explainers }: Props) {
+/**
+ * ⚡ Bolt Optimization:
+ * DashaflowView is a massive component that receives primarily static data.
+ * Wrapped in React.memo to prevent expensive virtual DOM diffing and re-renders
+ * when the parent ProfessionalView state changes (like tab switching).
+ */
+export const DashaflowView = memo(function DashaflowView({ output, explainers }: Props) {
   if (!output) return null;
   const data = output.data as Record<string, unknown> | undefined;
   if (!data) {
@@ -1083,4 +1090,4 @@ export function DashaflowView({ output, explainers }: Props) {
       </SectionShell>
     </div>
   );
-}
+});
