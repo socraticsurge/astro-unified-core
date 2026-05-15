@@ -1,0 +1,3 @@
+## 2025-05-15 - [Accessibility Gap: Icon-only buttons & Inputs]
+**Learning:** Icon-only buttons (like Edit/Delete) and visually-labeled inputs (like Search with just an icon) often lack proper accessibility context for screen readers. Using `aria-label` provides the necessary context, and `aria-hidden="true"` on the icons prevents redundant announcements. Additionally, ensuring inputs have visible focus states (`focus-visible`) is critical for keyboard navigation.
+**Action:** Always verify that buttons and inputs have accessible names either via visible text or `aria-label`, and ensure custom inputs have proper focus-visible utility classes.
