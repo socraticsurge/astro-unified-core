@@ -309,6 +309,20 @@ prompt_templates (
 ### Modified tables
 - `users` — add `subscription_id TEXT` FK
 - `consultation_requests` — add `admin_dialogue TEXT` (JSON), `cost_usd REAL`, `published_at TEXT`
+- `profiles` — add `guest_token TEXT` (nullable; mutually exclusive with `user_id`)
+- `sessions` — add `guest_token TEXT` (nullable)
+- `feedback` — add `session_id TEXT`, `consultation_id TEXT`, `feature TEXT`, `rating INTEGER`, `context TEXT` (JSON)
+
+### New guest table
+```sql
+guest_tokens (
+  token TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL,
+  claimed_by_user_id TEXT,
+  claimed_at TEXT
+)
+```
+Guest data is retained permanently — unclaimed sessions are research signal, not waste.
 
 ### Untouched tables
 `profiles`, `compatibility_checks`, `readings`, `feedback`, `settings`, `consultation_slots` — stable, carried over as-is.
@@ -377,20 +391,154 @@ lib/
 
 ---
 
-## 13. Design System
+## 13. Guest User Flow
 
-The new app is built to consume a design system being developed in parallel in Claude Design. The implementation approach handles partial availability gracefully:
+Visitors who have not signed in can start an Ask session immediately from the landing page. This lowers the acquisition barrier significantly and is the primary conversion mechanism for Phase C organic traffic.
 
-- All visual tokens (color, typography, spacing, radius, shadow) are expressed as CSS custom properties — not hardcoded Tailwind values. shadcn/ui already follows this pattern. Swapping the design system means updating one token file, not hunting through components.
-- The initial scaffold uses a provisional token set derived from the current app's palette (amber/zinc dark theme) as a placeholder. When design system tokens are available, they replace the provisional set in a single file.
-- Component structure is built to match design system component boundaries. When the design system ships a component, it replaces the provisional implementation without touching the pages that consume it.
-- The design system is the source of truth for visual decisions. If a design system token or component exists, use it — do not improvise around it.
+### How it works
 
-Design system assets (Figma, token files, component specs) are provided by the user as they become available. The implementation plan will flag which components to scaffold provisionally and which to hold until the design system is ready.
+**Landing page CTA:** "Ask a question" — no login required. Goes directly to the Ask intake.
+
+**Step 1 for guests — profile creation, not selection:** Since the guest has no saved profiles, Step 1 of the intake becomes an inline profile creation form: name, date of birth, time of birth, place. The same form as `/profiles/new`, surfaced in the intake flow. They can add a second person if needed. Chart data fetches silently as they complete the form.
+
+Steps 2–4 proceed identically to authenticated users.
+
+**Guest session limits:** Same message limits as the free tier (admin-controlled). At the limit, the prompt shifts from "upgrade to continue" to *"Sign in to save [Name]'s profile and continue this conversation."* — a stronger hook because they've already invested in the profile data.
+
+### Data storage
+
+Guest profiles and sessions are stored in the DB against a `guest_token` — a UUID stored in an HttpOnly cookie with no expiry. There is no automatic deletion. Guest data is retained permanently: the admin is a researcher and unclaimed sessions are a valuable signal (what did guests ask? did they convert? which questions drove sign-up?).
+
+**Tables:**
+```sql
+guest_tokens (
+  token TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL,
+  claimed_by_user_id TEXT,     -- set on login; null = unclaimed
+  claimed_at TEXT
+)
+```
+`profiles` and `sessions` tables get a `guest_token TEXT` nullable column. A row has either `user_id` or `guest_token`, never both (after claiming).
+
+### Claiming on login
+
+When a guest signs in via Google OAuth, the NextAuth callback:
+1. Checks for the `guest_token` cookie
+2. Finds all profiles and sessions owned by that token
+3. Atomically transfers ownership to the new/existing user account (`UPDATE ... SET user_id = ?, guest_token = NULL`)
+4. Marks the token as claimed in `guest_tokens`
+5. Clears the cookie
+
+The user lands on `/ask` with their session history intact.
 
 ---
 
-## 14. Standards for the New Repo
+## 14. Feedback Collection
+
+Feedback is collected throughout the app wherever a user has just experienced something worth rating. All feedback is stored with full context so the admin can filter, analyze, and improve prompts and models.
+
+**Feedback schema additions:**
+```sql
+feedback (
+  -- existing columns preserved +
+  session_id TEXT,           -- which session (if applicable)
+  consultation_id TEXT,      -- which consultation (if applicable)
+  feature TEXT NOT NULL,     -- 'session_end' | 'message' | 'chart' | 'consultation' | 'compatibility'
+  rating INTEGER,            -- 1–5 or null (thumbs = 1 or 5)
+  comment TEXT,
+  context TEXT               -- JSON: { life_area, profiles[], model, tokens }
+)
+```
+
+**Collection points:**
+- **After session ends** — "Was this conversation useful?" 1–5 stars + optional comment.
+- **Per message** — Thumbs up/down on individual AI responses (stored with the message index and session context). Not shown by default; appears on hover/long-press.
+- **After consultation delivered** — User rates the report 1–5 with optional comment. This is the most important signal.
+- **On chart views** — "Is this accurate?" thumbs feedback on individual chart sections (free and paid).
+- **On the compatibility chart** — Quick rating on the overall compatibility analysis.
+
+Feedback is never mandatory and never blocks. It appears as a lightweight inline prompt that can be dismissed. The admin Usage & Costs view includes a Feedback panel showing ratings by feature, model, and life area.
+
+---
+
+## 15. Design System — Nightfall
+
+The new app adopts the **Nightfall** design system in full. Tokens live in `Design System/tokens.css` and are the single source of truth for all visual decisions. Do not hardcode values that exist as tokens.
+
+### Character
+
+Dark-first, cinematic. The canvas is always a layered cosmic background (never flat black — use `.bg-cosmos`). Drama comes from type scale, glow, and breath — not motion or hue. Light moves; layout holds.
+
+### Tokens (`tokens.css`)
+
+| Category | Key tokens |
+|---|---|
+| Canvas | `--void`, `--night`, `--indigo`, `--violet-dk`, `--violet` |
+| Primary accent | `--gold`, `--gold-l`, `--gold-h`, `--gold-d` — CTAs, marks, emphasis |
+| Pro/Admin/AI | `--aurora`, `--aurora-l`, `--aurora-d` — paid features, admin, AI responses |
+| Info | `--beam`, `--beam-l` — informational accents |
+| Text | `--ink`, `--ink-d`, `--ink-m`, `--ink-l` |
+| Surfaces | `--glass` (4% white), `--glass-2` (6%), `--glass-3` (10%) |
+| Borders | `--line` (gold-tinted), `--line-s` (soft), `--line-aurora` |
+| States | `--good`, `--warn`, `--bad` with matching `*-bg` variants |
+
+### Typography
+
+| Font | Token | Use |
+|---|---|---|
+| DM Serif Display | `--font-display` | Hero h1, all italic display. Italic is the default voice. |
+| Inter | `--font-sans` | Body, buttons, labels, nav. Weights 300–800. |
+| Tiro Telugu | `--font-telugu` | Telugu runs (optional, user-toggleable). |
+| JetBrains Mono | `--font-mono` | Refs, coords, timezone strings, data labels. |
+
+Signature move: **italic display headline + tracked-caps eyebrow** (`--tr-eyebrow: 0.40em`). The eyebrow tracking is load-bearing — do not change it.
+
+### Cards
+
+Two surface recipes, no third:
+- `.ac-glass` — default card (4% white, 1px white-10 border, `--r-xl` radius)
+- `.ac-glass-strong` — hero/popover (6% white, gold-tinted border, `--r-2xl`, `--shadow-lg`)
+
+### Motion
+
+Everything fades or drifts slowly. **Never bounces.**
+- Hover: 240ms `--ease-out`, opacity + border colour only
+- Chart wheel outer ring: 360s full rotation
+- Star field: three parallax drift layers (240s / 380s / 520s)
+- Hero reveals: 1200ms `--ease-cosmic` — ceremonial
+
+### Logo
+
+Three assets in `Design System/assets/`:
+- `logo-cosmic-ac.svg` — primary mark with gradient + glow. Dark surfaces ≥ 32px.
+- `logo-cosmic-ac-flat.svg` — `currentColor` flat version. Favicon, chips, inline.
+- `logo-wordmark.svg` — mark + "Astro *Chaganti*" in DM Serif Display, italic surname in gold.
+
+### Charts
+
+South Indian layout is the default. The `chart-wheel.js` renderer handles it. North Indian diamond layout is not used.
+
+### Language toggle
+
+Telugu/English toggle (`తె / EN` pill). Default is English. Telugu uses `--font-telugu` and appears as small italics under English section headers. Toggle state stored per user in preferences.
+
+### UI Kit references
+
+Visual references for every surface live in `Design System/ui_kits/`:
+- `app/` — dashboard, profile form, chart view, compatibility, consultation
+- `console/` — admin panel
+- `mobile/` — iOS frame mockup
+- `marketing/` — landing page
+
+These are reference implementations, not components to copy verbatim. Use them to understand intended visual weight and layout decisions.
+
+### Integration approach
+
+`tokens.css` is imported as the first stylesheet in the new app's root layout. All Tailwind / shadcn CSS custom property overrides map to Nightfall token values. When a token exists, use it — never write a raw hex value that duplicates a token.
+
+---
+
+## 16. Standards for the New Repo
 
 - **CLAUDE.md** written fresh: new IA, new component conventions, session-first mental model.
 - **Tests:** Session-level integration tests, intake flow tests, gating logic tests. Not just unit tests for individual components.
@@ -401,7 +549,7 @@ Design system assets (Figma, token files, component specs) are provided by the u
 
 ---
 
-## 14. Phase C Seeds (built into Phase B)
+## 17. Phase C Seeds (built into Phase B)
 
 - `/pricing` exists and is shareable from day one
 - URL structure is clean and linkable
