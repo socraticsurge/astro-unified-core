@@ -97,7 +97,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
                 />
               </div>
               <Link href={`/profiles/${p.id}`} className="shrink-0">
-                <Button variant="secondary" size="sm" className="h-8 text-xs font-medium">
+                <Button variant="secondary" size="sm" className="min-h-[44px] min-w-[44px] sm:h-8 sm:min-h-0 sm:min-w-0 text-xs font-medium">
                   View Chart
                 </Button>
               </Link>
@@ -119,7 +119,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
               </div>
               <div className="flex items-center gap-1">
                 <Link href={`/profiles/${p.id}/edit`}>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                  <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px] sm:h-7 sm:w-7 sm:min-h-0 sm:min-w-0 text-muted-foreground hover:text-foreground">
                     <Edit2 className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
@@ -127,7 +127,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
                   variant="ghost"
                   size="icon"
                   onClick={() => handleDelete(p.id)}
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                  className="min-h-[44px] min-w-[44px] sm:h-7 sm:w-7 sm:min-h-0 sm:min-w-0 text-muted-foreground hover:text-destructive shrink-0"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
