@@ -207,17 +207,30 @@ Feature flags, subscription tier configuration, fee amounts, consultation turnar
 
 ## 9. Feature Gating
 
+**All limits are runtime-configurable from the admin Settings panel. Nothing is hardcoded.** Code reads from the `settings` table at request time and falls back to defaults only if a key is absent.
+
+| Setting key | Default | Description |
+|---|---|---|
+| `free_profile_limit` | 3 | Max profiles on free tier |
+| `free_messages_per_session` | 3 | Messages before upgrade prompt on free tier |
+| `paid_messages_per_month` | 150 | Monthly message cap for paid tier |
+| `session_soft_cap` | 25 | Messages before "start fresh" prompt (all tiers) |
+| `consultation_turnaround_days` | 5 | Expected delivery window shown to user |
+| `live_consultation_enabled` | false | Existing setting, carried over |
+| `written_fee_paise` | 120000 | Existing setting, carried over |
+| `live_fee_paise` | 500000 | Existing setting, carried over |
+
 | Feature | Free | Paid |
 |---|---|---|
-| Profiles | Up to 3 | Unlimited (or higher cap — pricing decision) |
+| Profiles | Up to `free_profile_limit` | Unlimited |
 | Natal chart | Basic view | Professional view |
 | Compatibility chart | Basic view | Professional view |
-| Ask sessions | Unlimited, 3 messages each | Unlimited, monthly message cap |
+| Ask sessions | Unlimited, `free_messages_per_session` each | Unlimited, `paid_messages_per_month`/month |
 | AI insight cards | None | None (chat is the AI surface) |
 | Regenerate on charts | None | None |
 | Compatibility checks | Create + basic chart | Create + professional chart |
 | History | Full access | Full access |
-| Consultation | Pay per session | Pay per session (potential discount or inclusion at higher tier) |
+| Consultation | Pay per session | Pay per session |
 
 ---
 
@@ -364,7 +377,20 @@ lib/
 
 ---
 
-## 13. Standards for the New Repo
+## 13. Design System
+
+The new app is built to consume a design system being developed in parallel in Claude Design. The implementation approach handles partial availability gracefully:
+
+- All visual tokens (color, typography, spacing, radius, shadow) are expressed as CSS custom properties — not hardcoded Tailwind values. shadcn/ui already follows this pattern. Swapping the design system means updating one token file, not hunting through components.
+- The initial scaffold uses a provisional token set derived from the current app's palette (amber/zinc dark theme) as a placeholder. When design system tokens are available, they replace the provisional set in a single file.
+- Component structure is built to match design system component boundaries. When the design system ships a component, it replaces the provisional implementation without touching the pages that consume it.
+- The design system is the source of truth for visual decisions. If a design system token or component exists, use it — do not improvise around it.
+
+Design system assets (Figma, token files, component specs) are provided by the user as they become available. The implementation plan will flag which components to scaffold provisionally and which to hold until the design system is ready.
+
+---
+
+## 14. Standards for the New Repo
 
 - **CLAUDE.md** written fresh: new IA, new component conventions, session-first mental model.
 - **Tests:** Session-level integration tests, intake flow tests, gating logic tests. Not just unit tests for individual components.
