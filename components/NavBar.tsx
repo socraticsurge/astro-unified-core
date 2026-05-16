@@ -11,7 +11,7 @@ function NatalIcon({ active }: { active: boolean }) {
   const dim  = "rgba(255,255,255,0.52)";
   const c = active ? gold : dim;
   return (
-    <svg width="20" height="20" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <circle cx="14" cy="14" r="12" stroke={c} strokeWidth="0.9"/>
       <circle cx="14" cy="14" r="6"  stroke={c} strokeWidth="0.7"/>
       <circle cx="14" cy="14" r="1.6" fill={c}/>
@@ -33,7 +33,7 @@ function KundaliIcon({ active }: { active: boolean }) {
   const c = active ? gold : dim;
   const fill = active ? "rgba(251,191,36,0.22)" : "rgba(255,255,255,0.06)";
   return (
-    <svg width="20" height="20" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <circle cx="10" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="rgba(255,255,255,0.02)"/>
       <circle cx="18" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="rgba(255,255,255,0.02)"/>
       <path d="M14 6.6 C16.5 8.8 16.5 19.2 14 21.4 C11.5 19.2 11.5 8.8 14 6.6Z" fill={fill}/>
@@ -46,7 +46,7 @@ function ConsultIcon({ active }: { active: boolean }) {
   const dim  = "rgba(255,255,255,0.52)";
   const c = active ? gold : dim;
   return (
-    <svg width="20" height="20" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <circle cx="14" cy="9" r="4.5" stroke={c} strokeWidth="0.9"/>
       <path d="M5 24 C5 18.5 8.5 15 14 15 C19.5 15 23 18.5 23 24"
         stroke={c} strokeWidth="0.9" strokeLinecap="round" fill="none"/>
@@ -88,9 +88,31 @@ const glassStyle: React.CSSProperties = {
 const wordmarkStyle: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
   fontWeight: 300,
-  fontSize: "1.35rem",
+  fontSize: "1.65rem",
   letterSpacing: "0.04em",
   lineHeight: 1,
+};
+
+const navLinkStyle: React.CSSProperties = {
+  fontFamily: "var(--font-cormorant), Georgia, serif",
+  fontWeight: 300,
+  fontSize: "1.25rem",
+  letterSpacing: "0.03em",
+};
+
+const adminLinkStyle: React.CSSProperties = {
+  fontFamily: "var(--font-cormorant), Georgia, serif",
+  fontWeight: 300,
+  fontSize: "1.1rem",
+  letterSpacing: "0.03em",
+};
+
+const signOutStyle: React.CSSProperties = {
+  fontFamily: "var(--font-cormorant), Georgia, serif",
+  fontWeight: 300,
+  fontStyle: "italic",
+  fontSize: "1rem",
+  letterSpacing: "0.04em",
 };
 
 const goldStyle: React.CSSProperties = {
@@ -125,7 +147,7 @@ export function NavBar() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0 group" aria-label="Home">
-            <TwoOrbits size={34} />
+            <TwoOrbits size={40} />
             <span style={wordmarkStyle}>
               <span className="text-white/88">Astro </span>
               <span style={goldStyle}>Chaganti</span>
@@ -142,12 +164,12 @@ export function NavBar() {
                     key={href}
                     href={href}
                     className={[
-                      "flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all duration-200 text-sm whitespace-nowrap",
+                      "flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all duration-200 whitespace-nowrap",
                       active
                         ? "bg-[rgba(251,191,36,0.1)] text-amber-400"
                         : "text-white/50 hover:text-white/90 hover:bg-white/[0.05]",
                     ].join(" ")}
-                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "1rem", letterSpacing: "0.03em" }}
+                    style={navLinkStyle}
                   >
                     <Icon active={active} />
                     {label}
@@ -158,13 +180,14 @@ export function NavBar() {
                 <Link
                   href="/admin"
                   className={[
-                    "flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all text-sm",
+                    "flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all",
                     isActive("/admin")
                       ? "bg-[rgba(251,191,36,0.1)] text-amber-400"
                       : "text-amber-400/50 hover:text-amber-400 hover:bg-white/[0.05]",
                   ].join(" ")}
+                  style={adminLinkStyle}
                 >
-                  <ShieldCheck className="h-4 w-4" />
+                  <ShieldCheck className="h-[1.1em] w-[1.1em]" />
                   Admin
                 </Link>
               )}
@@ -176,9 +199,9 @@ export function NavBar() {
             {isLoggedIn ? (
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-colors"
+                className="px-3 py-1.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-colors"
+                style={signOutStyle}
               >
-                <LogOut className="h-3.5 w-3.5" />
                 Sign Out
               </button>
             ) : (
@@ -217,7 +240,7 @@ export function NavBar() {
                 >
                   <Icon active={active} />
                   <span
-                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.68rem", letterSpacing: "0.06em" }}
+                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.82rem", letterSpacing: "0.06em" }}
                   >
                     {short}
                   </span>
@@ -234,7 +257,7 @@ export function NavBar() {
                 ].join(" ")}
               >
                 <ShieldCheck className="h-5 w-5" />
-                <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.68rem" }}>
+                <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.82rem" }}>
                   Admin
                 </span>
               </Link>
@@ -245,7 +268,7 @@ export function NavBar() {
               className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-h-[52px] justify-center text-white/25 hover:text-white/50"
             >
               <LogOut className="h-5 w-5" />
-              <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.68rem" }}>
+              <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.82rem" }}>
                 Exit
               </span>
             </button>

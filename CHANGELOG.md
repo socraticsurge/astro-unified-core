@@ -8,6 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — NavBar typography upgrade
+
+### Changed
+- **`components/NavBar.tsx`** — Significantly increased readability. Desktop nav links now use Cormorant 300 at 1.25rem (up from 1rem); Admin link uses 1.1rem with matching Cormorant style; "Sign Out" drops the icon and becomes Cormorant italic at 1rem. "Astro Chaganti" wordmark bumped to 1.65rem and TwoOrbits logo to 40px — remains the largest element. Mobile bottom nav labels bumped from 0.68rem to 0.82rem. All sign-out, admin, and nav-link sizing is now consistently Cormorant-based.
+
+---
+
 ## [2026-05-17] — NavBar elevated glass redesign
 
 ### Changed
