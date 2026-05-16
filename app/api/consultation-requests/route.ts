@@ -34,34 +34,60 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { profile_ids, life_area, observation, constraint_text, objective, options, delivery_mode, slot_id } = body;
+  const { profile_ids, delivery_mode, slot_id } = body;
 
-  if (!profile_ids || !life_area || !observation || !constraint_text || !objective || !options || !delivery_mode) {
-    return NextResponse.json({ error: "All fields are required" }, { status: 400 });
-  }
+  // Simplified mode: single question field
+  // Legacy mode: structured 4-part fields (observation, constraint_text, objective, options)
+  const isSimplified = typeof body.question === "string";
 
-  if (
-    observation.trim().length < MIN_FIELD_LENGTH ||
-    constraint_text.trim().length < MIN_FIELD_LENGTH ||
-    objective.trim().length < MIN_FIELD_LENGTH ||
-    options.trim().length < MIN_FIELD_LENGTH
-  ) {
-    return NextResponse.json(
-      { error: `Each field must be at least ${MIN_FIELD_LENGTH} characters` },
-      { status: 400 }
-    );
-  }
+  let life_area: string;
+  let observation: string;
+  let constraint_text: string;
+  let objective: string;
+  let options: string;
 
-  if (
-    observation.trim().length > MAX_FIELD_LENGTH ||
-    constraint_text.trim().length > MAX_FIELD_LENGTH ||
-    objective.trim().length > MAX_FIELD_LENGTH ||
-    options.trim().length > MAX_FIELD_LENGTH
-  ) {
-    return NextResponse.json(
-      { error: `Each field must be at most ${MAX_FIELD_LENGTH} characters` },
-      { status: 400 }
-    );
+  if (isSimplified) {
+    const q = body.question as string;
+    if (!profile_ids || !delivery_mode) {
+      return NextResponse.json({ error: "profile_ids and delivery_mode are required" }, { status: 400 });
+    }
+    if (!q || q.trim().length < MIN_FIELD_LENGTH) {
+      return NextResponse.json({ error: `Question must be at least ${MIN_FIELD_LENGTH} characters` }, { status: 400 });
+    }
+    if (q.trim().length > MAX_FIELD_LENGTH) {
+      return NextResponse.json({ error: `Question must be at most ${MAX_FIELD_LENGTH} characters` }, { status: 400 });
+    }
+    life_area = "General";
+    observation = q.trim();
+    constraint_text = "";
+    objective = "";
+    options = "";
+  } else {
+    const raw = body as { life_area?: string; observation?: string; constraint_text?: string; objective?: string; options?: string };
+    if (!profile_ids || !raw.life_area || !raw.observation || !raw.constraint_text || !raw.objective || !raw.options || !delivery_mode) {
+      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    }
+    if (
+      raw.observation.trim().length < MIN_FIELD_LENGTH ||
+      raw.constraint_text.trim().length < MIN_FIELD_LENGTH ||
+      raw.objective.trim().length < MIN_FIELD_LENGTH ||
+      raw.options.trim().length < MIN_FIELD_LENGTH
+    ) {
+      return NextResponse.json({ error: `Each field must be at least ${MIN_FIELD_LENGTH} characters` }, { status: 400 });
+    }
+    if (
+      raw.observation.trim().length > MAX_FIELD_LENGTH ||
+      raw.constraint_text.trim().length > MAX_FIELD_LENGTH ||
+      raw.objective.trim().length > MAX_FIELD_LENGTH ||
+      raw.options.trim().length > MAX_FIELD_LENGTH
+    ) {
+      return NextResponse.json({ error: `Each field must be at most ${MAX_FIELD_LENGTH} characters` }, { status: 400 });
+    }
+    life_area = raw.life_area;
+    observation = raw.observation.trim();
+    constraint_text = raw.constraint_text.trim();
+    objective = raw.objective.trim();
+    options = raw.options.trim();
   }
 
   if (delivery_mode !== "written" && delivery_mode !== "appointment") {

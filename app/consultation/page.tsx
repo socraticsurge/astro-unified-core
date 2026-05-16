@@ -26,11 +26,13 @@ export default async function ConsultationPage() {
   const availableSlots = allUpcomingSlots.filter(s => s.starts_at > fiveDaysFromNow && !s.is_booked);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 py-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Get Consultation</h1>
+        <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.2 }}>
+          Get Consultation
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Submit a structured question and receive a personalised Vedic astrology answer.
+          Ask Dr. Chaganti a question and receive a personalised Vedic astrology answer.
         </p>
       </div>
       <ConsultationForm

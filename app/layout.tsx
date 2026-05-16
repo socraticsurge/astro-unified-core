@@ -36,10 +36,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <AppShell
             navBar={<NavBar />}
             footer={
-              <footer className="border-t border-white/10 mt-16 pb-24 pt-6 sm:py-6 text-center text-xs text-muted-foreground space-x-4">
-                <span>© {CURRENT_YEAR} Astro Chaganti</span>
-                <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
-                <Link href="/terms" className="hover:underline">Terms of Service</Link>
+              <footer className="pb-24 sm:pb-6 pt-2 flex items-center justify-end px-4 sm:px-6 opacity-20 hover:opacity-50 transition-opacity duration-300">
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground tracking-wide">
+                  <span>© {CURRENT_YEAR} Astro Chaganti</span>
+                  <span className="text-white/20">·</span>
+                  <Link href="/privacy" className="hover:underline">Privacy</Link>
+                  <Link href="/terms" className="hover:underline">Terms</Link>
+                </div>
               </footer>
             }
             feedback={<FeedbackWidget />}

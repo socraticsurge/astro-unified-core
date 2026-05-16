@@ -45,13 +45,15 @@ export function CompatibilityClient({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10 py-6 px-4">
-      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+    <div className="max-w-5xl mx-auto space-y-6 px-4">
+      <header className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-2">
         <div>
-          <h1 className="text-3xl font-bold font-heading">Marriage Compatibility</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Ashtakoota Milan — 36-point system</p>
+          <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.2 }}>
+            Kundali Matching
+          </h1>
+          <p className="text-muted-foreground mt-0.5 text-sm">Ashtakoota Milan — 36-point compatibility system</p>
         </div>
-        <div className="text-xs font-medium px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-muted-foreground">
+        <div className="text-xs font-medium px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-muted-foreground shrink-0">
           {checks.length} / 6 checks used
         </div>
       </header>

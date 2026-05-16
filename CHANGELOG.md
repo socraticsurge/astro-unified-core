@@ -8,6 +8,18 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — UX tightening: above-fold layout, simplified consultation, tucked footer
+
+### Changed
+- **`app/consultation/ConsultationForm.tsx`** — Removed life area selection and 4-part structured question (observation/constraint/objective/options). Replaced with a single free-text question textarea. Profiles → question → delivery mode is now the entire flow. History section shows the raw question rather than assembled structured text.
+- **`app/api/consultation-requests/route.ts`** — Accepts new `question` field (simplified mode). Maps to `observation` column; sets `life_area = "General"` and blanks the other legacy fields. Old 4-part format still accepted for backwards compat.
+- **`components/dashboard/ProfileList.tsx`** — Added "Natal Charts" Cormorant heading. Page header (title + search + button) sits above the card grid. Fixed hardcoded `bg-zinc-900 border-zinc-700` search input to use CSS-variable based `bg-white/5 border-white/10`.
+- **`components/compatibility/CompatibilityClient.tsx`** — Updated heading to "Kundali Matching" in Cormorant. Reduced top padding from `py-6` to no top padding; reduced `space-y-10` to `space-y-6` so the form and header fit above fold.
+- **`app/consultation/page.tsx`** — Heading updated to Cormorant weight-300, removed excess `py-6`.
+- **`app/layout.tsx`** — Footer Privacy/Terms collapsed to a 10px right-aligned strip at 20% opacity (fades to 50% on hover). Not a visual element, just a legal link.
+
+---
+
 ## [2026-05-17] — Dark cosmic app shell
 
 ### Added

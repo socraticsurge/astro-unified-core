@@ -33,15 +33,20 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
 
   if (profiles.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto py-16 space-y-6 text-center">
-        <p className="text-2xl font-light text-muted-foreground">No profiles yet</p>
+      <div className="max-w-2xl mx-auto space-y-6">
+        <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.2 }}>
+          Natal Charts
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Your birth profiles and their Vedic charts.
+        </p>
         <Link href="/profiles/new">
           <Button size="lg" className="font-semibold shadow-md bg-amber-500 hover:bg-amber-600 text-amber-950">
             Create your first birth profile
           </Button>
         </Link>
-        <div className="text-left border border-white/10 rounded-lg p-5 bg-white/5 mt-8 space-y-2">
-          <div className="text-sm font-semibold text-amber-300">A suggestion to get the most out of this</div>
+        <div className="border border-white/10 rounded-xl p-5 bg-white/5 space-y-2">
+          <div className="text-sm font-semibold text-amber-300">A suggestion</div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Start with your own profile, then add your family — parents, spouse,
             children, siblings — and anyone else whose chart bears on the questions you
@@ -54,34 +59,42 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {deleteError && (
         <div className="p-3 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 text-sm">
           {deleteError}
         </div>
       )}
 
-      {/* Hero CTA & Search */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <Link href="/profiles/new" className="w-full sm:w-auto">
-          <Button size="lg" className="w-full sm:w-auto font-semibold shadow-md bg-amber-500 hover:bg-amber-600 text-amber-950">
-            + Create New Profile
-          </Button>
-        </Link>
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search profiles..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm"
-          />
+      {/* Page header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.2 }}>
+            Natal Charts
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Your birth profiles and their Vedic charts.</p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-44 pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-400/40"
+            />
+          </div>
+          <Link href="/profiles/new">
+            <Button size="sm" className="font-semibold bg-amber-500 hover:bg-amber-600 text-amber-950 shrink-0">
+              + New
+            </Button>
+          </Link>
         </div>
       </div>
 
       {/* Card Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {sorted.map((p) => (
           <div key={p.id} className="group relative flex flex-col bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 transition-colors">
             <div className="p-4 border-b border-white/5 flex items-start justify-between gap-2">
