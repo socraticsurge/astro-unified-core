@@ -8,6 +8,14 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — NavBar redesign + navigation label rename
+
+### Changed
+- **`components/NavBar.tsx`** — Full visual redesign to match the cosmic dark aesthetic: dark glass background (`#030115/90` + `backdrop-blur-md`), Two Orbits SVG brand mark in the logo, Cormorant Garamond wordmark with gold italic "Chaganti", gold active-state links via `usePathname`, sticky `z-40`. Nav labels renamed: "Profiles" → "Natal Charts", "Compatibility" → "Kundali Matching", "Ask a Question" → "Get Consultation". Desktop links use `bg-amber-400/8 text-amber-400` for active state. Mobile bottom nav updated with matching active-state gold treatment, new short labels (Charts / Kundali / Consult), and `sm:hidden` remains. Added `usePathname`-based active detection so links visually reflect current route.
+- **`app/consultation/page.tsx`** — Page heading updated from "Ask a Question" to "Get Consultation" to match navigation label.
+
+---
+
 ## [2026-05-17] — Wire cosmic landing page into app (development)
 
 ### Added
