@@ -2,28 +2,106 @@
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { CircleDot, Heart, MessageSquare, ShieldCheck } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 
-const NAV_LINKS = [
-  { href: "/dashboard",     label: "Natal Charts",     short: "Charts"  },
-  { href: "/compatibility", label: "Kundali Matching", short: "Kundali" },
-  { href: "/consultation",  label: "Get Consultation", short: "Consult" },
-] as const;
+// ── Bespoke SVG icons (same as landing page feature strip) ─────────────────
 
-function TwoOrbits({ size = 32 }: { size?: number }) {
+function NatalIcon({ active }: { active: boolean }) {
+  const gold = "rgba(251,191,36,1)";
+  const dim  = "rgba(255,255,255,0.52)";
+  const c = active ? gold : dim;
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)"
-        stroke="rgba(251,191,36,0.82)" strokeWidth="1.4" fill="none" />
-      <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)"
-        stroke="rgba(251,191,36,0.6)" strokeWidth="1.1" fill="none" />
-      <circle cx="13.5" cy="16" r="1.5" fill="rgba(251,191,36,0.8)" />
-      <circle cx="34.5" cy="32" r="1.5" fill="rgba(251,191,36,0.8)" />
-      <circle cx="24" cy="24" r="2.6" fill="rgba(251,191,36,1)" />
+    <svg width="20" height="20" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <circle cx="14" cy="14" r="12" stroke={c} strokeWidth="0.9"/>
+      <circle cx="14" cy="14" r="6"  stroke={c} strokeWidth="0.7"/>
+      <circle cx="14" cy="14" r="1.6" fill={c}/>
+      <line x1="14" y1="2"  x2="14" y2="7"  stroke={c} strokeWidth="0.7"/>
+      <line x1="14" y1="21" x2="14" y2="26" stroke={c} strokeWidth="0.7"/>
+      <line x1="2"  y1="14" x2="7"  y2="14" stroke={c} strokeWidth="0.7"/>
+      <line x1="21" y1="14" x2="26" y2="14" stroke={c} strokeWidth="0.7"/>
+      <line x1="5"  y1="5"  x2="9"  y2="9"  stroke={c} strokeWidth="0.55"/>
+      <line x1="19" y1="19" x2="23" y2="23" stroke={c} strokeWidth="0.55"/>
+      <line x1="23" y1="5"  x2="19" y2="9"  stroke={c} strokeWidth="0.55"/>
+      <line x1="9"  y1="19" x2="5"  y2="23" stroke={c} strokeWidth="0.55"/>
     </svg>
   );
 }
+
+function KundaliIcon({ active }: { active: boolean }) {
+  const gold = "rgba(251,191,36,1)";
+  const dim  = "rgba(255,255,255,0.52)";
+  const c = active ? gold : dim;
+  const fill = active ? "rgba(251,191,36,0.22)" : "rgba(255,255,255,0.06)";
+  return (
+    <svg width="20" height="20" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <circle cx="10" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="rgba(255,255,255,0.02)"/>
+      <circle cx="18" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="rgba(255,255,255,0.02)"/>
+      <path d="M14 6.6 C16.5 8.8 16.5 19.2 14 21.4 C11.5 19.2 11.5 8.8 14 6.6Z" fill={fill}/>
+    </svg>
+  );
+}
+
+function ConsultIcon({ active }: { active: boolean }) {
+  const gold = "rgba(251,191,36,1)";
+  const dim  = "rgba(255,255,255,0.52)";
+  const c = active ? gold : dim;
+  return (
+    <svg width="20" height="20" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <circle cx="14" cy="9" r="4.5" stroke={c} strokeWidth="0.9"/>
+      <path d="M5 24 C5 18.5 8.5 15 14 15 C19.5 15 23 18.5 23 24"
+        stroke={c} strokeWidth="0.9" strokeLinecap="round" fill="none"/>
+      <circle cx="14" cy="9" r="1.5" fill={c}/>
+    </svg>
+  );
+}
+
+function TwoOrbits({ size = 36 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)"
+        stroke="rgba(251,191,36,0.82)" strokeWidth="1.4" fill="none"/>
+      <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)"
+        stroke="rgba(251,191,36,0.6)" strokeWidth="1.1" fill="none"/>
+      <circle cx="13.5" cy="16" r="1.5" fill="rgba(251,191,36,0.8)"/>
+      <circle cx="34.5" cy="32" r="1.5" fill="rgba(251,191,36,0.8)"/>
+      <circle cx="24"   cy="24" r="2.6" fill="rgba(251,191,36,1)"/>
+    </svg>
+  );
+}
+
+// ── Nav link definitions ────────────────────────────────────────────────────
+
+const NAV_LINKS = [
+  { href: "/dashboard",     label: "Natal Charts",     short: "Charts",  Icon: NatalIcon   },
+  { href: "/compatibility", label: "Kundali Matching", short: "Kundali", Icon: KundaliIcon },
+  { href: "/consultation",  label: "Get Consultation", short: "Consult", Icon: ConsultIcon },
+] as const;
+
+// Shared glass style (matches landing page panel)
+const glassStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.055)",
+  backdropFilter: "blur(32px) saturate(1.8) brightness(1.04)",
+  WebkitBackdropFilter: "blur(32px) saturate(1.8) brightness(1.04)",
+  boxShadow: "inset 0 1.5px 0 rgba(255,255,255,0.13), inset 0 -1px 0 rgba(255,255,255,0.03)",
+};
+
+const wordmarkStyle: React.CSSProperties = {
+  fontFamily: "var(--font-cormorant), Georgia, serif",
+  fontWeight: 300,
+  fontSize: "1.35rem",
+  letterSpacing: "0.04em",
+  lineHeight: 1,
+};
+
+const goldStyle: React.CSSProperties = {
+  fontStyle: "italic",
+  background: "linear-gradient(135deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%)",
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  backgroundClip: "text",
+};
+
+// ── Component ───────────────────────────────────────────────────────────────
 
 export function NavBar() {
   const { data: session, status } = useSession();
@@ -32,132 +110,171 @@ export function NavBar() {
   const showAdmin = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true;
 
   const isActive = (href: string) =>
-    href === "/dashboard" ? pathname === "/dashboard" || pathname?.startsWith("/profiles")
-    : pathname?.startsWith(href);
+    href === "/dashboard"
+      ? pathname === "/dashboard" || (pathname?.startsWith("/profiles") ?? false)
+      : pathname?.startsWith(href) ?? false;
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-white/10 bg-[#030115]/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <>
+      {/* ── Desktop top nav (hidden on mobile) ── */}
+      <nav
+        className="hidden sm:flex sticky top-0 z-40 border-b border-white/[0.11] items-center"
+        style={glassStyle}
+      >
+        <div className="max-w-7xl w-full mx-auto px-6 py-4 flex items-center justify-between gap-6">
 
-        {/* Logo */}
-        <div className="flex items-center gap-5">
-          <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="Astro Chaganti home">
-            <TwoOrbits size={30} />
-            <span
-              className="font-heading text-xl font-light tracking-wide leading-none"
-              style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-            >
-              <span className="text-white/90">Astro </span>
-              <em
-                className="not-italic font-light"
-                style={{
-                  background: "linear-gradient(135deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
-                Chaganti
-              </em>
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 shrink-0 group" aria-label="Home">
+            <TwoOrbits size={34} />
+            <span style={wordmarkStyle}>
+              <span className="text-white/88">Astro </span>
+              <span style={goldStyle}>Chaganti</span>
             </span>
           </Link>
 
-          {/* Desktop nav links */}
+          {/* Nav links */}
           {isLoggedIn && (
-            <div className="hidden sm:flex items-center gap-1 text-sm">
-              {NAV_LINKS.map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className={[
-                    "px-3 py-1.5 rounded-md transition-colors whitespace-nowrap",
-                    isActive(href)
-                      ? "text-amber-400 bg-amber-400/8"
-                      : "text-white/50 hover:text-white/90 hover:bg-white/5",
-                  ].join(" ")}
-                >
-                  {label}
-                </Link>
-              ))}
+            <div className="flex items-center gap-1">
+              {NAV_LINKS.map(({ href, label, Icon }) => {
+                const active = isActive(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={[
+                      "flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all duration-200 text-sm whitespace-nowrap",
+                      active
+                        ? "bg-[rgba(251,191,36,0.1)] text-amber-400"
+                        : "text-white/50 hover:text-white/90 hover:bg-white/[0.05]",
+                    ].join(" ")}
+                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "1rem", letterSpacing: "0.03em" }}
+                  >
+                    <Icon active={active} />
+                    {label}
+                  </Link>
+                );
+              })}
               {showAdmin && (
                 <Link
                   href="/admin"
                   className={[
-                    "px-3 py-1.5 rounded-md transition-colors",
+                    "flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all text-sm",
                     isActive("/admin")
-                      ? "text-amber-400 bg-amber-400/8"
-                      : "text-amber-400/60 hover:text-amber-400 hover:bg-white/5",
+                      ? "bg-[rgba(251,191,36,0.1)] text-amber-400"
+                      : "text-amber-400/50 hover:text-amber-400 hover:bg-white/[0.05]",
                   ].join(" ")}
                 >
+                  <ShieldCheck className="h-4 w-4" />
                   Admin
                 </Link>
               )}
             </div>
           )}
-        </div>
 
-        {/* Right: auth */}
-        <div className="flex items-center gap-2">
-          {isLoggedIn ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs sm:text-sm text-white/40 hover:text-white/70 hover:bg-white/5 px-2 sm:px-3"
-              onClick={() => signOut({ callbackUrl: "/" })}
-            >
-              Sign Out
-            </Button>
-          ) : (
-            <Link href="/auth/signin">
-              <Button
-                size="sm"
-                className="text-sm border border-amber-400/30 bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 hover:text-amber-300"
+          {/* Sign out */}
+          <div className="flex items-center shrink-0">
+            {isLoggedIn ? (
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign Out
+              </button>
+            ) : (
+              <Link
+                href="/auth/signin"
+                className="px-4 py-1.5 rounded-xl text-sm font-medium border border-amber-400/30 bg-[rgba(251,191,36,0.08)] text-amber-400 hover:bg-[rgba(251,191,36,0.15)] hover:text-amber-300 transition-colors"
+                style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300 }}
               >
                 Sign In
-              </Button>
-            </Link>
-          )}
+              </Link>
+            )}
+          </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Mobile bottom navigation */}
+      {/* ── Mobile bottom nav (hidden on desktop) ── */}
       {isLoggedIn && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden
-          border-t border-white/10 bg-[#030115]/95 backdrop-blur-md
-          flex items-center justify-around
-          pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1 px-1">
-          {NAV_LINKS.map(({ href, short }, i) => {
-            const active = isActive(href);
-            const Icon = i === 0 ? CircleDot : i === 1 ? Heart : MessageSquare;
-            return (
+        <div
+          className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.11]"
+          style={{
+            ...glassStyle,
+            paddingBottom: "calc(env(safe-area-inset-bottom) + 0.25rem)",
+          }}
+        >
+          <div className="flex items-stretch justify-around px-2 pt-1">
+            {NAV_LINKS.map(({ href, short, Icon }) => {
+              const active = isActive(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={[
+                    "flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-h-[52px] justify-center",
+                    active ? "text-amber-400" : "text-white/40 hover:text-white/70",
+                  ].join(" ")}
+                >
+                  <Icon active={active} />
+                  <span
+                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.68rem", letterSpacing: "0.06em" }}
+                  >
+                    {short}
+                  </span>
+                </Link>
+              );
+            })}
+
+            {showAdmin && (
               <Link
-                key={href}
-                href={href}
+                href="/admin"
                 className={[
-                  "flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors min-w-[52px] min-h-[44px] justify-center",
-                  active ? "text-amber-400" : "text-white/40 hover:text-white/70",
+                  "flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-h-[52px] justify-center",
+                  isActive("/admin") ? "text-amber-400" : "text-amber-400/40 hover:text-amber-400",
                 ].join(" ")}
               >
-                <Icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium tracking-wide">{short}</span>
-                {active && <span className="absolute bottom-[calc(env(safe-area-inset-bottom)+3.25rem)] w-5 h-0.5 rounded-full bg-amber-400" />}
+                <ShieldCheck className="h-5 w-5" />
+                <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.68rem" }}>
+                  Admin
+                </span>
               </Link>
-            );
-          })}
-          {showAdmin && (
-            <Link
-              href="/admin"
-              className={[
-                "flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors min-w-[52px] min-h-[44px] justify-center",
-                isActive("/admin") ? "text-amber-400" : "text-amber-400/50 hover:text-amber-400",
-              ].join(" ")}
+            )}
+
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-h-[52px] justify-center text-white/25 hover:text-white/50"
             >
-              <ShieldCheck className="h-5 w-5" />
-              <span className="text-[10px] font-medium tracking-wide">Admin</span>
-            </Link>
-          )}
+              <LogOut className="h-5 w-5" />
+              <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.68rem" }}>
+                Exit
+              </span>
+            </button>
+          </div>
         </div>
       )}
-    </nav>
+
+      {/* Mobile unauthenticated: minimal top bar just for sign-in */}
+      {!isLoggedIn && (
+        <nav
+          className="sm:hidden sticky top-0 z-40 border-b border-white/[0.11] flex items-center justify-between px-4 py-3"
+          style={glassStyle}
+        >
+          <Link href="/" className="flex items-center gap-2" aria-label="Home">
+            <TwoOrbits size={26} />
+            <span style={{ ...wordmarkStyle, fontSize: "1.1rem" }}>
+              <span className="text-white/88">Astro </span>
+              <span style={goldStyle}>Chaganti</span>
+            </span>
+          </Link>
+          <Link
+            href="/auth/signin"
+            className="px-4 py-1.5 rounded-xl text-sm border border-amber-400/30 bg-[rgba(251,191,36,0.08)] text-amber-400 hover:bg-[rgba(251,191,36,0.15)] transition-colors"
+            style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300 }}
+          >
+            Sign In
+          </Link>
+        </nav>
+      )}
+    </>
   );
 }

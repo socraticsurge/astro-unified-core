@@ -8,6 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — NavBar elevated glass redesign
+
+### Changed
+- **`components/NavBar.tsx`** — Full rebuild. Desktop: larger glass bar (`py-4`, `blur(32px) saturate(1.8)`, inset highlight shadow matching the landing page panel) with bespoke SVG icons (natal wheel, kundali overlapping circles, person silhouette — same as landing page feature strip) beside Cormorant Garamond light link labels; `usePathname` active state in gold. Mobile: desktop top bar is `hidden sm:flex` — no top bar on mobile at all; a fixed `bottom-0` glass bottom nav (same glass treatment) shows Charts / Kundali / Consult / Exit (sign out); unauthenticated mobile gets a minimal top bar with logo + Sign In only.
+
+---
+
 ## [2026-05-17] — NavBar redesign + navigation label rename
 
 ### Changed
