@@ -69,7 +69,7 @@ export function FeedbackWidget() {
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
                 <p className="text-sm font-semibold">Share Feedback</p>
-                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <button aria-label="Close feedback" onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                   <X className="h-4 w-4" />
                 </button>
               </div>

@@ -119,11 +119,13 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
               </div>
               <div className="flex items-center gap-1">
                 <Link href={`/profiles/${p.id}/edit`}>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                  <Button aria-label="Edit profile" title="Edit profile" variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
                     <Edit2 className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
                 <Button
+                  aria-label="Delete profile"
+                  title="Delete profile"
                   variant="ghost"
                   size="icon"
                   onClick={() => handleDelete(p.id)}
