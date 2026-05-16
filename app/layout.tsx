@@ -7,19 +7,17 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
 import { NavBar } from "@/components/NavBar";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
+import { AppShell } from "@/components/AppShell";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-// Body — Inter, purpose-built for screen readability at small sizes.
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
-// Headings — Cormorant Garamond, a classical serif for display.
-// Two weights only: regular for hero copy, semibold for h2s/wordmark.
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["400", "600"],
+  weight: ["300", "400", "600"],
   variable: "--font-cormorant",
 });
 
@@ -35,14 +33,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${cormorant.variable} font-sans antialiased`}>
         <NextAuthProvider session={session}>
-          <NavBar />
-          <main className="max-w-7xl mx-auto px-4 pt-8 pb-24 sm:py-8">{children}</main>
-          <FeedbackWidget />
-          <footer className="border-t border-white/10 mt-16 pb-24 pt-6 sm:py-6 text-center text-xs text-muted-foreground space-x-4">
-            <span>© {CURRENT_YEAR} Astro Chaganti</span>
-            <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
-            <Link href="/terms" className="hover:underline">Terms of Service</Link>
-          </footer>
+          <AppShell
+            navBar={<NavBar />}
+            footer={
+              <footer className="border-t border-white/10 mt-16 pb-24 pt-6 sm:py-6 text-center text-xs text-muted-foreground space-x-4">
+                <span>© {CURRENT_YEAR} Astro Chaganti</span>
+                <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+                <Link href="/terms" className="hover:underline">Terms of Service</Link>
+              </footer>
+            }
+            feedback={<FeedbackWidget />}
+          >
+            {children}
+          </AppShell>
         </NextAuthProvider>
         <Analytics />
         <SpeedInsights />

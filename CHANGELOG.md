@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Wire cosmic landing page into app (development)
+
+### Added
+- **`components/CosmicLanding.tsx`** — Full React port of the `preview.html` mockup. Client component with four `useEffect` hooks: (1) body overflow lock, (2) zodiac wheel built via `createElementNS` (12 signs × outer/inner segments + 72 tick marks), (3) star-field canvas animation loop with RAF + `visibilitychange` pause + debounced resize, (4) diagonal crossfade quote cycle. Calls `signIn('google', { callbackUrl: '/dashboard' })` on CTA click.
+- **`components/CosmicLanding.module.css`** — CSS module for all landing page styles: glass panel, zodiac/earth positioning, quote animation, feature icon strip, CTA button shimmer, mobile layout. Keyframes declared `:global` so inline `animation:` strings resolve by name.
+- **`components/AppShell.tsx`** — Client component using `usePathname()`. On `/`, renders `children` only (no NavBar, no Footer, no FeedbackWidget, no `max-w-7xl` main wrapper). On all other routes, renders the full shell as before.
+- **`public/earth.mp4`** — 3D Earth video copied from design mockup for production serving.
+
+### Changed
+- **`app/layout.tsx`** — Added `"300"` to Cormorant Garamond weights (required for the landing page light-weight typography). Replaced inline NavBar/main/FeedbackWidget/footer with `<AppShell>` passing nav, footer, and feedback as props.
+- **`app/page.tsx`** — Replaced `<LandingPage />` with `<CosmicLanding />`. Added `export const dynamic = "force-dynamic"` (page reads auth via `getServerSession`).
+
+---
+
 ## [2026-05-16] — Landing page redesign mockup v2 (uxred)
 
 ### Added
