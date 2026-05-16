@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astro Chaganti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 100vw; height: 100vh; overflow: hidden;
+    background: radial-gradient(ellipse 100% 80% at 50% -5%, #0e0730 0%, #060318 55%, #020110 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  /* ── Zodiac wheel ── */
+  #zodiac-wrap {
+    position: fixed;
+    left: -62.5vh; top: calc(50vh - 62.5vh);
+    width: 125vh; height: 125vh;
+    z-index: 5; pointer-events: none;
+    overflow: hidden;
+  }
+  #zodiac-wrap svg { width: 100%; height: 100%; }
+  .zodiac-g {
+    transform-origin: 0px 0px;
+    animation: spinZodiac 160s linear infinite;
+  }
+  @keyframes spinZodiac { to { transform: rotate(360deg); } }
+
+
+  /* ── Earth video ── */
+  #earth-wrap {
+    position: fixed;
+    left: -38vh; top: calc(50vh - 38vh);
+    width: 76vh; height: 76vh;
+    z-index: 6; pointer-events: none;
+  }
+  #earth-atmo {
+    position: absolute; inset: -10%; border-radius: 50%;
+    background: radial-gradient(circle, transparent 52%, rgba(70,160,255,0.55) 78%, rgba(70,160,255,0) 100%);
+    filter: blur(4px);
+  }
+  #earth-clip {
+    position: absolute; inset: 0;
+    border-radius: 50%; overflow: hidden;
+  }
+  #earth-clip video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #earth-light {
+    position: absolute; inset: 0; border-radius: 50%;
+    background:
+      radial-gradient(circle at 34% 28%, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 46%),
+      radial-gradient(circle at 50% 50%, transparent 50%, rgba(0,0,18,0.75) 100%);
+    pointer-events: none;
+  }
+
+  /* ── Ambient blobs ── */
+  .blob {
+    position: fixed; border-radius: 50%;
+    pointer-events: none; filter: blur(50px); z-index: 1;
+  }
+
+  /* ── Glass panel (desktop) ── */
+  #panel {
+    position: fixed;
+    right: 2.5vw; top: 4vh; bottom: 4vh;
+    width: min(560px, 50vw);
+    z-index: 10;
+    display: flex; flex-direction: column;
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 24px;
+    backdrop-filter: blur(32px) saturate(1.8) brightness(1.04);
+    -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.04);
+    box-shadow: 0 32px 100px rgba(0,0,0,0.6), inset 0 1.5px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(255,255,255,0.03);
+    padding: 48px 40px 40px;
+    animation: fadeUp 0.9s ease-out both;
+  }
+
+  /* Quote section — flex-grows to fill available space */
+  #quote-section {
+    flex: 1;
+    display: flex; flex-direction: column; justify-content: center;
+    gap: 20px;
+  }
+  #quote-eyebrow {
+    font-size: 13px; color: rgba(255,255,255,0.25);
+    letter-spacing: 0.26em; text-transform: uppercase;
+  }
+  #quote-text {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: clamp(28px, 3.2vw, 44px);
+    font-weight: 300; font-style: italic;
+    color: rgba(255,255,255,0.88);
+    line-height: 1.72;
+    min-height: 7em;
+    transition: opacity 1.2s ease, transform 1.2s ease;
+  }
+
+  /* Divider */
+  .panel-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 28px 0; }
+
+  /* Brand row */
+  #brand-row {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+  }
+  #glyph-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+  .ring1, .ring2 { display: none; }
+  .glyph { font-size: 30px; color: #fbbf24; filter: drop-shadow(0 0 14px rgba(251,191,36,0.65)); animation: floatGlyph 5s ease-in-out infinite; }
+
+  #brand-text h1 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 40px; font-weight: 300; letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.92); line-height: 1;
+  }
+  #brand-text h1 em {
+    font-style: italic; font-weight: 300;
+    background: linear-gradient(135deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    filter: drop-shadow(0 0 14px rgba(251,191,36,0.3));
+  }
+  #brand-text p {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 16px; font-weight: 300; font-style: italic;
+    color: rgba(255,255,255,0.42);
+    letter-spacing: 0.16em; margin-top: 6px;
+  }
+
+  /* Features (icon strip) */
+  #features { display: flex; justify-content: space-between; align-items: stretch; margin-bottom: 22px; }
+  .feature-icon-item { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; padding: 4px 0; }
+  .feature-icon-sep { width: 1px; background: rgba(255,255,255,0.07); align-self: stretch; margin: 2px 0; flex-shrink: 0; }
+  .feature-icon-name { font-size: 11px; color: rgba(255,255,255,0.48); font-family: system-ui; letter-spacing: 0.04em; text-align: center; line-height: 1.5; }
+
+  /* Sidereal row */
+  .sidereal-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .sidereal-line { flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
+  .sidereal-row span { font-size: 10px; color: rgba(255,255,255,0.15); letter-spacing: 0.16em; text-transform: uppercase; white-space: nowrap; }
+
+  /* CTA */
+  .cta-btn {
+    width: 100%; padding: 13px 0; border-radius: 16px; border: none; cursor: pointer;
+    color: #3b1a00; font-weight: 600; font-size: 16px; letter-spacing: 0.02em;
+    box-shadow: 0 4px 28px rgba(217,119,6,0.4);
+    background: linear-gradient(105deg, #92400e 0%, #d97706 35%, #fcd34d 50%, #d97706 65%, #92400e 100%);
+    background-size: 200% auto;
+    transition: filter 0.2s ease, transform 0.15s ease;
+  }
+  .cta-btn:hover {
+    animation: shimmerBtn 1.8s linear infinite;
+    filter: brightness(1.08);
+  }
+  .cta-btn:active {
+    transform: scale(0.985);
+    filter: brightness(0.95);
+    animation: none;
+  }
+  .cta-footnote { margin-top: 12px; font-size: 13px; color: rgba(255,255,255,0.2); letter-spacing: 0.04em; text-align: center; }
+
+  /* Animations */
+  @keyframes shimmerBtn {
+    0%  { background-position: -200% center }
+    100%{ background-position:  200% center }
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(18px) }
+    to   { opacity:1; transform:translateY(0) }
+  }
+
+  /* ── Mobile gradient bridge ── */
+  #mobile-fade {
+    display: none;
+    position: fixed;
+    left: 0; right: 0;
+    pointer-events: none;
+    z-index: 8;
+  }
+  @media (max-width: 700px) {
+    #mobile-fade {
+      display: block;
+      bottom: 54vh;
+      height: 28vh;
+      background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(6,3,24,0.6) 50%,
+        rgba(6,3,24,0.95) 100%
+      );
+    }
+  }
+
+  /* ── Mobile layout ── */
+  @media (max-width: 700px) {
+    #earth-wrap {
+      left: 50%; top: -12vw;
+      transform: translateX(-50%);
+      width: 88vw; height: 88vw;
+    }
+    #zodiac-wrap {
+      left: -28vw; top: -46vw;
+      width: 156vw; height: 156vw;
+    }
+    #panel {
+      position: fixed;
+      right: 0; left: 0; bottom: 0; top: auto;
+      width: 100%;
+      border-radius: 22px 22px 0 0;
+      padding: 28px 28px 32px;
+      height: 54vh;
+      overflow: hidden;
+    }
+    #quote-section { flex: 1; }
+    #quote-text { font-size: 22px; min-height: auto; }
+    .panel-divider { margin: 14px 0; }
+    #brand-text h1 { font-size: 28px; }
+    #brand-row { margin-bottom: 14px; }
+    #features { margin-bottom: 14px; }
+    .feature-icon-name { font-size: 10px; }
+    .sidereal-row { margin-bottom: 16px; }
+    .cta-btn { font-size: 15px; padding: 12px 0; }
+    .cta-footnote { font-size: 12px; margin-top: 8px; }
+
+  }
+</style>
+</head>
+<body>
+
+<!-- Star canvas -->
+<canvas id="stars" style="position:fixed;inset:0;pointer-events:none;z-index:0"></canvas>
+
+<!-- Ambient blobs -->
+<div class="blob" style="top:-20%;left:0%;width:560px;height:440px;background:radial-gradient(circle,rgba(70,40,180,0.22) 0%,transparent 70%)"></div>
+<div class="blob" style="bottom:-15%;right:0%;width:480px;height:480px;background:radial-gradient(circle,rgba(100,40,200,0.15) 0%,transparent 70%);filter:blur(55px)"></div>
+
+
+<div id="mobile-fade"></div>
+
+<!-- Zodiac wheel -->
+<div id="zodiac-wrap">
+  <svg id="zodiac-svg" viewBox="-320 -320 640 640" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <filter id="sglow" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="5" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <radialGradient id="rimGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="60%"  stop-color="rgba(100,60,200,0)"/>
+        <stop offset="100%" stop-color="rgba(100,60,200,0.18)"/>
+      </radialGradient>
+    </defs>
+    <circle r="320" fill="url(#rimGlow)"/>
+    <g class="zodiac-g" id="zodiac-g"></g>
+  </svg>
+</div>
+
+<!-- Earth video -->
+<div id="earth-wrap">
+  <div id="earth-atmo"></div>
+  <div id="earth-clip">
+    <video autoplay muted loop playsinline>
+      <source src="earth.mp4" type="video/mp4">
+    </video>
+  </div>
+  <div id="earth-light"></div>
+</div>
+
+<!-- Glass panel -->
+<div id="panel">
+
+  <!-- Quote section -->
+  <div id="quote-section">
+    <div id="quote-eyebrow">The cosmos speaks</div>
+    <div id="quote-text"></div>
+  </div>
+
+  <div class="panel-divider"></div>
+
+  <!-- Brand -->
+  <div id="brand-row">
+    <div id="glyph-wrap">
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" style="position:relative;z-index:1">
+        <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)" stroke="rgba(251,191,36,0.82)" stroke-width="1.4" fill="none"/>
+        <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)" stroke="rgba(251,191,36,0.6)" stroke-width="1.1" fill="none"/>
+        <circle cx="13.5" cy="16" r="1.5" fill="rgba(251,191,36,0.8)"/>
+        <circle cx="34.5" cy="32" r="1.5" fill="rgba(251,191,36,0.8)"/>
+        <circle cx="24" cy="24" r="2.6" fill="rgba(251,191,36,1)"/>
+      </svg>
+    </div>
+    <div id="brand-text">
+      <h1>Astro <em>Chaganti</em></h1>
+      <p>Vedic Astrology Platform</p>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div id="features">
+    <div class="feature-icon-item">
+      <svg width="32" height="32" viewBox="0 0 28 28" fill="none" style="opacity:0.65">
+        <circle cx="14" cy="14" r="12" stroke="rgba(251,191,36,0.8)" stroke-width="0.8"/>
+        <circle cx="14" cy="14" r="6" stroke="rgba(251,191,36,0.5)" stroke-width="0.6"/>
+        <circle cx="14" cy="14" r="1.5" fill="rgba(251,191,36,0.9)"/>
+        <line x1="14" y1="2" x2="14" y2="8" stroke="rgba(251,191,36,0.55)" stroke-width="0.7"/>
+        <line x1="14" y1="20" x2="14" y2="26" stroke="rgba(251,191,36,0.55)" stroke-width="0.7"/>
+        <line x1="2" y1="14" x2="8" y2="14" stroke="rgba(251,191,36,0.55)" stroke-width="0.7"/>
+        <line x1="20" y1="14" x2="26" y2="14" stroke="rgba(251,191,36,0.55)" stroke-width="0.7"/>
+        <line x1="5.5" y1="5.5" x2="9.3" y2="9.3" stroke="rgba(251,191,36,0.28)" stroke-width="0.6"/>
+        <line x1="18.7" y1="18.7" x2="22.5" y2="22.5" stroke="rgba(251,191,36,0.28)" stroke-width="0.6"/>
+        <line x1="22.5" y1="5.5" x2="18.7" y2="9.3" stroke="rgba(251,191,36,0.28)" stroke-width="0.6"/>
+        <line x1="9.3" y1="18.7" x2="5.5" y2="22.5" stroke="rgba(251,191,36,0.28)" stroke-width="0.6"/>
+      </svg>
+      <div class="feature-icon-name">Natal<br>Charts</div>
+    </div>
+    <div class="feature-icon-sep"></div>
+    <div class="feature-icon-item">
+      <svg width="32" height="32" viewBox="0 0 28 28" fill="none" style="opacity:0.65">
+        <circle cx="10" cy="14" r="9" stroke="rgba(251,191,36,0.8)" stroke-width="0.8" fill="rgba(251,191,36,0.03)"/>
+        <circle cx="18" cy="14" r="9" stroke="rgba(251,191,36,0.8)" stroke-width="0.8" fill="rgba(251,191,36,0.03)"/>
+        <path d="M14 6.6 C16.5 8.8 16.5 19.2 14 21.4 C11.5 19.2 11.5 8.8 14 6.6Z" fill="rgba(251,191,36,0.22)"/>
+      </svg>
+      <div class="feature-icon-name">Kundali<br>Matching</div>
+    </div>
+    <div class="feature-icon-sep"></div>
+    <div class="feature-icon-item">
+      <svg width="32" height="32" viewBox="0 0 28 28" fill="none" style="opacity:0.65">
+        <circle cx="14" cy="9" r="4.5" stroke="rgba(251,191,36,0.8)" stroke-width="0.8"/>
+        <path d="M5 24 C5 18.5 8.5 15 14 15 C19.5 15 23 18.5 23 24" stroke="rgba(251,191,36,0.8)" stroke-width="0.8" stroke-linecap="round" fill="none"/>
+        <circle cx="14" cy="9" r="1.5" fill="rgba(251,191,36,0.7)"/>
+      </svg>
+      <div class="feature-icon-name">Personal<br>Consultations</div>
+    </div>
+  </div>
+
+  <!-- Sidereal -->
+  <div class="sidereal-row">
+    <div class="sidereal-line"></div>
+    <span>Sidereal · Lahiri · Swiss Ephemeris</span>
+    <div class="sidereal-line"></div>
+  </div>
+
+  <!-- CTA -->
+  <button class="cta-btn" style="display:flex;align-items:center;justify-content:center;gap:10px;">
+    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#1a0800"/>
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#1a0800"/>
+      <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#1a0800"/>
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#1a0800"/>
+    </svg>
+    Continue with Google
+  </button>
+  <p class="cta-footnote">Free · Up to 10 Natal Charts and 6 Kundali Matches</p>
+
+</div>
+
+<script>
+// ── Quotes ────────────────────────────────────────────────────────────────────
+const QUOTES_DESKTOP = [
+  "The moon in your seventh house pulls at every bond you hold dear.",
+  "Saturn's return brings the lessons you were born to learn.",
+  "Your rising sign shapes every first impression you'll ever make.",
+  "Jupiter's light in your tenth house opens doors you've only dreamed of.",
+  "The stars do not compel — they illuminate the path already within you.",
+];
+const QUOTES_MOBILE = [
+  "The moon pulls at every bond you hold dear.",
+  "Saturn's return brings lessons you were born to learn.",
+  "Your rising sign shapes every first impression.",
+  "Jupiter opens doors you've only dreamed of.",
+  "The stars illuminate the path within you.",
+];
+
+const quoteEl = document.getElementById('quote-text');
+const FADE_MS = 1200, HOLD_MS = 5000;
+let qi = 0;
+let quoteTimer = null;
+
+function getQuotes() {
+  return window.innerWidth <= 700 ? QUOTES_MOBILE : QUOTES_DESKTOP;
+}
+
+function showQuote(idx) {
+  quoteEl.style.opacity = '0';
+  quoteEl.style.transform = 'translate(12px, 8px)';
+
+  quoteTimer = setTimeout(() => {
+    quoteEl.textContent = getQuotes()[idx];
+    quoteEl.style.transition = 'none';
+    quoteEl.style.opacity = '0';
+    quoteEl.style.transform = 'translate(-12px, -8px)';
+    void quoteEl.offsetHeight; // force reflow so transition reset is guaranteed
+    quoteEl.style.transition = `opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`;
+    quoteEl.style.opacity = '1';
+    quoteEl.style.transform = 'translate(0, 0)';
+
+    quoteTimer = setTimeout(() => {
+      qi = (qi + 1) % getQuotes().length;
+      showQuote(qi);
+    }, HOLD_MS + FADE_MS);
+  }, FADE_MS);
+}
+
+// first quote: visible immediately — no blank flash on mobile
+quoteEl.textContent = getQuotes()[0];
+quoteEl.style.opacity = '0';
+quoteEl.style.transform = 'translate(-12px, -8px)';
+void quoteEl.offsetHeight;
+quoteEl.style.transition = `opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`;
+quoteEl.style.opacity = '1';
+quoteEl.style.transform = 'translate(0, 0)';
+quoteTimer = setTimeout(() => { qi = 1; showQuote(1); }, HOLD_MS + FADE_MS);
+
+// ── Zodiac wheel ──────────────────────────────────────────────────────────────
+const ZODIAC = [
+  {symbol:'♈',name:'Aries'},{symbol:'♉',name:'Taurus'},{symbol:'♊',name:'Gemini'},
+  {symbol:'♋',name:'Cancer'},{symbol:'♌',name:'Leo'},{symbol:'♍',name:'Virgo'},
+  {symbol:'♎',name:'Libra'},{symbol:'♏',name:'Scorpio'},{symbol:'♐',name:'Sagittarius'},
+  {symbol:'♑',name:'Capricorn'},{symbol:'♒',name:'Aquarius'},{symbol:'♓',name:'Pisces'},
+];
+const R=300, r1=262, r2=228, SYM=(R+r1)/2, NAM=(r1+r2)/2;
+const g = document.getElementById('zodiac-g');
+const ns = 'http://www.w3.org/2000/svg';
+
+const tickRing = document.createElementNS(ns,'circle');
+tickRing.setAttribute('r', R+17); tickRing.setAttribute('fill','none');
+tickRing.setAttribute('stroke','rgba(251,191,36,0.15)'); tickRing.setAttribute('stroke-width','1');
+g.appendChild(tickRing);
+
+for(let i=0;i<72;i++){
+  const a=i*5*Math.PI/180, major=i%6===0;
+  const l = document.createElementNS(ns,'line');
+  l.setAttribute('x1', Math.cos(a)*(major?R+2:R+6)); l.setAttribute('y1', Math.sin(a)*(major?R+2:R+6));
+  l.setAttribute('x2', Math.cos(a)*(R+16));           l.setAttribute('y2', Math.sin(a)*(R+16));
+  l.setAttribute('stroke', major?'rgba(251,191,36,0.6)':'rgba(180,160,255,0.22)');
+  l.setAttribute('stroke-width', major?'1.3':'0.5');
+  g.appendChild(l);
+}
+
+const outerRing = document.createElementNS(ns,'circle');
+outerRing.setAttribute('r',R); outerRing.setAttribute('fill','none');
+outerRing.setAttribute('stroke','rgba(180,160,255,0.32)'); outerRing.setAttribute('stroke-width','0.8');
+g.appendChild(outerRing);
+
+ZODIAC.forEach((z,i)=>{
+  const a0=(i*30-90)*Math.PI/180, a1=((i+1)*30-90)*Math.PI/180, am=((i+0.5)*30-90)*Math.PI/180;
+  const [c0,s0]=[Math.cos(a0),Math.sin(a0)],[c1,s1]=[Math.cos(a1),Math.sin(a1)],[cm,sm]=[Math.cos(am),Math.sin(am)];
+  const deg=(i+0.5)*30-90, sx=cm*SYM, sy=sm*SYM, nx=cm*NAM, ny=sm*NAM;
+
+  const outer=`M${c0*r1} ${s0*r1} L${c0*R} ${s0*R} A${R} ${R} 0 0 1 ${c1*R} ${s1*R} L${c1*r1} ${s1*r1} A${r1} ${r1} 0 0 0 ${c0*r1} ${s0*r1}Z`;
+  const inner=`M${c0*r2} ${s0*r2} L${c0*r1} ${s0*r1} A${r1} ${r1} 0 0 1 ${c1*r1} ${s1*r1} L${c1*r2} ${s1*r2} A${r2} ${r2} 0 0 0 ${c0*r2} ${s0*r2}Z`;
+
+  [['path',outer,i%2===0?'rgba(255,255,255,0.025)':'rgba(140,100,255,0.05)','rgba(180,160,255,0.22)','0.8'],
+   ['path',inner,i%2===0?'rgba(10,5,28,0.78)':'rgba(18,9,40,0.78)','rgba(180,160,255,0.15)','0.5']
+  ].forEach(([tag,d,fill,stroke,sw])=>{
+    const p=document.createElementNS(ns,tag); p.setAttribute('d',d);
+    p.setAttribute('fill',fill); p.setAttribute('stroke',stroke); p.setAttribute('stroke-width',sw);
+    g.appendChild(p);
+  });
+
+  const sym=document.createElementNS(ns,'text');
+  sym.setAttribute('x',sx); sym.setAttribute('y',sy);
+  sym.setAttribute('text-anchor','middle'); sym.setAttribute('dominant-baseline','central');
+  sym.setAttribute('font-size','22'); sym.setAttribute('fill','rgba(255,255,255,0.4)');
+  sym.setAttribute('transform',`rotate(${deg},${sx},${sy})`);
+  sym.textContent=z.symbol; g.appendChild(sym);
+
+  const nam=document.createElementNS(ns,'text');
+  nam.setAttribute('x',nx); nam.setAttribute('y',ny);
+  nam.setAttribute('text-anchor','middle'); nam.setAttribute('dominant-baseline','central');
+  nam.setAttribute('font-size','7'); nam.setAttribute('fill','rgba(255,255,255,0.4)');
+  nam.setAttribute('letter-spacing','0.1em');
+  nam.setAttribute('transform',`rotate(${deg+90},${nx},${ny})`);
+  nam.textContent=z.name.toUpperCase(); g.appendChild(nam);
+});
+
+[[r2,'rgba(180,160,255,0.35)','1.2'],[r2-10,'rgba(251,191,36,0.22)','0.7'],[r2-22,'rgba(180,160,255,0.12)','0.4']].forEach(([r,stroke,sw])=>{
+  const c=document.createElementNS(ns,'circle');
+  c.setAttribute('r',r); c.setAttribute('fill','none');
+  c.setAttribute('stroke',stroke); c.setAttribute('stroke-width',sw);
+  g.appendChild(c);
+});
+
+// ── Star canvas ───────────────────────────────────────────────────────────────
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d');
+let t=0, stars=[], meteors=[], nextMeteor=0;
+let rafId=null, paused=false;
+let milkyWay=null; // created once per resize, not every frame
+
+function buildStars(){
+  const angle = Math.random() * Math.PI * 2;
+  stars = Array.from({length:260},()=>{
+    const a = angle + (Math.random()-0.5)*0.8;
+    const spd = 0.08 + Math.random()*0.18;
+    return {
+      x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+      r:Math.random()*1.3+0.2, baseOp:Math.random()*0.5+0.1,
+      sp:Math.random()*0.6+0.2, ph:Math.random()*Math.PI*2,
+      warm:Math.random()<0.15,
+      vx:Math.cos(a)*spd, vy:Math.sin(a)*spd,
+    };
+  });
+  milkyWay = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+  milkyWay.addColorStop(0,'rgba(80,60,140,0)'); milkyWay.addColorStop(0.4,'rgba(80,60,140,0.05)');
+  milkyWay.addColorStop(0.5,'rgba(100,80,160,0.08)'); milkyWay.addColorStop(0.6,'rgba(80,60,140,0.05)');
+  milkyWay.addColorStop(1,'rgba(80,60,140,0)');
+}
+
+function resize(){
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  buildStars();
+}
+
+let resizeTimer=null;
+window.addEventListener('resize',()=>{ clearTimeout(resizeTimer); resizeTimer=setTimeout(resize,120); });
+resize();
+
+// pause canvas loop when tab is hidden — saves CPU
+document.addEventListener('visibilitychange',()=>{
+  paused = document.hidden;
+  if(!paused && !rafId) draw();
+});
+
+function spawnMeteor(){
+  const angle=(Math.random()*30+15)*Math.PI/180, speed=Math.random()*9+6;
+  meteors.push({ x:Math.random()*canvas.width*0.75, y:Math.random()*canvas.height*0.45,
+    vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed,
+    len:Math.random()*110+55, life:0, maxLife:Math.random()*35+25 });
+}
+
+function draw(){
+  if(paused){ rafId=null; return; }
+  rafId = requestAnimationFrame(draw);
+  t+=0.008;
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=milkyWay; ctx.fillRect(0,0,W,H);
+
+  for(const s of stars){
+    const burst=Math.sin(t*s.sp*3+s.ph)>0.93?2:1;
+    const op=Math.min(s.baseOp*burst*(0.3+0.7*Math.abs(Math.sin(t*s.sp+s.ph))),0.92);
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r*(burst>1?1.5:1),0,Math.PI*2);
+    ctx.fillStyle=s.warm?`rgba(255,230,180,${op.toFixed(3)})`:`rgba(210,225,255,${op.toFixed(3)})`; ctx.fill();
+    if(burst>1&&s.r>0.8){
+      ctx.strokeStyle=s.warm?`rgba(255,230,180,${op.toFixed(3)})`:`rgba(210,225,255,${op.toFixed(3)})`;
+      ctx.lineWidth=0.4;
+      ctx.beginPath(); ctx.moveTo(s.x-5,s.y); ctx.lineTo(s.x+5,s.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s.x,s.y-5); ctx.lineTo(s.x,s.y+5); ctx.stroke();
+    }
+    s.x+=s.vx; s.y+=s.vy;
+    if(s.x<0) s.x+=W; else if(s.x>W) s.x-=W;
+    if(s.y<0) s.y+=H; else if(s.y>H) s.y-=H;
+  }
+
+  if(t>nextMeteor){ spawnMeteor(); nextMeteor=t+Math.random()*9+4; }
+  for(let i=meteors.length-1;i>=0;i--){
+    const m=meteors[i], p=m.life/m.maxLife;
+    const a=p<0.25?p/0.25:1-(p-0.25)/0.75;
+    const nx=m.vx/Math.hypot(m.vx,m.vy), ny=m.vy/Math.hypot(m.vx,m.vy);
+    const grad=ctx.createLinearGradient(m.x-nx*m.len,m.y-ny*m.len,m.x,m.y);
+    grad.addColorStop(0,'rgba(255,255,255,0)');
+    grad.addColorStop(1,`rgba(255,255,255,${(a*0.85).toFixed(3)})`);
+    ctx.beginPath(); ctx.moveTo(m.x-nx*m.len,m.y-ny*m.len); ctx.lineTo(m.x,m.y);
+    ctx.strokeStyle=grad; ctx.lineWidth=1.4; ctx.stroke();
+    m.x+=m.vx; m.y+=m.vy; m.life++;
+    if(m.life>=m.maxLife) meteors.splice(i,1);
+  }
+}
+draw();
+</script>
+</body>
+</html>

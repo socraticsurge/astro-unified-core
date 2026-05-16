@@ -8,11 +8,14 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
-## [2026-05-16] — Landing page redesign mockup (uxred)
+## [2026-05-16] — Landing page redesign mockup v2 (uxred)
 
 ### Added
-- **`design/landing-mockup/bundle.html`** — Self-contained HTML mockup of the redesigned public landing page. Features: cosmic star-field canvas with shooting meteors, spinning zodiac wheel semi-circle anchored to the left viewport edge, CSS-animated rotating Earth globe using a real equirectangular texture, and a glassy minimal card with natal charts / kundali match / consultations CTAs.
-- **`design/landing-mockup/src/App.tsx`** — React + TypeScript source for the mockup (artifact builder project). Kept as reference for porting the design into `components/LandingPage.tsx`.
+- **`design/landing-mockup/preview.html`** — High-fidelity standalone landing page mockup, ready to port. Design: 3D earth video as centrepiece; spinning zodiac wheel (160s CSS animation); animated star-field canvas with shared drift direction and meteor showers; glass panel (backdrop-filter blur 32px) with diagonal crossfade quote animation (5s hold, 1.2s transition); Cormorant Garamond typography; "Two Orbits" Saturn×Venus brand mark (personal to chart owner's planetary signature); bespoke SVG icon strip for Natal Charts / Kundali Matching / Consultations; Google sign-in CTA with shimmer-on-hover; fully responsive mobile layout. Performance: canvas pauses via visibilitychange, resize debounced 120ms, static gradient built once per resize, RAF and timer IDs stored for React useEffect cleanup on unmount.
+- **`design/landing-mockup/earth.mp4`** — 3D rendered Earth video asset (23 MB). Autoplay muted loop, used as the cinematic centrepiece.
+
+### Changed
+- **`design/landing-mockup/bundle.html`** — Earlier design iteration, kept as reference.
 
 ---
 
