@@ -75,7 +75,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
             placeholder="Search profiles..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm"
+            className="w-full pl-9 pr-4 py-2.5 sm:py-2 bg-zinc-900 border border-zinc-700 rounded-md text-base sm:text-sm touch-manipulation"
           />
         </div>
       </div>
