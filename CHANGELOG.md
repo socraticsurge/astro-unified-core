@@ -8,6 +8,17 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Dark cosmic app shell
+
+### Added
+- **`components/AppStarCanvas.tsx`** — Fixed canvas with 70 slow-drifting stars (upward drift 0.04–0.13 px/frame, subtle twinkle via sin oscillation). Pauses on tab hide. Pointer-events none, z-index 0. Does not interfere with charts or text.
+- **`components/AppShell.tsx`** — Renders `AppStarCanvas` + a CSS nebula radial-gradient accent (violet top-right, blue bottom-left) as fixed backdrop on all inner app pages. All app content elevated to z-index 1.
+
+### Changed
+- **`app/globals.css`** — Dark mode CSS variables updated to cosmic palette: `--background` → deep navy `oklch(0.07 0.022 275)`, `--card` → slightly elevated `oklch(0.14 0.016 275)`, `--muted` tinted to match. The NavBar glass now blurs against the same deep-space background as the landing page.
+
+---
+
 ## [2026-05-17] — NavBar typography upgrade
 
 ### Changed
