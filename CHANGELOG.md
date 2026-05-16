@@ -8,6 +8,14 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-16] — Landing page redesign mockup (uxred)
+
+### Added
+- **`design/landing-mockup/bundle.html`** — Self-contained HTML mockup of the redesigned public landing page. Features: cosmic star-field canvas with shooting meteors, spinning zodiac wheel semi-circle anchored to the left viewport edge, CSS-animated rotating Earth globe using a real equirectangular texture, and a glassy minimal card with natal charts / kundali match / consultations CTAs.
+- **`design/landing-mockup/src/App.tsx`** — React + TypeScript source for the mockup (artifact builder project). Kept as reference for porting the design into `components/LandingPage.tsx`.
+
+---
+
 ## [2026-05-14] — Fix Muhurtha event type mismatch
 
 ### Fixed
