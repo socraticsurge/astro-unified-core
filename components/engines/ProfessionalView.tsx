@@ -98,15 +98,15 @@ export function ProfessionalView({
   };
 
   return (
-    <div>
+    <div className="min-w-0">
       {/* ─── Top-level Tab Navigation ─── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 border-b border-[var(--color-border)]">
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+      <div className="flex items-end justify-between gap-4 mb-6 border-b border-[var(--color-border)]">
+        <div className="overflow-x-auto scrollbar-none scroll-smooth flex gap-1 pb-1 -mb-px">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+              className={`shrink-0 px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === tab.key
                   ? "border-violet-400 text-[var(--color-ink-2)]"
                   : "border-transparent text-muted-foreground hover:text-foreground hover:border-[var(--color-border)]"
