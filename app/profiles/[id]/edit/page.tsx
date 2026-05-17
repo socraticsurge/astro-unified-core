@@ -3,8 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ProfileForm } from "@/components/ProfileForm";
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -27,21 +26,12 @@ export default async function EditProfilePage({
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          href={`/profiles/${id}`}
-          className="p-2 -ml-2 rounded-full hover:bg-[var(--color-surface-hover)] transition-colors"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-heading font-medium tracking-tight">Edit Profile</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Editing details for {profile.name}. Note: changing birth data will regenerate the chart.
-          </p>
-        </div>
-      </div>
-      
+      <PageHeader
+        back={`/profiles/${id}`}
+        title="Edit Profile"
+        subtitle={profile.name}
+      />
+
       <ProfileForm initialData={profile} />
     </div>
   );

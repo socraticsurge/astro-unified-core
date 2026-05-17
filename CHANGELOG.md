@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Shared PageHeader component; consistent back navigation across all sub-pages
+
+### Added
+- `components/PageHeader.tsx` — shared page header with optional `back` chevron-left button, `title`, `subtitle`, and `actions` slot. Eliminates ad-hoc per-page header patterns.
+
+### Changed
+- `app/profiles/[id]/ProfileDetailClient.tsx` — added `PageHeader` (back="/dashboard", title=profile.name, subtitle=relationship) as the first element; removed the duplicate `h1` and pencil-edit `Link` from inside the glass card.
+- `app/compatibility/[id]/CompatibilityDetailClient.tsx` — replaced the inline `ArrowLeft` back link with `PageHeader` (back="/compatibility", title="Groom × Bride", subtitle="Compatibility reading").
+- `app/consultation/page.tsx` — replaced the `<h1 style={textStyles.pageTitle}>` block with `PageHeader` (back="/dashboard").
+- `app/profiles/new/page.tsx` — replaced the ad-hoc flex-row ChevronLeft+h1 with `PageHeader` (back="/dashboard", title="New Birth Profile").
+- `app/profiles/[id]/edit/page.tsx` — replaced the ad-hoc flex-row ChevronLeft+h1+subtitle with `PageHeader` (back="/profiles/:id", title="Edit Profile", subtitle=profile.name).
+
+---
+
 ## [2026-05-17] — Spacing tokens, responsive type scale, mobile token overrides
 
 ### Added

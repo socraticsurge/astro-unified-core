@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ConsultationForm } from "./ConsultationForm";
-import { textStyles } from "@/lib/typography";
 import { NAV_CONFIG } from "@/lib/nav";
+import { PageHeader } from "@/components/PageHeader";
 
 const { pageTitle } = NAV_CONFIG.find(n => n.href === "/consultation")!;
 
@@ -31,9 +31,7 @@ export default async function ConsultationPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 style={textStyles.pageTitle}>{pageTitle}</h1>
-      </div>
+      <PageHeader back="/dashboard" title={pageTitle} />
       <ConsultationForm
         allRequests={allRequests}
         profiles={profiles}

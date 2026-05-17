@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, CheckCircle2, XCircle, MinusCircle, MessageSquare, ChevronDown, LayoutDashboard, User, MessageCircle } from "lucide-react";
+import { CheckCircle2, XCircle, MinusCircle, MessageSquare, ChevronDown, LayoutDashboard, User, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
 import type { CompatResult, AdditionalKuta } from "@/lib/compatibility";
@@ -12,6 +12,7 @@ import { CompatibilityChat } from "@/components/engines/CompatibilityChat";
 import { fonts, textStyles, colors, clamp, glass, radii, motion } from "@/lib/typography";
 import { scoreColor, scoreLabel } from "@/lib/compatibility";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
+import { PageHeader } from "@/components/PageHeader";
 
 function initials(name: string) {
   return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -103,11 +104,11 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
   return (
     <div className="max-w-2xl mx-auto px-4 space-y-6 pb-8">
 
-      {/* Back */}
-      <Link href="/compatibility" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        <ArrowLeft className="h-4 w-4" />
-        <span style={fonts.display}>All readings</span>
-      </Link>
+      <PageHeader
+        back="/compatibility"
+        title={`${groomName} × ${brideName}`}
+        subtitle="Compatibility reading"
+      />
 
       {/* Hero card */}
       <div style={{ ...glass, borderRadius: radii.lg, padding: "28px 20px", boxShadow: "0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)" }}>

@@ -7,7 +7,7 @@ import { ProfessionalView } from "@/components/engines/ProfessionalView";
 import { Button } from "@/components/ui/button";
 import {
   RefreshCw, AlertCircle, Code, Copy, Check, Info,
-  LayoutDashboard, User, MessageCircle, Pencil,
+  LayoutDashboard, User, MessageCircle,
 } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { textStyles } from "@/lib/typography";
@@ -19,6 +19,7 @@ import {
   BirthDetails,
   CurrentLocationDetails,
 } from "@/components/profile-ui";
+import { PageHeader } from "@/components/PageHeader";
 
 type SectionExplainer = {
   title: string;
@@ -174,6 +175,12 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
+      <PageHeader
+        back="/dashboard"
+        title={profile.name}
+        subtitle={profile.relationship ?? undefined}
+      />
+
       {/* Current location nudge — amber/informational, not red/alarming */}
       {!profile.current_location && (
         <div className="mb-6 flex items-center justify-between gap-4 p-3 rounded-lg bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-sm">
@@ -199,14 +206,6 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
         {/* Identity + Birth Data */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2 min-w-0">
-              <h1 style={textStyles.pageTitle}>{profile.name}</h1>
-              <Link href={`/profiles/${profile.id}/edit`} title="Edit profile">
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0">
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </div>
             <ProfileBadges
               relationship={profile.relationship}
               gender={profile.gender}
