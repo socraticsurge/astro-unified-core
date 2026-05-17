@@ -8,6 +8,21 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Consultation page full tonal pass; strip emoji, elevate copy and delivery cards
+
+### Changed
+- **`app/consultation/page.tsx`** — h1 changed from "Get Consultation" to "Seek Counsel". Subtitle rewritten to be evocative rather than instructional.
+- **`app/consultation/ConsultationForm.tsx`**:
+  - Step labels ("Whose chart is this about?" etc.) replaced with Cormorant italic phrasing ("Whose chart is this reading for?", "What would you like to understand?", "How would you like it answered?")
+  - `DeliveryCard` component: `emoji` prop and usage removed entirely. Card now uses pure Cormorant typography — title + price + description. Selected state uses amber glow border consistent with the rest of the app.
+  - Slot time picker buttons: moved from Tailwind `className` to inline style system matching the glass aesthetic.
+  - Submit button: font switched to Cormorant, copy changed from "Submit your question ✦" to "Ask your question ✦", rounded to 16px to match Kundali CTA.
+  - `SlotActions`: `💬` emoji removed from Reschedule/Cancel WhatsApp links. Buttons restyled to inline glass aesthetic.
+  - `PaymentInstructions`: `💬` emoji removed from WhatsApp confirmation link. Link restyled to match tonal contract.
+  - Unused lucide imports (`ChevronRight`, `AlertCircle`) removed.
+
+---
+
 ## [2026-05-17] — Portrait seat cards for Kundali Matching + Consultation; remove emoji throughout
 
 ### Changed

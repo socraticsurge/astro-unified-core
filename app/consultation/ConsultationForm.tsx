@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock, ChevronRight, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown } from "lucide-react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -119,8 +119,8 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
 
         {/* Step 1: Profiles */}
         <div className="space-y-4 mb-6">
-          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
-            Whose chart is this about?
+          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+            Whose chart is this reading for?
           </p>
           {profiles.length === 0 ? (
             <Link href="/dashboard" style={{
@@ -241,8 +241,8 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
 
         {/* Step 2: Question */}
         <div className="space-y-2 mb-6">
-          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>
-            Your question
+          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+            What would you like to understand?
           </p>
           <div className="relative">
             <textarea
@@ -261,14 +261,13 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
 
         {/* Step 3: Delivery mode */}
         <div className="space-y-3 mb-6">
-          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>
-            How would you like the answer?
+          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+            How would you like it answered?
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <DeliveryCard
               selected={deliveryMode === "written"}
               onClick={() => { setDeliveryMode("written"); setSelectedSlotId(null); }}
-              emoji="✍️"
               title="Written Response"
               price={formatFee(writtenFeePaise)}
               description="Detailed written answer within a few days"
@@ -277,7 +276,6 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
               <DeliveryCard
                 selected={deliveryMode === "appointment"}
                 onClick={() => setDeliveryMode("appointment")}
-                emoji="🎙️"
                 title="Live Session"
                 price={formatFee(liveFeePaise)}
                 description="25-minute live consultation"
@@ -289,11 +287,20 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
         {/* Slot picker */}
         {liveConsultationEnabled && deliveryMode === "appointment" && (
           <div className="space-y-3 mb-6">
-            <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>
+            <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
               Choose a time (IST)
             </p>
             {availableSlots.length === 0 ? (
-              <p className="text-sm text-muted-foreground border border-white/10 rounded-xl px-4 py-3 bg-white/[0.03]">
+              <p style={{
+                ...cormorant,
+                fontSize: "0.92rem",
+                color: "rgba(255,255,255,0.35)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "14px",
+                padding: "14px 18px",
+                background: "rgba(255,255,255,0.025)",
+                fontStyle: "italic",
+              }}>
                 No slots available right now — reach out to Kalyani on WhatsApp to arrange a time.
               </p>
             ) : (
@@ -303,13 +310,25 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
                     timeZone: "Asia/Kolkata", weekday: "short", day: "numeric",
                     month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
                   });
+                  const isSelected = selectedSlotId === slot.id;
                   return (
-                    <button key={slot.id} onClick={() => setSelectedSlotId(slot.id)}
-                      className={`text-left px-4 py-3 rounded-xl border text-sm transition-colors ${
-                        selectedSlotId === slot.id
-                          ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
-                          : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10"
-                      }`}>
+                    <button
+                      key={slot.id}
+                      onClick={() => setSelectedSlotId(slot.id)}
+                      style={{
+                        textAlign: "left",
+                        padding: "12px 18px",
+                        borderRadius: "14px",
+                        border: `1px solid ${isSelected ? "rgba(251,191,36,0.45)" : "rgba(255,255,255,0.09)"}`,
+                        background: isSelected ? "rgba(251,191,36,0.07)" : "rgba(255,255,255,0.03)",
+                        color: isSelected ? "rgba(253,230,138,0.9)" : "rgba(255,255,255,0.6)",
+                        transition: "all 0.15s ease",
+                        fontFamily: "var(--font-cormorant), Georgia, serif",
+                        fontWeight: 300,
+                        fontSize: "1rem",
+                        cursor: "pointer",
+                      }}
+                    >
                       {label} IST
                     </button>
                   );
@@ -330,24 +349,25 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
           disabled={!canSubmit || submitting}
           style={{
             width: "100%",
-            padding: "13px 0",
-            borderRadius: "14px",
+            padding: "14px 0",
+            borderRadius: "16px",
             border: "none",
             cursor: canSubmit && !submitting ? "pointer" : "not-allowed",
             background: canSubmit && !submitting
               ? "linear-gradient(105deg, #92400e 0%, #d97706 35%, #fcd34d 50%, #d97706 65%, #92400e 100%)"
               : "rgba(255,255,255,0.06)",
             backgroundSize: "200% auto",
-            color: canSubmit && !submitting ? "#3b1a00" : "rgba(255,255,255,0.3)",
+            color: canSubmit && !submitting ? "#3b1a00" : "rgba(255,255,255,0.22)",
+            fontFamily: "var(--font-cormorant), Georgia, serif",
             fontWeight: 600,
-            fontSize: "1rem",
-            letterSpacing: "0.02em",
-            boxShadow: canSubmit && !submitting ? "0 4px 20px rgba(217,119,6,0.35)" : "none",
+            fontSize: "1.1rem",
+            letterSpacing: "0.04em",
+            boxShadow: canSubmit && !submitting ? "0 4px 24px rgba(217,119,6,0.32)" : "none",
             transition: "opacity 0.2s ease",
             opacity: submitting ? 0.7 : 1,
           }}
         >
-          {submitting ? "Submitting…" : "Submit your question  ✦"}
+          {submitting ? "Sending…" : "Ask your question  ✦"}
         </button>
       </div>
 
@@ -467,16 +487,39 @@ function SlotActions({ pending }: { pending: ConsultationRequest }) {
   const cancelMsg = encodeURIComponent(`Hi Kalyani 🙏\n\nI need to cancel my live consultation.\n\nRef: #${ref}\nSlot: ${slotLabel}\n\nPlease process the cancellation and let me know next steps.`);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
-      <p className="text-xs text-muted-foreground">Need to change your slot? Reach out to Kalyani on WhatsApp:</p>
-      <div className="flex flex-wrap gap-2">
+    <div style={{
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: "14px",
+      background: "rgba(255,255,255,0.025)",
+      padding: "14px 16px",
+    }}>
+      <p style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.32)", marginBottom: "10px" }}>Need to change your slot? Reach out to Kalyani on WhatsApp:</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${rescheduleMsg}`} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-lg transition-colors">
-          💬 Reschedule
+          style={{
+            fontSize: "0.78rem",
+            color: "rgba(253,230,138,0.8)",
+            border: "1px solid rgba(251,191,36,0.25)",
+            borderRadius: "10px",
+            padding: "6px 14px",
+            textDecoration: "none",
+            background: "rgba(251,191,36,0.06)",
+            letterSpacing: "0.04em",
+          }}>
+          Reschedule via WhatsApp
         </a>
         <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${cancelMsg}`} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors">
-          💬 Cancel
+          style={{
+            fontSize: "0.78rem",
+            color: "rgba(255,255,255,0.38)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "10px",
+            padding: "6px 14px",
+            textDecoration: "none",
+            background: "rgba(255,255,255,0.03)",
+            letterSpacing: "0.04em",
+          }}>
+          Cancel
         </a>
       </div>
     </div>
@@ -545,8 +588,20 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
       <div className="border-t border-white/[0.08] pt-3 space-y-2">
         <p className="text-xs text-muted-foreground">After paying, send your screenshot to Kalyani on WhatsApp so she can confirm.</p>
         <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm bg-green-700/20 hover:bg-green-700/30 border border-green-700/35 text-green-400 px-4 py-2 rounded-xl transition-colors">
-          💬 Send confirmation on WhatsApp
+          style={{
+            display: "inline-block",
+            fontSize: "0.85rem",
+            color: "rgba(110,231,183,0.85)",
+            border: "1px solid rgba(52,211,153,0.25)",
+            borderRadius: "12px",
+            padding: "9px 18px",
+            textDecoration: "none",
+            background: "rgba(4,120,87,0.12)",
+            letterSpacing: "0.03em",
+            fontFamily: "var(--font-cormorant), Georgia, serif",
+            fontWeight: 300,
+          }}>
+          Confirm payment via WhatsApp
         </a>
       </div>
       <p className="text-[10px] text-muted-foreground/35">Ref: #{ref} · {modeLabel}</p>
@@ -687,10 +742,9 @@ function HistorySection({ answered, resolveProfileNames }: {
   );
 }
 
-function DeliveryCard({ selected, onClick, emoji, title, price, description }: {
+function DeliveryCard({ selected, onClick, title, price, description }: {
   selected: boolean;
   onClick: () => void;
-  emoji: string;
   title: string;
   price: string;
   description: string;
@@ -699,24 +753,23 @@ function DeliveryCard({ selected, onClick, emoji, title, price, description }: {
     <button onClick={onClick} style={{
       flex: 1,
       textAlign: "left",
-      borderRadius: "14px",
-      border: selected ? "1px solid rgba(251,191,36,0.5)" : "1px solid rgba(255,255,255,0.09)",
-      background: selected ? "rgba(251,191,36,0.08)" : "rgba(255,255,255,0.03)",
-      padding: "14px 16px",
+      borderRadius: "16px",
+      border: `1px solid ${selected ? "rgba(251,191,36,0.45)" : "rgba(255,255,255,0.08)"}`,
+      background: selected ? "rgba(251,191,36,0.07)" : "rgba(255,255,255,0.03)",
+      padding: "16px 18px",
       transition: "all 0.15s ease",
+      boxShadow: selected ? "0 0 20px rgba(251,191,36,0.08)" : "none",
+      cursor: "pointer",
     }}>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span>{emoji}</span>
-          <span style={{ ...cormorant, fontSize: "1.1rem", color: selected ? "rgba(253,230,138,0.95)" : "rgba(255,255,255,0.75)" }}>
-            {title}
-          </span>
-        </div>
-        <span style={{ fontWeight: 700, color: selected ? "#fbbf24" : "rgba(251,191,36,0.45)", fontSize: "0.9rem" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "5px" }}>
+        <span style={{ ...cormorant, fontSize: "1.1rem", color: selected ? "rgba(253,230,138,0.95)" : "rgba(255,255,255,0.72)" }}>
+          {title}
+        </span>
+        <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 600, fontSize: "1rem", color: selected ? "#fbbf24" : "rgba(251,191,36,0.38)" }}>
           {price}
         </span>
       </div>
-      <div className="text-xs text-muted-foreground">{description}</div>
+      <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.28)", letterSpacing: "0.02em" }}>{description}</div>
     </button>
   );
 }

@@ -28,11 +28,11 @@ export default async function ConsultationPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.2 }}>
-          Get Consultation
+        <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "2.4rem", letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
+          Seek Counsel
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Ask Dr. Chaganti a question and receive a personalised Vedic astrology answer.
+        <p style={{ marginTop: "4px", fontSize: "0.85rem", color: "rgba(255,255,255,0.32)", letterSpacing: "0.04em" }}>
+          Dr. Chaganti answers your question through the lens of Vedic astrology
         </p>
       </div>
       <ConsultationForm
