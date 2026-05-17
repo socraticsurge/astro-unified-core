@@ -3,13 +3,14 @@ import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
-import { fonts } from "@/lib/typography";
+import { fonts, motion } from "@/lib/typography";
 import { NAV_CONFIG } from "@/lib/nav";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
-// ── Bespoke SVG icons (same as landing page feature strip) ─────────────────
+// ── Bespoke SVG icons ──────────────────────────────────────────────────────────
 
 function NatalIcon({ active }: { active: boolean }) {
-  const c = active ? "rgba(251,191,36,1)" : "rgba(255,255,255,0.52)";
+  const c = active ? "var(--color-accent)" : "var(--color-ink-3)";
   return (
     <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <circle cx="14" cy="14" r="12" stroke={c} strokeWidth="0.9"/>
@@ -28,19 +29,19 @@ function NatalIcon({ active }: { active: boolean }) {
 }
 
 function KundaliIcon({ active }: { active: boolean }) {
-  const c    = active ? "rgba(251,191,36,1)" : "rgba(255,255,255,0.52)";
-  const fill = active ? "rgba(251,191,36,0.22)" : "rgba(255,255,255,0.06)";
+  const c    = active ? "var(--color-accent)" : "var(--color-ink-3)";
+  const fill = active ? "var(--color-accent-faint)" : "var(--color-surface-1)";
   return (
     <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="10" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="rgba(255,255,255,0.02)"/>
-      <circle cx="18" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="rgba(255,255,255,0.02)"/>
+      <circle cx="10" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="var(--color-surface-1)"/>
+      <circle cx="18" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="var(--color-surface-1)"/>
       <path d="M14 6.6 C16.5 8.8 16.5 19.2 14 21.4 C11.5 19.2 11.5 8.8 14 6.6Z" fill={fill}/>
     </svg>
   );
 }
 
 function ConsultIcon({ active }: { active: boolean }) {
-  const c = active ? "rgba(251,191,36,1)" : "rgba(255,255,255,0.52)";
+  const c = active ? "var(--color-accent)" : "var(--color-ink-3)";
   return (
     <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <circle cx="14" cy="9" r="4.5" stroke={c} strokeWidth="0.9"/>
@@ -55,17 +56,15 @@ function TwoOrbits({ size = 36 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
       <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)"
-        stroke="rgba(251,191,36,0.82)" strokeWidth="1.4" fill="none"/>
+        stroke="var(--color-accent-dim)" strokeWidth="1.4" fill="none"/>
       <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)"
-        stroke="rgba(251,191,36,0.6)" strokeWidth="1.1" fill="none"/>
-      <circle cx="13.5" cy="16" r="1.5" fill="rgba(251,191,36,0.8)"/>
-      <circle cx="34.5" cy="32" r="1.5" fill="rgba(251,191,36,0.8)"/>
-      <circle cx="24"   cy="24" r="2.6" fill="rgba(251,191,36,1)"/>
+        stroke="var(--color-accent-faint)" strokeWidth="1.1" fill="none"/>
+      <circle cx="13.5" cy="16" r="1.5" fill="var(--color-accent-dim)"/>
+      <circle cx="34.5" cy="32" r="1.5" fill="var(--color-accent-dim)"/>
+      <circle cx="24"   cy="24" r="2.6" fill="var(--color-accent)"/>
     </svg>
   );
 }
-
-// ── Icon map — keeps icons co-located with their nav entry ──────────────────
 
 type IconComponent = ({ active }: { active: boolean }) => React.ReactElement;
 
@@ -75,13 +74,11 @@ const NAV_ICONS: Record<string, IconComponent> = {
   "/consultation":  ConsultIcon,
 };
 
-// ── Shared styles ────────────────────────────────────────────────────────────
-
-const glassStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.055)",
-  backdropFilter: "blur(32px) saturate(1.8) brightness(1.04)",
-  WebkitBackdropFilter: "blur(32px) saturate(1.8) brightness(1.04)",
-  boxShadow: "inset 0 1.5px 0 rgba(255,255,255,0.13), inset 0 -1px 0 rgba(255,255,255,0.03)",
+const navGlassStyle: React.CSSProperties = {
+  background:           "var(--surface-blend)",
+  backdropFilter:       "var(--backdrop-blur)",
+  WebkitBackdropFilter: "var(--backdrop-blur)",
+  boxShadow:            "inset 0 1.5px 0 var(--color-border-subtle), inset 0 -1px 0 var(--color-border-subtle)",
 };
 
 const wordmarkStyle: React.CSSProperties = {
@@ -93,13 +90,8 @@ const wordmarkStyle: React.CSSProperties = {
 
 const goldStyle: React.CSSProperties = {
   fontStyle: "italic",
-  background: "linear-gradient(135deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%)",
-  WebkitBackgroundClip: "text",
-  WebkitTextFillColor: "transparent",
-  backgroundClip: "text",
+  color: "var(--color-accent)",
 };
-
-// ── Component ────────────────────────────────────────────────────────────────
 
 export function NavBar() {
   const { data: session, status } = useSession();
@@ -116,12 +108,11 @@ export function NavBar() {
     <>
       {/* ── Desktop top nav ── */}
       <nav
-        className="hidden sm:flex sticky top-0 z-40 border-b border-white/[0.11] items-center"
-        style={glassStyle}
+        className="hidden sm:flex sticky top-0 z-40 border-b border-[var(--color-border)] items-center"
+        style={{ ...navGlassStyle, transition: `background ${motion.standard}` }}
       >
         <div className="max-w-7xl w-full mx-auto px-6 py-4 flex items-center justify-between gap-6">
 
-          {/* Logo — goes to dashboard when logged in, landing when not */}
           <Link
             href={isLoggedIn ? "/dashboard" : "/"}
             className="flex items-center gap-3 shrink-0"
@@ -129,12 +120,11 @@ export function NavBar() {
           >
             <TwoOrbits size={40} />
             <span style={wordmarkStyle}>
-              <span className="text-white/88">Astro </span>
+              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
               <span style={goldStyle}>Chaganti</span>
             </span>
           </Link>
 
-          {/* Primary nav links */}
           {isLoggedIn && (
             <div className="flex items-center gap-1">
               {NAV_CONFIG.map(({ href, label }) => {
@@ -145,10 +135,10 @@ export function NavBar() {
                     key={href}
                     href={href}
                     className={[
-                      "flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all duration-200 whitespace-nowrap",
+                      "flex items-center gap-2 px-3.5 py-2 rounded-[var(--radius-md)] transition-all whitespace-nowrap",
                       active
-                        ? "bg-[rgba(251,191,36,0.1)] text-amber-400"
-                        : "text-white/50 hover:text-white/90 hover:bg-white/[0.05]",
+                        ? "bg-[var(--color-accent-faint)] text-[var(--color-accent)]"
+                        : "text-[var(--color-ink-3)] hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)]",
                     ].join(" ")}
                     style={{ ...fonts.uiMedium, fontSize: "0.8rem", letterSpacing: "0.02em" }}
                   >
@@ -162,10 +152,10 @@ export function NavBar() {
                 <Link
                   href="/admin"
                   className={[
-                    "flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all",
+                    "flex items-center gap-2 px-3.5 py-2 rounded-[var(--radius-md)] transition-all",
                     isActive("/admin")
-                      ? "bg-[rgba(251,191,36,0.1)] text-amber-400"
-                      : "text-amber-400/50 hover:text-amber-400 hover:bg-white/[0.05]",
+                      ? "bg-[var(--color-accent-faint)] text-[var(--color-accent)]"
+                      : "text-[var(--color-accent-dim)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-hover)]",
                   ].join(" ")}
                   style={{ ...fonts.uiMedium, fontSize: "0.75rem", letterSpacing: "0.02em" }}
                 >
@@ -176,12 +166,12 @@ export function NavBar() {
             </div>
           )}
 
-          {/* Sign in / Sign out */}
-          <div className="flex items-center shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            <ThemeToggle />
             {isLoggedIn ? (
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="px-3 py-1.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-colors"
+                className="px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--color-ink-4)] hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-all"
                 style={{ ...fonts.uiItalic, fontSize: "0.8rem", letterSpacing: "0.02em" }}
               >
                 Sign Out
@@ -189,7 +179,7 @@ export function NavBar() {
             ) : (
               <Link
                 href="/auth/signin"
-                className="px-4 py-1.5 rounded-xl text-sm font-medium border border-amber-400/30 bg-[rgba(251,191,36,0.08)] text-amber-400 hover:bg-[rgba(251,191,36,0.15)] hover:text-amber-300 transition-colors"
+                className="px-4 py-1.5 rounded-[var(--radius-md)] text-sm font-medium border border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)] hover:text-[var(--color-accent-hover)] transition-all"
                 style={fonts.uiMedium}
               >
                 Sign In
@@ -202,13 +192,12 @@ export function NavBar() {
       {/* ── Mobile bottom nav ── */}
       {isLoggedIn && (
         <div
-          className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.11]"
+          className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)]"
           style={{
-            ...glassStyle,
+            ...navGlassStyle,
             paddingBottom: "calc(env(safe-area-inset-bottom) + 0.25rem)",
           }}
         >
-          {/* Primary tabs */}
           <div className="flex items-stretch justify-around px-2 pt-1">
             {NAV_CONFIG.map(({ href, short }) => {
               const Icon = NAV_ICONS[href];
@@ -218,8 +207,10 @@ export function NavBar() {
                   key={href}
                   href={href}
                   className={[
-                    "flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-h-[52px] justify-center",
-                    active ? "text-amber-400" : "text-white/40 hover:text-white/70",
+                    "flex flex-col items-center gap-1 px-4 py-2 rounded-[var(--radius-md)] transition-all min-h-[52px] justify-center",
+                    active
+                      ? "text-[var(--color-accent)]"
+                      : "text-[var(--color-ink-4)] hover:text-[var(--color-ink-2)]",
                   ].join(" ")}
                 >
                   <Icon active={active} />
@@ -234,8 +225,10 @@ export function NavBar() {
               <Link
                 href="/admin"
                 className={[
-                  "flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-h-[52px] justify-center",
-                  isActive("/admin") ? "text-amber-400" : "text-amber-400/40 hover:text-amber-400",
+                  "flex flex-col items-center gap-1 px-4 py-2 rounded-[var(--radius-md)] transition-all min-h-[52px] justify-center",
+                  isActive("/admin")
+                    ? "text-[var(--color-accent)]"
+                    : "text-[var(--color-accent-dim)] hover:text-[var(--color-accent)]",
                 ].join(" ")}
               >
                 <ShieldCheck className="h-5 w-5" />
@@ -244,11 +237,12 @@ export function NavBar() {
             )}
           </div>
 
-          {/* Sign out — utility strip, visually separated from primary tabs */}
-          <div className="flex justify-end px-5 pb-0.5">
+          {/* Utility strip: theme toggle + sign out */}
+          <div className="flex justify-end items-center gap-2 px-4 pb-0.5">
+            <ThemeToggle />
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-white/20 hover:text-white/45 transition-colors"
+              className="text-[var(--color-ink-4)] hover:text-[var(--color-ink-2)] transition-all"
               style={{ ...fonts.ui, fontSize: "0.65rem", letterSpacing: "0.04em" }}
             >
               Sign out
@@ -257,26 +251,29 @@ export function NavBar() {
         </div>
       )}
 
-      {/* Mobile unauthenticated: minimal top bar */}
+      {/* Mobile unauthenticated */}
       {!isLoggedIn && (
         <nav
-          className="sm:hidden sticky top-0 z-40 border-b border-white/[0.11] flex items-center justify-between px-4 py-3"
-          style={glassStyle}
+          className="sm:hidden sticky top-0 z-40 border-b border-[var(--color-border)] flex items-center justify-between px-4 py-3"
+          style={navGlassStyle}
         >
           <Link href="/" className="flex items-center gap-2" aria-label="Home">
             <TwoOrbits size={26} />
             <span style={{ ...wordmarkStyle, fontSize: "1.1rem" }}>
-              <span className="text-white/88">Astro </span>
+              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
               <span style={goldStyle}>Chaganti</span>
             </span>
           </Link>
-          <Link
-            href="/auth/signin"
-            className="px-4 py-1.5 rounded-xl text-sm border border-amber-400/30 bg-[rgba(251,191,36,0.08)] text-amber-400 hover:bg-[rgba(251,191,36,0.15)] transition-colors"
-            style={fonts.uiMedium}
-          >
-            Sign In
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              href="/auth/signin"
+              className="px-4 py-1.5 rounded-[var(--radius-md)] text-sm border border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)] transition-all"
+              style={fonts.uiMedium}
+            >
+              Sign In
+            </Link>
+          </div>
         </nav>
       )}
     </>
