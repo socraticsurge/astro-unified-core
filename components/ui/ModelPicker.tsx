@@ -18,7 +18,7 @@ export function ModelPicker({ value, onChange, disabled }: Props) {
           className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors disabled:opacity-40 ${
             value === key
               ? "bg-violet-700/50 text-violet-200 border border-violet-600/50"
-              : "text-muted-foreground hover:text-white/70 border border-transparent hover:border-white/10"
+              : "text-muted-foreground hover:text-[var(--color-ink-2)] border border-transparent hover:border-[var(--color-border)]"
           }`}
         >
           {m.label}

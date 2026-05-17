@@ -33,7 +33,7 @@ export default async function NewProfilePage() {
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors">
+        <Link href="/dashboard" className="p-2 -ml-2 rounded-full hover:bg-[var(--color-surface-hover)] transition-colors">
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-3xl font-heading font-medium tracking-tight">New Birth Profile</h1>

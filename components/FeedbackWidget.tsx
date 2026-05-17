@@ -57,17 +57,17 @@ export function FeedbackWidget() {
     <div ref={ref} className="fixed bottom-24 sm:bottom-5 right-5 z-50 flex flex-col items-end gap-2">
       {/* Popover */}
       {open && (
-        <div className="w-72 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="w-72 bg-zinc-900 border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
           {submitted ? (
             <div className="p-6 flex flex-col items-center gap-3 text-center">
-              <CheckCircle className="h-10 w-10 text-emerald-400" />
+              <CheckCircle className="h-10 w-10 text-[var(--color-success)]" />
               <p className="font-semibold text-foreground">Thank you!</p>
               <p className="text-xs text-muted-foreground">Your feedback helps us improve.</p>
             </div>
           ) : (
             <>
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-subtle)]">
                 <p className="text-sm font-semibold">Share Feedback</p>
                 <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                   <X className="h-4 w-4" />
@@ -88,7 +88,7 @@ export function FeedbackWidget() {
                         className={`text-3xl p-2 rounded-xl transition-all hover:scale-125 ${
                           rating === r.value
                             ? "bg-amber-900/40 scale-125 ring-2 ring-amber-500/50"
-                            : "hover:bg-white/5"
+                            : "hover:bg-[var(--color-surface-hover)]"
                         }`}
                       >
                         {r.value}
@@ -106,7 +106,7 @@ export function FeedbackWidget() {
                     maxLength={500}
                     rows={3}
                     placeholder="Your thoughts..."
-                    className="w-full px-3 py-2 text-sm bg-zinc-800 border border-white/10 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-muted-foreground/50"
+                    className="w-full px-3 py-2 text-sm bg-zinc-800 border border-[var(--color-border)] rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-muted-foreground/50"
                   />
                 </div>
 
@@ -130,7 +130,7 @@ export function FeedbackWidget() {
         className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium shadow-lg transition-all hover:scale-105 ${
           open
             ? "bg-zinc-700 text-foreground"
-            : "bg-zinc-800/90 text-muted-foreground hover:text-foreground border border-white/10"
+            : "bg-zinc-800/90 text-muted-foreground hover:text-foreground border border-[var(--color-border)]"
         }`}
       >
         <MessageSquare className="h-3.5 w-3.5" />

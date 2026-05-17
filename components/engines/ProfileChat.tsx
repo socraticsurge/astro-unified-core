@@ -65,18 +65,18 @@ export function ProfileChat({ profileId }: Props) {
   };
 
   return (
-    <div className="flex flex-col rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ height: "620px" }}>
+    <div className="flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] overflow-hidden" style={{ height: "620px" }}>
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-white/5">
+      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-[var(--color-border-subtle)]">
         <ModelPicker value={model} onChange={setModel} disabled={loading} />
 
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-white/20">chart-grounded · in-memory</span>
+          <span className="text-[10px] text-[var(--color-ink-4)]">chart-grounded · in-memory</span>
           {messages.length > 0 && (
             <button
               onClick={clearChat}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-white/60 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-[var(--color-ink-2)] transition-colors"
             >
               <Trash2 className="h-3 w-3" />
               Clear
@@ -98,17 +98,17 @@ export function ProfileChat({ profileId }: Props) {
             <div className={`max-w-[85%] rounded-lg px-3 py-2.5 text-sm leading-relaxed ${
               m.role === "user"
                 ? "bg-violet-800/40 text-white"
-                : "bg-white/[0.05] border border-white/10 text-foreground/90"
+                : "bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-foreground/90"
             }`}>
               <MessageContent content={m.content} />
               {m.role === "assistant" && (
                 <div className="flex justify-end mt-1.5">
                   <button
                     onClick={() => copyMessage(i, m.content)}
-                    className="flex items-center gap-1 text-[10px] text-white/25 hover:text-white/50 transition-colors"
+                    className="flex items-center gap-1 text-[10px] text-[var(--color-ink-4)] hover:text-[var(--color-ink-3)] transition-colors"
                     title="Copy response"
                   >
-                    {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                    {copiedIdx === i ? <Check className="h-3 w-3 text-[var(--color-success)]" /> : <Copy className="h-3 w-3" />}
                   </button>
                 </div>
               )}
@@ -118,21 +118,21 @@ export function ProfileChat({ profileId }: Props) {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white/[0.05] border border-white/10 rounded-lg px-3 py-2.5">
+            <div className="bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-lg px-3 py-2.5">
               <RefreshCw className="h-3.5 w-3.5 animate-spin text-violet-400" />
             </div>
           </div>
         )}
 
         {error && (
-          <p className="text-xs text-red-400 text-center py-1">{error}</p>
+          <p className="text-xs text-[var(--color-danger)] text-center py-1">{error}</p>
         )}
 
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
-      <div className="border-t border-white/10 p-3 flex gap-2 items-end">
+      <div className="border-t border-[var(--color-border)] p-3 flex gap-2 items-end">
         <textarea
           rows={2}
           value={input}
@@ -140,7 +140,7 @@ export function ProfileChat({ profileId }: Props) {
           onKeyDown={handleKeyDown}
           placeholder="Ask about this chart… (Enter to send, Shift+Enter for new line)"
           disabled={loading}
-          className="flex-1 bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50 resize-none"
+          className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50 resize-none"
         />
         <Button
           onClick={send}
@@ -175,7 +175,7 @@ function MessageContent({ content }: { content: string }) {
         }
         if (para.trim().match(/^#{1,3}\s/)) {
           return (
-            <p key={i} className="text-sm font-semibold text-white/90">
+            <p key={i} className="text-sm font-semibold text-[var(--color-ink-1)]">
               {para.replace(/^#{1,3}\s*/, "")}
             </p>
           );
@@ -196,9 +196,9 @@ function InlineText({ text }: { text: string }) {
     <>
       {parts.map((part, i) => {
         if (part.startsWith("**") && part.endsWith("**"))
-          return <strong key={i} className="font-semibold text-white/90">{part.slice(2, -2)}</strong>;
+          return <strong key={i} className="font-semibold text-[var(--color-ink-1)]">{part.slice(2, -2)}</strong>;
         if (part.startsWith("`") && part.endsWith("`"))
-          return <code key={i} className="font-mono text-xs bg-white/10 px-1 rounded text-violet-300">{part.slice(1, -1)}</code>;
+          return <code key={i} className="font-mono text-xs bg-[var(--color-border)] px-1 rounded text-[var(--color-ink-2)]">{part.slice(1, -1)}</code>;
         return <span key={i}>{part}</span>;
       })}
     </>

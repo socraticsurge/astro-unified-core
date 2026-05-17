@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Theme tokens: migrate admin, feedback, and engine files (phase 5)
+
+### Changed
+- **`app/admin/AdminTables.tsx`** — migrated all hardcoded Tailwind color values to CSS custom property tokens: table borders/backgrounds (`--color-border`, `--color-surface-1`, `--color-surface-hover`), text colors (`--color-ink-2`, `--color-accent`, `--color-success`, `--color-danger`), slot list items, draft panel surface, and toggle component.
+- **`components/FeedbackWidget.tsx`** — migrated `border-white/10`, `border-white/5`, `hover:bg-white/5`, and `text-emerald-400` to theme tokens.
+- **`components/admin/LlmSettingsPanel.tsx`** — migrated all `border-white/10`, `bg-white/5` (inputs and panel backgrounds), and error `text-red-400` to theme tokens.
+- **`components/ui/ModelPicker.tsx`** — migrated `hover:text-white/70` and `hover:border-white/10` to `--color-ink-2` and `--color-border`.
+- **`components/engines/ProfileChat.tsx`** — migrated all surface, border, text contrast, copy-button, and inline code chip colors to theme tokens. Left violet accent colors (`text-violet-400`) as-is (not in migration table).
+- **`components/engines/DashaflowView.tsx`** — migrated `text-amber-300` and `text-amber-400` (non-chart) to `--color-accent`. Left chart data colors and `text-amber-400/60` as-is.
+- **`app/profiles/new/page.tsx`** — migrated `hover:bg-white/10` back-button to `--color-surface-hover`.
+- **`app/profiles/[id]/edit/page.tsx`** — migrated `hover:bg-white/10` back-button to `--color-surface-hover`.
+
+---
+
 ## [2026-05-17] — Theme tokens: migrate compatibility surfaces (phase 4)
 
 ### Changed

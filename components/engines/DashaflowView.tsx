@@ -844,7 +844,7 @@ export function DashaflowView({ output, explainers }: Props) {
                 <div key={i} className="bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] rounded-lg p-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     {g.planet && (
-                      <span className="font-bold text-amber-300">{g.planet}</span>
+                      <span className="font-bold text-[var(--color-accent)]">{g.planet}</span>
                     )}
                     {g.sign && (
                       <span className="text-sm text-muted-foreground">in {g.sign}</span>
@@ -853,7 +853,7 @@ export function DashaflowView({ output, explainers }: Props) {
                       <span className="text-xs text-muted-foreground font-mono">{g.degree.toFixed(2)}°</span>
                     )}
                     {g.nakshatra && (
-                      <span className="text-xs px-1.5 py-0.5 bg-amber-950/60 border border-amber-800/50 text-amber-300 rounded">
+                      <span className="text-xs px-1.5 py-0.5 bg-amber-950/60 border border-amber-800/50 text-[var(--color-accent)] rounded">
                         {g.nakshatra}
                       </span>
                     )}
@@ -1030,7 +1030,7 @@ export function DashaflowView({ output, explainers }: Props) {
         {kaalSarpa ? (
           <div className={`${card} mt-2 border-l-4 ${kaalSarpa.type?.toString().toLowerCase().includes("partial") ? "border-teal-500" : "border-amber-500"}`}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className={`text-sm font-bold uppercase tracking-wider ${kaalSarpa.type?.toString().toLowerCase().includes("partial") ? "text-teal-400" : "text-amber-400"}`}>
+              <h3 className={`text-sm font-bold uppercase tracking-wider ${kaalSarpa.type?.toString().toLowerCase().includes("partial") ? "text-teal-400" : "text-[var(--color-accent)]"}`}>
                 {kaalSarpa.type?.toString() || "Kaal Sarpa Yoga"}
               </h3>
               <span className="text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 text-emerald-400 uppercase font-bold">

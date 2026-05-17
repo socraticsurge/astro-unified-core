@@ -30,7 +30,7 @@ export default async function EditProfilePage({
       <div className="flex items-center gap-4">
         <Link
           href={`/profiles/${id}`}
-          className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors"
+          className="p-2 -ml-2 rounded-full hover:bg-[var(--color-surface-hover)] transition-colors"
         >
           <ChevronLeft className="h-5 w-5" />
         </Link>

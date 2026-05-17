@@ -30,7 +30,7 @@ function NumberInput({
           min={min} max={max} step={step}
           value={value}
           onChange={e => onChange(parseFloat(e.target.value) || min)}
-          className="w-20 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-violet-400/50"
+          className="w-20 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-violet-400/50"
         />
       </div>
     </div>
@@ -116,7 +116,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
       <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">LLM Settings</h2>
 
       {/* AI Insights — Gemini */}
-      <div className="rounded-lg border border-white/10 bg-white/5 p-5 space-y-5">
+      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5 space-y-5">
         <div>
           <p className="text-sm font-medium">AI Insights — Gemini</p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -148,11 +148,11 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
             value={aiConfig.custom_instructions}
             onChange={e => setAiConfig(c => ({ ...c, custom_instructions: e.target.value }))}
             placeholder="e.g. Always give special attention to career and wealth implications. Focus on actionable guidance."
-            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
+            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
           />
         </div>
 
-        {aiError && <p className="text-xs text-red-400">{aiError}</p>}
+        {aiError && <p className="text-xs text-[var(--color-danger)]">{aiError}</p>}
 
         <button
           disabled={aiSaving}
@@ -164,7 +164,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
       </div>
 
       {/* Chat — Groq */}
-      <div className="rounded-lg border border-white/10 bg-white/5 p-5 space-y-5">
+      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5 space-y-5">
         <div>
           <p className="text-sm font-medium">Chat — Groq</p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -203,11 +203,11 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
             value={chatConfig.custom_instructions}
             onChange={e => setChatConfig(c => ({ ...c, custom_instructions: e.target.value }))}
             placeholder="e.g. Always respond in under 200 words. Be direct and avoid hedging."
-            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
+            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
           />
         </div>
 
-        {chatError && <p className="text-xs text-red-400">{chatError}</p>}
+        {chatError && <p className="text-xs text-[var(--color-danger)]">{chatError}</p>}
 
         <button
           disabled={chatSaving}
@@ -219,7 +219,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
       </div>
 
       {/* Draft — Consultation Assistant */}
-      <div className="rounded-lg border border-white/10 bg-white/5 p-5 space-y-5">
+      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5 space-y-5">
         <div>
           <p className="text-sm font-medium">Consultation Draft Assistant</p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -250,11 +250,11 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
             value={draftConfig.custom_instructions}
             onChange={e => setDraftConfig(c => ({ ...c, custom_instructions: e.target.value }))}
             placeholder="e.g. Always end with a timing window for the next 6 months. Keep responses under 350 words."
-            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
+            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
           />
         </div>
 
-        {draftError && <p className="text-xs text-red-400">{draftError}</p>}
+        {draftError && <p className="text-xs text-[var(--color-danger)]">{draftError}</p>}
 
         <button
           disabled={draftSaving}

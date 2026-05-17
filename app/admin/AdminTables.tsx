@@ -267,15 +267,15 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
 
       <TabsContent value="users">
         {/* ... (existing user table) */}
-        <div className="overflow-x-auto rounded-lg border border-white/10">
+        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
           <table className="w-full text-sm">
-            <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-[var(--color-surface-1)] text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("name")}>Name {renderSortIcon("name", userSortCol, userSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("email")}>Email {renderSortIcon("email", userSortCol, userSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("id")}>User ID {renderSortIcon("id", userSortCol, userSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("created_at")}>Created {renderSortIcon("created_at", userSortCol, userSortDir)}</th>
-                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-white/10" onClick={() => toggleUserSort("last_login")}>Last Login {renderSortIcon("last_login", userSortCol, userSortDir)}</th>
+                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleUserSort("name")}>Name {renderSortIcon("name", userSortCol, userSortDir)}</th>
+                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleUserSort("email")}>Email {renderSortIcon("email", userSortCol, userSortDir)}</th>
+                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleUserSort("id")}>User ID {renderSortIcon("id", userSortCol, userSortDir)}</th>
+                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleUserSort("created_at")}>Created {renderSortIcon("created_at", userSortCol, userSortDir)}</th>
+                <th className="px-3 py-2 font-medium cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleUserSort("last_login")}>Last Login {renderSortIcon("last_login", userSortCol, userSortDir)}</th>
                 <th className="px-3 py-2 font-medium text-center whitespace-nowrap">Profiles</th>
                 <th className="px-3 py-2 font-medium text-center whitespace-nowrap">Compat</th>
                 <th className="px-3 py-2 font-medium text-center whitespace-nowrap">Questions</th>
@@ -283,7 +283,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
             </thead>
             <tbody>
               {sortedUsers.map((u) => (
-                <tr key={String(u.id)} className="border-t border-white/10 hover:bg-white/5">
+                <tr key={String(u.id)} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]">
                   <td className="px-3 py-2 font-medium">{String(u.name || "—")}</td>
                   <td className="px-3 py-2 text-muted-foreground">{String(u.email || "—")}</td>
                   <td className="px-3 py-2 text-muted-foreground font-mono text-xs">{String(u.id)}</td>
@@ -309,26 +309,26 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
       </TabsContent>
 
       <TabsContent value="profiles">
-        <div className="overflow-x-auto rounded-lg border border-white/10">
+        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
           <table className="w-full text-sm">
-            <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-[var(--color-surface-1)] text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("name")}>Profile {renderSortIcon("name", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("user_name")}>Owner Name {renderSortIcon("user_name", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("user_email")}>Owner Email {renderSortIcon("user_email", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("relationship")}>Relation {renderSortIcon("relationship", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("gender")}>Gender {renderSortIcon("gender", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("date_of_birth")}>Date of Birth {renderSortIcon("date_of_birth", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("time_of_birth")}>Time of Birth {renderSortIcon("time_of_birth", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("place_of_birth")}>Place {renderSortIcon("place_of_birth", profileSortCol, profileSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleProfileSort("created_at")}>Created {renderSortIcon("created_at", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleProfileSort("name")}>Profile {renderSortIcon("name", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleProfileSort("user_name")}>Owner Name {renderSortIcon("user_name", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleProfileSort("user_email")}>Owner Email {renderSortIcon("user_email", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleProfileSort("relationship")}>Relation {renderSortIcon("relationship", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleProfileSort("gender")}>Gender {renderSortIcon("gender", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleProfileSort("date_of_birth")}>Date of Birth {renderSortIcon("date_of_birth", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleProfileSort("time_of_birth")}>Time of Birth {renderSortIcon("time_of_birth", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleProfileSort("place_of_birth")}>Place {renderSortIcon("place_of_birth", profileSortCol, profileSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleProfileSort("created_at")}>Created {renderSortIcon("created_at", profileSortCol, profileSortDir)}</th>
               </tr>
             </thead>
             <tbody>
               {sortedProfiles.map((p) => (
-                <tr key={p.id} className="border-t border-white/10 hover:bg-white/5">
+                <tr key={p.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]">
                   <td className="px-3 py-2 font-medium whitespace-nowrap">
-                    <Link href={`/profiles/${p.id}`} className="hover:underline text-amber-300">
+                    <Link href={`/profiles/${p.id}`} className="hover:underline text-[var(--color-accent)]">
                       {p.name}
                     </Link>
                   </td>
@@ -371,24 +371,24 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 }
               }
             }}
-            className="text-xs text-red-400 hover:text-red-300 border border-red-900/50 bg-red-950/20 px-3 py-1.5 rounded-md transition-colors"
+            className="text-xs text-[var(--color-danger)] hover:text-red-300 border border-red-900/50 bg-red-950/20 px-3 py-1.5 rounded-md transition-colors"
           >
             Clear History
           </button>
         </div>
-        <div className="overflow-x-auto rounded-lg border border-white/10 bg-white/5">
+        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)]">
           <table className="w-full text-sm text-left">
-            <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-[var(--color-surface-1)] text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("user_email")}>User {renderSortIcon("user_email", compSortCol, compSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("p1_name")}>Male Profile {renderSortIcon("p1_name", compSortCol, compSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("p2_name")}>Female Profile {renderSortIcon("p2_name", compSortCol, compSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("score")}>Score {renderSortIcon("score", compSortCol, compSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleCompSort("created_at")}>Date {renderSortIcon("created_at", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleCompSort("user_email")}>User {renderSortIcon("user_email", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleCompSort("p1_name")}>Male Profile {renderSortIcon("p1_name", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleCompSort("p2_name")}>Female Profile {renderSortIcon("p2_name", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleCompSort("score")}>Score {renderSortIcon("score", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleCompSort("created_at")}>Date {renderSortIcon("created_at", compSortCol, compSortDir)}</th>
                 <th className="px-3 py-2 font-medium text-right">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody className="divide-y divide-[var(--color-border)]">
               {sortedComps.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
@@ -397,12 +397,12 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 </tr>
               ) : (
                 sortedComps.map((check) => (
-                  <tr key={check.id} className="hover:bg-white/5">
+                  <tr key={check.id} className="hover:bg-[var(--color-surface-hover)]">
                     <td className="px-4 py-3 font-medium text-white">{check.user_email || "Unknown User"}</td>
                     <td className="px-4 py-3">{check.p1_name || "Deleted Profile"}</td>
                     <td className="px-4 py-3">{check.p2_name || "Deleted Profile"}</td>
                     <td className="px-4 py-3">
-                      <span className={`font-bold ${check.score >= 18 ? "text-green-400" : "text-amber-400"}`}>
+                      <span className={`font-bold ${check.score >= 18 ? "text-[var(--color-success)]" : "text-[var(--color-accent)]"}`}>
                         {check.score}/36
                       </span>
                     </td>
@@ -419,7 +419,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                         </Link>
                         <details className="relative">
                           <summary className="text-xs text-sky-400 hover:text-sky-300 cursor-pointer list-none">JSON</summary>
-                          <div className="absolute right-0 top-full mt-2 w-96 max-h-96 overflow-y-auto bg-zinc-950 border border-white/10 rounded-lg p-4 z-50 text-[10px] font-mono text-left shadow-2xl">
+                          <div className="absolute right-0 top-full mt-2 w-96 max-h-96 overflow-y-auto bg-zinc-950 border border-[var(--color-border)] rounded-lg p-4 z-50 text-[10px] font-mono text-left shadow-2xl">
                             <pre className="whitespace-pre-wrap text-muted-foreground">{JSON.stringify(JSON.parse(check.result_json), null, 2)}</pre>
                           </div>
                         </details>
@@ -434,9 +434,9 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
       </TabsContent>
 
       <TabsContent value="feedback">
-        <div className="overflow-x-auto rounded-lg border border-white/10">
+        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
           <table className="w-full text-sm">
-            <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-[var(--color-surface-1)] text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium whitespace-nowrap">Rating</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap">User</th>
@@ -447,7 +447,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
             </thead>
             <tbody>
               {feedback.map((f) => (
-                <tr key={String(f.id)} className="border-t border-white/10 hover:bg-white/5">
+                <tr key={String(f.id)} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]">
                   <td className="px-3 py-2 text-2xl">{String(f.rating || "—")}</td>
                   <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{String(f.user_email || "Anonymous")}</td>
                   <td className="px-3 py-2 text-muted-foreground max-w-xs">{String(f.message || "—")}</td>
@@ -467,17 +467,17 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
         </div>
       </TabsContent>
       <TabsContent value="questions">
-        <div className="overflow-x-auto rounded-lg border border-white/10">
+        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
           <table className="w-full text-sm">
-            <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-[var(--color-surface-1)] text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("user_email")}>User {renderSortIcon("user_email", qSortCol, qSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("life_area")}>Life Area {renderSortIcon("life_area", qSortCol, qSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleQSort("user_email")}>User {renderSortIcon("user_email", qSortCol, qSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleQSort("life_area")}>Life Area {renderSortIcon("life_area", qSortCol, qSortDir)}</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap">Profile(s)</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("delivery_mode")}>Mode {renderSortIcon("delivery_mode", qSortCol, qSortDir)}</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("created_at")}>Date {renderSortIcon("created_at", qSortCol, qSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleQSort("delivery_mode")}>Mode {renderSortIcon("delivery_mode", qSortCol, qSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleQSort("created_at")}>Date {renderSortIcon("created_at", qSortCol, qSortDir)}</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap">Ref</th>
-                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-white/10" onClick={() => toggleQSort("status")}>Status {renderSortIcon("status", qSortCol, qSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleQSort("status")}>Status {renderSortIcon("status", qSortCol, qSortDir)}</th>
                 <th className="px-3 py-2 font-medium text-right whitespace-nowrap">Details</th>
               </tr>
             </thead>
@@ -498,7 +498,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                   <>
                     <tr
                       key={req.id}
-                      className={`border-t border-white/10 hover:bg-white/5 ${isDone ? "opacity-60" : ""}`}
+                      className={`border-t border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] ${isDone ? "opacity-60" : ""}`}
                     >
                       <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap text-xs">{req.user_email ?? "—"}</td>
                       <td className="px-3 py-2.5 font-medium whitespace-nowrap">{req.life_area}</td>
@@ -508,7 +508,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                             <Link
                               key={p.id}
                               href={`/profiles/${p.id}`}
-                              className="text-xs text-amber-300/80 hover:text-amber-300 hover:underline whitespace-nowrap"
+                              className="text-xs text-[var(--color-accent)]/80 hover:text-[var(--color-accent)] hover:underline whitespace-nowrap"
                             >
                               {p.name}
                             </Link>
@@ -521,7 +521,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                           <div>
                             <div>Live</div>
                             {req.slot_starts_at && (
-                              <div className="text-[10px] text-amber-300/70 mt-0.5">
+                              <div className="text-[10px] text-[var(--color-accent)]/70 mt-0.5">
                                 {new Date(req.slot_starts_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "short", timeStyle: "short" })} IST
                               </div>
                             )}
@@ -536,11 +536,11 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {isDone && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-900/30 text-green-400">Answered</span>}
+                          {isDone && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-900/30 text-[var(--color-success)]">Answered</span>}
                           {isPaid && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-400">Paid</span>}
-                          {awaitingPayment && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-900/30 text-amber-400">Awaiting Payment</span>}
-                          {req.user_rating === "helpful" && <ThumbsUp className="h-3 w-3 text-green-400" />}
-                          {req.user_rating === "not_helpful" && <ThumbsDown className="h-3 w-3 text-red-400" />}
+                          {awaitingPayment && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-900/30 text-[var(--color-accent)]">Awaiting Payment</span>}
+                          {req.user_rating === "helpful" && <ThumbsUp className="h-3 w-3 text-[var(--color-success)]" />}
+                          {req.user_rating === "not_helpful" && <ThumbsDown className="h-3 w-3 text-[var(--color-danger)]" />}
                         </div>
                       </td>
                       <td className="px-3 py-2.5 text-right">
@@ -553,8 +553,8 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                       </td>
                     </tr>
                     {isExpanded && (
-                      <tr key={`${req.id}-detail`} className="border-t border-white/5">
-                        <td colSpan={8} className="px-4 py-4 bg-white/[0.02]">
+                      <tr key={`${req.id}-detail`} className="border-t border-[var(--color-border-subtle)]">
+                        <td colSpan={8} className="px-4 py-4 bg-[var(--color-surface-1)]">
                           <div className="space-y-3 max-w-2xl">
                             <div>
                               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Question</p>
@@ -563,8 +563,8 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                               </p>
                             </div>
                             {req.delivery_mode === "appointment" && req.slot_starts_at && (
-                              <div className="rounded-md border border-amber-700/30 bg-amber-900/20 px-3 py-2">
-                                <p className="text-xs uppercase tracking-wider text-amber-400 mb-0.5">Selected Slot</p>
+                              <div className="rounded-md border border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] px-3 py-2">
+                                <p className="text-xs uppercase tracking-wider text-[var(--color-accent)] mb-0.5">Selected Slot</p>
                                 <p className="text-xs text-foreground/70">
                                   {new Date(req.slot_starts_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })} IST
                                 </p>
@@ -572,15 +572,15 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                             )}
                             {req.admin_note && (
                               <div className="rounded-md border border-green-700/30 bg-green-900/20 px-3 py-2">
-                                <p className="text-xs uppercase tracking-wider text-green-400 mb-0.5">Your note</p>
+                                <p className="text-xs uppercase tracking-wider text-[var(--color-success)] mb-0.5">Your note</p>
                                 <p className="text-xs text-foreground/70">{req.admin_note}</p>
                               </div>
                             )}
                             {req.user_rating && (
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 {req.user_rating === "helpful"
-                                  ? <ThumbsUp className="h-3 w-3 text-green-400" />
-                                  : <ThumbsDown className="h-3 w-3 text-red-400" />}
+                                  ? <ThumbsUp className="h-3 w-3 text-[var(--color-success)]" />
+                                  : <ThumbsDown className="h-3 w-3 text-[var(--color-danger)]" />}
                                 <span>User feedback: {req.user_rating === "helpful" ? "Helpful" : "Not helpful"}</span>
                                 {req.user_feedback_note && <span>— "{req.user_feedback_note}"</span>}
                               </div>
@@ -598,11 +598,11 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                             {isPaid && (
                               <div className="space-y-3 pt-1">
                                 {/* Draft Assistant */}
-                                <div className="rounded-md border border-violet-700/30 bg-violet-950/10 p-3 space-y-2">
+                                <div className="rounded-md border border-violet-700/30 bg-[var(--color-surface-2)] p-3 space-y-2">
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-1.5">
                                       <Sparkles className="h-3 w-3 text-violet-400" />
-                                      <span className="text-xs font-semibold text-violet-300">Draft Assistant</span>
+                                      <span className="text-xs font-semibold text-[var(--color-ink-2)]">Draft Assistant</span>
                                     </div>
                                     <ModelPicker value={draftModel} onChange={setDraftModel} disabled={draftGenerating === req.id} />
                                   </div>
@@ -613,15 +613,15 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                                   >
                                     {draftGenerating === req.id ? "Generating…" : drafts[req.id] ? "Regenerate Draft" : "Generate Draft"}
                                   </button>
-                                  {draftErrors[req.id] && <p className="text-xs text-red-400">{draftErrors[req.id]}</p>}
+                                  {draftErrors[req.id] && <p className="text-xs text-[var(--color-danger)]">{draftErrors[req.id]}</p>}
                                   {drafts[req.id] && (
                                     <div className="space-y-1.5">
-                                      <div className="rounded border border-white/10 bg-white/5 p-2.5 text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto">
+                                      <div className="rounded border border-[var(--color-border)] bg-[var(--color-surface-1)] p-2.5 text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto">
                                         {drafts[req.id]}
                                       </div>
                                       <button
                                         onClick={() => copyDraft(req.id)}
-                                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white/70 transition-colors"
+                                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[var(--color-ink-2)] transition-colors"
                                       >
                                         <Copy className="h-3 w-3" />
                                         {draftCopied === req.id ? "Copied!" : "Copy to clipboard"}
@@ -635,12 +635,12 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                                   placeholder="Optional: add a written note or answer for the user"
                                   value={adminNotes[req.id] ?? ""}
                                   onChange={e => setAdminNotes(prev => ({ ...prev, [req.id]: e.target.value }))}
-                                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-400/50 resize-none"
+                                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-400/50 resize-none"
                                 />
                                 <button
                                   disabled={markingId === req.id}
                                   onClick={() => markAnswered(req.id)}
-                                  className="flex items-center gap-1.5 text-xs bg-green-700/20 hover:bg-green-700/30 border border-green-700/40 text-green-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                                  className="flex items-center gap-1.5 text-xs bg-green-700/20 hover:bg-green-700/30 border border-green-700/40 text-[var(--color-success)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
                                 >
                                   <CheckCircle2 className="h-3.5 w-3.5" />
                                   {markingId === req.id ? "Saving…" : "Mark as Answered"}
@@ -665,16 +665,16 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
         ) : (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">Thumbs up/down ratings you gave to generated AI insights per tab.</p>
-            <div className="overflow-x-auto rounded-lg border border-white/10">
+            <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
               <table className="w-full text-sm">
-                <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <thead className="bg-[var(--color-surface-1)] text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 font-medium">Tab</th>
                     <th className="px-3 py-2 font-medium text-center">Total</th>
-                    <th className="px-3 py-2 font-medium text-center text-emerald-400">
+                    <th className="px-3 py-2 font-medium text-center text-[var(--color-success)]">
                       <ThumbsUp className="h-3 w-3 inline mr-1" />Up
                     </th>
-                    <th className="px-3 py-2 font-medium text-center text-red-400">
+                    <th className="px-3 py-2 font-medium text-center text-[var(--color-danger)]">
                       <ThumbsDown className="h-3 w-3 inline mr-1" />Down
                     </th>
                     <th className="px-3 py-2 font-medium text-center text-muted-foreground">Unrated</th>
@@ -682,11 +682,11 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 </thead>
                 <tbody>
                   {aiInsightStats.map((s) => (
-                    <tr key={s.engine} className="border-t border-white/10 hover:bg-white/5">
+                    <tr key={s.engine} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]">
                       <td className="px-3 py-2 font-medium capitalize">{s.engine.replace("ai-", "")}</td>
                       <td className="px-3 py-2 text-center tabular-nums">{s.total}</td>
-                      <td className="px-3 py-2 text-center tabular-nums text-emerald-400">{s.thumbs_up}</td>
-                      <td className="px-3 py-2 text-center tabular-nums text-red-400">{s.thumbs_down}</td>
+                      <td className="px-3 py-2 text-center tabular-nums text-[var(--color-success)]">{s.thumbs_up}</td>
+                      <td className="px-3 py-2 text-center tabular-nums text-[var(--color-danger)]">{s.thumbs_down}</td>
                       <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">{s.unrated}</td>
                     </tr>
                   ))}
@@ -710,7 +710,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">App Settings</h2>
 
           {/* Consultation — all settings in one panel */}
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-5">
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-4 space-y-5">
             <p className="text-sm font-medium">Consultation</p>
 
             {/* Availability toggles */}
@@ -731,7 +731,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
               />
             </div>
 
-            <div className="border-t border-white/[0.08]" />
+            <div className="border-t border-[var(--color-border-subtle)]" />
 
             {/* Pricing */}
             <div className="space-y-3">
@@ -744,7 +744,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                     min={0}
                     value={writtenFeeRs}
                     onChange={e => setWrittenFeeRs(parseInt(e.target.value, 10) || 0)}
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                    className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -754,20 +754,20 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                     min={0}
                     value={liveFeeRs}
                     onChange={e => setLiveFeeRs(parseInt(e.target.value, 10) || 0)}
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                    className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
                   />
                 </div>
               </div>
               <button
                 disabled={feeSaving}
                 onClick={saveFees}
-                className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
               >
                 {feeSaving ? "Saving…" : "Save Pricing"}
               </button>
             </div>
 
-            <div className="border-t border-white/[0.08]" />
+            <div className="border-t border-[var(--color-border-subtle)]" />
 
             {/* Slot management */}
             <div className="space-y-3">
@@ -782,13 +782,13 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                   type="datetime-local"
                   value={newSlotInput}
                   onChange={e => setNewSlotInput(e.target.value)}
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
                 />
               </div>
               <button
                 disabled={!newSlotInput || slotAdding}
                 onClick={addSlot}
-                className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-2 rounded-md transition-colors disabled:opacity-50 whitespace-nowrap"
+                className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-2 rounded-md transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 {slotAdding ? "Adding…" : "Add Slot"}
               </button>
@@ -813,24 +813,24 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                   <div
                     key={slot.id}
                     className={`flex items-center justify-between px-3 py-1.5 rounded-md border ${
-                      isPast ? "border-white/5 bg-white/[0.02] opacity-50" : "border-white/10 bg-white/5"
+                      isPast ? "border-[var(--color-border-subtle)] bg-[var(--color-surface-1)] opacity-50" : "border-[var(--color-border)] bg-[var(--color-surface-1)]"
                     }`}
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-xs">{label} IST</span>
                       {slot.is_booked ? (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-900/30 text-green-400">Booked</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-900/30 text-[var(--color-success)]">Booked</span>
                       ) : isPast ? (
                         <span className="text-[10px] text-muted-foreground">Past</span>
                       ) : (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-900/30 text-amber-400">Available</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-900/30 text-[var(--color-accent)]">Available</span>
                       )}
                     </div>
                     {!slot.is_booked && (
                       <button
                         disabled={slotDeletingId === slot.id}
                         onClick={() => deleteSlot(slot.id)}
-                        className="text-[10px] text-red-400/70 hover:text-red-400 transition-colors disabled:opacity-50 ml-3"
+                        className="text-[10px] text-[var(--color-danger)]/70 hover:text-[var(--color-danger)] transition-colors disabled:opacity-50 ml-3"
                       >
                         {slotDeletingId === slot.id ? "…" : "Delete"}
                       </button>
@@ -863,7 +863,7 @@ function Toggle({ label, description, enabled, onToggle, disabled }: {
       <button
         disabled={disabled}
         onClick={onToggle}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${enabled ? "bg-amber-500" : "bg-white/20"}`}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${enabled ? "bg-amber-500" : "bg-[var(--color-surface-hover)]"}`}
       >
         <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
       </button>
