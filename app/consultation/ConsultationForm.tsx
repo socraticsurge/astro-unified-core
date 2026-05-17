@@ -32,6 +32,7 @@ const glassCard: React.CSSProperties = {
 type Props = {
   allRequests: ConsultationRequest[];
   profiles: Profile[];
+  writtenConsultationEnabled: boolean;
   liveConsultationEnabled: boolean;
   writtenFeePaise: number;
   liveFeePaise: number;
@@ -49,11 +50,11 @@ function displayQuestion(req: ConsultationRequest): string {
   return [req.observation, req.constraint_text, req.objective, req.options].filter(Boolean).join(" | ");
 }
 
-export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled, writtenFeePaise, liveFeePaise, availableSlots, userName, userEmail }: Props) {
+export function ConsultationForm({ allRequests, profiles, writtenConsultationEnabled, liveConsultationEnabled, writtenFeePaise, liveFeePaise, availableSlots, userName, userEmail }: Props) {
   const router = useRouter();
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const [question, setQuestion] = useState("");
-  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("written");
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(writtenConsultationEnabled ? "written" : "appointment");
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -264,24 +265,40 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
           <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
             How would you like it answered?
           </p>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <DeliveryCard
-              selected={deliveryMode === "written"}
-              onClick={() => { setDeliveryMode("written"); setSelectedSlotId(null); }}
-              title="Written Response"
-              price={formatFee(writtenFeePaise)}
-              description="Detailed written answer within a few days"
-            />
-            {liveConsultationEnabled && (
-              <DeliveryCard
-                selected={deliveryMode === "appointment"}
-                onClick={() => setDeliveryMode("appointment")}
-                title="Live Session"
-                price={formatFee(liveFeePaise)}
-                description="25-minute live consultation"
-              />
-            )}
-          </div>
+          {!writtenConsultationEnabled && !liveConsultationEnabled ? (
+            <p style={{
+              fontSize: "0.88rem",
+              color: "rgba(255,255,255,0.32)",
+              fontStyle: "italic",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: "14px",
+              padding: "14px 18px",
+              background: "rgba(255,255,255,0.02)",
+            }}>
+              Consultations are not available at this time.
+            </p>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3">
+              {writtenConsultationEnabled && (
+                <DeliveryCard
+                  selected={deliveryMode === "written"}
+                  onClick={() => { setDeliveryMode("written"); setSelectedSlotId(null); }}
+                  title="Written Response"
+                  price={formatFee(writtenFeePaise)}
+                  description="Detailed written answer within a few days"
+                />
+              )}
+              {liveConsultationEnabled && (
+                <DeliveryCard
+                  selected={deliveryMode === "appointment"}
+                  onClick={() => setDeliveryMode("appointment")}
+                  title="Live Session"
+                  price={formatFee(liveFeePaise)}
+                  description="25-minute live consultation"
+                />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Slot picker */}
@@ -344,7 +361,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
           </p>
         )}
 
-        <button
+        {(writtenConsultationEnabled || liveConsultationEnabled) && <button
           onClick={handleSubmit}
           disabled={!canSubmit || submitting}
           style={{
@@ -368,7 +385,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
           }}
         >
           {submitting ? "Sending…" : "Ask your question  ✦"}
-        </button>
+        </button>}
       </div>
 
       {/* ── Open / pending questions ── */}

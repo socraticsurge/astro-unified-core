@@ -31,13 +31,11 @@ export default async function ConsultationPage() {
         <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "2.4rem", letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
           Seek Counsel
         </h1>
-        <p style={{ marginTop: "4px", fontSize: "0.85rem", color: "rgba(255,255,255,0.32)", letterSpacing: "0.04em" }}>
-          Dr. Chaganti answers your question through the lens of Vedic astrology
-        </p>
       </div>
       <ConsultationForm
         allRequests={allRequests}
         profiles={profiles}
+        writtenConsultationEnabled={appSettings.written_consultation_enabled}
         liveConsultationEnabled={appSettings.live_consultation_enabled}
         writtenFeePaise={appSettings.written_fee_paise}
         liveFeePaise={appSettings.live_fee_paise}

@@ -70,8 +70,11 @@ function SeatCard({
   disabled: boolean;
 }) {
   const c = ROLE_COLORS[role];
-  const profile = profiles[idx] ?? null;
   const count = profiles.length;
+  // Virtual total: all real profiles + 1 "new profile" slide at the end
+  const virtualTotal = count + 1;
+  const isNewSlide = idx >= count;
+  const profile = isNewSlide ? null : profiles[idx];
 
   const cardBase: React.CSSProperties = {
     position: "relative",
@@ -88,42 +91,56 @@ function SeatCard({
     transition: "box-shadow 0.3s ease, border-color 0.3s ease",
   };
 
-  if (count === 0) {
-    // Empty state — dashed invitation
+  // Create / new-profile slide
+  if (isNewSlide) {
     return (
       <div style={{
         ...cardBase,
         background: "rgba(255,255,255,0.025)",
         border: `1.5px dashed ${c.accentFaint}`,
       }}>
-        {/* Faint silhouette circle */}
-        <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true" style={{ marginBottom: "14px", opacity: 0.22 }}>
-          <circle cx="28" cy="20" r="11" fill="none" stroke={c.accent} strokeWidth="1.5" />
-          <path d="M8 52 Q8 36 28 36 Q48 36 48 52" fill="none" stroke={c.accent} strokeWidth="1.5" strokeLinecap="round" />
+        <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" style={{ marginBottom: "12px", opacity: 0.22 }}>
+          <circle cx="24" cy="17" r="9" fill="none" stroke={c.accent} strokeWidth="1.5" />
+          <path d="M5 44 Q5 30 24 30 Q43 30 43 44" fill="none" stroke={c.accent} strokeWidth="1.5" strokeLinecap="round" />
         </svg>
-        <p style={{ ...cormorant, fontSize: "1rem", fontStyle: "italic", color: c.accentFaint, textAlign: "center", lineHeight: 1.5, marginBottom: "16px" }}>
-          {c.label}
+        <p style={{ ...cormorant, fontSize: "0.95rem", fontStyle: "italic", color: c.accentFaint, textAlign: "center", lineHeight: 1.5, marginBottom: "14px" }}>
+          New profile
         </p>
         <Link
           href="/profiles/new"
           style={{
-            fontSize: "0.78rem",
+            fontSize: "0.75rem",
             letterSpacing: "0.08em",
             color: c.accent,
-            opacity: 0.7,
+            opacity: 0.65,
             textDecoration: "none",
             border: `1px solid ${c.accentFaint}`,
             borderRadius: "999px",
             padding: "5px 14px",
           }}
         >
-          + add profile
+          + create
         </Link>
+
+        {/* Carousel controls — always shown here so user knows they can go back */}
+        {count >= 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "18px" }}>
+            <button onClick={onPrev} disabled={disabled} aria-label="Previous"
+              style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.6 }}>
+              <ChevronLeft size={14} />
+            </button>
+            <span style={{ ...cormorant, fontSize: "0.82rem", color: "rgba(255,255,255,0.25)", minWidth: "28px", textAlign: "center" }}>+</span>
+            <button onClick={onNext} disabled={disabled} aria-label="Next"
+              style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.6 }}>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
-  // Filled state
+  // Filled profile slide
   return (
     <div style={{
       ...cardBase,
@@ -131,131 +148,54 @@ function SeatCard({
       border: `1px solid ${c.cardBorder}`,
       boxShadow: c.cardGlow,
     }}>
-      {/* Role label top */}
+      {/* Role label */}
       <div style={{
-        position: "absolute",
-        top: "14px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        fontSize: "0.68rem",
-        letterSpacing: "0.14em",
-        textTransform: "uppercase",
-        color: c.accentFaint,
-        whiteSpace: "nowrap",
+        position: "absolute", top: "14px", left: "50%", transform: "translateX(-50%)",
+        fontSize: "0.68rem", letterSpacing: "0.14em", textTransform: "uppercase",
+        color: c.accentFaint, whiteSpace: "nowrap",
       }}>
         {c.label}
       </div>
 
       {/* Avatar */}
       <div style={{
-        width: "56px",
-        height: "56px",
-        borderRadius: "50%",
-        background: c.avatarBg,
-        border: `1px solid ${c.cardBorder}`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: "14px",
-        marginTop: "8px",
-        fontSize: "1.1rem",
-        fontWeight: 600,
-        color: c.avatarText,
+        width: "56px", height: "56px", borderRadius: "50%",
+        background: c.avatarBg, border: `1px solid ${c.cardBorder}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        marginBottom: "14px", marginTop: "8px",
+        fontSize: "1.1rem", fontWeight: 600, color: c.avatarText,
         fontFamily: "var(--font-cormorant), Georgia, serif",
-        letterSpacing: "0.04em",
-        flexShrink: 0,
+        letterSpacing: "0.04em", flexShrink: 0,
       }}>
-        {initials(profile.name)}
+        {initials(profile!.name)}
       </div>
 
       {/* Name */}
-      <div style={{
-        ...cormorant,
-        fontSize: "1.35rem",
-        color: "rgba(255,255,255,0.92)",
-        textAlign: "center",
-        lineHeight: 1.2,
-        wordBreak: "break-word",
-        maxWidth: "100%",
-      }}>
-        {profile.name}
+      <div style={{ ...cormorant, fontSize: "1.35rem", color: "rgba(255,255,255,0.92)", textAlign: "center", lineHeight: 1.2, wordBreak: "break-word", maxWidth: "100%" }}>
+        {profile!.name}
       </div>
 
       {/* Birth date */}
-      {profile.date_of_birth && (
-        <div style={{
-          fontSize: "0.72rem",
-          color: "rgba(255,255,255,0.28)",
-          marginTop: "6px",
-          letterSpacing: "0.04em",
-          textAlign: "center",
-        }}>
-          {formatBirthDate(profile.date_of_birth)}
+      {profile!.date_of_birth && (
+        <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.28)", marginTop: "6px", letterSpacing: "0.04em", textAlign: "center" }}>
+          {formatBirthDate(profile!.date_of_birth)}
         </div>
       )}
 
-      {/* Carousel controls — only if 2+ profiles */}
-      {count >= 2 && (
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          marginTop: "18px",
-        }}>
-          <button
-            onClick={onPrev}
-            disabled={disabled}
-            aria-label="Previous"
-            style={{
-              background: "none",
-              border: `1px solid ${c.accentFaint}`,
-              borderRadius: "50%",
-              width: "28px",
-              height: "28px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: disabled ? "not-allowed" : "pointer",
-              color: c.accent,
-              opacity: disabled ? 0.4 : 0.7,
-              transition: "opacity 0.2s",
-            }}
-          >
-            <ChevronLeft size={14} />
-          </button>
-          <span style={{
-            ...cormorant,
-            fontSize: "0.85rem",
-            color: "rgba(255,255,255,0.3)",
-            minWidth: "32px",
-            textAlign: "center",
-            letterSpacing: "0.04em",
-          }}>
-            {idx + 1}/{count}
-          </span>
-          <button
-            onClick={onNext}
-            disabled={disabled}
-            aria-label="Next"
-            style={{
-              background: "none",
-              border: `1px solid ${c.accentFaint}`,
-              borderRadius: "50%",
-              width: "28px",
-              height: "28px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: disabled ? "not-allowed" : "pointer",
-              color: c.accent,
-              opacity: disabled ? 0.4 : 0.7,
-              transition: "opacity 0.2s",
-            }}
-          >
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
+      {/* Carousel controls — always show so user can reach the "new profile" slide */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "18px" }}>
+        <button onClick={onPrev} disabled={disabled} aria-label="Previous"
+          style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.7 }}>
+          <ChevronLeft size={14} />
+        </button>
+        <span style={{ ...cormorant, fontSize: "0.85rem", color: "rgba(255,255,255,0.3)", minWidth: "36px", textAlign: "center", letterSpacing: "0.04em" }}>
+          {idx + 1}/{virtualTotal}
+        </span>
+        <button onClick={onNext} disabled={disabled} aria-label="Next"
+          style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.7 }}>
+          <ChevronRight size={14} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -295,8 +235,9 @@ export function CompatibilityClient({
 
   const groomProfiles = initialProfiles.filter(p => p.gender?.toLowerCase() === "male");
   const brideProfiles = initialProfiles.filter(p => p.gender?.toLowerCase() === "female");
-  const selectedGroom = groomProfiles[groomIdx] ?? null;
-  const selectedBride = brideProfiles[brideIdx] ?? null;
+  // idx past end of real profiles = "new profile" slide; those seats have no selection
+  const selectedGroom = groomIdx < groomProfiles.length ? groomProfiles[groomIdx] : null;
+  const selectedBride = brideIdx < brideProfiles.length ? brideProfiles[brideIdx] : null;
   const groomId = selectedGroom?.id ?? "";
   const brideId = selectedBride?.id ?? "";
   const canRun = !!groomId && !!brideId && !calculating;
@@ -330,9 +271,6 @@ export function CompatibilityClient({
         <h1 style={{ ...cormorant, fontSize: "2.4rem", letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
           Kundali Matching
         </h1>
-        <p style={{ marginTop: "4px", fontSize: "0.85rem", color: "rgba(255,255,255,0.32)", letterSpacing: "0.04em" }}>
-          Ashtakoota Milan — 36 gunas, classical Vedic compatibility
-        </p>
       </div>
 
       {/* Portrait seat cards */}
@@ -342,8 +280,8 @@ export function CompatibilityClient({
             role="groom"
             profiles={groomProfiles}
             idx={groomIdx}
-            onPrev={() => setGroomIdx(i => (i - 1 + groomProfiles.length) % groomProfiles.length)}
-            onNext={() => setGroomIdx(i => (i + 1) % groomProfiles.length)}
+            onPrev={() => setGroomIdx(i => (i - 1 + (groomProfiles.length + 1)) % (groomProfiles.length + 1))}
+            onNext={() => setGroomIdx(i => (i + 1) % (groomProfiles.length + 1))}
             disabled={calculating}
           />
         </div>
@@ -366,8 +304,8 @@ export function CompatibilityClient({
             role="bride"
             profiles={brideProfiles}
             idx={brideIdx}
-            onPrev={() => setBrideIdx(i => (i - 1 + brideProfiles.length) % brideProfiles.length)}
-            onNext={() => setBrideIdx(i => (i + 1) % brideProfiles.length)}
+            onPrev={() => setBrideIdx(i => (i - 1 + (brideProfiles.length + 1)) % (brideProfiles.length + 1))}
+            onNext={() => setBrideIdx(i => (i + 1) % (brideProfiles.length + 1))}
             disabled={calculating}
           />
         </div>

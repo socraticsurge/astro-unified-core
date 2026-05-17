@@ -1,6 +1,7 @@
 import { getClient, ensureSchema } from "./client";
 
 export type AppSettings = {
+  written_consultation_enabled: boolean;
   live_consultation_enabled: boolean;
   written_fee_paise: number;
   live_fee_paise: number;
@@ -53,6 +54,7 @@ export const settings = {
       map[row[0] as string] = row[1] as string;
     }
     return {
+      written_consultation_enabled: map["written_consultation_enabled"] !== "false",
       live_consultation_enabled: map["live_consultation_enabled"] === "true",
       written_fee_paise: parseInt(map["written_fee_paise"] ?? "120000", 10),
       live_fee_paise: parseInt(map["live_fee_paise"] ?? "500000", 10),

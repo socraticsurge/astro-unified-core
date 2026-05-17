@@ -33,6 +33,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
   const [compSortCol, setCompSortCol] = useState<string>("created_at");
   const [compSortDir, setCompSortDir] = useState<"asc" | "desc">("desc");
 
+  const [writtenConsultation, setWrittenConsultation] = useState(appSettings.written_consultation_enabled);
   const [liveConsultation, setLiveConsultation] = useState(appSettings.live_consultation_enabled);
   const [settingSaving, setSettingSaving] = useState(false);
   const [writtenFeeRs, setWrittenFeeRs] = useState(Math.round(appSettings.written_fee_paise / 100));
@@ -149,6 +150,21 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
       });
     } finally {
       setFeeSaving(false);
+    }
+  };
+
+  const toggleWrittenConsultation = async () => {
+    setSettingSaving(true);
+    const next = !writtenConsultation;
+    try {
+      await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ written_consultation_enabled: next }),
+      });
+      setWrittenConsultation(next);
+    } finally {
+      setSettingSaving(false);
     }
   };
 
@@ -693,67 +709,72 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
         <div className="max-w-md space-y-6">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">App Settings</h2>
 
-          {/* Consultation pricing */}
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-4">
-            <p className="text-sm font-medium">Consultation Pricing</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">Written Response (₹)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={writtenFeeRs}
-                  onChange={e => setWrittenFeeRs(parseInt(e.target.value, 10) || 0)}
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">Live Consultation (₹)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={liveFeeRs}
-                  onChange={e => setLiveFeeRs(parseInt(e.target.value, 10) || 0)}
-                  className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
-                />
-              </div>
-            </div>
-            <button
-              disabled={feeSaving}
-              onClick={saveFees}
-              className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
-            >
-              {feeSaving ? "Saving…" : "Save Pricing"}
-            </button>
-          </div>
+          {/* Consultation — all settings in one panel */}
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-5">
+            <p className="text-sm font-medium">Consultation</p>
 
-          {/* Live consultation toggle */}
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">Live Consultation Option</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                When ON, users see "Live Consultation" as a delivery mode when submitting questions.
-              </p>
-            </div>
-            <button
-              disabled={settingSaving}
-              onClick={toggleLiveConsultation}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${liveConsultation ? "bg-amber-500" : "bg-white/20"}`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${liveConsultation ? "translate-x-5" : "translate-x-0"}`}
+            {/* Availability toggles */}
+            <div className="space-y-3">
+              <Toggle
+                label="Written Response"
+                description="Users can submit questions for a written answer."
+                enabled={writtenConsultation}
+                onToggle={toggleWrittenConsultation}
+                disabled={settingSaving}
               />
-            </button>
-          </div>
+              <Toggle
+                label="Live Session"
+                description="Users can book a 25-minute live consultation slot."
+                enabled={liveConsultation}
+                onToggle={toggleLiveConsultation}
+                disabled={settingSaving}
+              />
+            </div>
 
-          {/* Slot management */}
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-4">
-            <div>
-              <p className="text-sm font-medium">Live Consultation Slots</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+            <div className="border-t border-white/[0.08]" />
+
+            {/* Pricing */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pricing</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Written Response (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={writtenFeeRs}
+                    onChange={e => setWrittenFeeRs(parseInt(e.target.value, 10) || 0)}
+                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Live Session (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={liveFeeRs}
+                    onChange={e => setLiveFeeRs(parseInt(e.target.value, 10) || 0)}
+                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                  />
+                </div>
+              </div>
+              <button
+                disabled={feeSaving}
+                onClick={saveFees}
+                className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+              >
+                {feeSaving ? "Saving…" : "Save Pricing"}
+              </button>
+            </div>
+
+            <div className="border-t border-white/[0.08]" />
+
+            {/* Slot management */}
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live Session Slots</p>
+              <p className="text-xs text-muted-foreground">
                 Enter date and time in IST. Users only see slots at least 5 days away that are not yet booked.
               </p>
-            </div>
             <div className="flex gap-2 items-end">
               <div className="space-y-1 flex-1">
                 <label className="text-xs text-muted-foreground">Date &amp; Time (IST)</label>
@@ -818,9 +839,34 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 );
               })}
             </div>
-          </div>
+            </div>{/* end slot section */}
+          </div>{/* end consolidated Consultation card */}
         </div>
       </TabsContent>
     </Tabs>
+  );
+}
+
+function Toggle({ label, description, enabled, onToggle, disabled }: {
+  label: string;
+  description: string;
+  enabled: boolean;
+  onToggle: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </div>
+      <button
+        disabled={disabled}
+        onClick={onToggle}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${enabled ? "bg-amber-500" : "bg-white/20"}`}
+      >
+        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
+      </button>
+    </div>
   );
 }

@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Written consultation toggle; subtitle removal; Kundali carousel "new profile" slide
+
+### Added
+- **`lib/db/settings.ts`** — `written_consultation_enabled` field added to `AppSettings`. Defaults `true` (existing installs unaffected: stored absence treated as `true`).
+- **`app/api/admin/settings/route.ts`** — `written_consultation_enabled` added to `ALLOWED_SETTINGS`.
+- **`app/admin/AdminTables.tsx`** — Written consultation toggle added. All consultation settings (Written toggle, Live toggle, Pricing, Slot management) consolidated into one "Consultation" panel. Extracted reusable `Toggle` component.
+- **`app/consultation/ConsultationForm.tsx`** — `writtenConsultationEnabled` prop. Written delivery card hidden when off. Both-off state shows "not available" message, hides submit button. Default delivery mode respects the flag.
+
+### Changed
+- **`components/compatibility/CompatibilityClient.tsx`** — Subtitle removed. `SeatCard` always includes a "New profile" virtual slide as the last carousel position — indicator shows `1/2`, `+` on creation slide.
+- **`app/consultation/page.tsx`** — Subtitle removed. `writtenConsultationEnabled` threaded through to form.
+
+---
+
 ## [2026-05-17] — Consultation page full tonal pass; strip emoji, elevate copy and delivery cards
 
 ### Changed
