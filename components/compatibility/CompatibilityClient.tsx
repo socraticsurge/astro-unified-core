@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { fonts, textStyles, colors, clamp, interactive } from "@/lib/typography";
+import { fonts, textStyles, colors, clamp, interactive, radii } from "@/lib/typography";
+import { scoreColor } from "@/lib/compatibility";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 function initials(name: string) {
@@ -196,7 +197,7 @@ function SeatCard({
 }
 
 function ScoreRing({ score }: { score: number }) {
-  const color = score >= 26 ? "#34d399" : score >= 18 ? "#86efac" : score >= 12 ? "#fbbf24" : "#f87171";
+  const color = scoreColor(score);
   return (
     <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
       <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5" />
@@ -313,7 +314,7 @@ export function CompatibilityClient({
             color: "#fca5a5",
             background: "rgba(127,29,29,0.25)",
             border: "1px solid rgba(127,29,29,0.4)",
-            borderRadius: "12px",
+            borderRadius: radii.sm,
             padding: "10px 16px",
           }}>
             {calcError}

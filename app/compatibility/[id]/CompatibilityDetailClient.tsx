@@ -9,16 +9,9 @@ import { KOOTA_MAX } from "@/lib/compatibility";
 import { Button } from "@/components/ui/button";
 import { CompatibilityInsightShell } from "@/components/engines/CompatibilityInsightShell";
 import { CompatibilityChat } from "@/components/engines/CompatibilityChat";
-import { fonts, textStyles, colors, clamp } from "@/lib/typography";
+import { fonts, textStyles, colors, clamp, glass, radii } from "@/lib/typography";
+import { scoreColor, scoreLabel } from "@/lib/compatibility";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
-
-const glassCard: React.CSSProperties = {
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  borderRadius: "20px",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-};
 
 function initials(name: string) {
   return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -51,8 +44,8 @@ function ScoreArc({ score }: { score: number }) {
   const pct = score / 36;
   const r = 52;
   const circ = 2 * Math.PI * r;
-  const strokeColor = score >= 26 ? "#34d399" : score >= 18 ? "#86efac" : score >= 12 ? "#fbbf24" : "#f87171";
-  const label = score >= 26 ? "Excellent" : score >= 18 ? "Auspicious" : score >= 12 ? "Moderate" : "Challenging";
+  const strokeColor = scoreColor(score);
+  const label = scoreLabel(score);
   return (
     <div className="flex flex-col items-center gap-1">
       <svg width="128" height="128" viewBox="0 0 128 128" aria-hidden="true">
@@ -117,7 +110,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
       </Link>
 
       {/* Hero card */}
-      <div style={{ ...glassCard, padding: "28px 20px", boxShadow: "0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)" }}>
+      <div style={{ ...glass, borderRadius: radii.lg, padding: "28px 20px", boxShadow: "0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)" }}>
         <div className="flex flex-col items-center gap-6">
           {/* Couple row */}
           <div className="flex items-center justify-between w-full gap-4">
@@ -194,7 +187,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Verdict banner */}
           <div style={{
-            ...glassCard,
+            ...glass, borderRadius: radii.lg,
             padding: "18px 20px",
             borderColor: score >= 18 ? "rgba(52,211,153,0.25)" : "rgba(251,191,36,0.25)",
             background: score >= 18 ? "rgba(4,120,87,0.12)" : "rgba(120,53,15,0.15)",
@@ -211,7 +204,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           </div>
 
           {/* Koota breakdown */}
-          <div style={glassCard}>
+          <div style={{ ...glass, borderRadius: radii.lg }}>
             <div className="px-5 py-3 border-b border-white/[0.08]">
               <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>
                 Guna Breakdown
@@ -244,7 +237,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {/* Dosha cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div style={{
-              ...glassCard,
+              ...glass, borderRadius: radii.lg,
               padding: "16px",
               borderColor: hasManglik ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.25)",
               background: hasManglik ? "rgba(127,29,29,0.15)" : "rgba(4,120,87,0.10)",
@@ -263,7 +256,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
             </div>
 
             <div style={{
-              ...glassCard,
+              ...glass, borderRadius: radii.lg,
               padding: "16px",
               borderColor: hasBhakoot ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.25)",
               background: hasBhakoot ? "rgba(127,29,29,0.15)" : "rgba(4,120,87,0.10)",
@@ -295,7 +288,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {showAdminTools && (
             <>
               <CompatibilityInsightShell checkId={check.id} name1={groomName} name2={brideName} />
-              <div style={glassCard} className="overflow-hidden">
+              <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
                 <button onClick={() => setShowChat(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
                   <MessageSquare className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                   <span className="text-xs font-semibold uppercase tracking-wider text-amber-300 flex-1">Compatibility Chat</span>
@@ -312,7 +305,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Overall verdict */}
           <div style={{
-            ...glassCard, padding: "20px",
+            ...glass, borderRadius: radii.lg, padding: "20px",
             borderColor: isApproved ? "rgba(52,211,153,0.3)" : "rgba(239,68,68,0.3)",
             background: isApproved ? "rgba(4,120,87,0.12)" : "rgba(127,29,29,0.15)",
           }}>
@@ -329,7 +322,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Natal Moon Profiles */}
           {(result.male_details || result.female_details) && (
-            <div style={glassCard} className="overflow-hidden">
+            <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-white/[0.08]">
                 <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Natal Moon Profiles</h2>
               </div>
@@ -362,7 +355,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Kuja Dosha */}
           {kujaDosha && (
-            <div style={glassCard} className="overflow-hidden">
+            <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-white/[0.08]">
                 <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Kuja Dosha Analysis</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Mars, Saturn, Rahu, Ketu, Sun in houses 2 · 4 · 7 · 8 · 12</p>
@@ -403,7 +396,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Additional Kutas */}
           {Object.keys(additionalKutas).length > 0 && (
-            <div style={glassCard} className="overflow-hidden">
+            <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-white/[0.08]">
                 <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Additional Kutas</h2>
               </div>
@@ -449,7 +442,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Dosha exceptions */}
           {exceptions.length > 0 && (
-            <div style={{ ...glassCard, borderColor: "rgba(251,191,36,0.2)", background: "rgba(120,53,15,0.12)" }} className="overflow-hidden">
+            <div style={{ ...glass, borderRadius: radii.lg, borderColor: "rgba(251,191,36,0.2)", background: "rgba(120,53,15,0.12)" }} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-amber-800/20">
                 <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(253,230,138,0.85)" }}>Dosha Mitigations</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Classical exceptions that neutralise doshas</p>
@@ -472,7 +465,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
       )}
 
       {!result && (
-        <div style={glassCard} className="p-10 text-center text-muted-foreground text-sm">
+        <div style={{ ...glass, borderRadius: radii.lg }} className="p-10 text-center text-muted-foreground text-sm">
           Result data unavailable for this reading.
         </div>
       )}

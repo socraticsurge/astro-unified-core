@@ -39,6 +39,24 @@ export type AdditionalKuta = {
   female?: string;
 };
 
+// ── Score display helpers ─────────────────────────────────────────────────────
+// Ashtakoota is out of 36. These thresholds and colors are used wherever a
+// score is rendered — centralised here so the logic lives in one place.
+
+export function scoreColor(score: number): string {
+  return score >= 26 ? "#34d399"
+       : score >= 18 ? "#86efac"
+       : score >= 12 ? "#fbbf24"
+       :               "#f87171";
+}
+
+export function scoreLabel(score: number): string {
+  return score >= 26 ? "Excellent"
+       : score >= 18 ? "Auspicious"
+       : score >= 12 ? "Moderate"
+       :               "Challenging";
+}
+
 export type CompatResult = {
   total_score: number;
   scores?: KootaScores;

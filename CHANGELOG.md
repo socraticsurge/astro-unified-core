@@ -8,6 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Design system: radii tokens, glass surface, centralised score colours
+
+### Added
+- **`lib/typography.ts`** — `radii` token: `sm` (12px), `md` (16px), `lg` (20px), `full` (999px). Every surface now references a named radius instead of a raw pixel value.
+- **`lib/compatibility.ts`** — `scoreColor(score)` and `scoreLabel(score)` helper functions. The Ashtakoota colour thresholds (26/18/12) and corresponding label text live in one place.
+
+### Changed
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — removed local `glassCard` const; imports `glass` + `radii.lg` from typography. `ScoreArc` uses `scoreColor`/`scoreLabel` from compatibility.
+- **`app/consultation/ConsultationForm.tsx`** — removed local `glassCard` const; uses `glass` + `radii.lg`. All non-standard radii normalised: `14px` → `radii.md`, `10px`/`12px` → `radii.sm`.
+- **`components/compatibility/CompatibilityClient.tsx`** — `ScoreRing` uses `scoreColor`; error banner uses `radii.sm`.
+
+---
+
 ## [2026-05-17] — Add interactive state tokens to design system
 
 ### Added

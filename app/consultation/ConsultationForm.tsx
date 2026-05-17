@@ -11,20 +11,14 @@ import {
 } from "@/lib/consultation";
 import type { ConsultationRequest, Profile, ConsultationSlot } from "@/lib/db";
 import type { DeliveryMode } from "@/lib/consultation";
-import { fonts, textStyles, colors, scale, interactive } from "@/lib/typography";
+import { fonts, textStyles, colors, scale, interactive, glass, radii } from "@/lib/typography";
 import { ProfileSelectorCard } from "@/components/profile/ProfileSelectorCard";
 
 const UPI_ID = "meherkalyanichaganti@okaxis";
 const WHATSAPP_NUMBER = "919704076544";
 const MIN_QUESTION_LENGTH = MIN_FIELD_LENGTH;
 
-const glassCard: React.CSSProperties = {
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  borderRadius: "20px",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-};
+const glassCard: React.CSSProperties = { ...glass, borderRadius: radii.lg };
 
 type Props = {
   allRequests: ConsultationRequest[];
@@ -194,7 +188,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
               color: "rgba(255,255,255,0.32)",
               fontStyle: "italic",
               border: "1px solid rgba(255,255,255,0.07)",
-              borderRadius: "14px",
+              borderRadius: radii.md,
               padding: "14px 18px",
               background: "rgba(255,255,255,0.02)",
             }}>
@@ -236,7 +230,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                 fontSize: "0.92rem",
                 color: "rgba(255,255,255,0.35)",
                 border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "14px",
+                borderRadius: radii.md,
                 padding: "14px 18px",
                 background: "rgba(255,255,255,0.025)",
                 fontStyle: "italic",
@@ -426,7 +420,7 @@ function SlotActions({ pending }: { pending: ConsultationRequest }) {
   return (
     <div style={{
       border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: "14px",
+      borderRadius: radii.md,
       background: "rgba(255,255,255,0.025)",
       padding: "14px 16px",
     }}>
@@ -437,7 +431,7 @@ function SlotActions({ pending }: { pending: ConsultationRequest }) {
             fontSize: "0.78rem",
             color: "rgba(253,230,138,0.8)",
             border: "1px solid rgba(251,191,36,0.25)",
-            borderRadius: "10px",
+            borderRadius: radii.sm,
             padding: "6px 14px",
             textDecoration: "none",
             background: "rgba(251,191,36,0.06)",
@@ -450,7 +444,7 @@ function SlotActions({ pending }: { pending: ConsultationRequest }) {
             fontSize: "0.78rem",
             color: "rgba(255,255,255,0.38)",
             border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: "10px",
+            borderRadius: radii.sm,
             padding: "6px 14px",
             textDecoration: "none",
             background: "rgba(255,255,255,0.03)",
@@ -530,7 +524,7 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
             fontSize: "0.85rem",
             color: "rgba(110,231,183,0.85)",
             border: "1px solid rgba(52,211,153,0.25)",
-            borderRadius: "12px",
+            borderRadius: radii.sm,
             padding: "9px 18px",
             textDecoration: "none",
             background: "rgba(4,120,87,0.12)",

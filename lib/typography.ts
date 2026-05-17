@@ -174,6 +174,21 @@ export const clamp = {
   },
 } satisfies Record<string, CSSProperties>;
 
+// ── Border radius scale ───────────────────────────────────────────────────────
+// Named radii used consistently across all surfaces.
+//
+//   sm  — small inline elements: error banners, link pills
+//   md  — standard card radius (most surfaces)
+//   lg  — larger panels, modals, hero cards
+//   full — fully round: avatars, carousel buttons, badge pills
+
+export const radii = {
+  sm:   "12px",
+  md:   "16px",
+  lg:   "20px",
+  full: "999px",
+} as const;
+
 // ── Interactive state tokens ──────────────────────────────────────────────────
 // Tailwind class strings for hover/active/transition — applied via className.
 // Inline style props cannot express CSS pseudo-classes, so these live here
