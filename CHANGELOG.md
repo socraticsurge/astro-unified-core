@@ -8,6 +8,18 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Add interactive state tokens to design system
+
+### Added
+- **`lib/typography.ts`** — `interactive` constant with four semantic Tailwind class strings: `card`, `listRow`, `ghostButton`, `slotButton`. Single place to change hover/active/transition feel across the whole app.
+
+### Changed
+- **`components/profile/ProfileSelectorCard.tsx`** — removed inline `transition` string; non-incomplete variant now uses `interactive.card` via className.
+- **`components/compatibility/CompatibilityClient.tsx`** — past-readings rows removed inline `transition`/`cursor`; now use `interactive.listRow` via className.
+- **`app/consultation/ConsultationForm.tsx`** — slot buttons removed inline `transition`/`cursor`; now use `interactive.slotButton` via className.
+
+---
+
 ## [2026-05-17] — Design audit: typography token cleanup, border-radius normalization
 
 ### Changed

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { fonts, textStyles, colors, clamp } from "@/lib/typography";
+import { fonts, textStyles, colors, clamp, interactive } from "@/lib/typography";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 function initials(name: string) {
@@ -371,10 +371,8 @@ export function CompatibilityClient({
                     border: "1px solid rgba(255,255,255,0.08)",
                     borderRadius: "16px",
                     padding: "14px 18px",
-                    transition: "background 0.2s",
-                    cursor: "pointer",
                   }}
-                    className="hover:bg-white/[0.055]"
+                    className={interactive.listRow}
                   >
                     <ScoreRing score={c.score} />
                     <div style={{ flex: 1, minWidth: 0 }}>

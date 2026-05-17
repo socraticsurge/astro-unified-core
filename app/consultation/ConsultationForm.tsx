@@ -11,7 +11,7 @@ import {
 } from "@/lib/consultation";
 import type { ConsultationRequest, Profile, ConsultationSlot } from "@/lib/db";
 import type { DeliveryMode } from "@/lib/consultation";
-import { fonts, textStyles, colors, scale } from "@/lib/typography";
+import { fonts, textStyles, colors, scale, interactive } from "@/lib/typography";
 import { ProfileSelectorCard } from "@/components/profile/ProfileSelectorCard";
 
 const UPI_ID = "meherkalyanichaganti@okaxis";
@@ -255,6 +255,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                     <button
                       key={slot.id}
                       onClick={() => setSelectedSlotId(slot.id)}
+                      className={interactive.slotButton}
                       style={{
                         textAlign: "left",
                         padding: "12px 18px",
@@ -262,10 +263,8 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                         border: `1px solid ${isSelected ? "rgba(251,191,36,0.45)" : "rgba(255,255,255,0.09)"}`,
                         background: isSelected ? "rgba(251,191,36,0.07)" : "rgba(255,255,255,0.03)",
                         color: isSelected ? "rgba(253,230,138,0.9)" : "rgba(255,255,255,0.6)",
-                        transition: "all 0.15s ease",
                         ...fonts.display,
                         fontSize: "1rem",
-                        cursor: "pointer",
                       }}
                     >
                       {label} IST

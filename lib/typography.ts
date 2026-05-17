@@ -173,3 +173,17 @@ export const clamp = {
     WebkitBoxOrient: "vertical",
   },
 } satisfies Record<string, CSSProperties>;
+
+// ── Interactive state tokens ──────────────────────────────────────────────────
+// Tailwind class strings for hover/active/transition — applied via className.
+// Inline style props cannot express CSS pseudo-classes, so these live here
+// alongside the static tokens. One token = one interactive surface type.
+//
+//   <button style={cardStyle} className={interactive.card}>…</button>
+
+export const interactive = {
+  card:        "hover:bg-white/[0.06] transition-colors duration-150",
+  listRow:     "hover:bg-white/[0.055] transition-colors duration-150",
+  ghostButton: "hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-150",
+  slotButton:  "hover:bg-white/[0.06] transition-all duration-150",
+} as const;

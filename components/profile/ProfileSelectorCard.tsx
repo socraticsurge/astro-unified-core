@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { ProfileAvatar } from "./ProfileAvatar";
-import { textStyles, colors, fonts, scale, clamp } from "@/lib/typography";
+import { textStyles, colors, fonts, scale, clamp, interactive } from "@/lib/typography";
 
 interface ProfileSelectorCardProps {
   name: string;
@@ -40,7 +40,6 @@ export function ProfileSelectorCard({
     alignItems: "center",
     gap: "8px",
     textAlign: "center",
-    transition: "border-color 0.2s, background 0.2s, box-shadow 0.2s",
     boxShadow: shadow,
     opacity,
     cursor: incomplete ? "default" : "pointer",
@@ -96,7 +95,7 @@ export function ProfileSelectorCard({
   }
 
   return (
-    <button onClick={onSelect} style={cardStyle} className={className}>
+    <button onClick={onSelect} style={cardStyle} className={`${interactive.card} ${className ?? ""}`}>
       {content}
     </button>
   );
