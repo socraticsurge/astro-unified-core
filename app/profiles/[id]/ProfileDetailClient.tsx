@@ -20,6 +20,7 @@ import {
   CurrentLocationDetails,
 } from "@/components/profile-ui";
 import { PageHeader } from "@/components/PageHeader";
+import { ChartSkeleton } from "@/components/ChartSkeleton";
 
 type SectionExplainer = {
   title: string;
@@ -328,13 +329,7 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
           {reading.output ? (
             <DashaflowView output={reading.output} explainers={explainers} />
           ) : !reading.error && (
-            <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground border border-[var(--color-border-subtle)] rounded-2xl bg-[var(--color-surface-1)]">
-              <RefreshCw className="h-10 w-10 animate-spin text-[var(--color-success)]/50" />
-              <div className="text-center space-y-1">
-                <p className="text-sm font-semibold text-[var(--color-ink-1)]">Calculating your chart...</p>
-                <p className="text-xs">Connecting to the Swiss Ephemeris sidecar</p>
-              </div>
-            </div>
+            <ChartSkeleton />
           )}
         </>
       )}
