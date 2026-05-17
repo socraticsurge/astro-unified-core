@@ -263,7 +263,7 @@ export function ExplainerModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            className="shrink-0 rounded-md p-3 min-h-[44px] min-w-[44px] flex items-center justify-center md:p-1.5 md:min-h-0 md:min-w-0 text-muted-foreground hover:bg-white/5 hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
