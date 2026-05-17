@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { ProfileAvatar } from "./ProfileAvatar";
-import { textStyles, colors, fonts, scale, clamp, interactive } from "@/lib/typography";
+import { textStyles, colors, fonts, scale, clamp, interactive, radii, motion } from "@/lib/typography";
 
 interface ProfileSelectorCardProps {
   name: string;
@@ -22,9 +22,9 @@ export function ProfileSelectorCard({
   onSelect,
   className,
 }: ProfileSelectorCardProps) {
-  const border  = selected  ? "rgba(251,191,36,0.50)" : incomplete ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.09)";
-  const bg      = selected  ? "rgba(251,191,36,0.07)" : incomplete ? "rgba(255,255,255,0.015)" : "rgba(255,255,255,0.03)";
-  const shadow  = selected  ? "0 0 24px rgba(251,191,36,0.10)" : "none";
+  const border  = selected  ? "var(--color-accent-dim)" : incomplete ? "var(--color-border-subtle)" : "var(--color-border)";
+  const bg      = selected  ? "var(--color-accent-faint)" : incomplete ? "var(--color-surface-1)" : "var(--color-surface-1)";
+  const shadow  = selected  ? "var(--shadow-card)" : "none";
   const opacity = incomplete ? 0.5 : 1;
 
   const avatarColor     = selected ? colors.goldFaint : undefined;
@@ -33,7 +33,7 @@ export function ProfileSelectorCard({
   const cardStyle: React.CSSProperties = {
     background: bg,
     border: `1px solid ${border}`,
-    borderRadius: "16px",
+    borderRadius: radii.md,
     padding: "16px 12px",
     display: "flex",
     flexDirection: "column",

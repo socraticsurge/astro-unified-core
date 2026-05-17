@@ -121,7 +121,7 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
               time you have; even a 5-minute difference can shift the Lagna.
             </p>
           </div>
-          <div className="space-y-4 pt-2 border-t border-white/10">
+          <div className="space-y-4 pt-2 border-t border-[var(--color-border)]">
             <div className="space-y-1">
               <Label htmlFor="place_of_birth">Place of Birth <span className="text-destructive">*</span></Label>
               <Input id="place_of_birth" name="place_of_birth" value={form.place_of_birth} onChange={handleChange} required maxLength={100} placeholder="e.g. Erode, Tamil Nadu, India" />

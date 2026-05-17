@@ -45,12 +45,12 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
           Your birth profiles and their Vedic charts.
         </p>
         <Link href="/profiles/new">
-          <Button size="lg" className="font-semibold shadow-md bg-amber-500 hover:bg-amber-600 text-amber-950">
+          <Button size="lg" className="font-semibold shadow-md bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-bg)]">
             Create your first birth profile
           </Button>
         </Link>
-        <div className="border border-white/10 rounded-xl p-5 bg-white/5 space-y-2">
-          <div className="text-sm font-semibold text-amber-300">A suggestion</div>
+        <div className="border border-[var(--color-border)] rounded-xl p-5 bg-[var(--color-surface-1)] space-y-2">
+          <div className="text-sm font-semibold text-[var(--color-accent)]">A suggestion</div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Start with your own profile, then add your family — parents, spouse,
             children, siblings — and anyone else whose chart bears on the questions you
@@ -65,7 +65,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
   return (
     <div className="space-y-5">
       {deleteError && (
-        <div className="p-3 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 text-sm">
+        <div className="p-3 rounded-lg bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/40 text-[var(--color-danger)] text-sm">
           {deleteError}
         </div>
       )}
@@ -86,11 +86,11 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
               placeholder="Search…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-44 pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-400/40"
+              className="w-44 pl-9 pr-4 py-2 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent-dim)]"
             />
           </div>
           <Link href="/profiles/new">
-            <Button size="sm" className="font-semibold bg-amber-500 hover:bg-amber-600 text-amber-950 shrink-0">
+            <Button size="sm" className="font-semibold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-bg)] shrink-0">
               + New
             </Button>
           </Link>
@@ -100,8 +100,8 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
       {/* Card Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {sorted.map((p) => (
-          <div key={p.id} className="group relative flex flex-col bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:bg-white/10 transition-colors">
-            <div className="p-4 border-b border-white/5 flex items-start justify-between gap-2">
+          <div key={p.id} className="group relative flex flex-col bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl overflow-hidden hover:bg-[var(--color-surface-hover)] transition-colors">
+            <div className="p-4 border-b border-[var(--color-border-subtle)] flex items-start justify-between gap-2">
               <div>
                 <h3 className="font-heading text-xl font-semibold text-foreground line-clamp-1">
                   {p.name}
@@ -130,7 +130,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
               />
             </div>
 
-            <div className="px-4 py-3 bg-black/20 border-t border-white/5 flex items-center justify-between">
+            <div className="px-4 py-3 bg-[var(--color-bg)]/60 border-t border-[var(--color-border-subtle)] flex items-center justify-between">
               <div className="text-[10px] text-muted-foreground/60 font-mono">
                 {p.timezone} (UTC{p.timezone_offset >= 0 ? "+" : ""}{p.timezone_offset})
               </div>
@@ -153,15 +153,15 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
           </div>
         ))}
         {sorted.length === 0 && searchQuery && (
-          <div className="col-span-full py-12 text-center text-muted-foreground border border-dashed border-white/10 rounded-xl">
+          <div className="col-span-full py-12 text-center text-muted-foreground border border-dashed border-[var(--color-border)] rounded-xl">
             No profiles match your search.
           </div>
         )}
       </div>
 
-      <div className="p-4 rounded-lg bg-amber-950/20 border border-amber-700/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="p-4 rounded-lg bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="text-sm">
-          <span className="font-medium text-amber-300">Profile Usage: </span>
+          <span className="font-medium text-[var(--color-accent)]">Profile Usage: </span>
           <span className="text-foreground/90">{profiles.length} out of 10 free profiles created.</span>
         </div>
         <p className="text-xs text-muted-foreground sm:text-right max-w-sm leading-relaxed">

@@ -176,13 +176,13 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Current location nudge — amber/informational, not red/alarming */}
       {!profile.current_location && (
-        <div className="mb-6 flex items-center justify-between gap-4 p-3 rounded-lg bg-amber-950/20 border border-amber-800/30 text-sm">
-          <div className="flex items-center gap-2 text-amber-400/80">
+        <div className="mb-6 flex items-center justify-between gap-4 p-3 rounded-lg bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-sm">
+          <div className="flex items-center gap-2 text-[var(--color-accent-dim)]">
             <Info className="h-4 w-4 shrink-0" />
             <span>Add your current location to unlock transit and auspicious timing features.</span>
           </div>
           <Link href={`/profiles/${profile.id}/edit`}>
-            <Button size="sm" variant="outline" className="h-8 text-xs shrink-0 border-amber-700/40 text-amber-400 hover:bg-amber-950/30">
+            <Button size="sm" variant="outline" className="h-8 text-xs shrink-0 border-[var(--color-accent-dim)] text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)]">
               Add location
             </Button>
           </Link>
@@ -190,10 +190,10 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
       )}
 
       {/* Profile Header Card */}
-      <div className="mb-8 flex items-start gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-sm">
+      <div className="mb-8 flex items-start gap-4 p-5 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-border)] shadow-2xl backdrop-blur-sm">
         {/* Monogram Avatar */}
-        <div className="shrink-0 h-16 w-16 rounded-full bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg border-2 border-white/10">
-          <span className="text-2xl font-bold text-amber-950 drop-shadow-md">{initials}</span>
+        <div className="shrink-0 h-16 w-16 rounded-full bg-[var(--color-accent)] flex items-center justify-center shadow-lg border-2 border-[var(--color-border)]">
+          <span className="text-2xl font-bold text-[var(--color-bg)] drop-shadow-md">{initials}</span>
         </div>
 
         {/* Identity + Birth Data */}
@@ -234,23 +234,23 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between py-3 border-b border-white/10 mb-6">
+      <div className="flex items-center justify-between py-3 border-b border-[var(--color-border)] mb-6">
         <div className="flex items-center gap-2">
           {reading.error && <AlertCircle className="h-4 w-4 text-red-500" />}
           {reading.loading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
-          <span className="text-sm font-medium text-green-400">
+          <span className="text-sm font-medium text-[var(--color-success)]">
             {reading.loading ? "Preparing your chart…" : reading.error ? "Error loading chart" : ""}
           </span>
         </div>
         
         <div className="flex gap-2 items-center">
           {showAdminTools && (
-            <div className="flex items-center bg-white/5 rounded-lg p-0.5 border border-white/10 shadow-inner">
+            <div className="flex items-center bg-[var(--color-surface-1)] rounded-lg p-0.5 border border-[var(--color-border)] shadow-inner">
               <Button 
                 variant={isProfessional ? "ghost" : "secondary"} 
                 size="sm" 
                 onClick={() => setIsProfessional(false)}
-                className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider transition-all ${!isProfessional ? "bg-white/10 text-white shadow-sm" : "text-muted-foreground hover:text-white"}`}
+                className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider transition-all ${!isProfessional ? "bg-[var(--color-surface-active)] text-[var(--color-ink-1)] shadow-sm" : "text-muted-foreground hover:text-[var(--color-ink-1)]"}`}
               >
                 <User className="h-3 w-3" />
                 Basic
@@ -259,7 +259,7 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
                 variant={isProfessional ? "secondary" : "ghost"} 
                 size="sm" 
                 onClick={() => setIsProfessional(true)}
-                className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider transition-all ${isProfessional ? "bg-violet-500/20 text-violet-300 shadow-sm border border-violet-500/30" : "text-muted-foreground hover:text-white"}`}
+                className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider transition-all ${isProfessional ? "bg-[var(--color-surface-2)] text-[var(--color-ink-2)] shadow-sm border border-[var(--color-border)]" : "text-muted-foreground hover:text-[var(--color-ink-1)]"}`}
               >
                 <LayoutDashboard className="h-3 w-3" />
                 Professional
@@ -271,7 +271,7 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
             <CopyButton getText={() => summaryText} label="Copy summary" />
           )}
           {showAdminTools && !!reading.output && (
-            <Button variant="ghost" size="sm" onClick={() => setShowRaw(!showRaw)} className={`h-7 text-xs gap-1 ${showRaw ? "text-yellow-400 bg-yellow-400/10" : ""}`}>
+            <Button variant="ghost" size="sm" onClick={() => setShowRaw(!showRaw)} className={`h-7 text-xs gap-1 ${showRaw ? "text-[var(--color-warning)] bg-[var(--color-warning)]/10" : ""}`}>
               <Code className="h-3 w-3" />
               {showRaw ? "JSON" : "Raw"}
             </Button>
@@ -284,17 +284,17 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
       </div>
 
       {reading.error && (
-        <div className="mb-6 p-4 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 text-sm">
+        <div className="mb-6 p-4 rounded-lg bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/40 text-[var(--color-danger)] text-sm">
           {reading.error}
         </div>
       )}
 
       {showRaw && reading.output && (
-        <details className="mb-6 border border-white/10 rounded-lg overflow-hidden" open>
-          <summary className="cursor-pointer px-4 py-2 bg-white/5 text-xs font-mono font-bold text-muted-foreground hover:bg-white/10 border-b border-white/10">
+        <details className="mb-6 border border-[var(--color-border)] rounded-lg overflow-hidden" open>
+          <summary className="cursor-pointer px-4 py-2 bg-[var(--color-surface-1)] text-xs font-mono font-bold text-muted-foreground hover:bg-[var(--color-surface-hover)] border-b border-[var(--color-border)]">
             Engine Output Snapshot
           </summary>
-          <pre className="p-4 text-xs font-mono whitespace-pre-wrap break-all text-muted-foreground bg-black/40">
+          <pre className="p-4 text-xs font-mono whitespace-pre-wrap break-all text-muted-foreground bg-[var(--color-bg)]/60">
             {JSON.stringify(reading.output, null, 2)}
           </pre>
         </details>
@@ -319,20 +319,20 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
         <>
           {/* Permanent hint strip for basic view */}
           {!!reading.output && (
-            <div className="flex items-start gap-2 mb-6 px-3 py-2.5 rounded-lg bg-amber-950/20 border border-amber-800/30">
-              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400/80" />
-              <p className="text-xs text-amber-300/80 leading-relaxed">
-                Each section below has a <span className="text-amber-300 font-semibold">ⓘ</span> button. Tap it to read the classical Vedic interpretation for your chart.
+            <div className="flex items-start gap-2 mb-6 px-3 py-2.5 rounded-lg bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)]">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[var(--color-accent-dim)]" />
+              <p className="text-xs text-[var(--color-accent-dim)] leading-relaxed">
+                Each section below has a <span className="text-[var(--color-accent)] font-semibold">ⓘ</span> button. Tap it to read the classical Vedic interpretation for your chart.
               </p>
             </div>
           )}
           {reading.output ? (
             <DashaflowView output={reading.output} explainers={explainers} />
           ) : !reading.error && (
-            <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground border border-white/5 rounded-2xl bg-white/[0.02]">
-              <RefreshCw className="h-10 w-10 animate-spin text-green-500/50" />
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground border border-[var(--color-border-subtle)] rounded-2xl bg-[var(--color-surface-1)]">
+              <RefreshCw className="h-10 w-10 animate-spin text-[var(--color-success)]/50" />
               <div className="text-center space-y-1">
-                <p className="text-sm font-semibold text-white/80">Calculating your chart...</p>
+                <p className="text-sm font-semibold text-[var(--color-ink-1)]">Calculating your chart...</p>
                 <p className="text-xs">Connecting to the Swiss Ephemeris sidecar</p>
               </div>
             </div>
@@ -341,25 +341,25 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
       )}
 
       {/* Consultation CTA */}
-      <div className="mt-10 flex items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+      <div className="mt-10 flex items-center justify-between gap-4 p-4 rounded-xl bg-[var(--color-surface-1)] border border-[var(--color-border)]">
         <div className="flex items-center gap-3">
-          <MessageCircle className="h-4 w-4 text-amber-400/70 shrink-0" />
+          <MessageCircle className="h-4 w-4 text-[var(--color-accent-dim)] shrink-0" />
           <div>
-            <p className="text-sm text-white/70">Have questions about this chart?</p>
-            <p className="text-xs text-white/35 mt-0.5">Submit a written question or book a live session.</p>
+            <p className="text-sm text-[var(--color-ink-2)]">Have questions about this chart?</p>
+            <p className="text-xs text-[var(--color-ink-4)] mt-0.5">Submit a written question or book a live session.</p>
           </div>
         </div>
         <Link href="/consultation">
-          <Button variant="outline" size="sm" className="shrink-0 border-amber-700/40 text-amber-400 hover:bg-amber-950/30 text-xs">
+          <Button variant="outline" size="sm" className="shrink-0 border-[var(--color-accent-dim)] text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)] text-xs">
             Ask a question
           </Button>
         </Link>
       </div>
 
-      <footer className="mt-8 pt-6 border-t border-white/10">
+      <footer className="mt-8 pt-6 border-t border-[var(--color-border)]">
         <p className="text-xs text-muted-foreground leading-relaxed">
           Verses adapted from classical sources; rephrasings by Dr. Vinay Kumar Chaganti.
-          See <Link href="/credits" className="hover:underline text-violet-400">credits</Link> for source attribution.
+          See <Link href="/credits" className="hover:underline text-[var(--color-ink-2)]">credits</Link> for source attribution.
         </p>
       </footer>
     </div>

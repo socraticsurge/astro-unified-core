@@ -29,7 +29,7 @@ export function ProfileAvatar({
   className,
 }: ProfileAvatarProps) {
   const { outer, font } = SIZE_MAP[size];
-  const bg   = color     ?? "rgba(255,255,255,0.07)";
+  const bg   = color     ?? "var(--color-surface-2)";
   const text = textColor ?? colors.secondary;
 
   return (
@@ -40,7 +40,7 @@ export function ProfileAvatar({
         height: outer,
         borderRadius: "50%",
         background: bg,
-        border: `1px solid rgba(255,255,255,0.10)`,
+        border: `var(--border-width) solid var(--color-border)`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

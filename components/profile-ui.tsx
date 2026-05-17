@@ -14,15 +14,15 @@ type BadgeProps = { profileId: string };
 export function RelationshipBadge({ value, profileId }: { value?: string | null } & BadgeProps) {
   if (value) {
     return (
-      <span className="inline-flex items-center rounded-full bg-amber-900/40 px-2.5 py-0.5 text-[10px] font-medium text-amber-300 ring-1 ring-inset ring-amber-800/50">
+      <span className="inline-flex items-center rounded-full bg-[var(--color-accent-faint)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--color-accent)] ring-1 ring-inset ring-[var(--color-accent-dim)]">
         {value}
       </span>
-    );
+  );
   }
   return (
     <Link
       href={`/profiles/${profileId}/edit`}
-      className="inline-flex items-center rounded-full bg-red-950/30 px-2.5 py-0.5 text-[10px] font-medium text-red-400 ring-1 ring-inset ring-red-900/50 hover:bg-red-900/40 transition-colors"
+      className="inline-flex items-center rounded-full bg-[var(--color-danger)]/10 px-2.5 py-0.5 text-[10px] font-medium text-[var(--color-danger)] ring-1 ring-inset ring-[var(--color-danger)]/40 hover:bg-[var(--color-danger)]/20 transition-colors"
     >
       + Add Relationship
     </Link>
@@ -33,15 +33,15 @@ export function RelationshipBadge({ value, profileId }: { value?: string | null 
 export function GenderBadge({ value, profileId }: { value?: string | null } & BadgeProps) {
   if (value) {
     return (
-      <span className="inline-flex items-center rounded-full bg-blue-900/30 px-2.5 py-0.5 text-[10px] font-medium text-blue-300 ring-1 ring-inset ring-blue-800/40">
+      <span className="inline-flex items-center rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--color-ink-2)] ring-1 ring-inset ring-[var(--color-border)]">
         {value}
       </span>
-    );
+  );
   }
   return (
     <Link
       href={`/profiles/${profileId}/edit`}
-      className="inline-flex items-center rounded-full bg-red-950/30 px-2.5 py-0.5 text-[10px] font-medium text-red-400 ring-1 ring-inset ring-red-900/50 hover:bg-red-900/40 transition-colors"
+      className="inline-flex items-center rounded-full bg-[var(--color-danger)]/10 px-2.5 py-0.5 text-[10px] font-medium text-[var(--color-danger)] ring-1 ring-inset ring-[var(--color-danger)]/40 hover:bg-[var(--color-danger)]/20 transition-colors"
     >
       + Add Gender
     </Link>
@@ -56,7 +56,7 @@ export function CurrentLocationBadge({ value }: { value?: string | null }) {
   const display = parts.length > 2 ? `${parts[0]}, ${parts[parts.length - 1]}` : value;
   return (
     <span
-      className="inline-flex items-center rounded-full bg-violet-900/30 px-2.5 py-0.5 text-[10px] font-medium text-violet-300 ring-1 ring-inset ring-violet-800/40 max-w-[160px] truncate"
+      className="inline-flex items-center rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--color-ink-2)] ring-1 ring-inset ring-[var(--color-border)] max-w-[160px] truncate"
       title={value}
     >
       📍 {display}
@@ -85,12 +85,12 @@ export function ProfileBadges({
   return (
     <div className="flex flex-wrap items-center gap-2 mt-1">
       {relationship && (
-        <span className="inline-flex items-center rounded-full bg-amber-900/40 px-2.5 py-0.5 text-[10px] font-medium text-amber-300 ring-1 ring-inset ring-amber-800/50">
+        <span className="inline-flex items-center rounded-full bg-[var(--color-accent-faint)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--color-accent)] ring-1 ring-inset ring-[var(--color-accent-dim)]">
           {relationship}
         </span>
       )}
       {gender && (
-        <span className="inline-flex items-center rounded-full bg-blue-900/30 px-2.5 py-0.5 text-[10px] font-medium text-blue-300 ring-1 ring-inset ring-blue-800/40">
+        <span className="inline-flex items-center rounded-full bg-[var(--color-surface-2)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--color-ink-2)] ring-1 ring-inset ring-[var(--color-border)]">
           {gender}
         </span>
       )}
@@ -98,7 +98,7 @@ export function ProfileBadges({
       {incomplete && (
         <Link
           href={`/profiles/${profileId}/edit`}
-          className="inline-flex items-center rounded-full bg-white/5 px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-white/10 hover:bg-white/10 hover:text-foreground transition-colors"
+          className="inline-flex items-center rounded-full bg-[var(--color-surface-1)] px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-[var(--color-border)] hover:bg-[var(--color-surface-hover)] hover:text-foreground transition-colors"
         >
           Complete profile →
         </Link>
@@ -155,7 +155,7 @@ type CurrentLocationDetailsProps = {
 export function CurrentLocationDetails({ location, timezone, timezone_offset }: CurrentLocationDetailsProps) {
   const offsetStr = `UTC${timezone_offset >= 0 ? "+" : ""}${timezone_offset}`;
   return (
-    <div className="mt-1.5 pt-1.5 border-t border-white/5 space-y-1.5 text-sm">
+    <div className="mt-1.5 pt-1.5 border-t border-[var(--color-border-subtle)] space-y-1.5 text-sm">
       <div className="flex items-center gap-2 text-muted-foreground">
         <span className="text-base">🏠</span>
         <span className="font-medium text-foreground/80">Lives in {location}</span>
