@@ -8,6 +8,18 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Consistent name clamping and equal-height card pairs across all profile UIs
+
+### Added
+- **`lib/typography.ts`** — `clamp.one` (single-line, ellipsis) and `clamp.two` (two-line, webkit-box) utilities. Apply to any name inside a card; changing the strategy is a one-line edit here.
+
+### Changed
+- **`components/profile/ProfileSelectorCard.tsx`** — name uses `clamp.one`; card gets `height: 100%` so CSS grid rows equalize all cards in a row automatically.
+- **`components/compatibility/CompatibilityClient.tsx`** — SeatCard name uses `clamp.two`; parent container switches to `align-items: stretch` with flex column wrappers; `cardBase` gets `flex: 1` so both portrait cards are always the same height regardless of name length.
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — Groom and Bride names use `clamp.one`.
+
+---
+
 ## [2026-05-17] — Design system: color palette, text levels, ProfileAvatar, ProfileSelectorCard
 
 ### Added

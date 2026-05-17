@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { ProfileAvatar } from "./ProfileAvatar";
-import { textStyles, colors, fonts, scale } from "@/lib/typography";
+import { textStyles, colors, fonts, scale, clamp } from "@/lib/typography";
 
 interface ProfileSelectorCardProps {
   name: string;
@@ -45,13 +45,14 @@ export function ProfileSelectorCard({
     opacity,
     cursor: incomplete ? "default" : "pointer",
     textDecoration: "none",
+    height: "100%",
   };
 
   const nameStyle: React.CSSProperties = {
     ...fonts.display,
+    ...clamp.one,
     fontSize: scale.label,
     lineHeight: 1.3,
-    wordBreak: "break-word",
     color: selected ? colors.primary : colors.secondary,
   };
 

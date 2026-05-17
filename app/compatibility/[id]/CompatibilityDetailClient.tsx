@@ -9,7 +9,7 @@ import { KOOTA_MAX } from "@/lib/compatibility";
 import { Button } from "@/components/ui/button";
 import { CompatibilityInsightShell } from "@/components/engines/CompatibilityInsightShell";
 import { CompatibilityChat } from "@/components/engines/CompatibilityChat";
-import { fonts, textStyles, colors } from "@/lib/typography";
+import { fonts, textStyles, colors, clamp } from "@/lib/typography";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 const glassCard: React.CSSProperties = {
@@ -130,7 +130,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                 textColor="rgba(196,180,255,0.9)"
               />
               <div className="text-center w-full">
-                <div style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(196,180,255,0.95)", wordBreak: "break-word" }}>
+                <div style={{ ...fonts.display, ...clamp.one, fontSize: "1.05rem", color: "rgba(196,180,255,0.95)" }}>
                   {groomName}
                 </div>
                 <div style={{ ...textStyles.meta, letterSpacing: "0.1em", textTransform: "uppercase" }}>
@@ -153,7 +153,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                 textColor="rgba(251,191,200,0.9)"
               />
               <div className="text-center w-full">
-                <div style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(251,191,200,0.95)", wordBreak: "break-word" }}>
+                <div style={{ ...fonts.display, ...clamp.one, fontSize: "1.05rem", color: "rgba(251,191,200,0.95)" }}>
                   {brideName}
                 </div>
                 <div style={{ ...textStyles.meta, letterSpacing: "0.1em", textTransform: "uppercase" }}>

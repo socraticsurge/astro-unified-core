@@ -139,3 +139,25 @@ export const textStyles = {
     color: colors.muted,
   },
 } satisfies Record<string, CSSProperties>;
+
+// ── Name clamping ─────────────────────────────────────────────────────────────
+// Apply to every name displayed inside a card so no card grows taller than
+// its neighbors. Pick the variant that fits the card size.
+//
+//   <div style={{ ...textStyles.subhead, ...clamp.one }}>Krishnavenkataraman</div>
+//   → "Krishnavenkat…"
+
+export const clamp = {
+  one: {
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    maxWidth: "100%",
+  },
+  two: {
+    overflow: "hidden",
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+  },
+} satisfies Record<string, CSSProperties>;

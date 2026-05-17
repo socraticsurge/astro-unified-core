@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { fonts, textStyles, colors } from "@/lib/typography";
+import { fonts, textStyles, colors, clamp } from "@/lib/typography";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 function initials(name: string) {
@@ -84,6 +84,7 @@ function SeatCard({
     alignItems: "center",
     justifyContent: "center",
     minHeight: "200px",
+    flex: 1,
     padding: "28px 20px 20px",
     transition: "box-shadow 0.3s ease, border-color 0.3s ease",
   };
@@ -165,7 +166,7 @@ function SeatCard({
       </div>
 
       {/* Name */}
-      <div style={{ ...fonts.display, fontSize: "1.35rem", color: "rgba(255,255,255,0.92)", textAlign: "center", lineHeight: 1.2, wordBreak: "break-word", maxWidth: "100%" }}>
+      <div style={{ ...fonts.display, ...clamp.two, fontSize: "1.35rem", color: colors.primary, textAlign: "center", lineHeight: 1.2, width: "100%" }}>
         {profile!.name}
       </div>
 
@@ -268,8 +269,8 @@ export function CompatibilityClient({
       </div>
 
       {/* Portrait seat cards */}
-      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: "flex", alignItems: "stretch", gap: "16px" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <SeatCard
             role="groom"
             profiles={groomProfiles}
@@ -293,7 +294,7 @@ export function CompatibilityClient({
           &amp;
         </div>
 
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <SeatCard
             role="bride"
             profiles={brideProfiles}
