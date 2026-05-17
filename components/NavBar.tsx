@@ -96,14 +96,14 @@ const wordmarkStyle: React.CSSProperties = {
 const navLinkStyle: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
   fontWeight: 400,
-  fontSize: "1.1rem",
+  fontSize: "0.95rem",
   letterSpacing: "0.02em",
 };
 
 const adminLinkStyle: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
   fontWeight: 400,
-  fontSize: "1.0rem",
+  fontSize: "0.875rem",
   letterSpacing: "0.02em",
 };
 

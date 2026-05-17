@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Philosopher, Jost } from "next/font/google";
+import { Philosopher, Mulish } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { Analytics } from "@vercel/analytics/next";
@@ -13,7 +13,7 @@ import { authOptions } from "@/lib/auth";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-const jost = Jost({
+const mulish = Mulish({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-sans",
@@ -36,7 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = await getServerSession(authOptions);
   return (
     <html lang="en" className="dark">
-      <body className={`${jost.variable} ${philosopher.variable} font-sans antialiased`}>
+      <body className={`${mulish.variable} ${philosopher.variable} font-sans antialiased`}>
         <NextAuthProvider session={session}>
           <AppShell
             navBar={<NavBar />}
