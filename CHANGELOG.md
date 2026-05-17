@@ -8,6 +8,27 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Theme layer: runtime dark/light toggle with CSS custom properties
+
+### Added
+- **`lib/theme.ts`** — theme registry; adding a new theme = one entry here + one CSS block in `globals.css`. Zero component changes required.
+- **`components/ThemeProvider.tsx`** — next-themes wrapper; sets `data-theme` on `<html>`, persists to localStorage, no flash on reload (`suppressHydrationWarning` on `<html>`).
+- **`components/ThemeToggle.tsx`** — cycles themes on click; visible in desktop nav right cluster and mobile utility strip.
+- **`motion` token** in `lib/typography.ts` — theme-aware timing/easing for inline `transition` values (`motion.standard`, `motion.fast`, `motion.slow`, `motion.exit`).
+
+### Changed
+- **`app/globals.css`** — replaced `.dark {}` with `[data-theme="dark"]`; added full `[data-theme="light"]` (Archival: parchment background, crimson accents, near-square corners, snappy transitions); added semantic ink/surface/accent/status tokens to `@theme inline`; shadcn variables now remap to our semantic tokens so shadcn components participate in theming automatically; `@custom-variant dark` updated to target `[data-theme="dark"]`.
+- **`lib/typography.ts`** — all hardcoded `rgba()` and `px` values replaced with `var(--*)` references. `glass`, `radii`, `interactive`, `colors`, `fonts` are now fully theme-aware. Added `mono`/`monoMedium` font tokens.
+- **`app/layout.tsx`** — preloads 5 font families (Philosopher + Mulish for dark; Libre Baskerville + Inter + JetBrains Mono for light) with renamed CSS variables (`--font-display-dark`, `--font-ui-dark`, `--font-display-light`, `--font-ui-light`, `--font-mono-light`); removed hardcoded `dark` class from `<html>`; wraps app in `ThemeProvider`.
+- **All ~45 components** — migrated from scattered `bg-white/5`, `border-white/10`, hardcoded rgba, hardcoded px radius, hardcoded transition strings to semantic theme tokens. See phase entries below for per-file detail.
+
+### How to add a third theme
+1. Add one `[data-theme="new-theme"]` block to `app/globals.css` with all token values.
+2. Add one entry to `THEMES` in `lib/theme.ts`.
+3. Zero component changes required.
+
+---
+
 ## [2026-05-17] — Theme tokens: migrate admin, feedback, and engine files (phase 5)
 
 ### Changed
