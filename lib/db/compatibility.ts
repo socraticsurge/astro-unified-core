@@ -75,4 +75,12 @@ export const compatibility = {
     });
     return { id, user_id: userId, created_at, ...data };
   },
+
+  async delete(id: string, userId: string): Promise<void> {
+    await ensureSchema();
+    await getClient().execute({
+      sql: "DELETE FROM compatibility_checks WHERE id = ? AND user_id = ?",
+      args: [id, userId],
+    });
+  },
 };

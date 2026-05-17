@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
-import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { fonts, textStyles, colors, clamp, interactive, radii } from "@/lib/typography";
 import { scoreColor } from "@/lib/compatibility";
 import { NAV_CONFIG } from "@/lib/nav";
@@ -366,39 +366,70 @@ export function CompatibilityClient({
               const p2 = initialProfiles.find(p => p.id === c.profile_id_2);
               const isGood = c.score >= 18;
               return (
-                <Link key={c.id} href={`/compatibility/${c.id}`}>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "16px",
-                    background: "rgba(255,255,255,0.035)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: "16px",
-                    padding: "14px 18px",
-                  }}
-                    className={interactive.listRow}
+                <div key={c.id} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0",
+                  background: "rgba(255,255,255,0.035)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "16px",
+                  overflow: "hidden",
+                }}>
+                  <Link href={`/compatibility/${c.id}`} style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "16px",
+                      padding: "14px 18px",
+                    }}
+                      className={interactive.listRow}
+                    >
+                      <ScoreRing score={c.score} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ ...fonts.display, fontSize: "1.1rem", color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {p1?.name ?? "—"}{" "}
+                          <span style={{ color: "rgba(255,255,255,0.22)", fontStyle: "italic" }}>&amp;</span>{" "}
+                          {p2?.name ?? "—"}
+                        </div>
+                        <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", marginTop: "3px" }}>
+                          {new Date(c.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <div style={{ ...fonts.display, fontSize: "1.5rem", fontWeight: 700, color: isGood ? "#86efac" : "#fbbf24" }}>
+                          {c.score}/36
+                        </div>
+                        <div style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.28)", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: "1px" }}>
+                          {isGood ? "Auspicious" : "Moderate"}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      if (!confirm("Delete this compatibility reading?")) return;
+                      const res = await fetch(`/api/compatibility/${c.id}`, { method: "DELETE" });
+                      if (res.ok) setChecks(prev => prev.filter(x => x.id !== c.id));
+                    }}
+                    aria-label="Delete reading"
+                    style={{
+                      flexShrink: 0,
+                      padding: "14px 16px",
+                      background: "none",
+                      border: "none",
+                      borderLeft: "1px solid rgba(255,255,255,0.06)",
+                      cursor: "pointer",
+                      color: "rgba(255,255,255,0.2)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "color 0.2s ease",
+                    }}
+                    className="hover:!text-red-400"
                   >
-                    <ScoreRing score={c.score} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ ...fonts.display, fontSize: "1.1rem", color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {p1?.name ?? "—"}{" "}
-                        <span style={{ color: "rgba(255,255,255,0.22)", fontStyle: "italic" }}>&amp;</span>{" "}
-                        {p2?.name ?? "—"}
-                      </div>
-                      <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", marginTop: "3px" }}>
-                        {new Date(c.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ ...fonts.display, fontSize: "1.5rem", fontWeight: 700, color: isGood ? "#86efac" : "#fbbf24" }}>
-                        {c.score}/36
-                      </div>
-                      <div style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.28)", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: "1px" }}>
-                        {isGood ? "Auspicious" : "Moderate"}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               );
             })}
           </div>

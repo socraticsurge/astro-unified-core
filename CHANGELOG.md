@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Bug fixes: compatibility deletion, profile edit discoverability
+
+### Added
+- **Compatibility check deletion** — fully implemented end-to-end:
+  - `lib/db/compatibility.ts` — `delete(id, userId)` DB function.
+  - `app/api/compatibility/[id]/route.ts` — authenticated DELETE handler with ownership check.
+  - `components/compatibility/CompatibilityClient.tsx` — trash icon on each past-reading row; optimistic removal on success.
+- **Edit button on profile detail page** — pencil icon next to the profile name ensures the edit path is always discoverable, even for fully-complete profiles that don't show the "Complete profile →" badge.
+
+### Fixed
+- Profile editing was inaccessible for profiles with all fields filled (relationship, gender, current_location all set). The "Complete profile →" badge only appears when something is missing; now a persistent edit icon in the header guarantees the path is always visible.
+
+---
+
 ## [2026-05-17] — Navigation UX: centralized config, label fixes, flow improvements
 
 ### Added

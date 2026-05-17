@@ -7,7 +7,7 @@ import { ProfessionalView } from "@/components/engines/ProfessionalView";
 import { Button } from "@/components/ui/button";
 import {
   RefreshCw, AlertCircle, Code, Copy, Check, Info,
-  LayoutDashboard, User, MessageCircle,
+  LayoutDashboard, User, MessageCircle, Pencil,
 } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { textStyles } from "@/lib/typography";
@@ -199,7 +199,14 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
         {/* Identity + Birth Data */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <h1 style={textStyles.pageTitle}>{profile.name}</h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 style={textStyles.pageTitle}>{profile.name}</h1>
+              <Link href={`/profiles/${profile.id}/edit`} title="Edit profile">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
             <ProfileBadges
               relationship={profile.relationship}
               gender={profile.gender}
