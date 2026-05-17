@@ -8,6 +8,24 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Layout & navigation: view transitions, PageHeader, tab fix, chart skeleton
+
+### Added
+- **`@view-transition { navigation: auto; }`** in `globals.css` — free cross-fade between all page navigations; profile avatar morphs from list → detail via shared `viewTransitionName`. No library, no JS.
+- **`components/PageHeader.tsx`** — shared header (back chevron, title, subtitle, actions slot). Used on every sub-page; future pages get consistent navigation for free.
+- **`components/ChartSkeleton.tsx`** — shimmer skeleton mirroring the Dashaflow section structure; shown while chart data fetches so users see content shape, not a blank spinner.
+- **`app/profiles/[id]/loading.tsx`** — Next.js route-level loading file; shows a full-page profile + chart skeleton automatically during page navigation (before client mounts).
+
+### Changed
+- **`components/dashboard/ProfileList.tsx`** — added monogram avatar to each profile card with `viewTransitionName` keyed to profile id; enables shared element transition to detail page.
+- **`app/profiles/[id]/ProfileDetailClient.tsx`** — PageHeader replaces inline h1+edit pattern; ChartSkeleton replaces full-screen spinner during chart fetch; avatar gets matching `viewTransitionName`.
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — PageHeader replaces inline ArrowLeft back link.
+- **`app/consultation/page.tsx`** — PageHeader replaces inline h1.
+- **`app/profiles/new/page.tsx`** and **`app/profiles/[id]/edit/page.tsx`** — PageHeader replaces ad-hoc flex-row ChevronLeft+h1 patterns.
+- **`components/engines/ProfessionalView.tsx`** — tab strip is now `overflow-x-auto scrollbar-none scroll-smooth flex` at all sizes; tabs have `shrink-0`; no more `flex-col sm:flex-row` vertical stacking on mobile.
+
+---
+
 ## [2026-05-17] — Shared PageHeader component; consistent back navigation across all sub-pages
 
 ### Added
