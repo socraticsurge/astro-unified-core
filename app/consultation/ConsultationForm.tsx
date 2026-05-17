@@ -118,44 +118,120 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
       <div style={{ ...glassCard, padding: "28px 24px", boxShadow: "0 16px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10)" }}>
 
         {/* Step 1: Profiles */}
-        <div className="space-y-3 mb-6">
-          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>
+        <div className="space-y-4 mb-6">
+          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
             Whose chart is this about?
           </p>
           {profiles.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No profiles yet. <Link href="/dashboard" className="text-amber-400 underline">Add one first.</Link>
-            </p>
+            <Link href="/dashboard" style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              border: "1.5px dashed rgba(251,191,36,0.18)",
+              borderRadius: "16px",
+              padding: "24px 16px",
+              textDecoration: "none",
+              background: "rgba(255,255,255,0.02)",
+            }}>
+              <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" style={{ opacity: 0.2 }}>
+                <circle cx="20" cy="14" r="8" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
+                <path d="M4 38 Q4 26 20 26 Q36 26 36 38" fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span style={{ ...cormorant, fontSize: "0.9rem", fontStyle: "italic", color: "rgba(251,191,36,0.45)" }}>Add a profile to begin</span>
+            </Link>
           ) : (
-            <div className="space-y-2">
-              {completeProfiles.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {completeProfiles.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => toggleProfile(p.id)}
-                      className={`flex items-center gap-2 px-3.5 py-2 rounded-full border text-sm transition-all ${
-                        selectedProfiles.includes(p.id)
-                          ? "border-amber-400/60 bg-amber-400/10 text-amber-200"
-                          : "border-white/10 bg-white/5 text-white/55 hover:text-white/90 hover:bg-white/10"
-                      }`}
-                      style={cormorant}
-                    >
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "10px" }}>
+              {completeProfiles.map(p => {
+                const selected = selectedProfiles.includes(p.id);
+                const inits = p.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => toggleProfile(p.id)}
+                    style={{
+                      background: selected ? "rgba(251,191,36,0.07)" : "rgba(255,255,255,0.03)",
+                      border: `1px solid ${selected ? "rgba(251,191,36,0.45)" : "rgba(255,255,255,0.09)"}`,
+                      borderRadius: "16px",
+                      padding: "16px 12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "8px",
+                      cursor: "pointer",
+                      transition: "border-color 0.2s, background 0.2s, box-shadow 0.2s",
+                      boxShadow: selected ? "0 0 20px rgba(251,191,36,0.10)" : "none",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div style={{
+                      width: "40px",
+                      height: "40px",
+                      borderRadius: "50%",
+                      background: selected ? "rgba(251,191,36,0.15)" : "rgba(255,255,255,0.06)",
+                      border: `1px solid ${selected ? "rgba(251,191,36,0.35)" : "rgba(255,255,255,0.10)"}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontFamily: "var(--font-cormorant), Georgia, serif",
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                      color: selected ? "rgba(251,191,36,0.9)" : "rgba(255,255,255,0.45)",
+                      flexShrink: 0,
+                    }}>
+                      {inits}
+                    </div>
+                    <div style={{ ...cormorant, fontSize: "0.95rem", color: selected ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.55)", lineHeight: 1.3, wordBreak: "break-word" }}>
                       {p.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {incompleteProfiles.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {incompleteProfiles.map(p => (
-                    <span key={p.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/5 bg-white/[0.02] text-sm text-muted-foreground/40">
+                    </div>
+                    {p.relationship && (
+                      <div style={{ fontSize: "0.68rem", letterSpacing: "0.08em", textTransform: "capitalize", color: selected ? "rgba(251,191,36,0.55)" : "rgba(255,255,255,0.22)" }}>
+                        {p.relationship}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+              {incompleteProfiles.map(p => {
+                const inits = p.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+                return (
+                  <Link
+                    key={p.id}
+                    href={`/profiles/${p.id}/edit`}
+                    style={{
+                      background: "rgba(255,255,255,0.015)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      borderRadius: "16px",
+                      padding: "16px 12px 14px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "8px",
+                      textDecoration: "none",
+                      opacity: 0.45,
+                      textAlign: "center",
+                    }}
+                  >
+                    <div style={{
+                      width: "40px", height: "40px", borderRadius: "50%",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.07)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontFamily: "var(--font-cormorant), Georgia, serif",
+                      fontWeight: 600, fontSize: "0.95rem", color: "rgba(255,255,255,0.3)",
+                    }}>
+                      {inits}
+                    </div>
+                    <div style={{ ...cormorant, fontSize: "0.95rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.3 }}>
                       {p.name}
-                      <Link href={`/profiles/${p.id}/edit`} className="text-xs text-amber-400/60 hover:text-amber-400 underline">Complete →</Link>
-                    </span>
-                  ))}
-                </div>
-              )}
+                    </div>
+                    <div style={{ fontSize: "0.65rem", color: "rgba(251,191,36,0.5)", letterSpacing: "0.06em" }}>
+                      complete profile
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

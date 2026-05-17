@@ -3,12 +3,262 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 const cormorant: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
   fontWeight: 300,
 };
+
+function initials(name: string) {
+  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function formatBirthDate(dob: string | null | undefined): string {
+  if (!dob) return "";
+  try {
+    return new Date(dob).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  } catch {
+    return dob;
+  }
+}
+
+type SeatRole = "groom" | "bride";
+
+const ROLE_COLORS: Record<SeatRole, {
+  accent: string;
+  accentFaint: string;
+  avatarBg: string;
+  avatarText: string;
+  cardBorder: string;
+  cardGlow: string;
+  label: string;
+}> = {
+  groom: {
+    accent: "rgba(196,180,255,0.85)",
+    accentFaint: "rgba(196,180,255,0.25)",
+    avatarBg: "rgba(139,92,246,0.18)",
+    avatarText: "rgba(196,180,255,0.9)",
+    cardBorder: "rgba(139,92,246,0.28)",
+    cardGlow: "0 0 32px rgba(139,92,246,0.12)",
+    label: "Groom",
+  },
+  bride: {
+    accent: "rgba(251,191,200,0.85)",
+    accentFaint: "rgba(251,191,200,0.25)",
+    avatarBg: "rgba(244,114,182,0.16)",
+    avatarText: "rgba(251,191,200,0.9)",
+    cardBorder: "rgba(244,114,182,0.26)",
+    cardGlow: "0 0 32px rgba(244,114,182,0.10)",
+    label: "Bride",
+  },
+};
+
+function SeatCard({
+  role,
+  profiles,
+  idx,
+  onPrev,
+  onNext,
+  disabled,
+}: {
+  role: SeatRole;
+  profiles: Profile[];
+  idx: number;
+  onPrev: () => void;
+  onNext: () => void;
+  disabled: boolean;
+}) {
+  const c = ROLE_COLORS[role];
+  const profile = profiles[idx] ?? null;
+  const count = profiles.length;
+
+  const cardBase: React.CSSProperties = {
+    position: "relative",
+    borderRadius: "20px",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "200px",
+    padding: "28px 20px 20px",
+    transition: "box-shadow 0.3s ease, border-color 0.3s ease",
+  };
+
+  if (count === 0) {
+    // Empty state — dashed invitation
+    return (
+      <div style={{
+        ...cardBase,
+        background: "rgba(255,255,255,0.025)",
+        border: `1.5px dashed ${c.accentFaint}`,
+      }}>
+        {/* Faint silhouette circle */}
+        <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true" style={{ marginBottom: "14px", opacity: 0.22 }}>
+          <circle cx="28" cy="20" r="11" fill="none" stroke={c.accent} strokeWidth="1.5" />
+          <path d="M8 52 Q8 36 28 36 Q48 36 48 52" fill="none" stroke={c.accent} strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        <p style={{ ...cormorant, fontSize: "1rem", fontStyle: "italic", color: c.accentFaint, textAlign: "center", lineHeight: 1.5, marginBottom: "16px" }}>
+          {c.label}
+        </p>
+        <Link
+          href="/profiles/new"
+          style={{
+            fontSize: "0.78rem",
+            letterSpacing: "0.08em",
+            color: c.accent,
+            opacity: 0.7,
+            textDecoration: "none",
+            border: `1px solid ${c.accentFaint}`,
+            borderRadius: "999px",
+            padding: "5px 14px",
+          }}
+        >
+          + add profile
+        </Link>
+      </div>
+    );
+  }
+
+  // Filled state
+  return (
+    <div style={{
+      ...cardBase,
+      background: "rgba(255,255,255,0.04)",
+      border: `1px solid ${c.cardBorder}`,
+      boxShadow: c.cardGlow,
+    }}>
+      {/* Role label top */}
+      <div style={{
+        position: "absolute",
+        top: "14px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        fontSize: "0.68rem",
+        letterSpacing: "0.14em",
+        textTransform: "uppercase",
+        color: c.accentFaint,
+        whiteSpace: "nowrap",
+      }}>
+        {c.label}
+      </div>
+
+      {/* Avatar */}
+      <div style={{
+        width: "56px",
+        height: "56px",
+        borderRadius: "50%",
+        background: c.avatarBg,
+        border: `1px solid ${c.cardBorder}`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: "14px",
+        marginTop: "8px",
+        fontSize: "1.1rem",
+        fontWeight: 600,
+        color: c.avatarText,
+        fontFamily: "var(--font-cormorant), Georgia, serif",
+        letterSpacing: "0.04em",
+        flexShrink: 0,
+      }}>
+        {initials(profile.name)}
+      </div>
+
+      {/* Name */}
+      <div style={{
+        ...cormorant,
+        fontSize: "1.35rem",
+        color: "rgba(255,255,255,0.92)",
+        textAlign: "center",
+        lineHeight: 1.2,
+        wordBreak: "break-word",
+        maxWidth: "100%",
+      }}>
+        {profile.name}
+      </div>
+
+      {/* Birth date */}
+      {profile.date_of_birth && (
+        <div style={{
+          fontSize: "0.72rem",
+          color: "rgba(255,255,255,0.28)",
+          marginTop: "6px",
+          letterSpacing: "0.04em",
+          textAlign: "center",
+        }}>
+          {formatBirthDate(profile.date_of_birth)}
+        </div>
+      )}
+
+      {/* Carousel controls — only if 2+ profiles */}
+      {count >= 2 && (
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          marginTop: "18px",
+        }}>
+          <button
+            onClick={onPrev}
+            disabled={disabled}
+            aria-label="Previous"
+            style={{
+              background: "none",
+              border: `1px solid ${c.accentFaint}`,
+              borderRadius: "50%",
+              width: "28px",
+              height: "28px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: disabled ? "not-allowed" : "pointer",
+              color: c.accent,
+              opacity: disabled ? 0.4 : 0.7,
+              transition: "opacity 0.2s",
+            }}
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <span style={{
+            ...cormorant,
+            fontSize: "0.85rem",
+            color: "rgba(255,255,255,0.3)",
+            minWidth: "32px",
+            textAlign: "center",
+            letterSpacing: "0.04em",
+          }}>
+            {idx + 1}/{count}
+          </span>
+          <button
+            onClick={onNext}
+            disabled={disabled}
+            aria-label="Next"
+            style={{
+              background: "none",
+              border: `1px solid ${c.accentFaint}`,
+              borderRadius: "50%",
+              width: "28px",
+              height: "28px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: disabled ? "not-allowed" : "pointer",
+              color: c.accent,
+              opacity: disabled ? 0.4 : 0.7,
+              transition: "opacity 0.2s",
+            }}
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ScoreRing({ score }: { score: number }) {
   const color = score >= 26 ? "#34d399" : score >= 18 ? "#86efac" : score >= 12 ? "#fbbf24" : "#f87171";
@@ -29,10 +279,6 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-function initials(name: string) {
-  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-}
-
 export function CompatibilityClient({
   initialProfiles,
   initialChecks,
@@ -44,11 +290,15 @@ export function CompatibilityClient({
   const [checks, setChecks] = useState<CompatibilityCheck[]>(initialChecks);
   const [calculating, setCalculating] = useState(false);
   const [calcError, setCalcError] = useState<string | null>(null);
-  const [groomId, setGroomId] = useState("");
-  const [brideId, setBrideId] = useState("");
+  const [groomIdx, setGroomIdx] = useState(0);
+  const [brideIdx, setBrideIdx] = useState(0);
 
   const groomProfiles = initialProfiles.filter(p => p.gender?.toLowerCase() === "male");
   const brideProfiles = initialProfiles.filter(p => p.gender?.toLowerCase() === "female");
+  const selectedGroom = groomProfiles[groomIdx] ?? null;
+  const selectedBride = brideProfiles[brideIdx] ?? null;
+  const groomId = selectedGroom?.id ?? "";
+  const brideId = selectedBride?.id ?? "";
   const canRun = !!groomId && !!brideId && !calculating;
 
   const handleCalculate = async () => {
@@ -80,101 +330,61 @@ export function CompatibilityClient({
         <h1 style={{ ...cormorant, fontSize: "2.4rem", letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
           Kundali Matching
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p style={{ marginTop: "4px", fontSize: "0.85rem", color: "rgba(255,255,255,0.32)", letterSpacing: "0.04em" }}>
           Ashtakoota Milan — 36 gunas, classical Vedic compatibility
         </p>
       </div>
 
-      {/* Match form */}
-      <div style={{
-        background: "rgba(255,255,255,0.045)",
-        border: "1px solid rgba(255,255,255,0.11)",
-        borderRadius: "20px",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        boxShadow: "0 16px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10)",
-        padding: "28px 24px",
-      }}>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Groom */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span style={{ fontSize: "1.1rem" }}>🤵</span>
-              <span style={{ ...cormorant, fontSize: "1.15rem", color: "rgba(196,180,255,0.9)", letterSpacing: "0.04em" }}>
-                Groom
-              </span>
-            </div>
-            {groomProfiles.length === 0 ? (
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                No male profiles found. <Link href="/profiles/new" className="text-amber-400 underline">Add a profile</Link> and set gender to Male.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {groomProfiles.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setGroomId(g => g === p.id ? "" : p.id)}
-                    disabled={calculating}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm transition-all ${
-                      groomId === p.id
-                        ? "border-violet-400/60 bg-violet-400/10 text-violet-200"
-                        : "border-white/10 bg-white/5 text-white/60 hover:text-white/90 hover:bg-white/10"
-                    }`}
-                    style={cormorant}
-                  >
-                    <span className="h-5 w-5 rounded-full bg-violet-500/30 flex items-center justify-center text-[10px] font-bold text-violet-300 shrink-0">
-                      {initials(p.name)}
-                    </span>
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Bride */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span style={{ fontSize: "1.1rem" }}>👰</span>
-              <span style={{ ...cormorant, fontSize: "1.15rem", color: "rgba(251,191,200,0.9)", letterSpacing: "0.04em" }}>
-                Bride
-              </span>
-            </div>
-            {brideProfiles.length === 0 ? (
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                No female profiles found. <Link href="/profiles/new" className="text-amber-400 underline">Add a profile</Link> and set gender to Female.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {brideProfiles.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setBrideId(b => b === p.id ? "" : p.id)}
-                    disabled={calculating}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm transition-all ${
-                      brideId === p.id
-                        ? "border-rose-400/60 bg-rose-400/10 text-rose-200"
-                        : "border-white/10 bg-white/5 text-white/60 hover:text-white/90 hover:bg-white/10"
-                    }`}
-                    style={cormorant}
-                  >
-                    <span className="h-5 w-5 rounded-full bg-rose-500/30 flex items-center justify-center text-[10px] font-bold text-rose-300 shrink-0">
-                      {initials(p.name)}
-                    </span>
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+      {/* Portrait seat cards */}
+      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div style={{ flex: 1 }}>
+          <SeatCard
+            role="groom"
+            profiles={groomProfiles}
+            idx={groomIdx}
+            onPrev={() => setGroomIdx(i => (i - 1 + groomProfiles.length) % groomProfiles.length)}
+            onNext={() => setGroomIdx(i => (i + 1) % groomProfiles.length)}
+            disabled={calculating}
+          />
         </div>
 
-        {/* Divider */}
-        <div className="my-5 border-t border-white/[0.07]" />
+        {/* Connector */}
+        <div style={{
+          ...cormorant,
+          fontSize: "1.8rem",
+          fontStyle: "italic",
+          color: "rgba(255,255,255,0.10)",
+          flexShrink: 0,
+          userSelect: "none",
+          lineHeight: 1,
+        }}>
+          &amp;
+        </div>
 
+        <div style={{ flex: 1 }}>
+          <SeatCard
+            role="bride"
+            profiles={brideProfiles}
+            idx={brideIdx}
+            onPrev={() => setBrideIdx(i => (i - 1 + brideProfiles.length) % brideProfiles.length)}
+            onNext={() => setBrideIdx(i => (i + 1) % brideProfiles.length)}
+            disabled={calculating}
+          />
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div>
         {calcError && (
-          <p className="mb-4 text-sm text-red-300 bg-red-950/30 border border-red-900/40 rounded-xl px-4 py-2.5">
+          <p style={{
+            marginBottom: "12px",
+            fontSize: "0.85rem",
+            color: "#fca5a5",
+            background: "rgba(127,29,29,0.25)",
+            border: "1px solid rgba(127,29,29,0.4)",
+            borderRadius: "12px",
+            padding: "10px 16px",
+          }}>
             {calcError}
           </p>
         )}
@@ -184,39 +394,36 @@ export function CompatibilityClient({
           disabled={!canRun}
           style={{
             width: "100%",
-            padding: "13px 0",
-            borderRadius: "14px",
+            padding: "14px 0",
+            borderRadius: "16px",
             border: "none",
             cursor: canRun ? "pointer" : "not-allowed",
             background: canRun
               ? "linear-gradient(105deg, #92400e 0%, #d97706 35%, #fcd34d 50%, #d97706 65%, #92400e 100%)"
               : "rgba(255,255,255,0.06)",
             backgroundSize: "200% auto",
-            color: canRun ? "#3b1a00" : "rgba(255,255,255,0.3)",
+            color: canRun ? "#3b1a00" : "rgba(255,255,255,0.22)",
+            fontFamily: "var(--font-cormorant), Georgia, serif",
             fontWeight: 600,
-            fontSize: "1rem",
-            letterSpacing: "0.02em",
-            boxShadow: canRun ? "0 4px 20px rgba(217,119,6,0.35)" : "none",
+            fontSize: "1.1rem",
+            letterSpacing: "0.04em",
+            boxShadow: canRun ? "0 4px 24px rgba(217,119,6,0.32)" : "none",
             transition: "opacity 0.2s ease",
             opacity: calculating ? 0.7 : 1,
           }}
         >
           {calculating
-            ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin inline" /> Calculating…</span>
-            : "✦  See how they match"}
+            ? <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                <Loader2 className="h-4 w-4 animate-spin" style={{ display: "inline" }} /> Calculating…
+              </span>
+            : "See how they align"}
         </button>
-
-        {(!groomId || !brideId) && (
-          <p className="mt-3 text-center text-xs text-muted-foreground/60">
-            {!groomId && !brideId ? "Select a groom and a bride above" : !groomId ? "Select the groom" : "Select the bride"}
-          </p>
-        )}
       </div>
 
-      {/* Past results */}
+      {/* Past readings */}
       {checks.length > 0 && (
         <section className="space-y-3">
-          <h2 style={{ ...cormorant, fontSize: "1.2rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>
+          <h2 style={{ ...cormorant, fontSize: "1.1rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.08em" }}>
             Past readings
           </h2>
           <div className="space-y-2">
@@ -231,27 +438,30 @@ export function CompatibilityClient({
                     alignItems: "center",
                     gap: "16px",
                     background: "rgba(255,255,255,0.035)",
-                    border: "1px solid rgba(255,255,255,0.09)",
+                    border: "1px solid rgba(255,255,255,0.08)",
                     borderRadius: "16px",
                     padding: "14px 18px",
                     transition: "background 0.2s",
+                    cursor: "pointer",
                   }}
-                    className="hover:bg-white/[0.06] cursor-pointer"
+                    className="hover:bg-white/[0.055]"
                   >
                     <ScoreRing score={c.score} />
-                    <div className="flex-1 min-w-0">
-                      <div style={{ ...cormorant, fontSize: "1.1rem", color: "rgba(255,255,255,0.88)" }} className="truncate">
-                        {p1?.name ?? "—"} <span style={{ color: "rgba(255,255,255,0.3)", fontStyle: "italic" }}>&amp;</span> {p2?.name ?? "—"}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ ...cormorant, fontSize: "1.1rem", color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {p1?.name ?? "—"}{" "}
+                        <span style={{ color: "rgba(255,255,255,0.22)", fontStyle: "italic" }}>&amp;</span>{" "}
+                        {p2?.name ?? "—"}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
+                      <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", marginTop: "3px" }}>
                         {new Date(c.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
                       <div style={{ ...cormorant, fontSize: "1.5rem", fontWeight: 600, color: isGood ? "#86efac" : "#fbbf24" }}>
                         {c.score}/36
                       </div>
-                      <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                      <div style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.28)", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: "1px" }}>
                         {isGood ? "Auspicious" : "Moderate"}
                       </div>
                     </div>
@@ -261,15 +471,6 @@ export function CompatibilityClient({
             })}
           </div>
         </section>
-      )}
-
-      {checks.length === 0 && groomProfiles.length > 0 && brideProfiles.length > 0 && (
-        <div className="text-center py-12">
-          <div style={{ fontSize: "2rem", marginBottom: "8px" }}>💍</div>
-          <p style={{ ...cormorant, fontSize: "1.1rem", color: "rgba(255,255,255,0.35)", fontStyle: "italic" }}>
-            Select a groom and bride above to see how the stars align
-          </p>
-        </div>
       )}
     </div>
   );

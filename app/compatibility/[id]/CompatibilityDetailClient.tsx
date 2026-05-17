@@ -136,12 +136,12 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
               }}>
                 {initials(groomName)}
               </div>
-              <div className="text-center">
-                <div style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(196,180,255,0.95)" }} className="truncate max-w-[100px]">
+              <div className="text-center w-full">
+                <div style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(196,180,255,0.95)", wordBreak: "break-word" }}>
                   {groomName}
                 </div>
                 <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  🤵 Groom
+                  Groom
                 </div>
               </div>
             </div>
@@ -163,12 +163,12 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
               }}>
                 {initials(brideName)}
               </div>
-              <div className="text-center">
-                <div style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(251,191,200,0.95)" }} className="truncate max-w-[100px]">
+              <div className="text-center w-full">
+                <div style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(251,191,200,0.95)", wordBreak: "break-word" }}>
                   {brideName}
                 </div>
                 <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  👰 Bride
+                  Bride
                 </div>
               </div>
             </div>
@@ -266,8 +266,8 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
               <div style={{ ...cormorant, fontSize: "1.3rem", color: hasManglik ? "#fca5a5" : "#6ee7b7" }}>
                 {hasManglik ? "Present" : "Not Present"}
               </div>
-              {kujaDosha?.male?.is_manglik && <div className="text-xs text-muted-foreground mt-1">🤵 {groomName} is Manglik</div>}
-              {kujaDosha?.female?.is_manglik && <div className="text-xs text-muted-foreground mt-0.5">👰 {brideName} is Manglik</div>}
+              {kujaDosha?.male?.is_manglik && <div className="text-xs text-muted-foreground mt-1">{groomName} is Manglik</div>}
+              {kujaDosha?.female?.is_manglik && <div className="text-xs text-muted-foreground mt-0.5">{brideName} is Manglik</div>}
               <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
                 {kujaDosha?.compatibility?.description ?? (hasManglik ? "Mangal Dosha present — seek guidance on remedies." : "No Mangal Dosha detected.")}
               </div>
@@ -346,12 +346,12 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
                 {[
-                  { emoji: "🤵", label: groomName, details: result.male_details, color: "rgba(196,180,255,0.9)" },
-                  { emoji: "👰", label: brideName, details: result.female_details, color: "rgba(251,191,200,0.9)" },
-                ].map(({ emoji, label, details, color }) => (
+                  { label: groomName, details: result.male_details, color: "rgba(196,180,255,0.9)" },
+                  { label: brideName, details: result.female_details, color: "rgba(251,191,200,0.9)" },
+                ].map(({ label, details, color }) => (
                   <div key={label} className="p-4 space-y-2.5">
-                    <div style={{ ...cormorant, fontSize: "0.95rem", color }} className="flex items-center gap-1.5">
-                      <span>{emoji}</span> {label}
+                    <div style={{ ...cormorant, fontSize: "0.95rem", color }}>
+                      {label}
                     </div>
                     {[
                       ["Moon Sign", details?.moon_sign],
@@ -380,12 +380,12 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
                 {[
-                  { emoji: "🤵", label: groomName, dosha: kujaDosha.male, color: "rgba(196,180,255,0.9)" },
-                  { emoji: "👰", label: brideName, dosha: kujaDosha.female, color: "rgba(251,191,200,0.9)" },
-                ].map(({ emoji, label, dosha, color }) => (
+                  { label: groomName, dosha: kujaDosha.male, color: "rgba(196,180,255,0.9)" },
+                  { label: brideName, dosha: kujaDosha.female, color: "rgba(251,191,200,0.9)" },
+                ].map(({ label, dosha, color }) => (
                   <div key={label} className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <span style={{ ...cormorant, fontSize: "0.95rem", color }} className="flex items-center gap-1">{emoji} {label}</span>
+                      <span style={{ ...cormorant, fontSize: "0.95rem", color }}>{label}</span>
                       <span className={`text-xs font-semibold ${dosha?.is_manglik ? "text-red-400" : "text-emerald-400"}`}>
                         {dosha?.is_manglik ? "Manglik" : "Not Manglik"}
                       </span>
@@ -438,9 +438,9 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                         {kuta.description && <div className="text-xs text-muted-foreground">{kuta.description}</div>}
                         {kuta.male && kuta.female && (
                           <div className="text-xs text-muted-foreground">
-                            🤵 <span style={{ color: "rgba(196,180,255,0.85)" }} className="font-medium capitalize">{kuta.male}</span>
+                            <span style={{ color: "rgba(196,180,255,0.85)" }} className="font-medium capitalize">{groomName}: {kuta.male}</span>
                             <span className="mx-2 text-white/20">·</span>
-                            👰 <span style={{ color: "rgba(251,191,200,0.85)" }} className="font-medium capitalize">{kuta.female}</span>
+                            <span style={{ color: "rgba(251,191,200,0.85)" }} className="font-medium capitalize">{brideName}: {kuta.female}</span>
                           </div>
                         )}
                         {kuta.issues && kuta.issues.length > 0 && (

@@ -8,6 +8,15 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Portrait seat cards for Kundali Matching + Consultation; remove emoji throughout
+
+### Changed
+- **`components/compatibility/CompatibilityClient.tsx`** — Profile pill buttons replaced with portrait seat cards. Two glass cards (Groom / Bride) side by side with faint `&` connector. Empty state shows faint SVG silhouette with an `+ add profile` link. Filled state shows large Cormorant name, birth date, initials avatar, and `‹ idx/total ›` carousel controls when 2+ profiles exist. Violet color system for groom; rose for bride. No emoji anywhere.
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — Name truncation (`max-w-[100px] truncate`) removed; names now wrap with `word-break: break-word`. Emoji (`🤵` / `👰`) stripped from Natal Moon Profiles, Kuja Dosha, Manglik lines, and guna breakdown detail rows. Name labels substituted instead.
+- **`app/consultation/ConsultationForm.tsx`** — Profile pill buttons replaced with portrait cards in a responsive auto-fill grid. Complete profiles show initials avatar, name in Cormorant, relationship role; selected state uses amber/gold border + glow. Incomplete profiles shown as faint unselectable cards with "complete profile" link. Empty state shows dashed placeholder linking to dashboard.
+
+---
+
 ## [2026-05-17] — Kundali Matching + Consultation redesign; remove question/check caps
 
 ### Changed
