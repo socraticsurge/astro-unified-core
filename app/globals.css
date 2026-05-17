@@ -146,6 +146,27 @@
   --surface-blend:         rgba(255,255,255,0.04);
   --border-width:          1px;
 
+  /* Type scale */
+  --fs-page-title:         2.2rem;
+  --fs-section-head:       1.4rem;
+  --fs-subhead:            1.15rem;
+  --fs-body:               1rem;
+  --fs-label:              0.95rem;
+  --fs-small:              0.875rem;
+  --fs-xs:                 0.75rem;
+
+  /* Spacing */
+  --space-1:               4px;
+  --space-2:               8px;
+  --space-3:               12px;
+  --space-4:               16px;
+  --space-5:               20px;
+  --space-6:               24px;
+  --space-8:               32px;
+  --space-10:              40px;
+  --space-12:              48px;
+  --space-16:              64px;
+
   /* Typography character */
   --tracking-label:        0.04em;
   --label-transform:       none;
@@ -231,6 +252,27 @@
   --surface-blend:         #FFFCF6;
   --border-width:          2px;
 
+  /* Type scale */
+  --fs-page-title:         2.2rem;
+  --fs-section-head:       1.4rem;
+  --fs-subhead:            1.15rem;
+  --fs-body:               1rem;
+  --fs-label:              0.95rem;
+  --fs-small:              0.875rem;
+  --fs-xs:                 0.75rem;
+
+  /* Spacing */
+  --space-1:               4px;
+  --space-2:               8px;
+  --space-3:               12px;
+  --space-4:               16px;
+  --space-5:               20px;
+  --space-6:               24px;
+  --space-8:               32px;
+  --space-10:              40px;
+  --space-12:              48px;
+  --space-16:              64px;
+
   /* Typography character */
   --tracking-label:        0.15em;
   --label-transform:       uppercase;
@@ -270,6 +312,69 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE OVERRIDES — mobile (< 640px)
+   Override token values for smaller screens. Zero component
+   changes needed — components already consume these via var(--*).
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 639px) {
+  [data-theme="dark"] {
+    /* Shape — slightly tighter on small screens */
+    --radius-sm:             8px;
+    --radius-md:             12px;
+    --radius-lg:             14px;
+    --radius-xl:             18px;
+    --radius-2xl:            20px;
+    --radius-3xl:            24px;
+    --radius-4xl:            28px;
+
+    /* Motion — snappier on mobile (faster = more responsive feel) */
+    --duration-fast:         120ms;
+    --duration-normal:       220ms;
+    --duration-slow:         450ms;
+
+    /* Depth — lighter effects on mobile (GPU budget) */
+    --backdrop-blur:         blur(10px) saturate(1.3);
+    --shadow-card:           0 0 16px rgba(139,92,246,0.06);
+    --shadow-elevated:       0 4px 16px rgba(0,0,0,0.3);
+
+    /* Type — slightly smaller headings on mobile */
+    --fs-page-title:         1.75rem;
+    --fs-section-head:       1.2rem;
+    --fs-subhead:            1.05rem;
+
+    /* Spacing — tighter on mobile */
+    --space-6:               20px;
+    --space-8:               24px;
+    --space-10:              32px;
+    --space-12:              36px;
+    --space-16:              48px;
+  }
+
+  [data-theme="light"] {
+    /* Motion — already snappy, nudge faster on mobile */
+    --duration-fast:         80ms;
+    --duration-normal:       140ms;
+    --duration-slow:         280ms;
+
+    /* Depth — simpler hard shadows on small screens */
+    --shadow-card:           2px 2px 0px #1C1917;
+    --shadow-elevated:       4px 4px 0px rgba(28,25,23,0.12);
+
+    /* Type */
+    --fs-page-title:         1.75rem;
+    --fs-section-head:       1.2rem;
+    --fs-subhead:            1.05rem;
+
+    /* Spacing */
+    --space-6:               20px;
+    --space-8:               24px;
+    --space-10:              32px;
+    --space-12:              36px;
+    --space-16:              48px;
   }
 }
 

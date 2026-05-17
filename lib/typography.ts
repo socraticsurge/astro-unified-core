@@ -48,14 +48,18 @@ export const fonts = {
 } satisfies Record<string, CSSProperties>;
 
 // ── Type scale ─────────────────────────────────────────────────────────────────
+// Values are CSS variable references — actual sizes defined per-theme in
+// globals.css and overridden per-breakpoint in the responsive block.
+// Components using textStyles automatically get responsive type sizing.
+
 export const scale = {
-  pageTitle:   "2.2rem",
-  sectionHead: "1.4rem",
-  subhead:     "1.15rem",
-  body:        "1rem",
-  label:       "0.95rem",
-  small:       "0.875rem",
-  xs:          "0.75rem",
+  pageTitle:   "var(--fs-page-title)",
+  sectionHead: "var(--fs-section-head)",
+  subhead:     "var(--fs-subhead)",
+  body:        "var(--fs-body)",
+  label:       "var(--fs-label)",
+  small:       "var(--fs-small)",
+  xs:          "var(--fs-xs)",
 } as const;
 
 // ── Composed text styles ───────────────────────────────────────────────────────
@@ -169,6 +173,27 @@ export const motion = {
   fast:     "var(--duration-fast) var(--easing-standard)",
   slow:     "var(--duration-slow) var(--easing-standard)",
   exit:     "var(--duration-normal) var(--easing-exit)",
+} as const;
+
+// ── Spacing tokens ─────────────────────────────────────────────────────────────
+// Theme-aware spacing values. Use in inline style props where Tailwind arbitrary
+// values are awkward (e.g. gap, padding on dynamically-styled containers).
+// Tighter on mobile (< 640px) via globals.css responsive override block.
+//
+//   style={{ padding: spacing[6] }}           // 24px desktop, 20px mobile
+//   style={{ gap: spacing[4] }}               // 16px — no mobile override
+
+export const spacing = {
+  1:  "var(--space-1)",   //  4px
+  2:  "var(--space-2)",   //  8px
+  3:  "var(--space-3)",   // 12px
+  4:  "var(--space-4)",   // 16px
+  5:  "var(--space-5)",   // 20px
+  6:  "var(--space-6)",   // 24px → 20px mobile
+  8:  "var(--space-8)",   // 32px → 24px mobile
+  10: "var(--space-10)",  // 40px → 32px mobile
+  12: "var(--space-12)",  // 48px → 36px mobile
+  16: "var(--space-16)",  // 64px → 48px mobile
 } as const;
 
 // ── Interactive state tokens ───────────────────────────────────────────────────
