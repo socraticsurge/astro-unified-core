@@ -39,27 +39,27 @@ export default async function AdminPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 max-w-4xl">
-        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
           <div className="text-3xl font-bold">{users.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Users</div>
         </div>
-        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
           <div className="text-3xl font-bold">{profiles.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Profiles</div>
         </div>
-        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
           <div className="text-3xl font-bold">{compatibilityChecks.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Compat Checks</div>
         </div>
-        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
           <div className="text-3xl font-bold">{feedback.length}</div>
           <div className="text-xs text-muted-foreground mt-1">Feedback</div>
         </div>
-        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
           <div className="text-3xl font-bold">{consultationRequests.filter(r => r.delivery_mode === "written").length}</div>
           <div className="text-xs text-muted-foreground mt-1">Written Q&apos;s</div>
         </div>
-        <div className="border border-white/10 rounded-lg p-4 bg-white/5 text-center">
+        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
           <div className="text-3xl font-bold">{consultationRequests.filter(r => r.delivery_mode === "appointment").length}</div>
           <div className="text-xs text-muted-foreground mt-1">Live Sessions</div>
         </div>
