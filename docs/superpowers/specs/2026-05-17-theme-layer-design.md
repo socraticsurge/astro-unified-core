@@ -446,8 +446,12 @@ The result is a complete personality switch: from deep-space glassmorphism with 
 
 - Per-page theming (explicitly excluded)
 - System preference auto-detection (`enableSystem: false` — user's choice persists)
-- Theme-specific animations beyond what CSS variables can control (e.g., particle effects — those remain hard-coded to the dark theme for now)
-- Landing page (not inside the authenticated app shell — separate concern)
+- **Canvas animations on the landing page only** (`CosmicCanvas` star field, `ZodiacWheel`) — these require a separate product decision: does the light theme adapt the same animation with theme colors, or replace it with a different visual treatment (e.g., the SVG mechanical astrolabe from the archival design)? Deferred as a standalone follow-up once the core theme system ships.
+
+## In Scope (clarified)
+
+- **Landing page** — CSS-driven styling participates in theming fully. The `data-theme` attribute on `<html>` cascades to every page including the landing page. Only the canvas components on the landing page are deferred (see above).
+- **Canvas and SVG on all other pages** — chart views, compatibility rings, score arcs, and any other SVG/canvas renderers inside the authenticated app are in scope. SVG respects CSS custom properties natively. Any canvas elements outside the landing page bridge theme colors via `getComputedStyle(document.documentElement).getPropertyValue('--color-*')` and re-render on theme change.
 
 ---
 
