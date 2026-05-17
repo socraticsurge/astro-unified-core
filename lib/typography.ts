@@ -1,82 +1,65 @@
 import type { CSSProperties } from "react";
 
-// ── Font family references ────────────────────────────────────────────────────
-// These point at the CSS variables loaded in app/layout.tsx.
-// To swap a font: change the loader in layout.tsx and update the fallback below.
+// ── Font family references ─────────────────────────────────────────────────────
+// These reference the active theme's fonts via CSS variables.
+// The actual font families are loaded in app/layout.tsx and assigned per-theme
+// in globals.css ([data-theme="dark"] / [data-theme="light"] blocks).
 
-const DISPLAY = "var(--font-cormorant), Georgia, serif";
-const SANS    = "var(--font-sans), system-ui, sans-serif";
+const DISPLAY = "var(--font-display), Georgia, serif";
+const SANS    = "var(--font-ui), system-ui, sans-serif";
+const MONO    = "var(--font-mono), ui-monospace, monospace";
 
-// ── Color palette ─────────────────────────────────────────────────────────────
-// Semantic names — use these everywhere instead of raw rgba strings.
-// All values assume a dark background (#060318 base).
+// ── Color tokens ──────────────────────────────────────────────────────────────
+// All values are CSS variable references — actual colors defined per-theme
+// in globals.css. Use these in inline style props.
 
 export const colors = {
   // Text hierarchy
-  primary:    "rgba(255,255,255,0.92)",  // main headings, key content
-  secondary:  "rgba(255,255,255,0.60)",  // body text, descriptions
-  tertiary:   "rgba(255,255,255,0.38)",  // hints, step labels, placeholders
-  muted:      "rgba(255,255,255,0.22)",  // disabled states, meta info
-  faint:      "rgba(255,255,255,0.10)",  // borders, dividers, subtle surfaces
+  primary:      "var(--color-ink-1)",
+  secondary:    "var(--color-ink-2)",
+  tertiary:     "var(--color-ink-3)",
+  muted:        "var(--color-ink-4)",
+  faint:        "var(--color-ink-4)",
 
-  // Gold accent (brand / active / highlight)
-  gold:       "rgba(251,191,36,1)",      // active nav, CTA text, scores
-  goldDim:    "rgba(251,191,36,0.55)",   // subdued gold labels
-  goldFaint:  "rgba(251,191,36,0.15)",   // gold background wash
+  // Brand accent
+  gold:         "var(--color-accent)",
+  goldDim:      "var(--color-accent-dim)",
+  goldFaint:    "var(--color-accent-faint)",
 
-  // Semantic status
-  success:    "rgba(52,211,153,1)",      // good scores, confirmed states
-  warning:    "rgba(251,191,36,1)",      // partial scores (same as gold)
-  danger:     "rgba(248,113,113,1)",     // low scores, errors
+  // Status
+  success:      "var(--color-success)",
+  warning:      "var(--color-warning)",
+  danger:       "var(--color-danger)",
 } as const;
 
-// ── Font role tokens ──────────────────────────────────────────────────────────
-// Spread into inline style props. Add fontSize / lineHeight / letterSpacing
-// at the call site — those vary per context and belong there.
-//
-//   <h1 style={{ ...fonts.display, fontSize: scale.pageTitle }}>…</h1>
-//   <button style={{ ...fonts.uiMedium, fontSize: scale.small }}>…</button>
-//
-// display* → Philosopher — wordmark, headings, decorative labels, quotes
-// ui*      → Mulish      — nav, buttons, body text, UI chrome
-
+// ── Font role tokens ───────────────────────────────────────────────────────────
 export const fonts = {
-  // Philosopher — display / brand
   display:       { fontFamily: DISPLAY, fontWeight: 400 },
   displayBold:   { fontFamily: DISPLAY, fontWeight: 700 },
   displayItalic: { fontFamily: DISPLAY, fontWeight: 400, fontStyle: "italic" as const },
-
-  // Mulish — interface / body
   ui:            { fontFamily: SANS, fontWeight: 400 },
   uiLight:       { fontFamily: SANS, fontWeight: 300 },
   uiMedium:      { fontFamily: SANS, fontWeight: 500 },
   uiSemibold:    { fontFamily: SANS, fontWeight: 600 },
   uiBold:        { fontFamily: SANS, fontWeight: 700 },
   uiItalic:      { fontFamily: SANS, fontWeight: 400, fontStyle: "italic" as const },
+  mono:          { fontFamily: MONO, fontWeight: 400 },
+  monoMedium:    { fontFamily: MONO, fontWeight: 600 },
 } satisfies Record<string, CSSProperties>;
 
-// ── Type scale ────────────────────────────────────────────────────────────────
-// Named sizes. Changing a value here updates every call site that uses it.
-
+// ── Type scale ─────────────────────────────────────────────────────────────────
 export const scale = {
-  pageTitle:   "2.2rem",   // h1 — page titles
-  sectionHead: "1.4rem",   // h2 — section / panel headings
-  subhead:     "1.15rem",  // h3 — card titles, sub-sections
-  body:        "1rem",     // body prose
-  label:       "0.95rem",  // form labels, step labels
-  small:       "0.875rem", // secondary text, nav items
-  xs:          "0.75rem",  // meta, timestamps, badges
+  pageTitle:   "2.2rem",
+  sectionHead: "1.4rem",
+  subhead:     "1.15rem",
+  body:        "1rem",
+  label:       "0.95rem",
+  small:       "0.875rem",
+  xs:          "0.75rem",
 } as const;
 
-// ── Composed text styles ──────────────────────────────────────────────────────
-// Fully-composed style objects: font + weight + size + color + spacing.
-// Use directly when the role is unambiguous, or override individual properties.
-//
-//   <h1 style={textStyles.pageTitle}>Natal Charts</h1>
-//   <p style={{ ...textStyles.body, color: colors.tertiary }}>…</p>
-
+// ── Composed text styles ───────────────────────────────────────────────────────
 export const textStyles = {
-  // Page-level headings (Philosopher)
   pageTitle: {
     ...fonts.display,
     fontSize: scale.pageTitle,
@@ -98,16 +81,12 @@ export const textStyles = {
     lineHeight: 1.3,
     color: colors.primary,
   },
-
-  // Decorative / step labels (Philosopher italic)
   stepLabel: {
     ...fonts.displayItalic,
     fontSize: scale.label,
     letterSpacing: "0.05em",
     color: colors.tertiary,
   },
-
-  // Body / UI text (Mulish)
   body: {
     ...fonts.ui,
     fontSize: scale.body,
@@ -140,25 +119,19 @@ export const textStyles = {
   },
 } satisfies Record<string, CSSProperties>;
 
-// ── Glass surface ─────────────────────────────────────────────────────────────
-// Shared backdrop style for cards and panels. Spread into style props.
-// Pair with a border and border-radius at the call site.
-//
-//   <div style={{ ...glass, border: `1px solid ${colors.faint}`, borderRadius: 20 }}>
+// ── Glass / surface token ──────────────────────────────────────────────────────
+// Theme-aware: dark = glassmorphism, light = solid archival panel.
+// The CSS variables resolve to the correct values per theme.
 
 export const glass: CSSProperties = {
-  background: "rgba(255,255,255,0.04)",
-  backdropFilter: "blur(20px) saturate(1.6)",
-  WebkitBackdropFilter: "blur(20px) saturate(1.6)",
+  background:           "var(--surface-blend)",
+  backdropFilter:       "var(--backdrop-blur)",
+  WebkitBackdropFilter: "var(--backdrop-blur)",
+  border:               "var(--border-width) solid var(--color-border)",
+  borderRadius:         "var(--radius-lg)",
 };
 
-// ── Name clamping ─────────────────────────────────────────────────────────────
-// Apply to every name displayed inside a card so no card grows taller than
-// its neighbors. Pick the variant that fits the card size.
-//
-//   <div style={{ ...textStyles.subhead, ...clamp.one }}>Krishnavenkataraman</div>
-//   → "Krishnavenkat…"
-
+// ── Text clamping ──────────────────────────────────────────────────────────────
 export const clamp = {
   one: {
     overflow: "hidden",
@@ -174,31 +147,37 @@ export const clamp = {
   },
 } satisfies Record<string, CSSProperties>;
 
-// ── Border radius scale ───────────────────────────────────────────────────────
-// Named radii used consistently across all surfaces.
-//
-//   sm  — small inline elements: error banners, link pills
-//   md  — standard card radius (most surfaces)
-//   lg  — larger panels, modals, hero cards
-//   full — fully round: avatars, carousel buttons, badge pills
+// ── Border radius scale ────────────────────────────────────────────────────────
+// Values come from the active theme's CSS variables.
+// dark: 12/16/20/999px   light: 0/2/4/999px
 
 export const radii = {
-  sm:   "12px",
-  md:   "16px",
-  lg:   "20px",
-  full: "999px",
+  sm:   "var(--radius-sm)",
+  md:   "var(--radius-md)",
+  lg:   "var(--radius-lg)",
+  full: "var(--radius-full)",
 } as const;
 
-// ── Interactive state tokens ──────────────────────────────────────────────────
-// Tailwind class strings for hover/active/transition — applied via className.
-// Inline style props cannot express CSS pseudo-classes, so these live here
-// alongside the static tokens. One token = one interactive surface type.
+// ── Motion tokens ──────────────────────────────────────────────────────────────
+// Use in inline transition/animation values.
+// dark: springy (300ms cubic-bezier)   light: snappy (180ms ease)
 //
-//   <button style={cardStyle} className={interactive.card}>…</button>
+//   style={{ transition: `all ${motion.standard}` }}
+
+export const motion = {
+  standard: "var(--duration-normal) var(--easing-standard)",
+  fast:     "var(--duration-fast) var(--easing-standard)",
+  slow:     "var(--duration-slow) var(--easing-standard)",
+  exit:     "var(--duration-normal) var(--easing-exit)",
+} as const;
+
+// ── Interactive state tokens ───────────────────────────────────────────────────
+// Tailwind class strings for hover/active states. These reference CSS variables
+// via Tailwind's arbitrary value syntax so they switch with the theme.
 
 export const interactive = {
-  card:        "hover:bg-white/[0.06] transition-colors duration-150",
-  listRow:     "hover:bg-white/[0.055] transition-colors duration-150",
-  ghostButton: "hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-150",
-  slotButton:  "hover:bg-white/[0.06] transition-all duration-150",
+  card:        "hover:bg-[var(--color-surface-hover)] active:bg-[var(--color-surface-active)] transition-all cursor-pointer",
+  listRow:     "hover:bg-[var(--color-surface-hover)] active:bg-[var(--color-surface-active)] transition-all cursor-pointer",
+  ghostButton: "hover:bg-[var(--color-surface-hover)] active:bg-[var(--color-surface-active)] transition-all",
+  slotButton:  "hover:bg-[var(--color-accent-faint)] active:bg-[var(--color-accent-faint)] transition-all cursor-pointer",
 } as const;
