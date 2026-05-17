@@ -57,7 +57,11 @@ export function FeedbackWidget() {
     <div ref={ref} className="fixed bottom-24 sm:bottom-5 right-5 z-50 flex flex-col items-end gap-2">
       {/* Popover */}
       {open && (
-        <div className="w-72 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div
+          id="feedback-popover"
+          role="dialog"
+          className="w-72 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200"
+        >
           {submitted ? (
             <div className="p-6 flex flex-col items-center gap-3 text-center">
               <CheckCircle className="h-10 w-10 text-emerald-400" />
@@ -69,7 +73,11 @@ export function FeedbackWidget() {
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
                 <p className="text-sm font-semibold">Share Feedback</p>
-                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <button
+                  onClick={() => setOpen(false)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Close feedback widget"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -85,6 +93,7 @@ export function FeedbackWidget() {
                         key={r.value}
                         title={r.label}
                         onClick={() => setRating(r.value)}
+                        aria-pressed={rating === r.value}
                         className={`text-3xl p-2 rounded-xl transition-all hover:scale-125 ${
                           rating === r.value
                             ? "bg-amber-900/40 scale-125 ring-2 ring-amber-500/50"
@@ -127,6 +136,8 @@ export function FeedbackWidget() {
       {/* Trigger Button */}
       <button
         onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls="feedback-popover"
         className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium shadow-lg transition-all hover:scale-105 ${
           open
             ? "bg-zinc-700 text-foreground"
