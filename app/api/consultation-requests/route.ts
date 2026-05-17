@@ -25,14 +25,6 @@ export async function POST(request: Request) {
   const { success } = rateLimit(`consultation:${userId}`, 5, 60_000);
   if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-  const pending = await db.consultationRequests.getPending(userId);
-  if (pending) {
-    return NextResponse.json(
-      { error: "You already have a pending question. Please wait for it to be answered before submitting another." },
-      { status: 409 }
-    );
-  }
-
   const body = await request.json();
   const { profile_ids, delivery_mode, slot_id } = body;
 

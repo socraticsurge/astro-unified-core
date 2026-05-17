@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Clock, ChevronRight, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
-import { Button } from "@/components/ui/button";
 import {
   MIN_FIELD_LENGTH,
   WRITTEN_FEE_PAISE, LIVE_FEE_PAISE, formatFee,
@@ -16,6 +15,19 @@ import type { DeliveryMode } from "@/lib/consultation";
 const UPI_ID = "meherkalyanichaganti@okaxis";
 const WHATSAPP_NUMBER = "919704076544";
 const MIN_QUESTION_LENGTH = MIN_FIELD_LENGTH;
+
+const cormorant: React.CSSProperties = {
+  fontFamily: "var(--font-cormorant), Georgia, serif",
+  fontWeight: 300,
+};
+
+const glassCard: React.CSSProperties = {
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  borderRadius: "20px",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+};
 
 type Props = {
   allRequests: ConsultationRequest[];
@@ -33,11 +45,8 @@ function isProfileComplete(p: Profile): boolean {
 }
 
 function displayQuestion(req: ConsultationRequest): string {
-  // Simplified mode: only observation is populated
   if (!req.constraint_text && !req.objective && !req.options) return req.observation;
-  // Legacy structured mode
-  const parts = [req.observation, req.constraint_text, req.objective, req.options].filter(Boolean);
-  return parts.join(" | ");
+  return [req.observation, req.constraint_text, req.objective, req.options].filter(Boolean).join(" | ");
 }
 
 export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled, writtenFeePaise, liveFeePaise, availableSlots, userName, userEmail }: Props) {
@@ -49,7 +58,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const activeRequest = allRequests.find(r => r.status !== "answered") ?? null;
+  const openRequests = allRequests.filter(r => r.status !== "answered");
   const answered = allRequests.filter(r => r.status === "answered");
 
   const profileMap = new Map(profiles.map(p => [p.id, p.name]));
@@ -58,9 +67,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
     try {
       const ids: string[] = JSON.parse(profileIdsJson);
       return ids.map(id => profileMap.get(id) ?? "Deleted Profile").join(", ");
-    } catch {
-      return "—";
-    }
+    } catch { return "—"; }
   }
 
   const completeProfiles = profiles.filter(isProfileComplete);
@@ -72,9 +79,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
     (deliveryMode !== "appointment" || !!selectedSlotId);
 
   const toggleProfile = (id: string) => {
-    setSelectedProfiles(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    );
+    setSelectedProfiles(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
   };
 
   const handleSubmit = async () => {
@@ -97,6 +102,9 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
         setError(data.error ?? "Submission failed");
         return;
       }
+      setQuestion("");
+      setSelectedProfiles([]);
+      setSelectedSlotId(null);
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -104,171 +112,188 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
   };
 
   return (
-    <div className="space-y-10">
-      {activeRequest ? (
-        <PendingCard
-          pending={activeRequest}
-          profileNames={resolveProfileNames(activeRequest.profile_ids)}
-          userName={userName}
-          userEmail={userEmail}
-        />
-      ) : (
-        <div className="space-y-6">
-          {/* Step 1: Profiles */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Whose chart is this about?
-            </h2>
-            {profiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No profiles yet.{" "}
-                <a href="/dashboard" className="underline text-amber-400">Create one first.</a>
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {completeProfiles.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {completeProfiles.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => toggleProfile(p.id)}
-                        className={`px-3.5 py-1.5 rounded-full border text-sm transition-colors ${
-                          selectedProfiles.includes(p.id)
-                            ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
-                            : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10 hover:text-foreground"
-                        }`}
-                        style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "1rem" }}
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {incompleteProfiles.length > 0 && (
-                  <div className="space-y-1.5 mt-2">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3 text-amber-500/70" />
-                      Profiles missing required info (cannot be selected):
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {incompleteProfiles.map(p => (
-                        <span key={p.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/5 bg-white/[0.03] text-sm text-muted-foreground/50">
-                          {p.name}
-                          <Link href={`/profiles/${p.id}/edit`} className="text-xs text-amber-400/70 hover:text-amber-400 underline">Complete →</Link>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
+    <div className="space-y-8">
 
-          {/* Step 2: Question */}
-          <section className="space-y-2">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Your question
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Be as specific as you can — include the situation, what you are uncertain about, and what you are hoping to understand.
+      {/* ── New question form ── */}
+      <div style={{ ...glassCard, padding: "28px 24px", boxShadow: "0 16px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10)" }}>
+
+        {/* Step 1: Profiles */}
+        <div className="space-y-3 mb-6">
+          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>
+            Whose chart is this about?
+          </p>
+          {profiles.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No profiles yet. <Link href="/dashboard" className="text-amber-400 underline">Add one first.</Link>
             </p>
-            <div className="relative">
-              <textarea
-                rows={5}
-                placeholder="e.g. I have been passed over for promotion twice despite good reviews. I cannot tell if this is a timing issue or the wrong field entirely. I want to understand what my chart says about my career direction over the next two years…"
-                value={question}
-                onChange={e => setQuestion(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-amber-400/40 resize-none"
-                style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.05rem", fontWeight: 300, lineHeight: 1.7 }}
-              />
-              <span className={`absolute bottom-2.5 right-3 text-[10px] tabular-nums ${question.trim().length >= MIN_QUESTION_LENGTH ? "text-amber-400/60" : "text-muted-foreground/40"}`}>
-                {question.trim().length}/{MIN_QUESTION_LENGTH}+
-              </span>
-            </div>
-          </section>
-
-          {/* Step 3: Delivery mode */}
-          <section className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              How would you like the answer?
-            </h2>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <DeliveryCard
-                mode="written"
-                selected={deliveryMode === "written"}
-                onClick={() => { setDeliveryMode("written"); setSelectedSlotId(null); }}
-                title="Written Response"
-                price={formatFee(writtenFeePaise)}
-                description="Detailed written answer, typically within a few days."
-              />
-              {liveConsultationEnabled && (
-                <DeliveryCard
-                  mode="appointment"
-                  selected={deliveryMode === "appointment"}
-                  onClick={() => setDeliveryMode("appointment")}
-                  title="Live Consultation"
-                  price={formatFee(liveFeePaise)}
-                  description="25-minute live session to discuss in person."
-                />
-              )}
-            </div>
-          </section>
-
-          {/* Slot picker — only for live consultation */}
-          {liveConsultationEnabled && deliveryMode === "appointment" && (
-            <section className="space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Choose a slot
-              </h2>
-              <p className="text-xs text-muted-foreground">All times are in IST (Indian Standard Time).</p>
-              {availableSlots.length === 0 ? (
-                <p className="text-sm text-muted-foreground rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                  No slots available right now. Check back later or reach out to Kalyani on WhatsApp to arrange a time.
-                </p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {availableSlots.map(slot => {
-                    const label = new Date(slot.starts_at).toLocaleString("en-IN", {
-                      timeZone: "Asia/Kolkata",
-                      weekday: "short", day: "numeric", month: "short",
-                      year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
-                    });
-                    return (
-                      <button
-                        key={slot.id}
-                        onClick={() => setSelectedSlotId(slot.id)}
-                        className={`text-left px-4 py-3 rounded-xl border text-sm transition-colors ${
-                          selectedSlotId === slot.id
-                            ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
-                            : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10 hover:text-foreground"
-                        }`}
-                      >
-                        {label} IST
-                      </button>
-                    );
-                  })}
+          ) : (
+            <div className="space-y-2">
+              {completeProfiles.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {completeProfiles.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => toggleProfile(p.id)}
+                      className={`flex items-center gap-2 px-3.5 py-2 rounded-full border text-sm transition-all ${
+                        selectedProfiles.includes(p.id)
+                          ? "border-amber-400/60 bg-amber-400/10 text-amber-200"
+                          : "border-white/10 bg-white/5 text-white/55 hover:text-white/90 hover:bg-white/10"
+                      }`}
+                      style={cormorant}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
                 </div>
               )}
-            </section>
+              {incompleteProfiles.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {incompleteProfiles.map(p => (
+                    <span key={p.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/5 bg-white/[0.02] text-sm text-muted-foreground/40">
+                      {p.name}
+                      <Link href={`/profiles/${p.id}/edit`} className="text-xs text-amber-400/60 hover:text-amber-400 underline">Complete →</Link>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
-
-          {error && (
-            <p className="text-sm text-red-400 bg-red-950/30 border border-red-900/40 rounded-xl px-4 py-3">
-              {error}
-            </p>
-          )}
-
-          <Button
-            onClick={handleSubmit}
-            disabled={!canSubmit || submitting}
-            className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-amber-950 font-semibold"
-          >
-            {submitting ? "Submitting…" : "Submit Question"}
-            {!submitting && <ChevronRight className="ml-1.5 h-4 w-4" />}
-          </Button>
         </div>
+
+        {/* Divider */}
+        <div className="border-t border-white/[0.07] mb-6" />
+
+        {/* Step 2: Question */}
+        <div className="space-y-2 mb-6">
+          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>
+            Your question
+          </p>
+          <div className="relative">
+            <textarea
+              rows={5}
+              placeholder="Describe your situation and what you'd like to understand. The more specific you are, the more precisely Dr. Chaganti can address it…"
+              value={question}
+              onChange={e => setQuestion(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:ring-1 focus:ring-amber-400/35 resize-none"
+              style={{ ...cormorant, fontSize: "1.05rem", lineHeight: 1.75 }}
+            />
+            <span className={`absolute bottom-2.5 right-3 text-[10px] tabular-nums transition-colors ${question.trim().length >= MIN_QUESTION_LENGTH ? "text-amber-400/50" : "text-muted-foreground/30"}`}>
+              {question.trim().length}/{MIN_QUESTION_LENGTH}+
+            </span>
+          </div>
+        </div>
+
+        {/* Step 3: Delivery mode */}
+        <div className="space-y-3 mb-6">
+          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>
+            How would you like the answer?
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <DeliveryCard
+              selected={deliveryMode === "written"}
+              onClick={() => { setDeliveryMode("written"); setSelectedSlotId(null); }}
+              emoji="✍️"
+              title="Written Response"
+              price={formatFee(writtenFeePaise)}
+              description="Detailed written answer within a few days"
+            />
+            {liveConsultationEnabled && (
+              <DeliveryCard
+                selected={deliveryMode === "appointment"}
+                onClick={() => setDeliveryMode("appointment")}
+                emoji="🎙️"
+                title="Live Session"
+                price={formatFee(liveFeePaise)}
+                description="25-minute live consultation"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Slot picker */}
+        {liveConsultationEnabled && deliveryMode === "appointment" && (
+          <div className="space-y-3 mb-6">
+            <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.06em" }}>
+              Choose a time (IST)
+            </p>
+            {availableSlots.length === 0 ? (
+              <p className="text-sm text-muted-foreground border border-white/10 rounded-xl px-4 py-3 bg-white/[0.03]">
+                No slots available right now — reach out to Kalyani on WhatsApp to arrange a time.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {availableSlots.map(slot => {
+                  const label = new Date(slot.starts_at).toLocaleString("en-IN", {
+                    timeZone: "Asia/Kolkata", weekday: "short", day: "numeric",
+                    month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
+                  });
+                  return (
+                    <button key={slot.id} onClick={() => setSelectedSlotId(slot.id)}
+                      className={`text-left px-4 py-3 rounded-xl border text-sm transition-colors ${
+                        selectedSlotId === slot.id
+                          ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
+                          : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10"
+                      }`}>
+                      {label} IST
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {error && (
+          <p className="mb-4 text-sm text-red-300 bg-red-950/30 border border-red-900/40 rounded-xl px-4 py-2.5">
+            {error}
+          </p>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={!canSubmit || submitting}
+          style={{
+            width: "100%",
+            padding: "13px 0",
+            borderRadius: "14px",
+            border: "none",
+            cursor: canSubmit && !submitting ? "pointer" : "not-allowed",
+            background: canSubmit && !submitting
+              ? "linear-gradient(105deg, #92400e 0%, #d97706 35%, #fcd34d 50%, #d97706 65%, #92400e 100%)"
+              : "rgba(255,255,255,0.06)",
+            backgroundSize: "200% auto",
+            color: canSubmit && !submitting ? "#3b1a00" : "rgba(255,255,255,0.3)",
+            fontWeight: 600,
+            fontSize: "1rem",
+            letterSpacing: "0.02em",
+            boxShadow: canSubmit && !submitting ? "0 4px 20px rgba(217,119,6,0.35)" : "none",
+            transition: "opacity 0.2s ease",
+            opacity: submitting ? 0.7 : 1,
+          }}
+        >
+          {submitting ? "Submitting…" : "Submit your question  ✦"}
+        </button>
+      </div>
+
+      {/* ── Open / pending questions ── */}
+      {openRequests.length > 0 && (
+        <section className="space-y-3">
+          <h2 style={{ ...cormorant, fontSize: "1.2rem", color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
+            Open questions
+          </h2>
+          {openRequests.map(req => (
+            <PendingCard
+              key={req.id}
+              pending={req}
+              profileNames={resolveProfileNames(req.profile_ids)}
+              userName={userName}
+              userEmail={userEmail}
+            />
+          ))}
+        </section>
       )}
 
+      {/* ── Answered history ── */}
       {answered.length > 0 && (
         <HistorySection answered={answered} resolveProfileNames={resolveProfileNames} />
       )}
@@ -286,51 +311,47 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
   const isPaid = pending.status === "paid";
 
   return (
-    <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-6 space-y-4">
-      <div className="flex items-center gap-2 text-amber-400">
-        <Clock className="h-5 w-5" />
-        <span className="font-medium" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem" }}>
-          {isPaid ? "Payment confirmed — your question is in the queue" : "Question submitted — payment required"}
+    <div style={{
+      ...glassCard,
+      padding: "20px",
+      borderColor: isPaid ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.2)",
+      background: isPaid ? "rgba(4,120,87,0.10)" : "rgba(120,53,15,0.12)",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+    }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Clock className="h-4 w-4 text-amber-400" />
+        <span style={{ ...cormorant, fontSize: "1rem", color: isPaid ? "rgba(167,243,208,0.9)" : "rgba(253,230,138,0.9)" }}>
+          {isPaid ? "Payment confirmed — in the queue" : "Awaiting payment"}
         </span>
       </div>
 
-      <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4 text-sm">
-        {pending.life_area && pending.life_area !== "General" && (
-          <div>
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Life Area</span>
-            <p className="mt-0.5 font-medium">{pending.life_area}</p>
-          </div>
-        )}
+      <div className="space-y-3 rounded-xl border border-white/[0.07] bg-white/[0.03] p-4 text-sm mb-4">
         <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Profile(s)</span>
-          <p className="mt-0.5 font-medium text-amber-300/80">{profileNames}</p>
+          <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Profile(s)</span>
+          <p style={{ ...cormorant, fontSize: "1rem", color: "rgba(251,191,36,0.8)" }} className="mt-0.5">{profileNames}</p>
         </div>
         <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Your Question</span>
-          <p className="mt-0.5 text-foreground/80 leading-relaxed" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "1rem" }}>
+          <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Question</span>
+          <p style={{ ...cormorant, fontSize: "1rem", color: "rgba(255,255,255,0.78)", lineHeight: 1.65 }} className="mt-0.5">
             {displayQuestion(pending)}
           </p>
         </div>
-        <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Delivery</span>
-          <p className="mt-0.5">{pending.delivery_mode === "written" ? "Written Response" : "Live Consultation (25 min)"}</p>
-        </div>
-        {pending.delivery_mode === "appointment" && pending.slot_starts_at && (
+        <div className="flex items-center justify-between">
           <div>
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Selected Slot</span>
-            <p className="mt-0.5 font-medium text-amber-300/90">
-              {new Date(pending.slot_starts_at).toLocaleString("en-IN", {
-                timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long",
-                year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
-              })} IST
-            </p>
+            <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Mode</span>
+            <p className="text-sm mt-0.5">{pending.delivery_mode === "written" ? "Written Response" : "Live Session"}</p>
           </div>
-        )}
-        <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Submitted</span>
-          <p className="mt-0.5 text-muted-foreground text-xs">
-            {new Date(pending.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
-          </p>
+          {pending.delivery_mode === "appointment" && pending.slot_starts_at && (
+            <div className="text-right">
+              <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Slot</span>
+              <p style={{ ...cormorant, fontSize: "0.95rem", color: "rgba(251,191,36,0.85)" }} className="mt-0.5">
+                {new Date(pending.slot_starts_at).toLocaleString("en-IN", {
+                  timeZone: "Asia/Kolkata", weekday: "short", day: "numeric",
+                  month: "short", hour: "2-digit", minute: "2-digit", hour12: true,
+                })} IST
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -340,12 +361,12 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
 
       {isPaid && (
         <div className="space-y-3">
-          <div className="rounded-xl border border-green-700/30 bg-green-950/20 px-4 py-3 flex items-center gap-2 text-green-400 text-sm">
+          <div className="rounded-xl border border-emerald-700/30 bg-emerald-950/15 px-4 py-3 flex items-center gap-2 text-emerald-400 text-sm">
             <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-            <span>
+            <span style={cormorant}>
               {pending.delivery_mode === "appointment"
-                ? "Payment confirmed. You will receive a Google Meet link for your slot."
-                : "Payment confirmed. Dr. Chaganti will answer your question shortly."}
+                ? "Confirmed. You will receive a Google Meet link for your slot."
+                : "Confirmed. Dr. Chaganti will answer your question shortly."}
             </span>
           </div>
           {pending.delivery_mode === "appointment" && pending.slot_starts_at && (
@@ -370,16 +391,16 @@ function SlotActions({ pending }: { pending: ConsultationRequest }) {
   const cancelMsg = encodeURIComponent(`Hi Kalyani 🙏\n\nI need to cancel my live consultation.\n\nRef: #${ref}\nSlot: ${slotLabel}\n\nPlease process the cancellation and let me know next steps.`);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 space-y-2">
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 space-y-2">
       <p className="text-xs text-muted-foreground">Need to change your slot? Reach out to Kalyani on WhatsApp:</p>
       <div className="flex flex-wrap gap-2">
         <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${rescheduleMsg}`} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-md transition-colors">
-          <span>💬</span> Request Reschedule
+          className="inline-flex items-center gap-1.5 text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-lg transition-colors">
+          💬 Reschedule
         </a>
         <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${cancelMsg}`} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-md transition-colors">
-          <span>💬</span> Request Cancellation
+          className="inline-flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors">
+          💬 Cancel
         </a>
       </div>
     </div>
@@ -396,9 +417,8 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
 
   const amountPaise = pending.amount_paise ?? (pending.delivery_mode === "written" ? WRITTEN_FEE_PAISE : LIVE_FEE_PAISE);
   const amountRupees = amountPaise / 100;
-  const modeLabel = pending.delivery_mode === "written" ? "Written Response" : "Live Consultation (25 min)";
+  const modeLabel = pending.delivery_mode === "written" ? "Written Response" : "Live Session";
   const ref = pending.id.substring(0, 8).toUpperCase();
-
   const upiQrValue = `upi://pay?pa=${UPI_ID}&pn=Kalyani+Chaganti&am=${amountRupees}&cu=INR&tn=Astro+Chaganti+Consultation`;
   const question = displayQuestion(pending);
 
@@ -408,63 +428,52 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
 
   const waMessage = encodeURIComponent(
     `Hi Kalyani 🙏\n\nPayment pending for a consultation on Astro Chaganti.\n\n` +
-    `Name: ${userName || "Not provided"}\n` +
-    `Email: ${userEmail}\n` +
-    `Profile(s): ${profileNames}\n` +
-    `Type: ${modeLabel}\n` +
-    slotLine +
-    `Amount: ₹${amountRupees.toLocaleString("en-IN")}\n` +
-    `Ref: #${ref}\n\n` +
-    `Question:\n${question}\n\n` +
-    `Sending the payment now. Please confirm once received.`
+    `Name: ${userName || "Not provided"}\nEmail: ${userEmail}\nProfile(s): ${profileNames}\n` +
+    `Type: ${modeLabel}\n${slotLine}Amount: ₹${amountRupees.toLocaleString("en-IN")}\nRef: #${ref}\n\n` +
+    `Question:\n${question}\n\nSending the payment now. Please confirm once received.`
   );
 
   const copyUpi = () => {
-    navigator.clipboard.writeText(UPI_ID).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard.writeText(UPI_ID).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
 
   return (
-    <div className="space-y-3">
-      <div className="rounded-xl border border-amber-700/40 bg-amber-950/30 p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-amber-200">Pay to confirm your question</p>
-          <span className="text-lg font-bold text-amber-300">₹{amountRupees.toLocaleString("en-IN")}</span>
-        </div>
+    <div className="rounded-xl border border-amber-700/35 bg-amber-950/20 p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <p style={{ ...cormorant, fontSize: "1.1rem", color: "rgba(253,230,138,0.9)" }}>Pay to confirm</p>
+        <span style={{ ...cormorant, fontSize: "1.5rem", fontWeight: 600, color: "#fbbf24" }}>
+          ₹{amountRupees.toLocaleString("en-IN")}
+        </span>
+      </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-start">
-          <div className="rounded-lg bg-white p-2 flex-shrink-0">
-            <QRCodeSVG value={upiQrValue} size={120} />
-          </div>
-          <div className="space-y-3 flex-1">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1.5">UPI ID</p>
-              <div className="flex items-center gap-2">
-                <code className="text-sm font-mono text-foreground/90 bg-white/5 px-2.5 py-1 rounded border border-white/10">{UPI_ID}</code>
-                <button onClick={copyUpi} className="text-xs text-amber-400 hover:text-amber-300 transition-colors px-2 py-1 border border-amber-400/20 rounded">
-                  {copied ? "Copied!" : "Copy"}
-                </button>
-              </div>
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div className="rounded-lg bg-white p-2 flex-shrink-0">
+          <QRCodeSVG value={upiQrValue} size={110} />
+        </div>
+        <div className="space-y-3 flex-1">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5">UPI ID</p>
+            <div className="flex items-center gap-2">
+              <code className="text-sm font-mono text-foreground/85 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">{UPI_ID}</code>
+              <button onClick={copyUpi} className="text-xs text-amber-400 hover:text-amber-300 transition-colors px-2 py-1 border border-amber-400/20 rounded-lg">
+                {copied ? "Copied!" : "Copy"}
+              </button>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Scan with any UPI app (Google Pay, PhonePe, Paytm) or copy the UPI ID to pay manually.
-            </p>
           </div>
-        </div>
-
-        <div className="border-t border-white/10 pt-3 space-y-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            After paying, send your payment screenshot to Kalyani on WhatsApp.
+            Scan with any UPI app (Google Pay, PhonePe, Paytm) or copy the ID above.
           </p>
-          <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm bg-green-700/20 hover:bg-green-700/30 border border-green-700/40 text-green-400 px-4 py-2 rounded-md transition-colors font-medium">
-            <span>💬</span> Send payment confirmation on WhatsApp
-          </a>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground/50">Ref: #{ref} · {modeLabel}</p>
+
+      <div className="border-t border-white/[0.08] pt-3 space-y-2">
+        <p className="text-xs text-muted-foreground">After paying, send your screenshot to Kalyani on WhatsApp so she can confirm.</p>
+        <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-sm bg-green-700/20 hover:bg-green-700/30 border border-green-700/35 text-green-400 px-4 py-2 rounded-xl transition-colors">
+          💬 Send confirmation on WhatsApp
+        </a>
+      </div>
+      <p className="text-[10px] text-muted-foreground/35">Ref: #{ref} · {modeLabel}</p>
     </div>
   );
 }
@@ -476,9 +485,7 @@ function HistorySection({ answered, resolveProfileNames }: {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ratings, setRatings] = useState<Record<string, "helpful" | "not_helpful">>(() => {
     const initial: Record<string, "helpful" | "not_helpful"> = {};
-    for (const req of answered) {
-      if (req.user_rating) initial[req.id] = req.user_rating;
-    }
+    for (const req of answered) { if (req.user_rating) initial[req.id] = req.user_rating; }
     return initial;
   });
   const [ratingNote, setRatingNote] = useState<Record<string, string>>({});
@@ -495,113 +502,103 @@ function HistorySection({ answered, resolveProfileNames }: {
       });
       setRatings(prev => ({ ...prev, [id]: rating }));
       setShowNoteFor(null);
-    } finally {
-      setSubmittingFeedback(null);
-    }
+    } finally { setSubmittingFeedback(null); }
   };
 
   return (
-    <section className="space-y-3 border-t border-white/10 pt-8">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        Past Questions &amp; Answers
+    <section className="space-y-3 border-t border-white/[0.07] pt-8">
+      <h2 style={{ ...cormorant, fontSize: "1.2rem", color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
+        Answered questions
       </h2>
       <div className="space-y-2">
         {answered.map(req => {
           const isOpen = expandedId === req.id;
           const currentRating = ratings[req.id] ?? null;
           return (
-            <div key={req.id} className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+            <div key={req.id} style={glassCard} className="overflow-hidden">
               <button
-                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/5 transition-colors"
+                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.03] transition-colors"
                 onClick={() => setExpandedId(isOpen ? null : req.id)}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                   <div className="min-w-0">
-                    <span className="text-sm font-medium truncate block">{resolveProfileNames(req.profile_ids)}</span>
+                    <span style={{ ...cormorant, fontSize: "1rem", color: "rgba(255,255,255,0.82)" }} className="truncate block">
+                      {resolveProfileNames(req.profile_ids)}
+                    </span>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
+                      {new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {currentRating === "helpful" && <ThumbsUp className="h-3.5 w-3.5 text-green-400" />}
+                  {currentRating === "helpful" && <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />}
                   {currentRating === "not_helpful" && <ThumbsDown className="h-3.5 w-3.5 text-red-400" />}
                   {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 </div>
               </button>
 
               {isOpen && (
-                <div className="px-4 pb-4 space-y-4 border-t border-white/10 pt-3">
+                <div className="px-5 pb-5 space-y-4 border-t border-white/[0.07] pt-4">
                   <div>
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">Your Question</span>
-                    <p className="mt-1 text-sm text-foreground/80 leading-relaxed" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "1rem" }}>
+                    <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Your Question</span>
+                    <p style={{ ...cormorant, fontSize: "1.02rem", color: "rgba(255,255,255,0.78)", lineHeight: 1.7 }} className="mt-1">
                       {displayQuestion(req)}
                     </p>
                   </div>
 
                   {req.admin_note ? (
-                    <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 space-y-1">
-                      <div className="flex items-center gap-1.5 text-green-400 text-xs font-semibold uppercase tracking-wider">
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-1">
+                      <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Answer
                       </div>
-                      <p className="text-sm text-foreground/80 leading-relaxed">{req.admin_note}</p>
+                      <p style={{ ...cormorant, fontSize: "1.02rem", color: "rgba(255,255,255,0.82)", lineHeight: 1.7 }}>{req.admin_note}</p>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground italic">No written note was added for this answer.</p>
                   )}
 
                   {req.answered_at && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground/50">
                       Answered {new Date(req.answered_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
                     </p>
                   )}
 
                   {!currentRating ? (
-                    <div className="space-y-2 pt-1 border-t border-white/10">
-                      <p className="text-xs text-muted-foreground">Was this answer helpful?</p>
+                    <div className="space-y-2 pt-1 border-t border-white/[0.07]">
+                      <p className="text-xs text-muted-foreground">Was this helpful?</p>
                       <div className="flex gap-2">
-                        <button
-                          disabled={!!submittingFeedback}
+                        <button disabled={!!submittingFeedback}
                           onClick={() => setShowNoteFor(showNoteFor === req.id ? null : req.id)}
-                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                            showNoteFor === req.id
-                              ? "border-green-600/50 bg-green-900/20 text-green-400"
-                              : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
-                          }`}
-                        >
-                          <ThumbsUp className="h-3.5 w-3.5" /> Helpful
+                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                            showNoteFor === req.id ? "border-emerald-600/50 bg-emerald-900/20 text-emerald-400" : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground"
+                          }`}>
+                          <ThumbsUp className="h-3.5 w-3.5" /> Yes
                         </button>
-                        <button
-                          disabled={!!submittingFeedback}
+                        <button disabled={!!submittingFeedback}
                           onClick={() => submitFeedback(req.id, "not_helpful")}
-                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors disabled:opacity-50"
-                        >
-                          <ThumbsDown className="h-3.5 w-3.5" /> Not helpful
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+                          <ThumbsDown className="h-3.5 w-3.5" /> Not really
                         </button>
                       </div>
                       {showNoteFor === req.id && (
                         <div className="space-y-2">
-                          <textarea
-                            rows={2}
-                            placeholder="Optional: what was most useful?"
+                          <textarea rows={2} placeholder="Optional: what was most useful?"
                             value={ratingNote[req.id] ?? ""}
                             onChange={e => setRatingNote(prev => ({ ...prev, [req.id]: e.target.value }))}
-                            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-green-400/50 resize-none"
+                            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-emerald-400/40 resize-none"
                           />
-                          <button
-                            disabled={submittingFeedback === req.id}
+                          <button disabled={submittingFeedback === req.id}
                             onClick={() => submitFeedback(req.id, "helpful")}
-                            className="text-xs bg-green-700/20 hover:bg-green-700/30 border border-green-700/40 text-green-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
-                          >
+                            className="text-xs bg-emerald-700/20 hover:bg-emerald-700/30 border border-emerald-700/40 text-emerald-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                             {submittingFeedback === req.id ? "Submitting…" : "Submit"}
                           </button>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground pt-1 border-t border-white/10">
-                      {currentRating === "helpful" ? "You marked this answer as helpful." : "You marked this answer as not helpful."}
+                    <p className="text-xs text-muted-foreground/50 pt-1 border-t border-white/[0.07]">
+                      {currentRating === "helpful" ? "You found this answer helpful." : "You marked this as not helpful."}
                     </p>
                   )}
                 </div>
@@ -614,29 +611,36 @@ function HistorySection({ answered, resolveProfileNames }: {
   );
 }
 
-function DeliveryCard({ mode, selected, onClick, title, price, description }: {
-  mode: DeliveryMode;
+function DeliveryCard({ selected, onClick, emoji, title, price, description }: {
   selected: boolean;
   onClick: () => void;
+  emoji: string;
   title: string;
   price: string;
   description: string;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`flex-1 text-left rounded-xl border p-4 transition-colors ${
-        selected ? "border-amber-400/60 bg-amber-400/10" : "border-white/10 bg-white/5 hover:bg-white/10"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className={`font-medium ${selected ? "text-amber-300" : "text-foreground"}`}
-          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", fontWeight: 300 }}>
-          {title}
+    <button onClick={onClick} style={{
+      flex: 1,
+      textAlign: "left",
+      borderRadius: "14px",
+      border: selected ? "1px solid rgba(251,191,36,0.5)" : "1px solid rgba(255,255,255,0.09)",
+      background: selected ? "rgba(251,191,36,0.08)" : "rgba(255,255,255,0.03)",
+      padding: "14px 16px",
+      transition: "all 0.15s ease",
+    }}>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span>{emoji}</span>
+          <span style={{ ...cormorant, fontSize: "1.1rem", color: selected ? "rgba(253,230,138,0.95)" : "rgba(255,255,255,0.75)" }}>
+            {title}
+          </span>
         </div>
-        <div className={`text-sm font-bold flex-shrink-0 ${selected ? "text-amber-400" : "text-amber-400/60"}`}>{price}</div>
+        <span style={{ fontWeight: 700, color: selected ? "#fbbf24" : "rgba(251,191,36,0.45)", fontSize: "0.9rem" }}>
+          {price}
+        </span>
       </div>
-      <div className="text-xs text-muted-foreground mt-1">{description}</div>
+      <div className="text-xs text-muted-foreground">{description}</div>
     </button>
   );
 }

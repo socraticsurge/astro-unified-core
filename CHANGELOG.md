@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Kundali Matching + Consultation redesign; remove question/check caps
+
+### Changed
+- **`components/compatibility/CompatibilityClient.tsx`** — Full restyle. Groom (🤵) / Bride (👰) pill selectors replace Male/Female dropdowns. Glass card matching landing page aesthetic. CTA uses same gold shimmer button as landing. "X/6 checks used" chip removed. History cards show animated SVG score ring and Auspicious/Moderate label. Empty state replaced with warmer copy.
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — "Male/Female" replaced with "Groom/Bride" + emoji throughout (header avatars, Moon Profiles, Kuja Dosha, Additional Kutas). Score arc upgraded to larger SVG with score/36 label and qualitative label. All cards use the landing page glass style. Verdict and dosha cards use Cormorant typography. Mobile-first layout with max-w-2xl.
+- **`app/consultation/ConsultationForm.tsx`** — One-at-a-time gate removed. Multiple open questions now display in an "Open questions" section below the always-visible submission form. Payment card, delivery cards, and question display all upgraded to glass aesthetic. Language simplified (e.g. "Pay to confirm", "Send confirmation on WhatsApp"). Answered history similarly elevated.
+- **`app/consultation/page.tsx`** — No functional change; styling inherited.
+
+### Removed
+- **API cap: 1 active question** — `app/api/consultation-requests/route.ts` no longer blocks submission when a pending question exists.
+- **API cap: 6 compatibility checks** — `app/api/compatibility/route.ts` no longer returns 403 when the user has 6+ checks.
+
+---
+
 ## [2026-05-17] — UX tightening: above-fold layout, simplified consultation, tucked footer
 
 ### Changed

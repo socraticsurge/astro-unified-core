@@ -31,15 +31,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Two profiles required" }, { status: 400 });
     }
 
-    // Check limit before calling the sidecar
     const existingChecks = await db.compatibility.list(userId);
     const duplicate = existingChecks.find(c =>
       (c.profile_id_1 === profile_id_1 && c.profile_id_2 === profile_id_2) ||
       (c.profile_id_1 === profile_id_2 && c.profile_id_2 === profile_id_1)
     );
-    if (!duplicate && existingChecks.length >= 6) {
-      return NextResponse.json({ error: "You have reached the maximum limit of 6 compatibility checks. Please delete some checks or contact support to run more." }, { status: 403 });
-    }
 
     const p1 = await db.profiles.get(profile_id_1, userId);
     const p2 = await db.profiles.get(profile_id_2, userId);
