@@ -3,14 +3,16 @@
 @import "shadcn/tailwind.css";
 @plugin "@tailwindcss/typography";
 
-@custom-variant dark (&:is(.dark *));
+/* Update dark variant to use data-theme attribute instead of .dark class */
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 @theme inline {
+  /* ── shadcn variables (kept for shadcn component compatibility) ── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-cormorant);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,39 +42,37 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ── Radius — now theme-aware ── */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-3xl: var(--radius-3xl);
+  --radius-4xl: var(--radius-4xl);
+
+  /* ── Semantic ink tokens → Tailwind: text-ink-1, bg-ink-2, etc. ── */
+  --color-ink-1: var(--color-ink-1);
+  --color-ink-2: var(--color-ink-2);
+  --color-ink-3: var(--color-ink-3);
+  --color-ink-4: var(--color-ink-4);
+
+  /* ── Semantic surface tokens → Tailwind: bg-surface-1, etc. ── */
+  --color-surface-1: var(--color-surface-1);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-surface-active: var(--color-surface-active);
+  --color-border-subtle: var(--color-border-subtle);
+
+  /* ── Status tokens → Tailwind: text-success, bg-danger, etc. ── */
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
 }
 
+/* ── Fallback root (shadcn needs a base :root) ── */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -82,42 +82,181 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  /* Cosmic deep-space navy — matches landing page #060318 */
-  --background: oklch(0.07 0.022 275);
-  --foreground: oklch(0.96 0 0);
-  /* Cards slightly elevated above background */
-  --card: oklch(0.14 0.016 275);
-  --card-foreground: oklch(0.96 0 0);
-  --popover: oklch(0.14 0.016 275);
-  --popover-foreground: oklch(0.96 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.18 0.014 275);
-  --muted-foreground: oklch(0.62 0 0);
-  --accent: oklch(0.18 0.014 275);
-  --accent-foreground: oklch(0.96 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK THEME — Cosmic
+   To change the dark personality: edit values in this block only.
+   ══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  /* Color — backgrounds & surfaces */
+  --color-bg:              oklch(0.07 0.022 275);
+  --color-surface-1:       rgba(255,255,255,0.04);
+  --color-surface-2:       rgba(255,255,255,0.07);
+  --color-surface-hover:   rgba(255,255,255,0.08);
+  --color-surface-active:  rgba(255,255,255,0.12);
+
+  /* Color — borders */
+  --color-border:          rgba(255,255,255,0.10);
+  --color-border-subtle:   rgba(255,255,255,0.05);
+
+  /* Color — ink (text hierarchy) */
+  --color-ink-1:           rgba(255,255,255,0.92);
+  --color-ink-2:           rgba(255,255,255,0.60);
+  --color-ink-3:           rgba(255,255,255,0.38);
+  --color-ink-4:           rgba(255,255,255,0.22);
+
+  /* Color — accent (brand: amber gold) */
+  --color-accent:          rgba(251,191,36,1);
+  --color-accent-dim:      rgba(251,191,36,0.55);
+  --color-accent-faint:    rgba(251,191,36,0.12);
+  --color-accent-hover:    rgba(251,191,36,0.80);
+
+  /* Color — status */
+  --color-success:         rgba(52,211,153,0.9);
+  --color-warning:         rgba(251,191,36,0.9);
+  --color-danger:          rgba(248,113,113,0.9);
+
+  /* Shape */
+  --radius-sm:             12px;
+  --radius-md:             16px;
+  --radius-lg:             20px;
+  --radius-xl:             24px;
+  --radius-2xl:            28px;
+  --radius-3xl:            32px;
+  --radius-4xl:            36px;
+  --radius-full:           999px;
+
+  /* Motion */
+  --duration-fast:         150ms;
+  --duration-normal:       300ms;
+  --duration-slow:         600ms;
+  --easing-standard:       cubic-bezier(0.16, 1, 0.3, 1);
+  --easing-exit:           ease-in;
+
+  /* Depth */
+  --shadow-card:           0 0 32px rgba(139,92,246,0.08);
+  --shadow-elevated:       0 8px 32px rgba(0,0,0,0.4);
+  --backdrop-blur:         blur(20px) saturate(1.6);
+  --surface-blend:         rgba(255,255,255,0.04);
+  --border-width:          1px;
+
+  /* Typography character */
+  --tracking-label:        0.04em;
+  --label-transform:       none;
+  --font-display:          var(--font-display-dark);
+  --font-ui:               var(--font-ui-dark);
+  --font-mono:             var(--font-mono-dark);
+
+  /* shadcn variable remapping — keeps shadcn components themed */
+  --background:            var(--color-bg);
+  --foreground:            var(--color-ink-1);
+  --card:                  var(--color-surface-1);
+  --card-foreground:       var(--color-ink-1);
+  --popover:               var(--color-surface-2);
+  --popover-foreground:    var(--color-ink-1);
+  --primary:               var(--color-accent);
+  --primary-foreground:    #1C1917;
+  --secondary:             var(--color-surface-2);
+  --secondary-foreground:  var(--color-ink-1);
+  --muted:                 var(--color-surface-1);
+  --muted-foreground:      var(--color-ink-3);
+  --accent:                var(--color-surface-2);
+  --accent-foreground:     var(--color-ink-1);
+  --destructive:           var(--color-danger);
+  --border:                var(--color-border);
+  --input:                 var(--color-border);
+  --ring:                  var(--color-accent-dim);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHT THEME — Archival
+   To change the light personality: edit values in this block only.
+   ══════════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  /* Color — backgrounds & surfaces */
+  --color-bg:              #F5F3EC;
+  --color-surface-1:       #FFFCF6;
+  --color-surface-2:       #FFFFFF;
+  --color-surface-hover:   rgba(28,25,23,0.05);
+  --color-surface-active:  rgba(28,25,23,0.10);
+
+  /* Color — borders */
+  --color-border:          #1C1917;
+  --color-border-subtle:   #D6D3D1;
+
+  /* Color — ink (text hierarchy) */
+  --color-ink-1:           #1C1917;
+  --color-ink-2:           #44403C;
+  --color-ink-3:           #78716C;
+  --color-ink-4:           #A8A29E;
+
+  /* Color — accent (brand: crimson ink) */
+  --color-accent:          #991B1B;
+  --color-accent-dim:      rgba(153,27,27,0.55);
+  --color-accent-faint:    rgba(153,27,27,0.08);
+  --color-accent-hover:    #7F1D1D;
+
+  /* Color — status */
+  --color-success:         #166534;
+  --color-warning:         #92400E;
+  --color-danger:          #991B1B;
+
+  /* Shape */
+  --radius-sm:             0px;
+  --radius-md:             2px;
+  --radius-lg:             4px;
+  --radius-xl:             6px;
+  --radius-2xl:            8px;
+  --radius-3xl:            10px;
+  --radius-4xl:            12px;
+  --radius-full:           999px;
+
+  /* Motion */
+  --duration-fast:         100ms;
+  --duration-normal:       180ms;
+  --duration-slow:         350ms;
+  --easing-standard:       ease;
+  --easing-exit:           ease-in;
+
+  /* Depth */
+  --shadow-card:           4px 4px 0px #1C1917;
+  --shadow-elevated:       8px 8px 0px rgba(28,25,23,0.15);
+  --backdrop-blur:         none;
+  --surface-blend:         #FFFCF6;
+  --border-width:          2px;
+
+  /* Typography character */
+  --tracking-label:        0.15em;
+  --label-transform:       uppercase;
+  --font-display:          var(--font-display-light);
+  --font-ui:               var(--font-ui-light);
+  --font-mono:             var(--font-mono-light);
+
+  /* shadcn variable remapping */
+  --background:            var(--color-bg);
+  --foreground:            var(--color-ink-1);
+  --card:                  var(--color-surface-1);
+  --card-foreground:       var(--color-ink-1);
+  --popover:               var(--color-surface-1);
+  --popover-foreground:    var(--color-ink-1);
+  --primary:               var(--color-accent);
+  --primary-foreground:    #FFFCF6;
+  --secondary:             var(--color-surface-hover);
+  --secondary-foreground:  var(--color-ink-1);
+  --muted:                 var(--color-surface-hover);
+  --muted-foreground:      var(--color-ink-3);
+  --accent:                var(--color-surface-hover);
+  --accent-foreground:     var(--color-ink-1);
+  --destructive:           var(--color-danger);
+  --border:                var(--color-border);
+  --input:                 var(--color-border-subtle);
+  --ring:                  var(--color-accent);
 }
 
 @layer base {
@@ -126,13 +265,15 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-color: var(--color-bg);
+    color: var(--color-ink-1);
   }
   html {
     @apply font-sans;
   }
 }
 
-/* ── Cosmic landing page keyframes ── */
+/* ── Keyframes ── */
 @keyframes spinZodiac { to { transform: rotate(360deg); } }
 @keyframes shimmerBtn {
   0%   { background-position: -200% center; }
