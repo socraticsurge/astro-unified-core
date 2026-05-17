@@ -192,7 +192,7 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
       {/* Profile Header Card */}
       <div className="mb-8 flex items-start gap-4 p-5 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-border)] shadow-2xl backdrop-blur-sm">
         {/* Monogram Avatar */}
-        <div className="shrink-0 h-16 w-16 rounded-full bg-[var(--color-accent)] flex items-center justify-center shadow-lg border-2 border-[var(--color-border)]">
+        <div className="shrink-0 h-16 w-16 rounded-full bg-[var(--color-accent)] flex items-center justify-center shadow-lg border-2 border-[var(--color-border)]" style={{ viewTransitionName: `profile-avatar-${id}` }}>
           <span className="text-2xl font-bold text-[var(--color-bg)] drop-shadow-md">{initials}</span>
         </div>
 

@@ -3,6 +3,10 @@
 @import "shadcn/tailwind.css";
 @plugin "@tailwindcss/typography";
 
+/* Enable smooth cross-fade between page navigations.
+   Supported in Chrome/Safari; ignored (no-op) in Firefox. */
+@view-transition { navigation: auto; }
+
 /* Update dark variant to use data-theme attribute instead of .dark class */
 @custom-variant dark (&:is([data-theme="dark"] *));
 

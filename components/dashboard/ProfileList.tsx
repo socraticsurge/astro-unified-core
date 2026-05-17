@@ -102,16 +102,26 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
         {sorted.map((p) => (
           <div key={p.id} className="group relative flex flex-col bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl overflow-hidden hover:bg-[var(--color-surface-hover)] transition-colors">
             <div className="p-4 border-b border-[var(--color-border-subtle)] flex items-start justify-between gap-2">
-              <div>
-                <h3 className="font-heading text-xl font-semibold text-foreground line-clamp-1">
-                  {p.name}
-                </h3>
-                <ProfileBadges
-                  relationship={p.relationship}
-                  gender={p.gender}
-                  current_location={p.current_location}
-                  profileId={p.id}
-                />
+              <div className="flex items-center gap-3">
+                <div
+                  className="shrink-0 h-10 w-10 rounded-full bg-[var(--color-accent)] flex items-center justify-center shadow border border-[var(--color-border)]"
+                  style={{ viewTransitionName: `profile-avatar-${p.id}` }}
+                >
+                  <span className="text-sm font-bold text-[var(--color-bg)]">
+                    {p.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-heading text-xl font-semibold text-foreground line-clamp-1">
+                    {p.name}
+                  </h3>
+                  <ProfileBadges
+                    relationship={p.relationship}
+                    gender={p.gender}
+                    current_location={p.current_location}
+                    profileId={p.id}
+                  />
+                </div>
               </div>
               <Link href={`/profiles/${p.id}`} className="shrink-0">
                 <Button variant="secondary" size="sm" className="h-8 text-xs font-medium">
