@@ -11,7 +11,8 @@ import {
 } from "@/lib/consultation";
 import type { ConsultationRequest, Profile, ConsultationSlot } from "@/lib/db";
 import type { DeliveryMode } from "@/lib/consultation";
-import { fonts } from "@/lib/typography";
+import { fonts, textStyles, colors } from "@/lib/typography";
+import { ProfileSelectorCard } from "@/components/profile/ProfileSelectorCard";
 
 const UPI_ID = "meherkalyanichaganti@okaxis";
 const WHATSAPP_NUMBER = "919704076544";
@@ -116,9 +117,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
 
         {/* Step 1: Profiles */}
         <div className="space-y-4 mb-6">
-          <p style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
-            Whose chart is this reading for?
-          </p>
+          <p style={textStyles.stepLabel}>Whose chart is this reading for?</p>
           {profiles.length === 0 ? (
             <Link href="/dashboard" style={{
               display: "flex",
@@ -126,7 +125,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
               alignItems: "center",
               justifyContent: "center",
               gap: "10px",
-              border: "1.5px dashed rgba(251,191,36,0.18)",
+              border: `1.5px dashed ${colors.goldFaint}`,
               borderRadius: "16px",
               padding: "24px 16px",
               textDecoration: "none",
@@ -136,99 +135,27 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                 <circle cx="20" cy="14" r="8" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
                 <path d="M4 38 Q4 26 20 26 Q36 26 36 38" fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-              <span style={{ ...fonts.display, fontSize: "0.9rem", fontStyle: "italic", color: "rgba(251,191,36,0.45)" }}>Add a profile to begin</span>
+              <span style={{ ...fonts.displayItalic, fontSize: "0.9rem", color: colors.goldDim }}>Add a profile to begin</span>
             </Link>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "10px" }}>
-              {completeProfiles.map(p => {
-                const selected = selectedProfiles.includes(p.id);
-                const inits = p.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => toggleProfile(p.id)}
-                    style={{
-                      background: selected ? "rgba(251,191,36,0.07)" : "rgba(255,255,255,0.03)",
-                      border: `1px solid ${selected ? "rgba(251,191,36,0.45)" : "rgba(255,255,255,0.09)"}`,
-                      borderRadius: "16px",
-                      padding: "16px 12px 14px",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "8px",
-                      cursor: "pointer",
-                      transition: "border-color 0.2s, background 0.2s, box-shadow 0.2s",
-                      boxShadow: selected ? "0 0 20px rgba(251,191,36,0.10)" : "none",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div style={{
-                      width: "40px",
-                      height: "40px",
-                      borderRadius: "50%",
-                      background: selected ? "rgba(251,191,36,0.15)" : "rgba(255,255,255,0.06)",
-                      border: `1px solid ${selected ? "rgba(251,191,36,0.35)" : "rgba(255,255,255,0.10)"}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontFamily: "var(--font-fonts.display), Georgia, serif",
-                      fontWeight: 700,
-                      fontSize: "0.95rem",
-                      color: selected ? "rgba(251,191,36,0.9)" : "rgba(255,255,255,0.45)",
-                      flexShrink: 0,
-                    }}>
-                      {inits}
-                    </div>
-                    <div style={{ ...fonts.display, fontSize: "0.95rem", color: selected ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.55)", lineHeight: 1.3, wordBreak: "break-word" }}>
-                      {p.name}
-                    </div>
-                    {p.relationship && (
-                      <div style={{ fontSize: "0.68rem", letterSpacing: "0.08em", textTransform: "capitalize", color: selected ? "rgba(251,191,36,0.55)" : "rgba(255,255,255,0.22)" }}>
-                        {p.relationship}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-              {incompleteProfiles.map(p => {
-                const inits = p.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
-                return (
-                  <Link
-                    key={p.id}
-                    href={`/profiles/${p.id}/edit`}
-                    style={{
-                      background: "rgba(255,255,255,0.015)",
-                      border: "1px solid rgba(255,255,255,0.05)",
-                      borderRadius: "16px",
-                      padding: "16px 12px 14px",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "8px",
-                      textDecoration: "none",
-                      opacity: 0.45,
-                      textAlign: "center",
-                    }}
-                  >
-                    <div style={{
-                      width: "40px", height: "40px", borderRadius: "50%",
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.07)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: "var(--font-fonts.display), Georgia, serif",
-                      fontWeight: 700, fontSize: "0.95rem", color: "rgba(255,255,255,0.3)",
-                    }}>
-                      {inits}
-                    </div>
-                    <div style={{ ...fonts.display, fontSize: "0.95rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.3 }}>
-                      {p.name}
-                    </div>
-                    <div style={{ fontSize: "0.65rem", color: "rgba(251,191,36,0.5)", letterSpacing: "0.06em" }}>
-                      complete profile
-                    </div>
-                  </Link>
-                );
-              })}
+              {completeProfiles.map(p => (
+                <ProfileSelectorCard
+                  key={p.id}
+                  name={p.name}
+                  subtitle={p.relationship ?? undefined}
+                  selected={selectedProfiles.includes(p.id)}
+                  onSelect={() => toggleProfile(p.id)}
+                />
+              ))}
+              {incompleteProfiles.map(p => (
+                <ProfileSelectorCard
+                  key={p.id}
+                  name={p.name}
+                  incomplete
+                  incompleteHref={`/profiles/${p.id}/edit`}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -238,7 +165,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
 
         {/* Step 2: Question */}
         <div className="space-y-2 mb-6">
-          <p style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+          <p style={textStyles.stepLabel}>
             What would you like to understand?
           </p>
           <div className="relative">
@@ -258,7 +185,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
 
         {/* Step 3: Delivery mode */}
         <div className="space-y-3 mb-6">
-          <p style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+          <p style={textStyles.stepLabel}>
             How would you like it answered?
           </p>
           {!writtenConsultationEnabled && !liveConsultationEnabled ? (
@@ -300,7 +227,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
         {/* Slot picker */}
         {liveConsultationEnabled && deliveryMode === "appointment" && (
           <div className="space-y-3 mb-6">
-            <p style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+            <p style={textStyles.stepLabel}>
               Choose a time (IST)
             </p>
             {availableSlots.length === 0 ? (
@@ -336,7 +263,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                         background: isSelected ? "rgba(251,191,36,0.07)" : "rgba(255,255,255,0.03)",
                         color: isSelected ? "rgba(253,230,138,0.9)" : "rgba(255,255,255,0.6)",
                         transition: "all 0.15s ease",
-                        fontFamily: "var(--font-fonts.display), Georgia, serif",
+                        fontFamily: "var(--font-cormorant), Georgia, serif",
                         fontWeight: 400,
                         fontSize: "1rem",
                         cursor: "pointer",
@@ -371,7 +298,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
               : "rgba(255,255,255,0.06)",
             backgroundSize: "200% auto",
             color: canSubmit && !submitting ? "#3b1a00" : "rgba(255,255,255,0.22)",
-            fontFamily: "var(--font-fonts.display), Georgia, serif",
+            fontFamily: "var(--font-cormorant), Georgia, serif",
             fontWeight: 700,
             fontSize: "1.1rem",
             letterSpacing: "0.04em",
@@ -611,7 +538,7 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
             textDecoration: "none",
             background: "rgba(4,120,87,0.12)",
             letterSpacing: "0.03em",
-            fontFamily: "var(--font-fonts.display), Georgia, serif",
+            fontFamily: "var(--font-cormorant), Georgia, serif",
             fontWeight: 400,
           }}>
           Confirm payment via WhatsApp
@@ -778,7 +705,7 @@ function DeliveryCard({ selected, onClick, title, price, description }: {
         <span style={{ ...fonts.display, fontSize: "1.1rem", color: selected ? "rgba(253,230,138,0.95)" : "rgba(255,255,255,0.72)" }}>
           {title}
         </span>
-        <span style={{ fontFamily: "var(--font-fonts.display), Georgia, serif", fontWeight: 700, fontSize: "1rem", color: selected ? "#fbbf24" : "rgba(251,191,36,0.38)" }}>
+        <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 700, fontSize: "1rem", color: selected ? "#fbbf24" : "rgba(251,191,36,0.38)" }}>
           {price}
         </span>
       </div>

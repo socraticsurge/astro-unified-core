@@ -9,7 +9,8 @@ import { KOOTA_MAX } from "@/lib/compatibility";
 import { Button } from "@/components/ui/button";
 import { CompatibilityInsightShell } from "@/components/engines/CompatibilityInsightShell";
 import { CompatibilityChat } from "@/components/engines/CompatibilityChat";
-import { fonts } from "@/lib/typography";
+import { fonts, textStyles, colors } from "@/lib/typography";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 const glassCard: React.CSSProperties = {
   background: "rgba(255,255,255,0.04)",
@@ -122,21 +123,17 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           <div className="flex items-center justify-between w-full gap-4">
             {/* Groom */}
             <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-              <div style={{
-                width: "56px", height: "56px", borderRadius: "50%",
-                background: "linear-gradient(135deg, #6d28d9, #8b5cf6)",
-                border: "2px solid rgba(139,92,246,0.4)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "20px", fontWeight: 700, color: "white",
-                boxShadow: "0 4px 16px rgba(139,92,246,0.3)",
-              }}>
-                {initials(groomName)}
-              </div>
+              <ProfileAvatar
+                name={groomName}
+                size="lg"
+                color="rgba(139,92,246,0.18)"
+                textColor="rgba(196,180,255,0.9)"
+              />
               <div className="text-center w-full">
                 <div style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(196,180,255,0.95)", wordBreak: "break-word" }}>
                   {groomName}
                 </div>
-                <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                <div style={{ ...textStyles.meta, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                   Groom
                 </div>
               </div>
@@ -149,21 +146,17 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
             {/* Bride */}
             <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-              <div style={{
-                width: "56px", height: "56px", borderRadius: "50%",
-                background: "linear-gradient(135deg, #be185d, #ec4899)",
-                border: "2px solid rgba(236,72,153,0.4)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "20px", fontWeight: 700, color: "white",
-                boxShadow: "0 4px 16px rgba(236,72,153,0.3)",
-              }}>
-                {initials(brideName)}
-              </div>
+              <ProfileAvatar
+                name={brideName}
+                size="lg"
+                color="rgba(244,114,182,0.16)"
+                textColor="rgba(251,191,200,0.9)"
+              />
               <div className="text-center w-full">
                 <div style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(251,191,200,0.95)", wordBreak: "break-word" }}>
                   {brideName}
                 </div>
-                <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                <div style={{ ...textStyles.meta, letterSpacing: "0.1em", textTransform: "uppercase" }}>
                   Bride
                 </div>
               </div>

@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { fonts } from "@/lib/typography";
+import { fonts, textStyles, colors } from "@/lib/typography";
+import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 function initials(name: string) {
   return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -147,23 +148,20 @@ function SeatCard({
       {/* Role label */}
       <div style={{
         position: "absolute", top: "14px", left: "50%", transform: "translateX(-50%)",
-        fontSize: "0.68rem", letterSpacing: "0.14em", textTransform: "uppercase",
+        ...textStyles.meta, letterSpacing: "0.14em", textTransform: "uppercase",
         color: c.accentFaint, whiteSpace: "nowrap",
       }}>
         {c.label}
       </div>
 
       {/* Avatar */}
-      <div style={{
-        width: "56px", height: "56px", borderRadius: "50%",
-        background: c.avatarBg, border: `1px solid ${c.cardBorder}`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        marginBottom: "14px", marginTop: "8px",
-        fontSize: "1.1rem", fontWeight: 700, color: c.avatarText,
-        fontFamily: "var(--font-fonts.display), Georgia, serif",
-        letterSpacing: "0.04em", flexShrink: 0,
-      }}>
-        {initials(profile!.name)}
+      <div style={{ marginBottom: "14px", marginTop: "8px" }}>
+        <ProfileAvatar
+          name={profile!.name}
+          size="lg"
+          color={c.avatarBg}
+          textColor={c.avatarText}
+        />
       </div>
 
       {/* Name */}
@@ -173,7 +171,7 @@ function SeatCard({
 
       {/* Birth date */}
       {profile!.date_of_birth && (
-        <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.28)", marginTop: "6px", letterSpacing: "0.04em", textAlign: "center" }}>
+        <div style={{ ...textStyles.meta, marginTop: "6px", textAlign: "center" }}>
           {formatBirthDate(profile!.date_of_birth)}
         </div>
       )}
@@ -337,7 +335,7 @@ export function CompatibilityClient({
               : "rgba(255,255,255,0.06)",
             backgroundSize: "200% auto",
             color: canRun ? "#3b1a00" : "rgba(255,255,255,0.22)",
-            fontFamily: "var(--font-fonts.display), Georgia, serif",
+            fontFamily: "var(--font-cormorant), Georgia, serif",
             fontWeight: 700,
             fontSize: "1.1rem",
             letterSpacing: "0.04em",

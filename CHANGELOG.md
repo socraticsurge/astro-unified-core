@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Design system: color palette, text levels, ProfileAvatar, ProfileSelectorCard
+
+### Added
+- **`lib/typography.ts`** — extended with `colors` (semantic palette: primary/secondary/tertiary/muted/faint/gold/goldDim/goldFaint/success/warning/danger) and `textStyles` (composed text level objects: pageTitle, sectionHead, subhead, stepLabel, body, bodyMedium, small, label, meta). All font+size+color combinations now live in one place.
+- **`components/profile/ProfileAvatar.tsx`** — reusable avatar circle: `name` (initials auto-derived), `size` (sm/md/lg/xl), `color`, `textColor`. Uses `fonts.displayBold` consistently.
+- **`components/profile/ProfileSelectorCard.tsx`** — compact selectable profile card (vertical, glass, amber selected state). Props: `name`, `subtitle`, `selected`, `onSelect`, `incomplete`, `incompleteHref`. All profile selection UIs now share this component.
+
+### Changed
+- **`app/consultation/ConsultationForm.tsx`** — complete/incomplete profile selector grids replaced with `ProfileSelectorCard`. Step labels use `textStyles.stepLabel`.
+- **`components/compatibility/CompatibilityClient.tsx`** — SeatCard avatar replaced with `ProfileAvatar`. Role label and birth date use `textStyles.meta`.
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — Groom/Bride avatars replaced with `ProfileAvatar` using role colors. Role labels use `textStyles.meta`.
+
+---
+
 ## [2026-05-17] — Centralized typography system; Mulish replaces Jost; nav items switch to sans
 
 ### Added
