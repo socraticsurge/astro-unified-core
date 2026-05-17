@@ -10,6 +10,7 @@ import {
   LayoutDashboard, User
 } from "lucide-react";
 import type { Profile } from "@/lib/db";
+import { textStyles } from "@/lib/typography";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import { extractEngineError } from "@/lib/engine-error";
 
@@ -198,7 +199,7 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
         {/* Identity + Birth Data */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            <h1 className="text-3xl font-bold leading-tight tracking-tight">{profile.name}</h1>
+            <h1 style={textStyles.pageTitle}>{profile.name}</h1>
             <ProfileBadges
               relationship={profile.relationship}
               gender={profile.gender}

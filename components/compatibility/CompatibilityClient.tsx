@@ -263,9 +263,7 @@ export function CompatibilityClient({
 
       {/* Page heading */}
       <div>
-        <h1 style={{ ...fonts.display, fontSize: "2.4rem", letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
-          Kundali Matching
-        </h1>
+        <h1 style={textStyles.pageTitle}>Kundali Matching</h1>
       </div>
 
       {/* Portrait seat cards */}
@@ -336,8 +334,7 @@ export function CompatibilityClient({
               : "rgba(255,255,255,0.06)",
             backgroundSize: "200% auto",
             color: canRun ? "#3b1a00" : "rgba(255,255,255,0.22)",
-            fontFamily: "var(--font-cormorant), Georgia, serif",
-            fontWeight: 700,
+            ...fonts.displayBold,
             fontSize: "1.1rem",
             letterSpacing: "0.04em",
             boxShadow: canRun ? "0 4px 24px rgba(217,119,6,0.32)" : "none",

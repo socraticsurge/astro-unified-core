@@ -8,6 +8,18 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Design audit: typography token cleanup, border-radius normalization
+
+### Changed
+- **`app/admin/page.tsx`** — page heading now uses `textStyles.pageTitle`; added missing `textStyles` import.
+- **`app/profiles/[id]/ProfileDetailClient.tsx`** — profile name heading uses `textStyles.pageTitle`.
+- **`components/compatibility/CompatibilityClient.tsx`** — "Kundali Matching" heading uses `textStyles.pageTitle`; five raw `fontFamily` inline strings replaced with `fonts.*` tokens.
+- **`app/consultation/ConsultationForm.tsx`** — five raw `fontFamily` strings replaced with `fonts.*` tokens; slot button `borderRadius` normalized from `"14px"` to `"16px"`.
+- **`components/profile/ProfileSelectorCard.tsx`** — selected avatar background uses `colors.goldFaint` token instead of raw rgba.
+- **`lib/typography.ts`** — added `glass` surface style (backdrop blur + light background); added `clamp.one` / `clamp.two` overflow utilities.
+
+---
+
 ## [2026-05-17] — Consistent name clamping and equal-height card pairs across all profile UIs
 
 ### Added

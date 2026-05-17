@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { AdminTables } from "./AdminTables";
+import { textStyles } from "@/lib/typography";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function AdminPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold mb-1">Admin Dashboard</h1>
+        <h1 style={textStyles.pageTitle}>Admin Dashboard</h1>
         <p className="text-sm text-muted-foreground">Admin access only</p>
       </div>
 

@@ -140,6 +140,18 @@ export const textStyles = {
   },
 } satisfies Record<string, CSSProperties>;
 
+// ── Glass surface ─────────────────────────────────────────────────────────────
+// Shared backdrop style for cards and panels. Spread into style props.
+// Pair with a border and border-radius at the call site.
+//
+//   <div style={{ ...glass, border: `1px solid ${colors.faint}`, borderRadius: 20 }}>
+
+export const glass: CSSProperties = {
+  background: "rgba(255,255,255,0.04)",
+  backdropFilter: "blur(20px) saturate(1.6)",
+  WebkitBackdropFilter: "blur(20px) saturate(1.6)",
+};
+
 // ── Name clamping ─────────────────────────────────────────────────────────────
 // Apply to every name displayed inside a card so no card grows taller than
 // its neighbors. Pick the variant that fits the card size.

@@ -27,7 +27,7 @@ export function ProfileSelectorCard({
   const shadow  = selected  ? "0 0 24px rgba(251,191,36,0.10)" : "none";
   const opacity = incomplete ? 0.5 : 1;
 
-  const avatarColor     = selected ? "rgba(251,191,36,0.15)" : undefined;
+  const avatarColor     = selected ? colors.goldFaint : undefined;
   const avatarTextColor = selected ? colors.gold : undefined;
 
   const cardStyle: React.CSSProperties = {

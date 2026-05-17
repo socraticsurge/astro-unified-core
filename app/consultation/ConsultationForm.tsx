@@ -11,7 +11,7 @@ import {
 } from "@/lib/consultation";
 import type { ConsultationRequest, Profile, ConsultationSlot } from "@/lib/db";
 import type { DeliveryMode } from "@/lib/consultation";
-import { fonts, textStyles, colors } from "@/lib/typography";
+import { fonts, textStyles, colors, scale } from "@/lib/typography";
 import { ProfileSelectorCard } from "@/components/profile/ProfileSelectorCard";
 
 const UPI_ID = "meherkalyanichaganti@okaxis";
@@ -258,13 +258,12 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                       style={{
                         textAlign: "left",
                         padding: "12px 18px",
-                        borderRadius: "14px",
+                        borderRadius: "16px",
                         border: `1px solid ${isSelected ? "rgba(251,191,36,0.45)" : "rgba(255,255,255,0.09)"}`,
                         background: isSelected ? "rgba(251,191,36,0.07)" : "rgba(255,255,255,0.03)",
                         color: isSelected ? "rgba(253,230,138,0.9)" : "rgba(255,255,255,0.6)",
                         transition: "all 0.15s ease",
-                        fontFamily: "var(--font-cormorant), Georgia, serif",
-                        fontWeight: 400,
+                        ...fonts.display,
                         fontSize: "1rem",
                         cursor: "pointer",
                       }}
@@ -298,8 +297,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
               : "rgba(255,255,255,0.06)",
             backgroundSize: "200% auto",
             color: canSubmit && !submitting ? "#3b1a00" : "rgba(255,255,255,0.22)",
-            fontFamily: "var(--font-cormorant), Georgia, serif",
-            fontWeight: 700,
+            ...fonts.displayBold,
             fontSize: "1.1rem",
             letterSpacing: "0.04em",
             boxShadow: canSubmit && !submitting ? "0 4px 24px rgba(217,119,6,0.32)" : "none",
@@ -538,8 +536,7 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
             textDecoration: "none",
             background: "rgba(4,120,87,0.12)",
             letterSpacing: "0.03em",
-            fontFamily: "var(--font-cormorant), Georgia, serif",
-            fontWeight: 400,
+            ...fonts.display,
           }}>
           Confirm payment via WhatsApp
         </a>
@@ -705,7 +702,7 @@ function DeliveryCard({ selected, onClick, title, price, description }: {
         <span style={{ ...fonts.display, fontSize: "1.1rem", color: selected ? "rgba(253,230,138,0.95)" : "rgba(255,255,255,0.72)" }}>
           {title}
         </span>
-        <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 700, fontSize: "1rem", color: selected ? "#fbbf24" : "rgba(251,191,36,0.38)" }}>
+        <span style={{ ...fonts.displayBold, fontSize: "1rem", color: selected ? colors.gold : colors.goldFaint }}>
           {price}
         </span>
       </div>
