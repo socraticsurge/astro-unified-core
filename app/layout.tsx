@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { Philosopher, Mulish } from "next/font/google";
+import {
+  Philosopher,
+  Mulish,
+  Libre_Baskerville,
+  Inter,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { Analytics } from "@vercel/analytics/next";
@@ -8,23 +14,45 @@ import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
 import { NavBar } from "@/components/NavBar";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppShell } from "@/components/AppShell";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-const mulish = Mulish({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-sans",
-});
-
+// ── Dark theme fonts ───────────────────────────────────────────────────────────
 const philosopher = Philosopher({
   subsets: ["latin"],
   weight: ["400", "700"],
   style: ["normal", "italic"],
-  variable: "--font-cormorant",
+  variable: "--font-display-dark",
+});
+
+const mulish = Mulish({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-ui-dark",
+});
+
+// ── Light theme fonts ──────────────────────────────────────────────────────────
+const libreBaskerville = Libre_Baskerville({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-display-light",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-ui-light",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  variable: "--font-mono-light",
 });
 
 export const metadata: Metadata = {
@@ -36,26 +64,38 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
   return (
-    <html lang="en" className="dark">
-      <body className={`${mulish.variable} ${philosopher.variable} font-sans antialiased`}>
-        <NextAuthProvider session={session}>
-          <AppShell
-            navBar={<NavBar />}
-            footer={
-              <footer className="pb-24 sm:pb-6 pt-2 flex items-center justify-end px-4 sm:px-6 opacity-20 hover:opacity-50 transition-opacity duration-300">
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground tracking-wide">
-                  <span>© {CURRENT_YEAR} Astro Chaganti</span>
-                  <span className="text-white/20">·</span>
-                  <Link href="/privacy" className="hover:underline">Privacy</Link>
-                  <Link href="/terms" className="hover:underline">Terms</Link>
-                </div>
-              </footer>
-            }
-            feedback={<FeedbackWidget />}
-          >
-            {children}
-          </AppShell>
-        </NextAuthProvider>
+    // No className="dark" — next-themes sets data-theme="dark" instead
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={[
+          philosopher.variable,
+          mulish.variable,
+          libreBaskerville.variable,
+          inter.variable,
+          jetbrainsMono.variable,
+          "font-sans antialiased",
+        ].join(" ")}
+      >
+        <ThemeProvider>
+          <NextAuthProvider session={session}>
+            <AppShell
+              navBar={<NavBar />}
+              footer={
+                <footer className="pb-24 sm:pb-6 pt-2 flex items-center justify-end px-4 sm:px-6 opacity-20 hover:opacity-50 transition-opacity duration-300">
+                  <div className="flex items-center gap-3 text-[10px] text-[var(--color-ink-3)] tracking-wide">
+                    <span>© {CURRENT_YEAR} Astro Chaganti</span>
+                    <span className="text-[var(--color-border-subtle)]">·</span>
+                    <Link href="/privacy" className="hover:underline">Privacy</Link>
+                    <Link href="/terms" className="hover:underline">Terms</Link>
+                  </div>
+                </footer>
+              }
+              feedback={<FeedbackWidget />}
+            >
+              {children}
+            </AppShell>
+          </NextAuthProvider>
+        </ThemeProvider>
         <Analytics />
         <SpeedInsights />
       </body>
