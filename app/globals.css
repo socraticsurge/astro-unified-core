@@ -199,6 +199,9 @@
   --ring:                  var(--color-accent-dim);
 }
 
+[data-theme="dark"]  ::selection { background: var(--color-accent-faint); color: var(--color-ink-1); }
+[data-theme="light"] ::selection { background: var(--color-accent-faint); color: var(--color-ink-1); }
+
 /* ══════════════════════════════════════════════════════════════
    LIGHT THEME — Archival
    To change the light personality: edit values in this block only.
@@ -308,6 +311,8 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Remove mobile tap flash — theme accent shows on focus-visible instead */
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
@@ -316,6 +321,42 @@
   }
   html {
     @apply font-sans;
+  }
+
+  /* ── Placeholder text ── */
+  ::placeholder {
+    color: var(--color-ink-4);
+    opacity: 1; /* Firefox reduces opacity by default */
+  }
+
+  /* ── Focus ring — keyboard only, not mouse/touch ── */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* ── Scrollbar — thin, theme-aware (Webkit/Blink) ── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-4);
+  }
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
   }
 }
 

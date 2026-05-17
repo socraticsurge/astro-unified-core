@@ -196,6 +196,15 @@ export const spacing = {
   16: "var(--space-16)",  // 64px → 48px mobile
 } as const;
 
+// ── Shadow tokens ─────────────────────────────────────────────────────────────
+// Theme-aware: dark = soft glow, light = hard offset shadow.
+// Use in inline style={{ boxShadow: shadows.card }} or shadows.elevated.
+
+export const shadows = {
+  card:     "var(--shadow-card)",
+  elevated: "var(--shadow-elevated)",
+} as const;
+
 // ── Interactive state tokens ───────────────────────────────────────────────────
 // Tailwind class strings for hover/active states. These reference CSS variables
 // via Tailwind's arbitrary value syntax so they switch with the theme.

@@ -8,6 +8,18 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Polish: global selection, scrollbar, tap highlight, placeholder, focus ring, shadow tokens
+
+### Added
+- **`::selection` colors** in `globals.css` — both themes use `--color-accent-faint` background so highlighted text matches the brand accent.
+- **Scrollbar styling** — thin 6px webkit scrollbar + Firefox `scrollbar-width: thin` using `--color-border` / `--color-ink-4` tokens; invisible on clean layouts, visible on hover.
+- **`-webkit-tap-highlight-color: transparent`** on `*` — removes default blue flash on mobile tap; keyboard focus still shows the accent ring.
+- **`::placeholder` color** — `var(--color-ink-4)` with `opacity: 1` (Firefox fix); all inputs share the same subtle placeholder hierarchy.
+- **`:focus-visible` ring** — `2px solid var(--color-accent)` at 2px offset; `:focus:not(:focus-visible)` suppresses the ring for mouse/touch so it's keyboard-only.
+- **`shadows` export** in `lib/typography.ts` — `{ card, elevated }` CSS-var references for inline `boxShadow` use; theme-aware (dark: glow, light: hard offset).
+
+---
+
 ## [2026-05-17] — Layout & navigation: view transitions, PageHeader, tab fix, chart skeleton
 
 ### Added
