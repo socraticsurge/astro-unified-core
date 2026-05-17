@@ -57,7 +57,7 @@ export const SectionShell = memo(function SectionShell({
       <div className="flex items-center gap-2 py-3 px-1">
         <button
           onClick={() => setOpen((o) => !o)}
-          className="flex-1 flex items-center justify-between text-left hover:bg-white/5 rounded transition-colors -mx-1 px-1"
+          className="flex-1 flex items-center justify-between text-left hover:bg-[var(--color-surface-hover)] rounded transition-colors -mx-1 px-1"
           aria-expanded={open}
         >
           <span className={`font-semibold text-sm uppercase tracking-wide ${accent}`}>
@@ -75,7 +75,7 @@ export const SectionShell = memo(function SectionShell({
             onClick={() => setModalOpen(true)}
             aria-label={`Read about ${sectionInView}`}
             title="Read Vedic explanation"
-            className="shrink-0 rounded-md p-1 text-amber-400/70 hover:bg-amber-950/40 hover:text-amber-300 transition-colors"
+            className="shrink-0 rounded-md p-1 text-[var(--color-accent-dim)] hover:bg-[var(--color-accent-faint)] hover:text-[var(--color-accent)] transition-colors"
           >
             <Info className="h-4 w-4" />
           </button>

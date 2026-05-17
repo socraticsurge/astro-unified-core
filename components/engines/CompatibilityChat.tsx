@@ -18,7 +18,7 @@ function MessageContent({ text }: { text: string }) {
           <p key={i}>
             {parts.map((part, j) => {
               if (part.startsWith("**") && part.endsWith("**")) return <strong key={j}>{part.slice(2, -2)}</strong>;
-              if (part.startsWith("`") && part.endsWith("`")) return <code key={j} className="text-[11px] bg-white/10 rounded px-1 font-mono">{part.slice(1, -1)}</code>;
+              if (part.startsWith("`") && part.endsWith("`")) return <code key={j} className="text-[11px] bg-[var(--color-surface-hover)] rounded px-1 font-mono">{part.slice(1, -1)}</code>;
               return part;
             })}
           </p>
@@ -85,14 +85,14 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
   };
 
   return (
-    <div className="flex flex-col rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ height: "580px" }}>
+    <div className="flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] overflow-hidden" style={{ height: "580px" }}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-white/5">
+      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-[var(--color-border-subtle)]">
         <ModelPicker value={model} onChange={setModel} disabled={loading} />
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-white/20">{name1} &amp; {name2} · in-memory</span>
+          <span className="text-[10px] text-[var(--color-ink-4)]">{name1} &amp; {name2} · in-memory</span>
           {messages.length > 0 && (
-            <button onClick={() => { setMessages([]); setError(null); }} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-white/60 transition-colors">
+            <button onClick={() => { setMessages([]); setError(null); }} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-[var(--color-ink-2)] transition-colors">
               <Trash2 className="h-3 w-3" /> Clear
             </button>
           )}
@@ -111,13 +111,13 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
             {m.role === "assistant" && (
               <div className="h-6 w-6 rounded-full bg-violet-900/60 border border-violet-700/40 flex items-center justify-center text-[10px] font-bold text-violet-300 shrink-0 mt-0.5">AI</div>
             )}
-            <div className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm ${m.role === "user" ? "bg-amber-900/30 border border-amber-800/30 text-amber-100" : "bg-white/[0.04] border border-white/8 text-foreground/90"}`}>
+            <div className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm ${m.role === "user" ? "bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-[var(--color-ink-1)]" : "bg-[var(--color-surface-1)] border border-[var(--color-border)] text-foreground/90"}`}>
               {m.role === "assistant" ? <MessageContent text={m.content} /> : <p>{m.content}</p>}
               {m.role === "assistant" && (
                 <div className="flex justify-end mt-1.5">
                   <button
                     onClick={() => copyMessage(i, m.content)}
-                    className="flex items-center gap-1 text-[10px] text-white/25 hover:text-white/50 transition-colors"
+                    className="flex items-center gap-1 text-[10px] text-[var(--color-ink-4)] hover:text-[var(--color-ink-3)] transition-colors"
                     title="Copy response"
                   >
                     {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
@@ -130,7 +130,7 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
         {loading && (
           <div className="flex gap-2.5 justify-start">
             <div className="h-6 w-6 rounded-full bg-violet-900/60 border border-violet-700/40 flex items-center justify-center text-[10px] font-bold text-violet-300 shrink-0 mt-0.5">AI</div>
-            <div className="bg-white/[0.04] border border-white/8 rounded-xl px-3.5 py-2.5">
+            <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl px-3.5 py-2.5">
               <div className="flex gap-1.5 items-center h-4">
                 {[0, 1, 2].map(i => (
                   <span key={i} className="h-1.5 w-1.5 rounded-full bg-violet-400/60 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
@@ -144,7 +144,7 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
       </div>
 
       {/* Input */}
-      <div className="px-3 pb-3 border-t border-white/5 pt-2">
+      <div className="px-3 pb-3 border-t border-[var(--color-border-subtle)] pt-2">
         <div className="flex gap-2 items-end">
           <textarea
             rows={2}
@@ -152,7 +152,7 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about compatibility, timing, dynamics… (Enter to send)"
-            className="flex-1 resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50"
+            className="flex-1 resize-none rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50"
           />
           <button
             onClick={send}

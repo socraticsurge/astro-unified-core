@@ -50,7 +50,7 @@ type Props = {
 
 const PLANET_ORDER = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
 const th = "text-left py-1.5 pr-3 font-medium text-xs text-muted-foreground";
-const row = "border-b border-white/10 hover:bg-white/5";
+const row = "border-b border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]";
 
 export function TransitView({ output, transitDate, explainer }: Props) {
   const accent = "text-sky-400";
@@ -158,7 +158,7 @@ export function TransitView({ output, transitDate, explainer }: Props) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/10">
+              <tr className="border-b border-[var(--color-border)]">
                 <th className={th}>Planet</th>
                 <th className={th}>Transit Sign</th>
                 <th className={th}>H from Lagna</th>
@@ -203,8 +203,8 @@ export function TransitView({ output, transitDate, explainer }: Props) {
       )}
 
       {!planets && !sadeSati && !rahuKetu && (
-        <details className="mt-2 border border-white/10 rounded-lg">
-          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-sky-400 hover:bg-white/5 rounded-lg">
+        <details className="mt-2 border border-[var(--color-border)] rounded-lg">
+          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-sky-400 hover:bg-[var(--color-surface-hover)] rounded-lg">
             Raw Transit Data
           </summary>
           <pre className="px-3 pb-3 text-xs font-mono text-muted-foreground whitespace-pre-wrap break-all">

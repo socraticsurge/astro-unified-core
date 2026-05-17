@@ -64,7 +64,7 @@ export function VargaDashboard({ planets, explainer }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>("d1");
 
   const th = "text-left py-1.5 pr-3 font-medium text-xs text-muted-foreground";
-  const row = "border-b border-white/10 hover:bg-white/5";
+  const row = "border-b border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]";
 
   const currentTab = TABS.find((t) => t.key === activeTab)!;
 
@@ -84,7 +84,7 @@ export function VargaDashboard({ planets, explainer }: Props) {
             className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
               activeTab === tab.key
                 ? "bg-violet-800/60 text-violet-200 border border-violet-600/60"
-                : "bg-white/5 text-muted-foreground border border-white/10 hover:bg-white/10"
+                : "bg-[var(--color-surface-1)] text-muted-foreground border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]"
             }`}
           >
             {tab.label}
@@ -100,7 +100,7 @@ export function VargaDashboard({ planets, explainer }: Props) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/10">
+              <tr className="border-b border-[var(--color-border)]">
                 <th className={th}>Planet</th>
                 <th className={th}>Sign</th>
                 <th className={th}>Degree</th>
@@ -150,7 +150,7 @@ export function VargaDashboard({ planets, explainer }: Props) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="border-b border-white/10">
+              <tr className="border-b border-[var(--color-border)]">
                 <th className={th}>Planet</th>
                 <th className={th}>Sign in {currentTab.label.split("—")[0].trim()}</th>
               </tr>
@@ -171,7 +171,7 @@ export function VargaDashboard({ planets, explainer }: Props) {
           </table>
           {/* Check if any data actually present */}
           {PLANET_ORDER.every((name) => !planets[name]?.[currentTab.signKey!]) && (
-            <p className="text-xs text-amber-400/70 mt-2 italic">
+            <p className="text-xs text-[var(--color-accent-dim)] mt-2 italic">
               ⚠ Varga sign data not found in the current chart response. This may indicate the sidecar needs a version check.
             </p>
           )}
@@ -183,7 +183,7 @@ export function VargaDashboard({ planets, explainer }: Props) {
         <div className="overflow-x-auto">
           <table className="text-xs border-collapse w-full">
             <thead>
-              <tr className="border-b border-white/10">
+              <tr className="border-b border-[var(--color-border)]">
                 <th className={th}>Planet</th>
                 {OTHERS_VARGAS.map((v) => (
                   <th key={v.label} className="text-center py-1.5 px-2 font-medium text-muted-foreground">{v.label}</th>

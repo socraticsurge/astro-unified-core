@@ -76,7 +76,7 @@ export function DashaflowView({ output, explainers }: Props) {
   }
 
   const accent = "text-green-400";
-  const row    = "border-b border-white/10 hover:bg-white/5";
+  const row    = "border-b border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]";
   const th     = "text-left py-1.5 pr-3 font-medium text-xs text-muted-foreground";
   const card   = "bg-green-950/20 border border-green-800/30 rounded-lg p-3";
 
@@ -187,7 +187,7 @@ export function DashaflowView({ output, explainers }: Props) {
               { label: "DOB",        value: meta.dob },
               { label: "Time",       value: meta.time },
             ].filter(x => x.value).map(({ label, value }) => (
-              <div key={label} className="bg-white/5 rounded p-2">
+              <div key={label} className="bg-[var(--color-surface-1)] rounded p-2">
                 <p className="text-green-400/60 uppercase tracking-wide font-medium text-[10px]">{label}</p>
                 <p className="text-green-200 font-mono font-semibold mt-0.5">{value}</p>
               </div>
@@ -301,7 +301,7 @@ export function DashaflowView({ output, explainers }: Props) {
                 const val = lagna[key];
                 if (!val) return null;
                 return (
-                  <div key={key} className="bg-white/5 rounded-lg p-2 text-xs">
+                  <div key={key} className="bg-[var(--color-surface-1)] rounded-lg p-2 text-xs">
                     <p className="text-green-400/60 font-medium">{label}</p>
                     <p className="text-green-200 font-semibold mt-0.5">{String(val)}</p>
                   </div>
@@ -335,7 +335,7 @@ export function DashaflowView({ output, explainers }: Props) {
           <div className="overflow-x-auto mt-2">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b border-white/10">
+                <tr className="border-b border-[var(--color-border)]">
                   <th className={th}>Planet</th>
                   <th className={th}>Sign</th>
                   <th className={th}>Degree</th>
@@ -465,7 +465,7 @@ export function DashaflowView({ output, explainers }: Props) {
                             </div>
 
                             {dashas.prana && (
-                              <div className="ml-4 mt-1.5 bg-white/5 rounded-lg p-2">
+                              <div className="ml-4 mt-1.5 bg-[var(--color-surface-1)] rounded-lg p-2">
                                 <div className="flex items-baseline gap-3 flex-wrap">
                                   <span className="text-xs text-green-400/20 uppercase tracking-widest">Prana</span>
                                   <span className="font-semibold text-green-300">{dashas.prana.planet}</span>
@@ -488,14 +488,14 @@ export function DashaflowView({ output, explainers }: Props) {
             )}
 
             {dashas.timeline && dashas.timeline.length > 0 && (
-              <details className="border border-white/10 rounded-lg">
-                <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-green-400 hover:bg-white/5 rounded-lg uppercase tracking-wide">
+              <details className="border border-[var(--color-border)] rounded-lg">
+                <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-green-400 hover:bg-[var(--color-surface-hover)] rounded-lg uppercase tracking-wide">
                   Full Maha Dasha Timeline
                 </summary>
                 <div className="px-3 pb-3 overflow-x-auto">
                   <table className="w-full text-xs border-collapse mt-2">
                     <thead>
-                      <tr className="border-b border-white/10">
+                      <tr className="border-b border-[var(--color-border)]">
                         <th className={th}>Planet</th>
                         <th className={th}>Start</th>
                         <th className={th}>End</th>
@@ -539,7 +539,7 @@ export function DashaflowView({ output, explainers }: Props) {
                   key={i}
                   className={isMajor
                     ? "bg-green-900/30 border border-green-600/50 rounded-lg p-3"
-                    : "bg-white/5 border border-white/10 rounded-lg p-3"}
+                    : "bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg p-3"}
                 >
                   <div className="flex items-start justify-between gap-2 flex-wrap">
                     <p className={`font-bold text-sm ${isMajor ? "text-green-100" : "text-green-300"}`}>
@@ -583,7 +583,7 @@ export function DashaflowView({ output, explainers }: Props) {
           <div className="overflow-x-auto">
             <table className="w-full text-xs border-collapse">
               <thead>
-                <tr className="border-b border-white/10">
+                <tr className="border-b border-[var(--color-border)]">
                   <th className={th}>Planet</th>
                   <th className={th}>Sthana</th>
                   <th className={th}>Dig</th>
@@ -621,10 +621,10 @@ export function DashaflowView({ output, explainers }: Props) {
                       <td className="py-1.5 pr-3">
                         {isStrong
                           ? <span className="text-emerald-400 font-bold">✓</span>
-                          : <span className="text-red-400/70">✗</span>}
+                          : <span className="text-[var(--color-danger)]/70">✗</span>}
                       </td>
-                      <td className="py-1.5 pr-3 font-mono text-amber-400/80">{s.ishta_phala?.toFixed(1) ?? "—"}</td>
-                      <td className="py-1.5 font-mono text-red-400/70">{s.kashta_phala?.toFixed(1) ?? "—"}</td>
+                      <td className="py-1.5 pr-3 font-mono text-[var(--color-accent-dim)]">{s.ishta_phala?.toFixed(1) ?? "—"}</td>
+                      <td className="py-1.5 font-mono text-[var(--color-danger)]/70">{s.kashta_phala?.toFixed(1) ?? "—"}</td>
                     </tr>
                   );
                 })}
@@ -711,7 +711,7 @@ export function DashaflowView({ output, explainers }: Props) {
           <div className="overflow-x-auto mt-2">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b border-white/10">
+                <tr className="border-b border-[var(--color-border)]">
                   <th className={th}>Planet</th>
                   <th className={th}>Avastha</th>
                   <th className={th}>Degree</th>
@@ -762,7 +762,7 @@ export function DashaflowView({ output, explainers }: Props) {
           <div className="overflow-x-auto mt-2">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b border-white/10">
+                <tr className="border-b border-[var(--color-border)]">
                   <th className={th}>Planet</th>
                   <th className={th}>Rashi House</th>
                   <th className={th}>Bhava House</th>
@@ -802,7 +802,7 @@ export function DashaflowView({ output, explainers }: Props) {
         >
           <div className="space-y-3 mt-2">
             {grahaYuddha.map((war, i) => (
-              <div key={i} className="bg-red-950/20 border border-red-900/40 rounded-lg p-3">
+              <div key={i} className="bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/40 rounded-lg p-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-red-300">{war.planet1}</span>
                   <span className="text-muted-foreground text-xs">vs</span>
@@ -841,7 +841,7 @@ export function DashaflowView({ output, explainers }: Props) {
               const knownKeys = new Set(["planet","sign","degree","nakshatra","description"]);
               const extra = Object.entries(g).filter(([k]) => !knownKeys.has(k));
               return (
-                <div key={i} className="bg-amber-950/20 border border-amber-800/30 rounded-lg p-3">
+                <div key={i} className="bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] rounded-lg p-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     {g.planet && (
                       <span className="font-bold text-amber-300">{g.planet}</span>
@@ -937,7 +937,7 @@ export function DashaflowView({ output, explainers }: Props) {
             <div className="overflow-x-auto">
               <table className="text-xs border-collapse w-full">
                 <thead>
-                  <tr className="border-b border-white/10">
+                  <tr className="border-b border-[var(--color-border)]">
                     {SIGNS_ORDER.map(s => (
                       <th key={s} className="text-center py-1.5 px-2 font-medium text-muted-foreground">{s.slice(0,3)}</th>
                     ))}
@@ -972,7 +972,7 @@ export function DashaflowView({ output, explainers }: Props) {
           <div className="mt-2 overflow-x-auto">
             <table className="text-xs border-collapse">
               <thead>
-                <tr className="border-b border-white/10">
+                <tr className="border-b border-[var(--color-border)]">
                   <th className={`${th} pr-4`}>Planet</th>
                   {SIGNS_ORDER.map(s => (
                     <th key={s} className="text-center py-1.5 px-1.5 font-medium text-muted-foreground">{s.slice(0,3)}</th>
@@ -1039,11 +1039,11 @@ export function DashaflowView({ output, explainers }: Props) {
             </div>
             
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
+              <div className="p-2 bg-[var(--color-surface-1)] rounded border border-[var(--color-border-subtle)] text-center">
                 <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Rahu Axis</p>
                 <p className="text-sm font-semibold text-blue-300">{kaalSarpa.rahu_sign?.toString() || "—"}</p>
               </div>
-              <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
+              <div className="p-2 bg-[var(--color-surface-1)] rounded border border-[var(--color-border-subtle)] text-center">
                 <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Ketu Axis</p>
                 <p className="text-sm font-semibold text-orange-300">{kaalSarpa.ketu_sign?.toString() || "—"}</p>
               </div>
@@ -1059,17 +1059,17 @@ export function DashaflowView({ output, explainers }: Props) {
               <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
                 Kaal Sarpa Yoga
               </h3>
-              <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/10 text-muted-foreground uppercase">
+              <span className="text-[10px] bg-[var(--color-surface-1)] px-2 py-0.5 rounded border border-[var(--color-border)] text-muted-foreground uppercase">
                 Not Detected
               </span>
             </div>
             
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
+              <div className="p-2 bg-[var(--color-surface-1)] rounded border border-[var(--color-border-subtle)] text-center">
                 <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Rahu</p>
                 <p className="text-sm font-semibold text-muted-foreground/60">{planets?.["Rahu"]?.sign || "—"}</p>
               </div>
-              <div className="p-2 bg-white/5 rounded border border-white/5 text-center">
+              <div className="p-2 bg-[var(--color-surface-1)] rounded border border-[var(--color-border-subtle)] text-center">
                 <p className="text-[10px] text-muted-foreground uppercase mb-0.5">Ketu</p>
                 <p className="text-sm font-semibold text-muted-foreground/60">{planets?.["Ketu"]?.sign || "—"}</p>
               </div>

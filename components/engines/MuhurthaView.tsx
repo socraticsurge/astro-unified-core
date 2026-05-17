@@ -49,7 +49,7 @@ export function MuhurthaView({ profileId, explainer }: Props) {
     <SectionShell sectionInView="Muhurtha (Auspicious Timings)" explainer={explainer ?? null}>
       <div className="space-y-8">
         {/* Search Form */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-[var(--color-surface-1)] p-4 rounded-xl border border-[var(--color-border)]">
           <div className="space-y-1.5">
             <Label>Event Type</Label>
             <select 
@@ -102,7 +102,7 @@ export function MuhurthaView({ profileId, explainer }: Props) {
               ))}
             </div>
           ) : !loading && (
-            <div className="py-12 text-center text-sm text-muted-foreground italic border border-dashed border-white/10 rounded-lg">
+            <div className="py-12 text-center text-sm text-muted-foreground italic border border-dashed border-[var(--color-border)] rounded-lg">
               {"No highly auspicious timings found in this date range. Try widening the window."}
             </div>
           )}

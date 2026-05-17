@@ -160,14 +160,14 @@ export function CareerView({ output, explainer }: Props) {
 
       {/* D10 Table */}
       {Object.keys(d10Indicators).length > 0 && (
-        <details className="mt-2 border border-white/10 rounded-lg">
-          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-yellow-400 hover:bg-white/5 rounded-lg uppercase tracking-wide">
+        <details className="mt-2 border border-[var(--color-border)] rounded-lg">
+          <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-yellow-400 hover:bg-[var(--color-surface-hover)] rounded-lg uppercase tracking-wide">
             View D10 Planetary Details
           </summary>
           <div className="p-3 overflow-x-auto">
             <table className="w-full text-xs text-left text-muted-foreground border-collapse">
               <thead>
-                <tr className="border-b border-white/10">
+                <tr className="border-b border-[var(--color-border)]">
                   <th className="pb-2 pr-3 font-medium">Planet</th>
                   <th className="pb-2 pr-3 font-medium">D10 Sign</th>
                   <th className="pb-2 pr-3 font-medium">D10 Lord</th>
@@ -176,7 +176,7 @@ export function CareerView({ output, explainer }: Props) {
               </thead>
               <tbody>
                 {Object.entries(d10Indicators).map(([planet, data]) => (
-                  <tr key={planet} className="border-b border-white/5 hover:bg-white/5">
+                  <tr key={planet} className="border-b border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-hover)]">
                     <td className="py-1.5 pr-3 font-semibold text-yellow-200/80">{planet}</td>
                     <td className="py-1.5 pr-3">{data.d10_sign}</td>
                     <td className="py-1.5 pr-3">{data.d10_lord}</td>
@@ -191,13 +191,13 @@ export function CareerView({ output, explainer }: Props) {
         </details>
       )}
       {/* Raw Data Toggle */}
-      <div className="mt-8 pt-4 border-t border-white/10">
+      <div className="mt-8 pt-4 border-t border-[var(--color-border)]">
         <details className="group">
           <summary className="cursor-pointer text-[10px] text-muted-foreground uppercase tracking-widest hover:text-yellow-400/80 transition-colors list-none flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-yellow-900/50 group-open:bg-yellow-500"></span>
             View Raw Career Data
           </summary>
-          <pre className="mt-4 p-4 rounded-lg bg-black/40 border border-white/5 text-[10px] font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap">
+          <pre className="mt-4 p-4 rounded-lg bg-black/40 border border-[var(--color-border-subtle)] text-[10px] font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap">
             {JSON.stringify(output, null, 2)}
           </pre>
         </details>

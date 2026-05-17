@@ -118,7 +118,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
       <div className="space-y-6">
 
         {/* Controls */}
-        <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/10">
+        <div className="space-y-4 bg-[var(--color-surface-1)] p-4 rounded-xl border border-[var(--color-border)]">
           {/* Profile selector */}
           {profiles.length > 1 && (
             <div className="space-y-2">
@@ -137,10 +137,10 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                         checked
                           ? "bg-violet-900/40 border-violet-600/60 text-violet-200"
-                          : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                          : "bg-[var(--color-surface-1)] border-[var(--color-border)] text-muted-foreground hover:border-[var(--color-border)] hover:text-foreground"
                       }`}
                     >
-                      <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${checked ? "bg-violet-500 border-violet-500" : "border-white/30"}`}>
+                      <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${checked ? "bg-violet-500 border-violet-500" : "border-[var(--color-ink-3)]"}`}>
                         {checked && <span className="text-white text-[8px] leading-none">✓</span>}
                       </span>
                       {p.name}
@@ -186,7 +186,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
 
         {/* Error state */}
         {error && (
-          <div className="p-4 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 text-sm">
+          <div className="p-4 rounded-lg bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/40 text-[var(--color-danger)] text-sm">
             {error}
           </div>
         )}
@@ -208,7 +208,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
 
             {/* Missing chart notice */}
             {result.profiles.some(p => p.birth_moon_nakshatra === null) && (
-              <div className="text-xs text-amber-400/80 bg-amber-950/20 border border-amber-800/30 rounded-lg px-3 py-2">
+              <div className="text-xs text-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] rounded-lg px-3 py-2">
                 Some profiles have no chart yet — open their profile page to generate a chart, then return here.
               </div>
             )}
@@ -217,7 +217,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="border-b border-white/10">
+                  <tr className="border-b border-[var(--color-border)]">
                     <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium whitespace-nowrap">Date</th>
                     <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium whitespace-nowrap">Moon in</th>
                     <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium whitespace-nowrap">Tithi</th>
@@ -243,7 +243,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                     return (
                       <tr
                         key={row.date}
-                        className={`border-b border-white/5 hover:bg-white/[0.02] ${allGood ? "bg-emerald-950/10" : ""}`}
+                        className={`border-b border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-1)] ${allGood ? "bg-emerald-950/10" : ""}`}
                       >
                         <td className="py-2 pr-4 whitespace-nowrap text-foreground/80 text-xs">
                           {formatDate(row.date)}
@@ -311,7 +311,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
         )}
 
         {!result && !loading && !error && (
-          <div className="py-10 text-center text-sm text-muted-foreground italic border border-dashed border-white/10 rounded-lg">
+          <div className="py-10 text-center text-sm text-muted-foreground italic border border-dashed border-[var(--color-border)] rounded-lg">
             Select profiles and a date range, then click Calculate.
           </div>
         )}

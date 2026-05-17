@@ -76,7 +76,7 @@ function isCurrent(start: string, end: string): boolean {
 export function AntardashaTimeline({ dashas, explainer }: Props) {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const accent = "text-amber-400";
-  const row = "border-b border-white/10";
+  const row = "border-b border-[var(--color-border)]";
 
   const timeline = dashas?.timeline ?? [];
   const currentMaha = dashas?.maha;
@@ -100,7 +100,7 @@ export function AntardashaTimeline({ dashas, explainer }: Props) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-white/10">
+            <tr className="border-b border-[var(--color-border)]">
               <th className="text-left py-1.5 pr-3 font-medium text-xs text-muted-foreground w-6"></th>
               <th className="text-left py-1.5 pr-3 font-medium text-xs text-muted-foreground">Planet</th>
               <th className="text-left py-1.5 pr-3 font-medium text-xs text-muted-foreground">Start</th>
@@ -120,7 +120,7 @@ export function AntardashaTimeline({ dashas, explainer }: Props) {
                 // Mahadasha row
                 <tr
                   key={`maha-${i}`}
-                  className={`${row} cursor-pointer transition-colors ${active ? "bg-amber-950/30 hover:bg-amber-950/40" : "hover:bg-white/5"}`}
+                  className={`${row} cursor-pointer transition-colors ${active ? "bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]" : "hover:bg-[var(--color-surface-hover)]"}`}
                   onClick={() => setExpandedIdx(isExpanded ? null : i)}
                 >
                   <td className="py-2 pr-2 text-muted-foreground">
@@ -128,7 +128,7 @@ export function AntardashaTimeline({ dashas, explainer }: Props) {
                       ? <ChevronDown className="h-3.5 w-3.5 inline" />
                       : <ChevronRight className="h-3.5 w-3.5 inline" />}
                   </td>
-                  <td className={`py-2 pr-3 font-bold ${active ? "text-amber-300" : "text-amber-400/80"}`}>
+                  <td className={`py-2 pr-3 font-bold ${active ? "text-[var(--color-accent)]" : "text-[var(--color-accent-dim)]"}`}>
                     {planet}{active ? " ●" : ""}
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">{mahaStart}</td>
@@ -145,10 +145,10 @@ export function AntardashaTimeline({ dashas, explainer }: Props) {
                       return (
                         <tr
                           key={`antar-${i}-${ai}`}
-                          className={`${row} ${adActive ? "bg-amber-950/20" : "bg-white/[0.02]"}`}
+                          className={`${row} ${adActive ? "bg-[var(--color-accent-faint)]" : "bg-[var(--color-surface-1)]"}`}
                         >
                           <td></td>
-                          <td className={`py-1.5 pr-3 text-xs pl-5 ${adActive ? "font-bold text-amber-200" : "text-amber-400/60"}`}>
+                          <td className={`py-1.5 pr-3 text-xs pl-5 ${adActive ? "font-bold text-[var(--color-accent)]" : "text-[var(--color-accent-dim)]"}`}>
                             {adActive && "→ "}{ad.planet}
                           </td>
                           <td className="py-1.5 pr-3 font-mono text-xs text-muted-foreground">{ad.start}</td>

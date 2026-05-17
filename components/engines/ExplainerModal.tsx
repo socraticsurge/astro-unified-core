@@ -44,11 +44,11 @@ const proseClasses = `
   prose-h3:text-base prose-h3:mt-4 prose-h3:mb-1.5
   prose-p:leading-relaxed prose-p:text-foreground/90
   prose-blockquote:border-l-2 prose-blockquote:border-amber-500/50
-  prose-blockquote:bg-amber-950/10 prose-blockquote:py-1 prose-blockquote:px-3
+  prose-blockquote:bg-[var(--color-accent-faint)] prose-blockquote:py-1 prose-blockquote:px-3
   prose-blockquote:not-italic prose-blockquote:text-foreground/85
   prose-table:text-xs prose-th:font-medium prose-th:text-left
-  prose-th:border-b prose-th:border-white/10 prose-th:py-1.5
-  prose-td:py-1.5 prose-td:border-b prose-td:border-white/5
+  prose-th:border-b prose-th:border-[var(--color-border)] prose-th:py-1.5
+  prose-td:py-1.5 prose-td:border-b prose-td:border-[var(--color-border-subtle)]
   prose-strong:text-foreground prose-em:text-foreground/90
   prose-a:text-blue-300 prose-a:no-underline hover:prose-a:underline
 `;
@@ -248,8 +248,8 @@ export function ExplainerModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full h-full md:h-auto md:max-h-[85vh] md:w-[640px] md:max-w-[92vw] md:rounded-lg border border-white/10 bg-zinc-950 shadow-2xl flex flex-col">
-        <header className="flex items-start justify-between gap-3 p-5 border-b border-white/10">
+      <div className="relative w-full h-full md:h-auto md:max-h-[85vh] md:w-[640px] md:max-w-[92vw] md:rounded-lg border border-[var(--color-border)] bg-zinc-950 shadow-2xl flex flex-col">
+        <header className="flex items-start justify-between gap-3 p-5 border-b border-[var(--color-border)]">
           <div>
             <h2 id="explainer-title" className="font-heading text-xl font-medium text-foreground">
               {title}
@@ -263,7 +263,7 @@ export function ExplainerModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-white/5 hover:text-foreground"
+            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-[var(--color-surface-hover)] hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -271,7 +271,7 @@ export function ExplainerModal({
 
         {hasChartEntries ? (
           <>
-            <div className="border-b border-white/10 px-5">
+            <div className="border-b border-[var(--color-border)] px-5">
               <div role="tablist" className="flex gap-4 -mb-px">
                 <button
                   role="tab"

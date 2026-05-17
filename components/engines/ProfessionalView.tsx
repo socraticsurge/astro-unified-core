@@ -100,7 +100,7 @@ export function ProfessionalView({
   return (
     <div>
       {/* ─── Top-level Tab Navigation ─── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 border-b border-[var(--color-border)]">
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {tabs.map((tab) => (
             <button
@@ -108,8 +108,8 @@ export function ProfessionalView({
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 activeTab === tab.key
-                  ? "border-violet-400 text-violet-300"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-white/20"
+                  ? "border-violet-400 text-[var(--color-ink-2)]"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-[var(--color-border)]"
               }`}
             >
               {tab.label}
@@ -164,7 +164,7 @@ export function ProfessionalView({
           <>
             {isAdmin && profileId && <AIInsightShell profileId={profileId} tab={"career" as InsightTab} />}
             {isCareerLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground border border-white/5 rounded-xl bg-white/[0.02]">
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground border border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface-1)]">
                 <RefreshCw className="h-8 w-8 animate-spin text-violet-400" />
                 <p className="text-sm font-medium">Analyzing career potential...</p>
               </div>
@@ -174,7 +174,7 @@ export function ProfessionalView({
                 explainer={explainers["Career Analysis (D10 Dashamsha)"] ?? null}
               />
             ) : (
-              <div className="py-12 text-center text-sm text-muted-foreground italic bg-white/5 rounded-lg border border-white/10">
+              <div className="py-12 text-center text-sm text-muted-foreground italic bg-[var(--color-surface-1)] rounded-lg border border-[var(--color-border)]">
                 Career analysis data could not be loaded.
               </div>
             )}
@@ -185,7 +185,7 @@ export function ProfessionalView({
           <>
             {isAdmin && profileId && <AIInsightShell profileId={profileId} tab={"transit" as InsightTab} />}
             {isTransitLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground border border-white/5 rounded-xl bg-white/[0.02]">
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground border border-[var(--color-border-subtle)] rounded-xl bg-[var(--color-surface-1)]">
                 <RefreshCw className="h-8 w-8 animate-spin text-sky-400" />
                 <p className="text-sm font-medium">Calculating transits...</p>
               </div>
@@ -196,7 +196,7 @@ export function ProfessionalView({
                 explainer={explainers["Transit Analysis (Gochar)"] ?? null}
               />
             ) : (
-              <div className="py-12 text-center text-sm text-muted-foreground italic bg-white/5 rounded-lg border border-white/10">
+              <div className="py-12 text-center text-sm text-muted-foreground italic bg-[var(--color-surface-1)] rounded-lg border border-[var(--color-border)]">
                 Transit data could not be loaded.
               </div>
             )}

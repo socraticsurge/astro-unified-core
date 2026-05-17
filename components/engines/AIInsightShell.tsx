@@ -72,11 +72,11 @@ export function AIInsightShell({ profileId, tab }: Props) {
   }, [profileId, tab, model]);
 
   return (
-    <div className="mb-5 rounded-xl border border-violet-800/30 bg-violet-950/10 overflow-hidden">
+    <div className="mb-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2.5">
         <Sparkles className="h-3.5 w-3.5 text-violet-400 shrink-0" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-violet-300 flex-1">
+        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-2)] flex-1">
           AI Insight
         </span>
 
@@ -88,7 +88,7 @@ export function AIInsightShell({ profileId, tab }: Props) {
           size="sm"
           disabled={checking || loading}
           onClick={(e) => { e.stopPropagation(); generate(!!state); }}
-          className="h-6 px-2 text-[11px] text-violet-300 hover:text-violet-100 hover:bg-violet-900/40 gap-1 ml-1"
+          className="h-6 px-2 text-[11px] text-[var(--color-ink-2)] hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] gap-1 ml-1"
         >
           {loading
             ? <RefreshCw className="h-3 w-3 animate-spin" />
@@ -99,7 +99,7 @@ export function AIInsightShell({ profileId, tab }: Props) {
         {(state || loading) && (
           <button
             onClick={() => setOpen((o) => !o)}
-            className="p-0.5 text-violet-400/60 hover:text-violet-300 transition-colors"
+            className="p-0.5 text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] transition-colors"
             aria-expanded={open}
           >
             <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -109,7 +109,7 @@ export function AIInsightShell({ profileId, tab }: Props) {
 
       {/* Body */}
       {open && (
-        <div className="px-4 pb-4 border-t border-violet-800/20 pt-3">
+        <div className="px-4 pb-4 border-t border-[var(--color-border-subtle)] pt-3">
           {loading && (
             <div className="flex items-center gap-2 py-6 justify-center text-sm text-muted-foreground">
               <RefreshCw className="h-4 w-4 animate-spin text-violet-400" />
@@ -117,7 +117,7 @@ export function AIInsightShell({ profileId, tab }: Props) {
             </div>
           )}
           {error && !loading && (
-            <p className="text-xs text-red-400 py-3">{error}</p>
+            <p className="text-xs text-[var(--color-danger)] py-3">{error}</p>
           )}
           {state && !loading && (
             <AIInsightCard
