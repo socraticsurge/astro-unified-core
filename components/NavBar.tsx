@@ -87,32 +87,32 @@ const glassStyle: React.CSSProperties = {
 
 const wordmarkStyle: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 300,
-  fontSize: "1.65rem",
-  letterSpacing: "0.04em",
+  fontWeight: 400,
+  fontSize: "1.45rem",
+  letterSpacing: "0.02em",
   lineHeight: 1,
 };
 
 const navLinkStyle: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 300,
-  fontSize: "1.25rem",
-  letterSpacing: "0.03em",
+  fontWeight: 400,
+  fontSize: "1.1rem",
+  letterSpacing: "0.02em",
 };
 
 const adminLinkStyle: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 300,
-  fontSize: "1.1rem",
-  letterSpacing: "0.03em",
+  fontWeight: 400,
+  fontSize: "1.0rem",
+  letterSpacing: "0.02em",
 };
 
 const signOutStyle: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 300,
+  fontWeight: 400,
   fontStyle: "italic",
-  fontSize: "1rem",
-  letterSpacing: "0.04em",
+  fontSize: "0.95rem",
+  letterSpacing: "0.03em",
 };
 
 const goldStyle: React.CSSProperties = {
@@ -208,7 +208,7 @@ export function NavBar() {
               <Link
                 href="/auth/signin"
                 className="px-4 py-1.5 rounded-xl text-sm font-medium border border-amber-400/30 bg-[rgba(251,191,36,0.08)] text-amber-400 hover:bg-[rgba(251,191,36,0.15)] hover:text-amber-300 transition-colors"
-                style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300 }}
+                style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 400 }}
               >
                 Sign In
               </Link>
@@ -240,7 +240,7 @@ export function NavBar() {
                 >
                   <Icon active={active} />
                   <span
-                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.82rem", letterSpacing: "0.06em" }}
+                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 400, fontSize: "0.82rem", letterSpacing: "0.06em" }}
                   >
                     {short}
                   </span>
@@ -257,7 +257,7 @@ export function NavBar() {
                 ].join(" ")}
               >
                 <ShieldCheck className="h-5 w-5" />
-                <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.82rem" }}>
+                <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 400, fontSize: "0.82rem" }}>
                   Admin
                 </span>
               </Link>
@@ -268,7 +268,7 @@ export function NavBar() {
               className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-h-[52px] justify-center text-white/25 hover:text-white/50"
             >
               <LogOut className="h-5 w-5" />
-              <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "0.82rem" }}>
+              <span className="text-[10px] tracking-wide" style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 400, fontSize: "0.82rem" }}>
                 Exit
               </span>
             </button>
@@ -292,7 +292,7 @@ export function NavBar() {
           <Link
             href="/auth/signin"
             className="px-4 py-1.5 rounded-xl text-sm border border-amber-400/30 bg-[rgba(251,191,36,0.08)] text-amber-400 hover:bg-[rgba(251,191,36,0.15)] transition-colors"
-            style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300 }}
+            style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 400 }}
           >
             Sign In
           </Link>

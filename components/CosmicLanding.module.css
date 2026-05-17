@@ -69,7 +69,7 @@
 .quoteText {
   font-family: var(--font-cormorant), Georgia, serif;
   font-size: clamp(28px, 3.2vw, 44px);
-  font-weight: 300; font-style: italic;
+  font-weight: 400; font-style: italic;
   color: rgba(255,255,255,0.88);
   line-height: 1.72;
   min-height: 7em;
@@ -86,18 +86,18 @@
 }
 .brandName {
   font-family: var(--font-cormorant), Georgia, serif;
-  font-size: 40px; font-weight: 300; letter-spacing: 0.04em;
+  font-size: 40px; font-weight: 400; letter-spacing: 0.04em;
   color: rgba(255,255,255,0.92); line-height: 1;
 }
 .brandName em {
-  font-style: italic; font-weight: 300;
+  font-style: italic; font-weight: 400;
   background: linear-gradient(135deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   filter: drop-shadow(0 0 14px rgba(251,191,36,0.3));
 }
 .brandSub {
   font-family: var(--font-cormorant), Georgia, serif;
-  font-size: 16px; font-weight: 300; font-style: italic;
+  font-size: 16px; font-weight: 400; font-style: italic;
   color: rgba(255,255,255,0.42);
   letter-spacing: 0.16em; margin-top: 6px;
 }

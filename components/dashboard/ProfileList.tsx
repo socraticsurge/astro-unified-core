@@ -34,7 +34,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
   if (profiles.length === 0) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
-        <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.2 }}>
+        <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 400, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.2 }}>
           Natal Charts
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -69,7 +69,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 300, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 400, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.2 }}>
             Natal Charts
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Your birth profiles and their Vedic charts.</p>

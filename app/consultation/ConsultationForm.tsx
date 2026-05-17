@@ -18,7 +18,7 @@ const MIN_QUESTION_LENGTH = MIN_FIELD_LENGTH;
 
 const cormorant: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 300,
+  fontWeight: 400,
 };
 
 const glassCard: React.CSSProperties = {
@@ -176,7 +176,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                       alignItems: "center",
                       justifyContent: "center",
                       fontFamily: "var(--font-cormorant), Georgia, serif",
-                      fontWeight: 600,
+                      fontWeight: 700,
                       fontSize: "0.95rem",
                       color: selected ? "rgba(251,191,36,0.9)" : "rgba(255,255,255,0.45)",
                       flexShrink: 0,
@@ -220,7 +220,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                       border: "1px solid rgba(255,255,255,0.07)",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontFamily: "var(--font-cormorant), Georgia, serif",
-                      fontWeight: 600, fontSize: "0.95rem", color: "rgba(255,255,255,0.3)",
+                      fontWeight: 700, fontSize: "0.95rem", color: "rgba(255,255,255,0.3)",
                     }}>
                       {inits}
                     </div>
@@ -341,7 +341,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                         color: isSelected ? "rgba(253,230,138,0.9)" : "rgba(255,255,255,0.6)",
                         transition: "all 0.15s ease",
                         fontFamily: "var(--font-cormorant), Georgia, serif",
-                        fontWeight: 300,
+                        fontWeight: 400,
                         fontSize: "1rem",
                         cursor: "pointer",
                       }}
@@ -376,7 +376,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
             backgroundSize: "200% auto",
             color: canSubmit && !submitting ? "#3b1a00" : "rgba(255,255,255,0.22)",
             fontFamily: "var(--font-cormorant), Georgia, serif",
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: "1.1rem",
             letterSpacing: "0.04em",
             boxShadow: canSubmit && !submitting ? "0 4px 24px rgba(217,119,6,0.32)" : "none",
@@ -577,7 +577,7 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
     <div className="rounded-xl border border-amber-700/35 bg-amber-950/20 p-4 space-y-4">
       <div className="flex items-center justify-between">
         <p style={{ ...cormorant, fontSize: "1.1rem", color: "rgba(253,230,138,0.9)" }}>Pay to confirm</p>
-        <span style={{ ...cormorant, fontSize: "1.5rem", fontWeight: 600, color: "#fbbf24" }}>
+        <span style={{ ...cormorant, fontSize: "1.5rem", fontWeight: 700, color: "#fbbf24" }}>
           ₹{amountRupees.toLocaleString("en-IN")}
         </span>
       </div>
@@ -616,7 +616,7 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
             background: "rgba(4,120,87,0.12)",
             letterSpacing: "0.03em",
             fontFamily: "var(--font-cormorant), Georgia, serif",
-            fontWeight: 300,
+            fontWeight: 400,
           }}>
           Confirm payment via WhatsApp
         </a>
@@ -782,7 +782,7 @@ function DeliveryCard({ selected, onClick, title, price, description }: {
         <span style={{ ...cormorant, fontSize: "1.1rem", color: selected ? "rgba(253,230,138,0.95)" : "rgba(255,255,255,0.72)" }}>
           {title}
         </span>
-        <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 600, fontSize: "1rem", color: selected ? "#fbbf24" : "rgba(251,191,36,0.38)" }}>
+        <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 700, fontSize: "1rem", color: selected ? "#fbbf24" : "rgba(251,191,36,0.38)" }}>
           {price}
         </span>
       </div>

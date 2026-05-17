@@ -12,7 +12,7 @@ import { CompatibilityChat } from "@/components/engines/CompatibilityChat";
 
 const cormorant: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 300,
+  fontWeight: 400,
 };
 
 const glassCard: React.CSSProperties = {

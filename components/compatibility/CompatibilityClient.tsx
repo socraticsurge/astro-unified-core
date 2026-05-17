@@ -7,7 +7,7 @@ import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 const cormorant: React.CSSProperties = {
   fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 300,
+  fontWeight: 400,
 };
 
 function initials(name: string) {
@@ -163,7 +163,7 @@ function SeatCard({
         background: c.avatarBg, border: `1px solid ${c.cardBorder}`,
         display: "flex", alignItems: "center", justifyContent: "center",
         marginBottom: "14px", marginTop: "8px",
-        fontSize: "1.1rem", fontWeight: 600, color: c.avatarText,
+        fontSize: "1.1rem", fontWeight: 700, color: c.avatarText,
         fontFamily: "var(--font-cormorant), Georgia, serif",
         letterSpacing: "0.04em", flexShrink: 0,
       }}>
@@ -342,7 +342,7 @@ export function CompatibilityClient({
             backgroundSize: "200% auto",
             color: canRun ? "#3b1a00" : "rgba(255,255,255,0.22)",
             fontFamily: "var(--font-cormorant), Georgia, serif",
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: "1.1rem",
             letterSpacing: "0.04em",
             boxShadow: canRun ? "0 4px 24px rgba(217,119,6,0.32)" : "none",
@@ -396,7 +396,7 @@ export function CompatibilityClient({
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ ...cormorant, fontSize: "1.5rem", fontWeight: 600, color: isGood ? "#86efac" : "#fbbf24" }}>
+                      <div style={{ ...cormorant, fontSize: "1.5rem", fontWeight: 700, color: isGood ? "#86efac" : "#fbbf24" }}>
                         {c.score}/36
                       </div>
                       <div style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.28)", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: "1px" }}>

@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Philosopher + Jost font system; font weight cleanup across all UI
+
+### Changed
+- **`app/layout.tsx`** — Font imports replaced: Cormorant Garamond → Philosopher (display/headings, `--font-cormorant`), Inter → Jost (body/UI, `--font-sans`). `<body>` class updated to `jost.variable philosopher.variable`.
+- **`components/NavBar.tsx`** — All `fontWeight: 300` → `400`. Wordmark size `1.65rem` → `1.45rem`, nav link size `1.25rem` → `1.1rem`, letter-spacing reduced. Philosopher at 400 reads heavier than Cormorant at 300.
+- **`components/dashboard/ProfileList.tsx`** — Page heading `fontWeight: 300` → `400`.
+- **`components/CosmicLanding.module.css`** — All `font-weight: 300` → `400` in cormorant contexts.
+- **`components/compatibility/CompatibilityClient.tsx`** — `cormorant` object `fontWeight: 300` → `400`; avatar initials and CTA button `fontWeight: 600` → `700` (Philosopher only ships 400/700).
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — `cormorant` object `fontWeight: 300` → `400`.
+- **`app/consultation/ConsultationForm.tsx`** — `cormorant` object `fontWeight: 300` → `400`; all cormorant-context `fontWeight: 600` → `700` (avatar initials, price, submit button, WhatsApp link, delivery card price).
+- **`app/consultation/page.tsx`** — h1 `fontWeight: 300` → `400`, `fontSize: "2.4rem"` → `"2.2rem"` (Philosopher reads larger at equivalent size).
+
+---
+
 ## [2026-05-17] — Written consultation toggle; subtitle removal; Kundali carousel "new profile" slide
 
 ### Added
