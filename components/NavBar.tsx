@@ -2,15 +2,14 @@
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { fonts } from "@/lib/typography";
+import { NAV_CONFIG } from "@/lib/nav";
 
 // ── Bespoke SVG icons (same as landing page feature strip) ─────────────────
 
 function NatalIcon({ active }: { active: boolean }) {
-  const gold = "rgba(251,191,36,1)";
-  const dim  = "rgba(255,255,255,0.52)";
-  const c = active ? gold : dim;
+  const c = active ? "rgba(251,191,36,1)" : "rgba(255,255,255,0.52)";
   return (
     <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <circle cx="14" cy="14" r="12" stroke={c} strokeWidth="0.9"/>
@@ -29,9 +28,7 @@ function NatalIcon({ active }: { active: boolean }) {
 }
 
 function KundaliIcon({ active }: { active: boolean }) {
-  const gold = "rgba(251,191,36,1)";
-  const dim  = "rgba(255,255,255,0.52)";
-  const c = active ? gold : dim;
+  const c    = active ? "rgba(251,191,36,1)" : "rgba(255,255,255,0.52)";
   const fill = active ? "rgba(251,191,36,0.22)" : "rgba(255,255,255,0.06)";
   return (
     <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
@@ -43,9 +40,7 @@ function KundaliIcon({ active }: { active: boolean }) {
 }
 
 function ConsultIcon({ active }: { active: boolean }) {
-  const gold = "rgba(251,191,36,1)";
-  const dim  = "rgba(255,255,255,0.52)";
-  const c = active ? gold : dim;
+  const c = active ? "rgba(251,191,36,1)" : "rgba(255,255,255,0.52)";
   return (
     <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <circle cx="14" cy="9" r="4.5" stroke={c} strokeWidth="0.9"/>
@@ -70,15 +65,18 @@ function TwoOrbits({ size = 36 }: { size?: number }) {
   );
 }
 
-// ── Nav link definitions ────────────────────────────────────────────────────
+// ── Icon map — keeps icons co-located with their nav entry ──────────────────
 
-const NAV_LINKS = [
-  { href: "/dashboard",     label: "Natal Charts",     short: "Charts",  Icon: NatalIcon   },
-  { href: "/compatibility", label: "Kundali Matching", short: "Kundali", Icon: KundaliIcon },
-  { href: "/consultation",  label: "Get Consultation", short: "Consult", Icon: ConsultIcon },
-] as const;
+type IconComponent = ({ active }: { active: boolean }) => React.ReactElement;
 
-// Shared glass style (matches landing page panel)
+const NAV_ICONS: Record<string, IconComponent> = {
+  "/dashboard":     NatalIcon,
+  "/compatibility": KundaliIcon,
+  "/consultation":  ConsultIcon,
+};
+
+// ── Shared styles ────────────────────────────────────────────────────────────
+
 const glassStyle: React.CSSProperties = {
   background: "rgba(255,255,255,0.055)",
   backdropFilter: "blur(32px) saturate(1.8) brightness(1.04)",
@@ -93,24 +91,6 @@ const wordmarkStyle: React.CSSProperties = {
   lineHeight: 1,
 };
 
-const navLinkStyle: React.CSSProperties = {
-  ...fonts.uiMedium,
-  fontSize: "0.8rem",
-  letterSpacing: "0.02em",
-};
-
-const adminLinkStyle: React.CSSProperties = {
-  ...fonts.uiMedium,
-  fontSize: "0.75rem",
-  letterSpacing: "0.02em",
-};
-
-const signOutStyle: React.CSSProperties = {
-  ...fonts.uiItalic,
-  fontSize: "0.8rem",
-  letterSpacing: "0.02em",
-};
-
 const goldStyle: React.CSSProperties = {
   fontStyle: "italic",
   background: "linear-gradient(135deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%)",
@@ -119,7 +99,7 @@ const goldStyle: React.CSSProperties = {
   backgroundClip: "text",
 };
 
-// ── Component ───────────────────────────────────────────────────────────────
+// ── Component ────────────────────────────────────────────────────────────────
 
 export function NavBar() {
   const { data: session, status } = useSession();
@@ -134,15 +114,19 @@ export function NavBar() {
 
   return (
     <>
-      {/* ── Desktop top nav (hidden on mobile) ── */}
+      {/* ── Desktop top nav ── */}
       <nav
         className="hidden sm:flex sticky top-0 z-40 border-b border-white/[0.11] items-center"
         style={glassStyle}
       >
         <div className="max-w-7xl w-full mx-auto px-6 py-4 flex items-center justify-between gap-6">
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0 group" aria-label="Home">
+          {/* Logo — goes to dashboard when logged in, landing when not */}
+          <Link
+            href={isLoggedIn ? "/dashboard" : "/"}
+            className="flex items-center gap-3 shrink-0"
+            aria-label="Home"
+          >
             <TwoOrbits size={40} />
             <span style={wordmarkStyle}>
               <span className="text-white/88">Astro </span>
@@ -150,10 +134,11 @@ export function NavBar() {
             </span>
           </Link>
 
-          {/* Nav links */}
+          {/* Primary nav links */}
           {isLoggedIn && (
             <div className="flex items-center gap-1">
-              {NAV_LINKS.map(({ href, label, Icon }) => {
+              {NAV_CONFIG.map(({ href, label }) => {
+                const Icon = NAV_ICONS[href];
                 const active = isActive(href);
                 return (
                   <Link
@@ -165,13 +150,14 @@ export function NavBar() {
                         ? "bg-[rgba(251,191,36,0.1)] text-amber-400"
                         : "text-white/50 hover:text-white/90 hover:bg-white/[0.05]",
                     ].join(" ")}
-                    style={navLinkStyle}
+                    style={{ ...fonts.uiMedium, fontSize: "0.8rem", letterSpacing: "0.02em" }}
                   >
                     <Icon active={active} />
                     {label}
                   </Link>
                 );
               })}
+
               {showAdmin && (
                 <Link
                   href="/admin"
@@ -181,7 +167,7 @@ export function NavBar() {
                       ? "bg-[rgba(251,191,36,0.1)] text-amber-400"
                       : "text-amber-400/50 hover:text-amber-400 hover:bg-white/[0.05]",
                   ].join(" ")}
-                  style={adminLinkStyle}
+                  style={{ ...fonts.uiMedium, fontSize: "0.75rem", letterSpacing: "0.02em" }}
                 >
                   <ShieldCheck className="h-[1.1em] w-[1.1em]" />
                   Admin
@@ -190,13 +176,13 @@ export function NavBar() {
             </div>
           )}
 
-          {/* Sign out */}
+          {/* Sign in / Sign out */}
           <div className="flex items-center shrink-0">
             {isLoggedIn ? (
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="px-3 py-1.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-colors"
-                style={signOutStyle}
+                style={{ ...fonts.uiItalic, fontSize: "0.8rem", letterSpacing: "0.02em" }}
               >
                 Sign Out
               </button>
@@ -213,7 +199,7 @@ export function NavBar() {
         </div>
       </nav>
 
-      {/* ── Mobile bottom nav (hidden on desktop) ── */}
+      {/* ── Mobile bottom nav ── */}
       {isLoggedIn && (
         <div
           className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.11]"
@@ -222,8 +208,10 @@ export function NavBar() {
             paddingBottom: "calc(env(safe-area-inset-bottom) + 0.25rem)",
           }}
         >
+          {/* Primary tabs */}
           <div className="flex items-stretch justify-around px-2 pt-1">
-            {NAV_LINKS.map(({ href, short, Icon }) => {
+            {NAV_CONFIG.map(({ href, short }) => {
+              const Icon = NAV_ICONS[href];
               const active = isActive(href);
               return (
                 <Link
@@ -254,19 +242,22 @@ export function NavBar() {
                 <span style={{ ...fonts.uiMedium, fontSize: "0.7rem" }}>Admin</span>
               </Link>
             )}
+          </div>
 
+          {/* Sign out — utility strip, visually separated from primary tabs */}
+          <div className="flex justify-end px-5 pb-0.5">
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-h-[52px] justify-center text-white/25 hover:text-white/50"
+              className="text-white/20 hover:text-white/45 transition-colors"
+              style={{ ...fonts.ui, fontSize: "0.65rem", letterSpacing: "0.04em" }}
             >
-              <LogOut className="h-5 w-5" />
-              <span style={{ ...fonts.ui, fontSize: "0.7rem" }}>Exit</span>
+              Sign out
             </button>
           </div>
         </div>
       )}
 
-      {/* Mobile unauthenticated: minimal top bar just for sign-in */}
+      {/* Mobile unauthenticated: minimal top bar */}
       {!isLoggedIn && (
         <nav
           className="sm:hidden sticky top-0 z-40 border-b border-white/[0.11] flex items-center justify-between px-4 py-3"

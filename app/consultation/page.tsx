@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ConsultationForm } from "./ConsultationForm";
-import { fonts, scale } from "@/lib/typography";
+import { textStyles } from "@/lib/typography";
+import { NAV_CONFIG } from "@/lib/nav";
+
+const { pageTitle } = NAV_CONFIG.find(n => n.href === "/consultation")!;
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +32,7 @@ export default async function ConsultationPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 style={{ ...fonts.display, fontSize: scale.pageTitle, letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
-          Seek Counsel
-        </h1>
+        <h1 style={textStyles.pageTitle}>{pageTitle}</h1>
       </div>
       <ConsultationForm
         allRequests={allRequests}

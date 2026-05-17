@@ -13,5 +13,8 @@ export default async function DashboardPage() {
   const userId = (session.user as { id: string }).id;
   const profiles = await db.profiles.list(userId);
 
+  // Skip the list when there's only one profile — go straight to the chart.
+  if (profiles.length === 1) redirect(`/profiles/${profiles[0].id}`);
+
   return <ProfileList initialProfiles={profiles} />;
 }

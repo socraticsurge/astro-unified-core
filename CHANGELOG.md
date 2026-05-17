@@ -8,6 +8,22 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Navigation UX: centralized config, label fixes, flow improvements
+
+### Added
+- **`lib/nav.ts`** — single source of truth for section identity (href, label, mobile short, page title). Changing a nav label or page title is now one edit in one file; NavBar, page headings, and mobile tabs all derive from it automatically.
+- **Consultation CTA** on chart detail and compatibility detail pages — low-friction path from chart/result to consultation without naming a specific person.
+
+### Changed
+- **`components/NavBar.tsx`** — logo now links to `/dashboard` for logged-in users (was `/`, which added a redirect hop). Nav labels updated from nav.ts: "Kundali Matching" → "Kundali", "Get Consultation" → "Consult". Mobile sign-out demoted from primary tab to a small utility strip below the tabs; removed misleading "Exit" label.
+- **`app/dashboard/page.tsx`** — single-profile shortcut: users with exactly one profile are redirected directly to their chart, skipping the list entirely.
+- **`app/consultation/page.tsx`** — page title derived from nav.ts; uses `textStyles.pageTitle` token.
+- **`components/compatibility/CompatibilityClient.tsx`** — page title from nav.ts.
+- **`components/dashboard/ProfileList.tsx`** — page title from nav.ts (both empty-state and populated headings).
+- **`app/profiles/[id]/ProfileDetailClient.tsx`** — current-location nudge changed from red/destructive to amber/informational; copy changed from "Muhurtha and Transit features require your current location" to "Add your current location to unlock transit and auspicious timing features."
+
+---
+
 ## [2026-05-17] — Design system: radii tokens, glass surface, centralised score colours
 
 ### Added

@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, CheckCircle2, XCircle, MinusCircle, MessageSquare, ChevronDown, LayoutDashboard, User } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, MinusCircle, MessageSquare, ChevronDown, LayoutDashboard, User, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
 import type { CompatResult, AdditionalKuta } from "@/lib/compatibility";
@@ -467,6 +467,24 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
       {!result && (
         <div style={{ ...glass, borderRadius: radii.lg }} className="p-10 text-center text-muted-foreground text-sm">
           Result data unavailable for this reading.
+        </div>
+      )}
+
+      {/* Consultation CTA */}
+      {result && (
+        <div className="mt-2 flex items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+          <div className="flex items-center gap-3">
+            <MessageCircle className="h-4 w-4 text-amber-400/70 shrink-0" />
+            <div>
+              <p className="text-sm text-white/70">Have questions about this result?</p>
+              <p className="text-xs text-white/35 mt-0.5">A personal consultation can provide deeper context.</p>
+            </div>
+          </div>
+          <Link href="/consultation">
+            <Button variant="outline" size="sm" className="shrink-0 border-amber-700/40 text-amber-400 hover:bg-amber-950/30 text-xs">
+              Ask a question
+            </Button>
+          </Link>
         </div>
       )}
     </div>

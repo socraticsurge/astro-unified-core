@@ -7,7 +7,7 @@ import { ProfessionalView } from "@/components/engines/ProfessionalView";
 import { Button } from "@/components/ui/button";
 import {
   RefreshCw, AlertCircle, Code, Copy, Check, Info,
-  LayoutDashboard, User
+  LayoutDashboard, User, MessageCircle,
 } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { textStyles } from "@/lib/typography";
@@ -174,16 +174,16 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* Missing Information Nudge */}
+      {/* Current location nudge — amber/informational, not red/alarming */}
       {!profile.current_location && (
-        <div className="mb-6 flex items-center justify-between gap-4 p-3 rounded-lg bg-red-950/20 border border-red-800/40 text-sm">
-          <div className="flex items-center gap-2 text-red-400">
-            <AlertCircle className="h-4 w-4" />
-            <span>Muhurtha and Transit features require your current location.</span>
+        <div className="mb-6 flex items-center justify-between gap-4 p-3 rounded-lg bg-amber-950/20 border border-amber-800/30 text-sm">
+          <div className="flex items-center gap-2 text-amber-400/80">
+            <Info className="h-4 w-4 shrink-0" />
+            <span>Add your current location to unlock transit and auspicious timing features.</span>
           </div>
           <Link href={`/profiles/${profile.id}/edit`}>
-            <Button size="sm" variant="destructive" className="h-8 text-xs">
-              Complete Profile
+            <Button size="sm" variant="outline" className="h-8 text-xs shrink-0 border-amber-700/40 text-amber-400 hover:bg-amber-950/30">
+              Add location
             </Button>
           </Link>
         </div>
@@ -333,7 +333,23 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
         </>
       )}
 
-      <footer className="mt-12 pt-6 border-t border-white/10">
+      {/* Consultation CTA */}
+      <div className="mt-10 flex items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+        <div className="flex items-center gap-3">
+          <MessageCircle className="h-4 w-4 text-amber-400/70 shrink-0" />
+          <div>
+            <p className="text-sm text-white/70">Have questions about this chart?</p>
+            <p className="text-xs text-white/35 mt-0.5">Submit a written question or book a live session.</p>
+          </div>
+        </div>
+        <Link href="/consultation">
+          <Button variant="outline" size="sm" className="shrink-0 border-amber-700/40 text-amber-400 hover:bg-amber-950/30 text-xs">
+            Ask a question
+          </Button>
+        </Link>
+      </div>
+
+      <footer className="mt-8 pt-6 border-t border-white/10">
         <p className="text-xs text-muted-foreground leading-relaxed">
           Verses adapted from classical sources; rephrasings by Dr. Vinay Kumar Chaganti.
           See <Link href="/credits" className="hover:underline text-violet-400">credits</Link> for source attribution.

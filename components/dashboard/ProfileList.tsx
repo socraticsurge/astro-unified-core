@@ -5,7 +5,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Search, Trash2, Edit2 } from "lucide-react";
 import { ProfileBadges, BirthDetails } from "@/components/profile-ui";
-import { fonts, scale } from "@/lib/typography";
+import { fonts, scale, textStyles } from "@/lib/typography";
+import { NAV_CONFIG } from "@/lib/nav";
+
+const { pageTitle } = NAV_CONFIG.find(n => n.href === "/dashboard")!;
 
 export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] }) {
   const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
@@ -36,7 +39,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
     return (
       <div className="max-w-2xl mx-auto space-y-6">
         <h1 style={{ ...fonts.display, fontSize: scale.pageTitle, letterSpacing: "0.02em", lineHeight: 1.2 }}>
-          Natal Charts
+          {pageTitle}
         </h1>
         <p className="text-sm text-muted-foreground">
           Your birth profiles and their Vedic charts.
@@ -71,7 +74,7 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 style={{ ...fonts.display, fontSize: scale.pageTitle, letterSpacing: "0.02em", lineHeight: 1.2 }}>
-            Natal Charts
+            {pageTitle}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Your birth profiles and their Vedic charts.</p>
         </div>

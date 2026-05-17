@@ -6,6 +6,9 @@ import type { Profile, CompatibilityCheck } from "@/lib/db";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { fonts, textStyles, colors, clamp, interactive, radii } from "@/lib/typography";
 import { scoreColor } from "@/lib/compatibility";
+import { NAV_CONFIG } from "@/lib/nav";
+
+const { pageTitle } = NAV_CONFIG.find(n => n.href === "/compatibility")!;
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
 function initials(name: string) {
@@ -264,7 +267,7 @@ export function CompatibilityClient({
 
       {/* Page heading */}
       <div>
-        <h1 style={textStyles.pageTitle}>Kundali Matching</h1>
+        <h1 style={textStyles.pageTitle}>{pageTitle}</h1>
       </div>
 
       {/* Portrait seat cards */}
