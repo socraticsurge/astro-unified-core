@@ -8,6 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Spacing tokens, responsive type scale, mobile token overrides
+
+### Added
+- **Spacing tokens** (`--space-1` through `--space-16`) in both `[data-theme]` blocks. Export `spacing` from `lib/typography.ts` for use in inline styles. Tighten density app-wide by editing one block in `globals.css`.
+- **Responsive overrides block** in `globals.css` (`@media (max-width: 639px)`): radii, motion timing, shadow depth, blur intensity, type sizes, and spacing all automatically adjust on mobile — zero component changes needed. Key differences:
+  - Dark theme: radii shrink 4px each step, motion 300ms→220ms, blur lightens, page title 2.2rem→1.75rem
+  - Light theme: motion 180ms→140ms, hard shadows halve, same type reductions
+
+### Changed
+- **`lib/typography.ts` — `scale`** values are now CSS variable references (`var(--fs-page-title)` etc.) instead of hardcoded rem values. Components using `textStyles` automatically get responsive type sizing from the breakpoint override block — no component changes needed.
+
+---
+
 ## [2026-05-17] — Theme layer: runtime dark/light toggle with CSS custom properties
 
 ### Added
