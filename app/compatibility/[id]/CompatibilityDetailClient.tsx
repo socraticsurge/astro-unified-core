@@ -9,7 +9,7 @@ import { KOOTA_MAX } from "@/lib/compatibility";
 import { Button } from "@/components/ui/button";
 import { CompatibilityInsightShell } from "@/components/engines/CompatibilityInsightShell";
 import { CompatibilityChat } from "@/components/engines/CompatibilityChat";
-import { fonts, textStyles, colors, clamp, glass, radii } from "@/lib/typography";
+import { fonts, textStyles, colors, clamp, glass, radii, motion } from "@/lib/typography";
 import { scoreColor, scoreLabel } from "@/lib/compatibility";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 
@@ -157,7 +157,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           </div>
 
           {/* Date */}
-          <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.25)", letterSpacing: "0.08em" }}>
+          <div style={{ fontSize: "11px", color: "var(--color-ink-4)", letterSpacing: "0.08em" }}>
             {new Date(check.created_at).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </div>
         </div>
@@ -166,15 +166,15 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
       {/* Admin view toggle */}
       {showAdminTools && (
         <div className="flex items-center gap-2">
-          <div className="flex items-center bg-white/5 rounded-lg p-0.5 border border-white/10">
+          <div className="flex items-center bg-[var(--color-surface-1)] rounded-lg p-0.5 border border-[var(--color-border)]">
             <Button variant={isProfessional ? "ghost" : "secondary"} size="sm"
               onClick={() => setIsProfessional(false)}
-              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${!isProfessional ? "bg-white/10 text-white" : "text-muted-foreground"}`}>
+              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${!isProfessional ? "bg-[var(--color-surface-hover)] text-white" : "text-muted-foreground"}`}>
               <User className="h-3 w-3" /> Summary
             </Button>
             <Button variant={isProfessional ? "secondary" : "ghost"} size="sm"
               onClick={() => setIsProfessional(true)}
-              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${isProfessional ? "bg-violet-500/20 text-violet-300 border border-violet-500/30" : "text-muted-foreground"}`}>
+              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${isProfessional ? "bg-[var(--color-surface-2)] text-[var(--color-ink-2)] border border-[var(--color-border)]" : "text-muted-foreground"}`}>
               <LayoutDashboard className="h-3 w-3" /> Detailed
             </Button>
           </div>
@@ -189,10 +189,10 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           <div style={{
             ...glass, borderRadius: radii.lg,
             padding: "18px 20px",
-            borderColor: score >= 18 ? "rgba(52,211,153,0.25)" : "rgba(251,191,36,0.25)",
+            borderColor: score >= 18 ? "rgba(52,211,153,0.25)" : "var(--color-accent-dim)",
             background: score >= 18 ? "rgba(4,120,87,0.12)" : "rgba(120,53,15,0.15)",
           }}>
-            <p style={{ ...fonts.display, fontSize: "1.35rem", color: score >= 18 ? "rgba(167,243,208,0.95)" : "rgba(251,191,36,0.9)", lineHeight: 1.4 }}>
+            <p style={{ ...fonts.display, fontSize: "1.35rem", color: score >= 18 ? "rgba(167,243,208,0.95)" : "var(--color-accent)", lineHeight: 1.4 }}>
               {score >= 26
                 ? "An excellent match — highly auspicious for marriage."
                 : score >= 18
@@ -206,7 +206,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {/* Koota breakdown */}
           <div style={{ ...glass, borderRadius: radii.lg }}>
             <div className="px-5 py-3 border-b border-white/[0.08]">
-              <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>
+              <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "var(--color-ink-2)" }}>
                 Guna Breakdown
               </h2>
             </div>
@@ -218,11 +218,11 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                 const zero = pts === 0;
                 return (
                   <div key={name} className="flex items-center justify-between px-5 py-3">
-                    <span style={{ ...fonts.display, fontSize: "1rem", color: "rgba(255,255,255,0.75)" }}>{name}</span>
+                    <span style={{ ...fonts.display, fontSize: "1rem", color: "var(--color-ink-2)" }}>{name}</span>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <span style={{ fontWeight: 600, color: full ? "#34d399" : partial ? "#fbbf24" : "#f87171", fontSize: "1rem" }}>{pts}</span>
-                        <span style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.8rem" }}>/{max ?? "—"}</span>
+                        <span style={{ color: "var(--color-ink-4)", fontSize: "0.8rem" }}>/{max ?? "—"}</span>
                       </div>
                       {full && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />}
                       {zero && <XCircle className="h-3.5 w-3.5 text-red-400" />}
@@ -240,9 +240,9 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
               ...glass, borderRadius: radii.lg,
               padding: "16px",
               borderColor: hasManglik ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.25)",
-              background: hasManglik ? "rgba(127,29,29,0.15)" : "rgba(4,120,87,0.10)",
+              background: hasManglik ? "var(--color-accent-faint)" : "rgba(4,120,87,0.10)",
             }}>
-              <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "6px" }}>
+              <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-ink-4)", marginBottom: "6px" }}>
                 Mangal Dosha
               </div>
               <div style={{ ...fonts.display, fontSize: "1.3rem", color: hasManglik ? "#fca5a5" : "#6ee7b7" }}>
@@ -261,7 +261,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
               borderColor: hasBhakoot ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.25)",
               background: hasBhakoot ? "rgba(127,29,29,0.15)" : "rgba(4,120,87,0.10)",
             }}>
-              <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "6px" }}>
+              <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-ink-4)", marginBottom: "6px" }}>
                 Bhakoot Dosha
               </div>
               <div style={{ ...fonts.display, fontSize: "1.3rem", color: hasBhakoot ? "#fca5a5" : "#6ee7b7" }}>
@@ -292,7 +292,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                 <button onClick={() => setShowChat(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
                   <MessageSquare className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                   <span className="text-xs font-semibold uppercase tracking-wider text-amber-300 flex-1">Compatibility Chat</span>
-                  <ChevronDown className={`h-4 w-4 text-white/40 transition-transform ${showChat ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`h-4 w-4 text-[var(--color-ink-3)] transition-transform ${showChat ? "rotate-180" : ""}`} />
                 </button>
                 {showChat && (
                   <div className="border-t border-white/[0.07]">
@@ -307,7 +307,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           <div style={{
             ...glass, borderRadius: radii.lg, padding: "20px",
             borderColor: isApproved ? "rgba(52,211,153,0.3)" : "rgba(239,68,68,0.3)",
-            background: isApproved ? "rgba(4,120,87,0.12)" : "rgba(127,29,29,0.15)",
+            background: isApproved ? "rgba(4,120,87,0.12)" : "var(--color-accent-faint)",
           }}>
             <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "6px" }}>
               Match Verdict
@@ -324,7 +324,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {(result.male_details || result.female_details) && (
             <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-white/[0.08]">
-                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Natal Moon Profiles</h2>
+                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "var(--color-ink-2)" }}>Natal Moon Profiles</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
                 {[
@@ -344,7 +344,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                     ].map(([k, v]) => v && (
                       <div key={k} className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{k}</span>
-                        <span className="font-medium capitalize" style={{ color: "rgba(255,255,255,0.85)" }}>{v}</span>
+                        <span className="font-medium capitalize" style={{ color: "var(--color-ink-1)" }}>{v}</span>
                       </div>
                     ))}
                   </div>
@@ -357,7 +357,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {kujaDosha && (
             <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-white/[0.08]">
-                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Kuja Dosha Analysis</h2>
+                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "var(--color-ink-2)" }}>Kuja Dosha Analysis</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Mars, Saturn, Rahu, Ketu, Sun in houses 2 · 4 · 7 · 8 · 12</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
@@ -398,7 +398,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {Object.keys(additionalKutas).length > 0 && (
             <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-white/[0.08]">
-                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Additional Kutas</h2>
+                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "var(--color-ink-2)" }}>Additional Kutas</h2>
               </div>
               <div className="divide-y divide-white/[0.06]">
                 {Object.entries(additionalKutas).map(([key, val]) => {
@@ -407,7 +407,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                   return (
                     <div key={key} className="px-5 py-3 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
                       <div className="sm:w-36 shrink-0">
-                        <div style={{ ...fonts.display, fontSize: "1rem", color: "rgba(255,255,255,0.7)" }}>{label}</div>
+                        <div style={{ ...fonts.display, fontSize: "1rem", color: "var(--color-ink-2)" }}>{label}</div>
                       </div>
                       <div className="flex-1 space-y-1">
                         <ResultPill result={kuta.result} />
@@ -421,7 +421,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                         {kuta.male && kuta.female && (
                           <div className="text-xs text-muted-foreground">
                             <span style={{ color: "rgba(196,180,255,0.85)" }} className="font-medium capitalize">{groomName}: {kuta.male}</span>
-                            <span className="mx-2 text-white/20">·</span>
+                            <span className="mx-2 text-[var(--color-ink-4)]">·</span>
                             <span style={{ color: "rgba(251,191,200,0.85)" }} className="font-medium capitalize">{brideName}: {kuta.female}</span>
                           </div>
                         )}
@@ -442,7 +442,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Dosha exceptions */}
           {exceptions.length > 0 && (
-            <div style={{ ...glass, borderRadius: radii.lg, borderColor: "rgba(251,191,36,0.2)", background: "rgba(120,53,15,0.12)" }} className="overflow-hidden">
+            <div style={{ ...glass, borderRadius: radii.lg, borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" }} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-amber-800/20">
                 <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(253,230,138,0.85)" }}>Dosha Mitigations</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Classical exceptions that neutralise doshas</p>
@@ -472,12 +472,12 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
       {/* Consultation CTA */}
       {result && (
-        <div className="mt-2 flex items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.07]">
+        <div className="mt-2 flex items-center justify-between gap-4 p-4 rounded-xl bg-[var(--color-surface-1)] border border-[var(--color-border)]">
           <div className="flex items-center gap-3">
             <MessageCircle className="h-4 w-4 text-amber-400/70 shrink-0" />
             <div>
-              <p className="text-sm text-white/70">Have questions about this result?</p>
-              <p className="text-xs text-white/35 mt-0.5">A personal consultation can provide deeper context.</p>
+              <p className="text-sm text-[var(--color-ink-2)]">Have questions about this result?</p>
+              <p className="text-xs text-[var(--color-ink-3)] mt-0.5">A personal consultation can provide deeper context.</p>
             </div>
           </div>
           <Link href="/consultation">

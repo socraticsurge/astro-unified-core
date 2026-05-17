@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
 import { Loader2, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
-import { fonts, textStyles, colors, clamp, interactive, radii } from "@/lib/typography";
+import { fonts, textStyles, colors, clamp, interactive, radii, motion } from "@/lib/typography";
 import { scoreColor } from "@/lib/compatibility";
 import { NAV_CONFIG } from "@/lib/nav";
 
@@ -79,9 +79,9 @@ function SeatCard({
 
   const cardBase: React.CSSProperties = {
     position: "relative",
-    borderRadius: "20px",
-    backdropFilter: "blur(20px)",
-    WebkitBackdropFilter: "blur(20px)",
+    borderRadius: radii.lg,
+    backdropFilter: "var(--backdrop-blur)",
+    WebkitBackdropFilter: "var(--backdrop-blur)",
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
@@ -90,7 +90,7 @@ function SeatCard({
     minHeight: "200px",
     flex: 1,
     padding: "28px 20px 20px",
-    transition: "box-shadow 0.3s ease, border-color 0.3s ease",
+    transition: `box-shadow ${motion.standard}, border-color ${motion.standard}`,
   };
 
   // Create / new-profile slide
@@ -98,7 +98,7 @@ function SeatCard({
     return (
       <div style={{
         ...cardBase,
-        background: "rgba(255,255,255,0.025)",
+        background: "var(--color-surface-1)",
         border: `1.5px dashed ${c.accentFaint}`,
       }}>
         <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" style={{ marginBottom: "12px", opacity: 0.22 }}>
@@ -117,7 +117,7 @@ function SeatCard({
             opacity: 0.65,
             textDecoration: "none",
             border: `1px solid ${c.accentFaint}`,
-            borderRadius: "999px",
+            borderRadius: radii.full,
             padding: "5px 14px",
           }}
         >
@@ -131,7 +131,7 @@ function SeatCard({
               style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.6 }}>
               <ChevronLeft size={14} />
             </button>
-            <span style={{ ...fonts.display, fontSize: "0.82rem", color: "rgba(255,255,255,0.25)", minWidth: "28px", textAlign: "center" }}>+</span>
+            <span style={{ ...fonts.display, fontSize: "0.82rem", color: "var(--color-ink-4)", minWidth: "28px", textAlign: "center" }}>+</span>
             <button onClick={onNext} disabled={disabled} aria-label="Next"
               style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.6 }}>
               <ChevronRight size={14} />
@@ -146,7 +146,7 @@ function SeatCard({
   return (
     <div style={{
       ...cardBase,
-      background: "rgba(255,255,255,0.04)",
+      background: "var(--color-surface-1)",
       border: `1px solid ${c.cardBorder}`,
       boxShadow: c.cardGlow,
     }}>
@@ -187,7 +187,7 @@ function SeatCard({
           style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.7 }}>
           <ChevronLeft size={14} />
         </button>
-        <span style={{ ...fonts.display, fontSize: "0.85rem", color: "rgba(255,255,255,0.3)", minWidth: "36px", textAlign: "center", letterSpacing: "0.04em" }}>
+        <span style={{ ...fonts.display, fontSize: "0.85rem", color: "var(--color-ink-4)", minWidth: "36px", textAlign: "center", letterSpacing: "0.04em" }}>
           {idx + 1}/{virtualTotal}
         </span>
         <button onClick={onNext} disabled={disabled} aria-label="Next"
@@ -288,7 +288,7 @@ export function CompatibilityClient({
           ...fonts.display,
           fontSize: "1.8rem",
           fontStyle: "italic",
-          color: "rgba(255,255,255,0.10)",
+          color: "var(--color-border)",
           flexShrink: 0,
           userSelect: "none",
           lineHeight: 1,
@@ -314,8 +314,8 @@ export function CompatibilityClient({
           <p style={{
             marginBottom: "12px",
             fontSize: "0.85rem",
-            color: "#fca5a5",
-            background: "rgba(127,29,29,0.25)",
+            color: "var(--color-danger)",
+            background: "var(--color-accent-faint)",
             border: "1px solid rgba(127,29,29,0.4)",
             borderRadius: radii.sm,
             padding: "10px 16px",
@@ -357,7 +357,7 @@ export function CompatibilityClient({
       {/* Past readings */}
       {checks.length > 0 && (
         <section className="space-y-3">
-          <h2 style={{ ...fonts.display, fontSize: "1.1rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.08em" }}>
+          <h2 style={{ ...fonts.display, fontSize: "1.1rem", color: "var(--color-ink-3)", letterSpacing: "0.08em" }}>
             Past readings
           </h2>
           <div className="space-y-2">
@@ -370,9 +370,9 @@ export function CompatibilityClient({
                   display: "flex",
                   alignItems: "center",
                   gap: "0",
-                  background: "rgba(255,255,255,0.035)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: "16px",
+                  background: "var(--color-surface-1)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: radii.md,
                   overflow: "hidden",
                 }}>
                   <Link href={`/compatibility/${c.id}`} style={{ flex: 1, minWidth: 0 }}>
@@ -386,12 +386,12 @@ export function CompatibilityClient({
                     >
                       <ScoreRing score={c.score} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ ...fonts.display, fontSize: "1.1rem", color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ ...fonts.display, fontSize: "1.1rem", color: "var(--color-ink-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {p1?.name ?? "—"}{" "}
-                          <span style={{ color: "rgba(255,255,255,0.22)", fontStyle: "italic" }}>&amp;</span>{" "}
+                          <span style={{ color: "var(--color-ink-4)", fontStyle: "italic" }}>&amp;</span>{" "}
                           {p2?.name ?? "—"}
                         </div>
-                        <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", marginTop: "3px" }}>
+                        <div style={{ fontSize: "0.72rem", color: "var(--color-ink-4)", marginTop: "3px" }}>
                           {new Date(c.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                         </div>
                       </div>
@@ -399,7 +399,7 @@ export function CompatibilityClient({
                         <div style={{ ...fonts.display, fontSize: "1.5rem", fontWeight: 700, color: isGood ? "#86efac" : "#fbbf24" }}>
                           {c.score}/36
                         </div>
-                        <div style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.28)", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: "1px" }}>
+                        <div style={{ fontSize: "0.62rem", color: "var(--color-ink-4)", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: "1px" }}>
                           {isGood ? "Auspicious" : "Moderate"}
                         </div>
                       </div>
@@ -417,13 +417,13 @@ export function CompatibilityClient({
                       padding: "14px 16px",
                       background: "none",
                       border: "none",
-                      borderLeft: "1px solid rgba(255,255,255,0.06)",
+                      borderLeft: "1px solid var(--color-border)",
                       cursor: "pointer",
-                      color: "rgba(255,255,255,0.2)",
+                      color: "var(--color-ink-4)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      transition: "color 0.2s ease",
+                      transition: `color ${motion.standard}`,
                     }}
                     className="hover:!text-red-400"
                   >

@@ -8,6 +8,14 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Theme tokens: migrate compatibility surfaces (phase 4)
+
+### Changed
+- **`components/compatibility/CompatibilityClient.tsx`** — migrated all hardcoded color/radius/motion values to CSS custom property tokens: `--color-surface-1`, `--color-border`, `--color-ink-{1-4}`, `--color-accent-faint`, `--color-danger`, `radii.lg/md/full`, `motion.standard`, `--backdrop-blur`. Added `motion` to typography import. Left CTA button gradient and ScoreRing SVG stroke colors as-is.
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — migrated Tailwind utility classes (`bg-white/5`, `border-white/10`, `text-white/70`, etc.) and inline rgba values to theme tokens. Added `motion` to typography import. Left ScoreArc SVG and role-specific profile colors as-is.
+
+---
+
 ## [2026-05-17] — Bug fixes: compatibility deletion, profile edit discoverability
 
 ### Added
