@@ -4,11 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Profile, CompatibilityCheck } from "@/lib/db";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-
-const cormorant: React.CSSProperties = {
-  fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 400,
-};
+import { fonts } from "@/lib/typography";
 
 function initials(name: string) {
   return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
@@ -103,7 +99,7 @@ function SeatCard({
           <circle cx="24" cy="17" r="9" fill="none" stroke={c.accent} strokeWidth="1.5" />
           <path d="M5 44 Q5 30 24 30 Q43 30 43 44" fill="none" stroke={c.accent} strokeWidth="1.5" strokeLinecap="round" />
         </svg>
-        <p style={{ ...cormorant, fontSize: "0.95rem", fontStyle: "italic", color: c.accentFaint, textAlign: "center", lineHeight: 1.5, marginBottom: "14px" }}>
+        <p style={{ ...fonts.display, fontSize: "0.95rem", fontStyle: "italic", color: c.accentFaint, textAlign: "center", lineHeight: 1.5, marginBottom: "14px" }}>
           New profile
         </p>
         <Link
@@ -129,7 +125,7 @@ function SeatCard({
               style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.6 }}>
               <ChevronLeft size={14} />
             </button>
-            <span style={{ ...cormorant, fontSize: "0.82rem", color: "rgba(255,255,255,0.25)", minWidth: "28px", textAlign: "center" }}>+</span>
+            <span style={{ ...fonts.display, fontSize: "0.82rem", color: "rgba(255,255,255,0.25)", minWidth: "28px", textAlign: "center" }}>+</span>
             <button onClick={onNext} disabled={disabled} aria-label="Next"
               style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.6 }}>
               <ChevronRight size={14} />
@@ -164,14 +160,14 @@ function SeatCard({
         display: "flex", alignItems: "center", justifyContent: "center",
         marginBottom: "14px", marginTop: "8px",
         fontSize: "1.1rem", fontWeight: 700, color: c.avatarText,
-        fontFamily: "var(--font-cormorant), Georgia, serif",
+        fontFamily: "var(--font-fonts.display), Georgia, serif",
         letterSpacing: "0.04em", flexShrink: 0,
       }}>
         {initials(profile!.name)}
       </div>
 
       {/* Name */}
-      <div style={{ ...cormorant, fontSize: "1.35rem", color: "rgba(255,255,255,0.92)", textAlign: "center", lineHeight: 1.2, wordBreak: "break-word", maxWidth: "100%" }}>
+      <div style={{ ...fonts.display, fontSize: "1.35rem", color: "rgba(255,255,255,0.92)", textAlign: "center", lineHeight: 1.2, wordBreak: "break-word", maxWidth: "100%" }}>
         {profile!.name}
       </div>
 
@@ -188,7 +184,7 @@ function SeatCard({
           style={{ background: "none", border: `1px solid ${c.accentFaint}`, borderRadius: "50%", width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", color: c.accent, opacity: disabled ? 0.4 : 0.7 }}>
           <ChevronLeft size={14} />
         </button>
-        <span style={{ ...cormorant, fontSize: "0.85rem", color: "rgba(255,255,255,0.3)", minWidth: "36px", textAlign: "center", letterSpacing: "0.04em" }}>
+        <span style={{ ...fonts.display, fontSize: "0.85rem", color: "rgba(255,255,255,0.3)", minWidth: "36px", textAlign: "center", letterSpacing: "0.04em" }}>
           {idx + 1}/{virtualTotal}
         </span>
         <button onClick={onNext} disabled={disabled} aria-label="Next"
@@ -268,7 +264,7 @@ export function CompatibilityClient({
 
       {/* Page heading */}
       <div>
-        <h1 style={{ ...cormorant, fontSize: "2.4rem", letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
+        <h1 style={{ ...fonts.display, fontSize: "2.4rem", letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
           Kundali Matching
         </h1>
       </div>
@@ -288,7 +284,7 @@ export function CompatibilityClient({
 
         {/* Connector */}
         <div style={{
-          ...cormorant,
+          ...fonts.display,
           fontSize: "1.8rem",
           fontStyle: "italic",
           color: "rgba(255,255,255,0.10)",
@@ -341,7 +337,7 @@ export function CompatibilityClient({
               : "rgba(255,255,255,0.06)",
             backgroundSize: "200% auto",
             color: canRun ? "#3b1a00" : "rgba(255,255,255,0.22)",
-            fontFamily: "var(--font-cormorant), Georgia, serif",
+            fontFamily: "var(--font-fonts.display), Georgia, serif",
             fontWeight: 700,
             fontSize: "1.1rem",
             letterSpacing: "0.04em",
@@ -361,7 +357,7 @@ export function CompatibilityClient({
       {/* Past readings */}
       {checks.length > 0 && (
         <section className="space-y-3">
-          <h2 style={{ ...cormorant, fontSize: "1.1rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.08em" }}>
+          <h2 style={{ ...fonts.display, fontSize: "1.1rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.08em" }}>
             Past readings
           </h2>
           <div className="space-y-2">
@@ -386,7 +382,7 @@ export function CompatibilityClient({
                   >
                     <ScoreRing score={c.score} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ ...cormorant, fontSize: "1.1rem", color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ ...fonts.display, fontSize: "1.1rem", color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {p1?.name ?? "—"}{" "}
                         <span style={{ color: "rgba(255,255,255,0.22)", fontStyle: "italic" }}>&amp;</span>{" "}
                         {p2?.name ?? "—"}
@@ -396,7 +392,7 @@ export function CompatibilityClient({
                       </div>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ ...cormorant, fontSize: "1.5rem", fontWeight: 700, color: isGood ? "#86efac" : "#fbbf24" }}>
+                      <div style={{ ...fonts.display, fontSize: "1.5rem", fontWeight: 700, color: isGood ? "#86efac" : "#fbbf24" }}>
                         {c.score}/36
                       </div>
                       <div style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.28)", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: "1px" }}>

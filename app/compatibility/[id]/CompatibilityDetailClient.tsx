@@ -9,11 +9,7 @@ import { KOOTA_MAX } from "@/lib/compatibility";
 import { Button } from "@/components/ui/button";
 import { CompatibilityInsightShell } from "@/components/engines/CompatibilityInsightShell";
 import { CompatibilityChat } from "@/components/engines/CompatibilityChat";
-
-const cormorant: React.CSSProperties = {
-  fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 400,
-};
+import { fonts } from "@/lib/typography";
 
 const glassCard: React.CSSProperties = {
   background: "rgba(255,255,255,0.04)",
@@ -68,7 +64,7 @@ function ScoreArc({ score }: { score: number }) {
         <text x="64" y="58" textAnchor="middle" fill={strokeColor} fontSize="26" fontWeight="700" fontFamily="system-ui">{score}</text>
         <text x="64" y="74" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="11" fontFamily="system-ui">/36 gunas</text>
       </svg>
-      <span style={{ ...cormorant, fontSize: "0.9rem", color: strokeColor, letterSpacing: "0.06em" }}>{label}</span>
+      <span style={{ ...fonts.display, fontSize: "0.9rem", color: strokeColor, letterSpacing: "0.06em" }}>{label}</span>
     </div>
   );
 }
@@ -116,7 +112,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
       {/* Back */}
       <Link href="/compatibility" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <ArrowLeft className="h-4 w-4" />
-        <span style={cormorant}>All readings</span>
+        <span style={fonts.display}>All readings</span>
       </Link>
 
       {/* Hero card */}
@@ -137,7 +133,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                 {initials(groomName)}
               </div>
               <div className="text-center w-full">
-                <div style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(196,180,255,0.95)", wordBreak: "break-word" }}>
+                <div style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(196,180,255,0.95)", wordBreak: "break-word" }}>
                   {groomName}
                 </div>
                 <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
@@ -164,7 +160,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                 {initials(brideName)}
               </div>
               <div className="text-center w-full">
-                <div style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(251,191,200,0.95)", wordBreak: "break-word" }}>
+                <div style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(251,191,200,0.95)", wordBreak: "break-word" }}>
                   {brideName}
                 </div>
                 <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
@@ -210,7 +206,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
             borderColor: score >= 18 ? "rgba(52,211,153,0.25)" : "rgba(251,191,36,0.25)",
             background: score >= 18 ? "rgba(4,120,87,0.12)" : "rgba(120,53,15,0.15)",
           }}>
-            <p style={{ ...cormorant, fontSize: "1.35rem", color: score >= 18 ? "rgba(167,243,208,0.95)" : "rgba(251,191,36,0.9)", lineHeight: 1.4 }}>
+            <p style={{ ...fonts.display, fontSize: "1.35rem", color: score >= 18 ? "rgba(167,243,208,0.95)" : "rgba(251,191,36,0.9)", lineHeight: 1.4 }}>
               {score >= 26
                 ? "An excellent match — highly auspicious for marriage."
                 : score >= 18
@@ -224,7 +220,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {/* Koota breakdown */}
           <div style={glassCard}>
             <div className="px-5 py-3 border-b border-white/[0.08]">
-              <h2 style={{ ...cormorant, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>
+              <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>
                 Guna Breakdown
               </h2>
             </div>
@@ -236,7 +232,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                 const zero = pts === 0;
                 return (
                   <div key={name} className="flex items-center justify-between px-5 py-3">
-                    <span style={{ ...cormorant, fontSize: "1rem", color: "rgba(255,255,255,0.75)" }}>{name}</span>
+                    <span style={{ ...fonts.display, fontSize: "1rem", color: "rgba(255,255,255,0.75)" }}>{name}</span>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <span style={{ fontWeight: 600, color: full ? "#34d399" : partial ? "#fbbf24" : "#f87171", fontSize: "1rem" }}>{pts}</span>
@@ -263,7 +259,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
               <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "6px" }}>
                 Mangal Dosha
               </div>
-              <div style={{ ...cormorant, fontSize: "1.3rem", color: hasManglik ? "#fca5a5" : "#6ee7b7" }}>
+              <div style={{ ...fonts.display, fontSize: "1.3rem", color: hasManglik ? "#fca5a5" : "#6ee7b7" }}>
                 {hasManglik ? "Present" : "Not Present"}
               </div>
               {kujaDosha?.male?.is_manglik && <div className="text-xs text-muted-foreground mt-1">{groomName} is Manglik</div>}
@@ -282,7 +278,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
               <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "6px" }}>
                 Bhakoot Dosha
               </div>
-              <div style={{ ...cormorant, fontSize: "1.3rem", color: hasBhakoot ? "#fca5a5" : "#6ee7b7" }}>
+              <div style={{ ...fonts.display, fontSize: "1.3rem", color: hasBhakoot ? "#fca5a5" : "#6ee7b7" }}>
                 {hasBhakoot ? "Present" : "Not Present"}
               </div>
               <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
@@ -330,7 +326,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
             <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "6px" }}>
               Match Verdict
             </div>
-            <div style={{ ...cormorant, fontSize: "1.6rem", color: isApproved ? "#6ee7b7" : "#fca5a5" }}>
+            <div style={{ ...fonts.display, fontSize: "1.6rem", color: isApproved ? "#6ee7b7" : "#fca5a5" }}>
               {isApproved ? "Match Approved" : "Match Not Approved"}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
@@ -342,7 +338,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {(result.male_details || result.female_details) && (
             <div style={glassCard} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-white/[0.08]">
-                <h2 style={{ ...cormorant, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Natal Moon Profiles</h2>
+                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Natal Moon Profiles</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
                 {[
@@ -350,7 +346,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                   { label: brideName, details: result.female_details, color: "rgba(251,191,200,0.9)" },
                 ].map(({ label, details, color }) => (
                   <div key={label} className="p-4 space-y-2.5">
-                    <div style={{ ...cormorant, fontSize: "0.95rem", color }}>
+                    <div style={{ ...fonts.display, fontSize: "0.95rem", color }}>
                       {label}
                     </div>
                     {[
@@ -375,7 +371,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {kujaDosha && (
             <div style={glassCard} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-white/[0.08]">
-                <h2 style={{ ...cormorant, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Kuja Dosha Analysis</h2>
+                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Kuja Dosha Analysis</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Mars, Saturn, Rahu, Ketu, Sun in houses 2 · 4 · 7 · 8 · 12</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
@@ -385,7 +381,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                 ].map(({ label, dosha, color }) => (
                   <div key={label} className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <span style={{ ...cormorant, fontSize: "0.95rem", color }}>{label}</span>
+                      <span style={{ ...fonts.display, fontSize: "0.95rem", color }}>{label}</span>
                       <span className={`text-xs font-semibold ${dosha?.is_manglik ? "text-red-400" : "text-emerald-400"}`}>
                         {dosha?.is_manglik ? "Manglik" : "Not Manglik"}
                       </span>
@@ -416,7 +412,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {Object.keys(additionalKutas).length > 0 && (
             <div style={glassCard} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-white/[0.08]">
-                <h2 style={{ ...cormorant, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Additional Kutas</h2>
+                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(255,255,255,0.75)" }}>Additional Kutas</h2>
               </div>
               <div className="divide-y divide-white/[0.06]">
                 {Object.entries(additionalKutas).map(([key, val]) => {
@@ -425,7 +421,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                   return (
                     <div key={key} className="px-5 py-3 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
                       <div className="sm:w-36 shrink-0">
-                        <div style={{ ...cormorant, fontSize: "1rem", color: "rgba(255,255,255,0.7)" }}>{label}</div>
+                        <div style={{ ...fonts.display, fontSize: "1rem", color: "rgba(255,255,255,0.7)" }}>{label}</div>
                       </div>
                       <div className="flex-1 space-y-1">
                         <ResultPill result={kuta.result} />
@@ -462,7 +458,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {exceptions.length > 0 && (
             <div style={{ ...glassCard, borderColor: "rgba(251,191,36,0.2)", background: "rgba(120,53,15,0.12)" }} className="overflow-hidden">
               <div className="px-5 py-3 border-b border-amber-800/20">
-                <h2 style={{ ...cormorant, fontSize: "1.15rem", color: "rgba(253,230,138,0.85)" }}>Dosha Mitigations</h2>
+                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(253,230,138,0.85)" }}>Dosha Mitigations</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Classical exceptions that neutralise doshas</p>
               </div>
               <ul className="divide-y divide-amber-900/20">

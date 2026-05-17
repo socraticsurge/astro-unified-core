@@ -11,15 +11,11 @@ import {
 } from "@/lib/consultation";
 import type { ConsultationRequest, Profile, ConsultationSlot } from "@/lib/db";
 import type { DeliveryMode } from "@/lib/consultation";
+import { fonts } from "@/lib/typography";
 
 const UPI_ID = "meherkalyanichaganti@okaxis";
 const WHATSAPP_NUMBER = "919704076544";
 const MIN_QUESTION_LENGTH = MIN_FIELD_LENGTH;
-
-const cormorant: React.CSSProperties = {
-  fontFamily: "var(--font-cormorant), Georgia, serif",
-  fontWeight: 400,
-};
 
 const glassCard: React.CSSProperties = {
   background: "rgba(255,255,255,0.04)",
@@ -120,7 +116,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
 
         {/* Step 1: Profiles */}
         <div className="space-y-4 mb-6">
-          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+          <p style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
             Whose chart is this reading for?
           </p>
           {profiles.length === 0 ? (
@@ -140,7 +136,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                 <circle cx="20" cy="14" r="8" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
                 <path d="M4 38 Q4 26 20 26 Q36 26 36 38" fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-              <span style={{ ...cormorant, fontSize: "0.9rem", fontStyle: "italic", color: "rgba(251,191,36,0.45)" }}>Add a profile to begin</span>
+              <span style={{ ...fonts.display, fontSize: "0.9rem", fontStyle: "italic", color: "rgba(251,191,36,0.45)" }}>Add a profile to begin</span>
             </Link>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "10px" }}>
@@ -175,7 +171,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontFamily: "var(--font-cormorant), Georgia, serif",
+                      fontFamily: "var(--font-fonts.display), Georgia, serif",
                       fontWeight: 700,
                       fontSize: "0.95rem",
                       color: selected ? "rgba(251,191,36,0.9)" : "rgba(255,255,255,0.45)",
@@ -183,7 +179,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                     }}>
                       {inits}
                     </div>
-                    <div style={{ ...cormorant, fontSize: "0.95rem", color: selected ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.55)", lineHeight: 1.3, wordBreak: "break-word" }}>
+                    <div style={{ ...fonts.display, fontSize: "0.95rem", color: selected ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.55)", lineHeight: 1.3, wordBreak: "break-word" }}>
                       {p.name}
                     </div>
                     {p.relationship && (
@@ -219,12 +215,12 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                       background: "rgba(255,255,255,0.04)",
                       border: "1px solid rgba(255,255,255,0.07)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: "var(--font-cormorant), Georgia, serif",
+                      fontFamily: "var(--font-fonts.display), Georgia, serif",
                       fontWeight: 700, fontSize: "0.95rem", color: "rgba(255,255,255,0.3)",
                     }}>
                       {inits}
                     </div>
-                    <div style={{ ...cormorant, fontSize: "0.95rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.3 }}>
+                    <div style={{ ...fonts.display, fontSize: "0.95rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.3 }}>
                       {p.name}
                     </div>
                     <div style={{ fontSize: "0.65rem", color: "rgba(251,191,36,0.5)", letterSpacing: "0.06em" }}>
@@ -242,7 +238,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
 
         {/* Step 2: Question */}
         <div className="space-y-2 mb-6">
-          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+          <p style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
             What would you like to understand?
           </p>
           <div className="relative">
@@ -252,7 +248,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
               value={question}
               onChange={e => setQuestion(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:ring-1 focus:ring-amber-400/35 resize-none"
-              style={{ ...cormorant, fontSize: "1.05rem", lineHeight: 1.75 }}
+              style={{ ...fonts.display, fontSize: "1.05rem", lineHeight: 1.75 }}
             />
             <span className={`absolute bottom-2.5 right-3 text-[10px] tabular-nums transition-colors ${question.trim().length >= MIN_QUESTION_LENGTH ? "text-amber-400/50" : "text-muted-foreground/30"}`}>
               {question.trim().length}/{MIN_QUESTION_LENGTH}+
@@ -262,7 +258,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
 
         {/* Step 3: Delivery mode */}
         <div className="space-y-3 mb-6">
-          <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+          <p style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
             How would you like it answered?
           </p>
           {!writtenConsultationEnabled && !liveConsultationEnabled ? (
@@ -304,12 +300,12 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
         {/* Slot picker */}
         {liveConsultationEnabled && deliveryMode === "appointment" && (
           <div className="space-y-3 mb-6">
-            <p style={{ ...cormorant, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
+            <p style={{ ...fonts.display, fontSize: "1.05rem", color: "rgba(255,255,255,0.38)", letterSpacing: "0.06em", fontStyle: "italic" }}>
               Choose a time (IST)
             </p>
             {availableSlots.length === 0 ? (
               <p style={{
-                ...cormorant,
+                ...fonts.display,
                 fontSize: "0.92rem",
                 color: "rgba(255,255,255,0.35)",
                 border: "1px solid rgba(255,255,255,0.08)",
@@ -340,7 +336,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                         background: isSelected ? "rgba(251,191,36,0.07)" : "rgba(255,255,255,0.03)",
                         color: isSelected ? "rgba(253,230,138,0.9)" : "rgba(255,255,255,0.6)",
                         transition: "all 0.15s ease",
-                        fontFamily: "var(--font-cormorant), Georgia, serif",
+                        fontFamily: "var(--font-fonts.display), Georgia, serif",
                         fontWeight: 400,
                         fontSize: "1rem",
                         cursor: "pointer",
@@ -375,7 +371,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
               : "rgba(255,255,255,0.06)",
             backgroundSize: "200% auto",
             color: canSubmit && !submitting ? "#3b1a00" : "rgba(255,255,255,0.22)",
-            fontFamily: "var(--font-cormorant), Georgia, serif",
+            fontFamily: "var(--font-fonts.display), Georgia, serif",
             fontWeight: 700,
             fontSize: "1.1rem",
             letterSpacing: "0.04em",
@@ -391,7 +387,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
       {/* ── Open / pending questions ── */}
       {openRequests.length > 0 && (
         <section className="space-y-3">
-          <h2 style={{ ...cormorant, fontSize: "1.2rem", color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
+          <h2 style={{ ...fonts.display, fontSize: "1.2rem", color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
             Open questions
           </h2>
           {openRequests.map(req => (
@@ -433,7 +429,7 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
     }}>
       <div className="flex items-center gap-2 mb-4">
         <Clock className="h-4 w-4 text-amber-400" />
-        <span style={{ ...cormorant, fontSize: "1rem", color: isPaid ? "rgba(167,243,208,0.9)" : "rgba(253,230,138,0.9)" }}>
+        <span style={{ ...fonts.display, fontSize: "1rem", color: isPaid ? "rgba(167,243,208,0.9)" : "rgba(253,230,138,0.9)" }}>
           {isPaid ? "Payment confirmed — in the queue" : "Awaiting payment"}
         </span>
       </div>
@@ -441,11 +437,11 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
       <div className="space-y-3 rounded-xl border border-white/[0.07] bg-white/[0.03] p-4 text-sm mb-4">
         <div>
           <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Profile(s)</span>
-          <p style={{ ...cormorant, fontSize: "1rem", color: "rgba(251,191,36,0.8)" }} className="mt-0.5">{profileNames}</p>
+          <p style={{ ...fonts.display, fontSize: "1rem", color: "rgba(251,191,36,0.8)" }} className="mt-0.5">{profileNames}</p>
         </div>
         <div>
           <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Question</span>
-          <p style={{ ...cormorant, fontSize: "1rem", color: "rgba(255,255,255,0.78)", lineHeight: 1.65 }} className="mt-0.5">
+          <p style={{ ...fonts.display, fontSize: "1rem", color: "rgba(255,255,255,0.78)", lineHeight: 1.65 }} className="mt-0.5">
             {displayQuestion(pending)}
           </p>
         </div>
@@ -457,7 +453,7 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
           {pending.delivery_mode === "appointment" && pending.slot_starts_at && (
             <div className="text-right">
               <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Slot</span>
-              <p style={{ ...cormorant, fontSize: "0.95rem", color: "rgba(251,191,36,0.85)" }} className="mt-0.5">
+              <p style={{ ...fonts.display, fontSize: "0.95rem", color: "rgba(251,191,36,0.85)" }} className="mt-0.5">
                 {new Date(pending.slot_starts_at).toLocaleString("en-IN", {
                   timeZone: "Asia/Kolkata", weekday: "short", day: "numeric",
                   month: "short", hour: "2-digit", minute: "2-digit", hour12: true,
@@ -476,7 +472,7 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
         <div className="space-y-3">
           <div className="rounded-xl border border-emerald-700/30 bg-emerald-950/15 px-4 py-3 flex items-center gap-2 text-emerald-400 text-sm">
             <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-            <span style={cormorant}>
+            <span style={fonts.display}>
               {pending.delivery_mode === "appointment"
                 ? "Confirmed. You will receive a Google Meet link for your slot."
                 : "Confirmed. Dr. Chaganti will answer your question shortly."}
@@ -576,8 +572,8 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
   return (
     <div className="rounded-xl border border-amber-700/35 bg-amber-950/20 p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <p style={{ ...cormorant, fontSize: "1.1rem", color: "rgba(253,230,138,0.9)" }}>Pay to confirm</p>
-        <span style={{ ...cormorant, fontSize: "1.5rem", fontWeight: 700, color: "#fbbf24" }}>
+        <p style={{ ...fonts.display, fontSize: "1.1rem", color: "rgba(253,230,138,0.9)" }}>Pay to confirm</p>
+        <span style={{ ...fonts.display, fontSize: "1.5rem", fontWeight: 700, color: "#fbbf24" }}>
           ₹{amountRupees.toLocaleString("en-IN")}
         </span>
       </div>
@@ -615,7 +611,7 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
             textDecoration: "none",
             background: "rgba(4,120,87,0.12)",
             letterSpacing: "0.03em",
-            fontFamily: "var(--font-cormorant), Georgia, serif",
+            fontFamily: "var(--font-fonts.display), Georgia, serif",
             fontWeight: 400,
           }}>
           Confirm payment via WhatsApp
@@ -655,7 +651,7 @@ function HistorySection({ answered, resolveProfileNames }: {
 
   return (
     <section className="space-y-3 border-t border-white/[0.07] pt-8">
-      <h2 style={{ ...cormorant, fontSize: "1.2rem", color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
+      <h2 style={{ ...fonts.display, fontSize: "1.2rem", color: "rgba(255,255,255,0.45)", letterSpacing: "0.06em" }}>
         Answered questions
       </h2>
       <div className="space-y-2">
@@ -671,7 +667,7 @@ function HistorySection({ answered, resolveProfileNames }: {
                 <div className="flex items-center gap-3 min-w-0">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                   <div className="min-w-0">
-                    <span style={{ ...cormorant, fontSize: "1rem", color: "rgba(255,255,255,0.82)" }} className="truncate block">
+                    <span style={{ ...fonts.display, fontSize: "1rem", color: "rgba(255,255,255,0.82)" }} className="truncate block">
                       {resolveProfileNames(req.profile_ids)}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -690,7 +686,7 @@ function HistorySection({ answered, resolveProfileNames }: {
                 <div className="px-5 pb-5 space-y-4 border-t border-white/[0.07] pt-4">
                   <div>
                     <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)" }}>Your Question</span>
-                    <p style={{ ...cormorant, fontSize: "1.02rem", color: "rgba(255,255,255,0.78)", lineHeight: 1.7 }} className="mt-1">
+                    <p style={{ ...fonts.display, fontSize: "1.02rem", color: "rgba(255,255,255,0.78)", lineHeight: 1.7 }} className="mt-1">
                       {displayQuestion(req)}
                     </p>
                   </div>
@@ -700,7 +696,7 @@ function HistorySection({ answered, resolveProfileNames }: {
                       <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Answer
                       </div>
-                      <p style={{ ...cormorant, fontSize: "1.02rem", color: "rgba(255,255,255,0.82)", lineHeight: 1.7 }}>{req.admin_note}</p>
+                      <p style={{ ...fonts.display, fontSize: "1.02rem", color: "rgba(255,255,255,0.82)", lineHeight: 1.7 }}>{req.admin_note}</p>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground italic">No written note was added for this answer.</p>
@@ -779,10 +775,10 @@ function DeliveryCard({ selected, onClick, title, price, description }: {
       cursor: "pointer",
     }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "5px" }}>
-        <span style={{ ...cormorant, fontSize: "1.1rem", color: selected ? "rgba(253,230,138,0.95)" : "rgba(255,255,255,0.72)" }}>
+        <span style={{ ...fonts.display, fontSize: "1.1rem", color: selected ? "rgba(253,230,138,0.95)" : "rgba(255,255,255,0.72)" }}>
           {title}
         </span>
-        <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 700, fontSize: "1rem", color: selected ? "#fbbf24" : "rgba(251,191,36,0.38)" }}>
+        <span style={{ fontFamily: "var(--font-fonts.display), Georgia, serif", fontWeight: 700, fontSize: "1rem", color: selected ? "#fbbf24" : "rgba(251,191,36,0.38)" }}>
           {price}
         </span>
       </div>

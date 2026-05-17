@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ConsultationForm } from "./ConsultationForm";
+import { fonts, scale } from "@/lib/typography";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function ConsultationPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontWeight: 400, fontSize: "2.2rem", letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
+        <h1 style={{ ...fonts.display, fontSize: scale.pageTitle, letterSpacing: "0.02em", lineHeight: 1.15, color: "rgba(255,255,255,0.92)" }}>
           Seek Counsel
         </h1>
       </div>

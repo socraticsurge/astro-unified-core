@@ -16,6 +16,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 const mulish = Mulish({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
   variable: "--font-sans",
 });
 

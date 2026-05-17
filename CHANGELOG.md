@@ -8,6 +8,22 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-17] — Centralized typography system; Mulish replaces Jost; nav items switch to sans
+
+### Added
+- **`lib/typography.ts`** — single source of truth for font styles. Exports `fonts` (role-based style objects: `display`, `displayBold`, `displayItalic`, `ui`, `uiLight`, `uiMedium`, `uiSemibold`, `uiBold`, `uiItalic`) and `scale` (named size constants: `pageTitle`, `sectionHead`, `subhead`, `body`, `label`, `small`, `xs`). Changing a font or weight now requires editing one file.
+
+### Changed
+- **`app/layout.tsx`** — Jost replaced by Mulish (same `--font-sans` variable). Added `style: ["normal", "italic"]` to load italic variant.
+- **`components/NavBar.tsx`** — All style objects rewritten using `fonts.*` tokens. Nav items (Natal Charts, Kundali Matching, Get Consultation) switched from Philosopher to Mulish `uiMedium` so wordmark is the sole Philosopher element in the bar. Mobile labels and admin link follow suit.
+- **`components/compatibility/CompatibilityClient.tsx`** — Local `const cormorant` removed; imports and uses `fonts.display`.
+- **`app/compatibility/[id]/CompatibilityDetailClient.tsx`** — Same.
+- **`app/consultation/ConsultationForm.tsx`** — Same.
+- **`app/consultation/page.tsx`** — Inline h1 style replaced with `fonts.display` + `scale.pageTitle`.
+- **`components/dashboard/ProfileList.tsx`** — Both h1 styles replaced with `fonts.display` + `scale.pageTitle`.
+
+---
+
 ## [2026-05-17] — Philosopher + Jost font system; font weight cleanup across all UI
 
 ### Changed
