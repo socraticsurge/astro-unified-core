@@ -56,6 +56,10 @@ function isNow(start: string, end: string) { return TODAY >= start && TODAY < en
 
 const MAX_DEPTH = 4;
 const LEVEL_LABELS = ["Maha", "Antar", "Pratyantar", "Sookshma", "Prana"];
+// Static Tailwind classes for each depth level (depth * 14 + 10 px)
+const ROWS_PL = ["pl-[10px]", "pl-6", "pl-[38px]", "pl-[52px]", "pl-[66px]"] as const;
+// Static Tailwind classes for current period indent (depth * 16 px)
+const PERIOD_PL = ["pl-0", "pl-4", "pl-8", "pl-12", "pl-16"] as const;
 
 interface RowsProps {
   entries:  SubDasha[];
@@ -82,9 +86,9 @@ function DashaRows({ entries, depth, expanded, onToggle }: RowsProps) {
               type="button"
               disabled={isLeaf}
               onClick={() => !isLeaf && onToggle(depth, key)}
-              style={{ paddingLeft: `${depth * 14 + 10}px` }}
               className={cn(
-                "w-full flex items-center gap-2 py-1 pr-3 text-left border-b border-[var(--color-border)]/20 transition-colors",
+                ROWS_PL[depth],
+                "w-full flex items-center gap-2 py-1 pr-3 text-left border-b border-[var(--color-border)] transition-colors",
                 active
                   ? "bg-[var(--color-nav-chip-active-bg)]/70"
                   : depth === 0
@@ -182,8 +186,7 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
               return (
                 <div
                   key={key}
-                  style={{ paddingLeft: `${depth * 16}px` }}
-                  className="flex items-center gap-3 py-2 px-3 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)]"
+                  className={cn("flex items-center gap-3 py-2 px-3 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)]", PERIOD_PL[depth])}
                 >
                   <span className="text-xs uppercase tracking-wider text-muted-foreground w-20">{label}</span>
                   <span className="font-semibold text-sm text-[var(--color-ink-1)] w-20">{d.planet}</span>

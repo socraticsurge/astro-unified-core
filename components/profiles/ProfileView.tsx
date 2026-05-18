@@ -21,7 +21,7 @@ type ChartTabId =
   | 'dasha' | 'transits' | 'career' | 'compare'
 
 const CHART_TABS: { id: ChartTabId; label: string }[] = [
-  { id: 'today',        label: '◎ Today'      },
+  { id: 'today',        label: 'Today'        },
   { id: 'planets',      label: 'Planets'      },
   { id: 'divisional',   label: 'Divisional'   },
   { id: 'yogas',        label: 'Yogas'        },

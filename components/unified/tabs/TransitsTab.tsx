@@ -60,7 +60,7 @@ export function TransitsTab({
               <table className="text-xs border-collapse w-full">
                 <thead>
                   <tr className="border-b border-[var(--color-border)]">
-                    {["Planet", "Transit Sign", "H/Lagna", "H/Moon", "SAV"].map(h => (
+                    {["Planet", "Transit Sign", "From Lagna", "From Moon", "SAV"].map(h => (
                       <th key={h} className={TABLE_STYLES.th}>{h}</th>
                     ))}
                   </tr>

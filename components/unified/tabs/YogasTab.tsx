@@ -33,15 +33,15 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
                 key={`${y.name}-${i}`}
                 className={`p-3 rounded-lg border ${
                   MAJOR_YOGAS.has(y.name)
-                    ? "border-amber-500/40 bg-amber-500/5"
+                    ? "border-[var(--color-accent)]/40 bg-[var(--color-accent)]/5"
                     : "border-[var(--color-border)] bg-[var(--color-surface-1)]"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className={`font-semibold text-sm ${MAJOR_YOGAS.has(y.name) ? "text-amber-300" : "text-[var(--color-ink-1)]"}`}>
+                  <span className={`font-semibold text-sm ${MAJOR_YOGAS.has(y.name) ? "text-[var(--color-accent)]" : "text-[var(--color-ink-1)]"}`}>
                     {y.name}
                     {MAJOR_YOGAS.has(y.name) && (
-                      <span className="ml-1.5 text-xs bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full uppercase font-bold tracking-wide">
+                      <span className="ml-1.5 text-xs bg-[var(--color-accent)]/20 text-[var(--color-accent)] px-1.5 py-0.5 rounded-full uppercase font-bold tracking-wide">
                         Major
                       </span>
                     )}
@@ -64,22 +64,19 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
       </section>
 
       {/* Doshas */}
+      {(kaalSarpa || grahaYuddha.length > 0 || gandanta.length > 0) && (
       <section>
         <SectionHeading>Doshas</SectionHeading>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className={`p-3 rounded-lg border ${kaalSarpa ? "border-danger/40 bg-danger/5" : "border-[var(--color-border)] bg-[var(--color-surface-1)]"}`}>
-            <p className="font-semibold text-sm text-[var(--color-ink-1)]">Kaal Sarpa</p>
-            {kaalSarpa ? (
-              <>
-                <p className="text-xs text-danger mt-0.5">{kaalSarpa.type} · {kaalSarpa.direction}</p>
-                {kaalSarpa.description && (
-                  <p className="text-xs text-muted-foreground mt-1">{kaalSarpa.description}</p>
-                )}
-              </>
-            ) : (
-              <p className="text-xs text-success mt-0.5">Not detected</p>
-            )}
-          </div>
+          {kaalSarpa && (
+            <div className="p-3 rounded-lg border border-danger/40 bg-danger/5">
+              <p className="font-semibold text-sm text-[var(--color-ink-1)]">Kaal Sarpa</p>
+              <p className="text-xs text-danger mt-0.5">{kaalSarpa.type} · {kaalSarpa.direction}</p>
+              {kaalSarpa.description && (
+                <p className="text-xs text-muted-foreground mt-1">{kaalSarpa.description}</p>
+              )}
+            </div>
+          )}
 
           {grahaYuddha.length > 0 && (
             <div className="p-3 rounded-lg border border-warning/30 bg-warning/5">
@@ -100,7 +97,7 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
           )}
 
           {gandanta.length > 0 && (
-            <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/5">
+            <div className="p-3 rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5">
               <p className="font-semibold text-sm text-[var(--color-ink-1)] mb-2">
                 Gandanta — Karmic Junctions ({gandanta.length})
               </p>
@@ -117,6 +114,7 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
           )}
         </div>
       </section>
+      )}
     </div>
   );
 }

@@ -116,7 +116,7 @@ function FullResult({ check, groomProfile, brideProfile }: {
         <section>
           <SectionHeading>Guna Breakdown</SectionHeading>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="max-w-xs text-sm border-collapse">
               <thead>
                 <tr className="border-b border-[var(--color-border)]">
                   <th className={th}>Koota</th>
@@ -149,7 +149,7 @@ function FullResult({ check, groomProfile, brideProfile }: {
       {(result.male_details || result.female_details) && (
         <section>
           <SectionHeading>Natal Moon Profiles</SectionHeading>
-          <table className="w-full text-sm border-collapse">
+          <table className="max-w-sm text-sm border-collapse">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
                 <th className={th}></th>
@@ -391,8 +391,7 @@ export function CompareTab({ activeProfile, allProfiles, selectedId, onSelectedI
 
       {/* ── Error ── */}
       {error && (
-        <div className="px-3 py-2 rounded-lg border text-xs text-danger"
-          style={{ borderColor: "var(--color-danger-border)", background: "var(--color-danger-faint)" }}>
+        <div className="px-3 py-2 rounded-lg border border-danger/40 bg-danger/5 text-xs text-danger">
           {error}
         </div>
       )}

@@ -32,8 +32,8 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
 
       {/* Chara Karakas */}
       {jaiminiKarakas && (
-        <div className="overflow-x-auto">
-          <table className="text-xs border-collapse">
+        <div className="overflow-x-auto max-w-lg">
+          <table className="text-xs border-collapse w-full">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
                 {["Karaka", "Planet", "Description"].map(h => (
