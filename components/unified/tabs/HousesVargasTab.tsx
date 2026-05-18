@@ -1,5 +1,5 @@
 "use client";
-import { PLANET_ORDER, SIGNS_ORDER } from "@/components/unified/types";
+import { PLANET_ORDER, SIGNS_ORDER, VARGA_KEYS } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 
@@ -64,29 +64,51 @@ export function HousesVargasTab({
   return (
     <div className="space-y-10">
 
-      {/* Divisional Charts grid */}
+      {/* Lagna across vargas strip */}
+      {lagna && (
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Lagna across Vargas
+          </h3>
+          <div className="flex flex-wrap gap-1.5">
+            <span className="px-2 py-0.5 rounded border-l-2 border-[var(--color-accent)] bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-ink-1)]">
+              D1: {String(lagna.sign ?? "—")}
+            </span>
+            {VARGA_KEYS.map(({ label, key }) => {
+              const val = (lagna as Record<string, unknown>)[key];
+              return val ? (
+                <span key={label} className="px-2 py-0.5 rounded bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs text-[var(--color-ink-3)]">
+                  {label}: {String(val)}
+                </span>
+              ) : null;
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Divisional Charts grid — 4 per row */}
       {planets && (
         <section>
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
             Divisional Charts
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5">
-            {DIVISIONAL_CHARTS.map(({ label, signKey, lagnaKey }) => {
-              const divLagnaSign = lagna?.[lagnaKey] as SignName | undefined;
-              // Skip if no data for this divisional
-              const hasDivData = PLANET_ORDER.some(n => planets[n]?.[signKey]);
-              if (!hasDivData) return null;
-              return (
-                <NatalChartGrid
-                  key={label}
-                  planets={planets}
-                  lagnaSign={divLagnaSign}
-                  signKey={signKey}
-                  label={label}
-                  compact
-                />
-              );
-            })}
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-4 gap-4 min-w-[560px]">
+              {DIVISIONAL_CHARTS.map(({ label, signKey, lagnaKey }) => {
+                const divLagnaSign = lagna?.[lagnaKey] as SignName | undefined;
+                const hasDivData = PLANET_ORDER.some(n => planets[n]?.[signKey]);
+                if (!hasDivData) return null;
+                return (
+                  <NatalChartGrid
+                    key={label}
+                    planets={planets}
+                    lagnaSign={divLagnaSign}
+                    signKey={signKey}
+                    label={label}
+                  />
+                );
+              })}
+            </div>
           </div>
         </section>
       )}

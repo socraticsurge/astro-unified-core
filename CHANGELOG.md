@@ -8,6 +8,21 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — Sidebar layout, dedicated Dasha/Transits/Career tabs, 4-per-row divisional charts
+
+### Added
+- **ProfileSidebar** (`components/profiles/ProfileSidebar.tsx`) — persistent left panel (w-80, visible md+) per profile. Shows: name + edit link, birth date/time/place, natal panchang in a 2-col compact grid, and D1 + D9 NatalChartGrid side by side.
+- **TransitsTab** (`components/unified/tabs/TransitsTab.tsx`) — standalone primary tab for today's transits. Auto-fetches on mount, shows Sade Sati alert, Rahu/Ketu axis row, and per-planet transit table.
+- **CareerTab** (`components/unified/tabs/CareerTab.tsx`) — standalone primary tab with D10 chart at top (using NatalChartGrid), followed by 10th house details, career themes chips, and strength indicators.
+- **DashaTab** (`components/unified/tabs/DashaTab.tsx`) — simplified replacement for TimeTab. Shows current 5-level Vimshottari period and full Maha Dasha timeline table; no sub-tabs.
+
+### Changed
+- **ProfileView** — new tab set: `Today | Planets | Houses | Patterns | Dasha | Transits | Career | Compare`. Removed `Chart` tab (D1/D9 moved to sidebar; planet positions already in Planets tab). Removed `Time` tab (split into Dasha + Transits + Career). `onExplore` in TodayTab now navigates to `planets`.
+- **DashboardClient** — main content area now uses `flex` row: ProfileSidebar (hidden on mobile, always visible on md+) + flex-1 ProfileView column.
+- **HousesVargasTab** — divisional charts grid changed from `grid-cols-2 sm:grid-cols-3` compact to `grid-cols-4` full-size with `overflow-x-auto` wrapper (minimum 560px). Lagna-across-vargas strip moved here from ChartTab.
+
+---
+
 ## [2026-05-18] — Natal chart grids, divisional charts, guided UX improvements
 
 ### Added

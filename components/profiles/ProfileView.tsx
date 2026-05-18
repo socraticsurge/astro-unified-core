@@ -1,28 +1,29 @@
 "use client"
 import { useState } from 'react'
-import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { Profile } from '@/lib/db'
-import { TodayTab } from '@/components/tabs/TodayTab'
+import { TodayTab }       from '@/components/tabs/TodayTab'
 import type { TodayInsight } from '@/components/tabs/TodayInsightCard'
-import { CompareTab } from '@/components/tabs/CompareTab'
-import { ChartTab }    from '@/components/unified/tabs/ChartTab'
-import { PlanetsTab }  from '@/components/unified/tabs/PlanetsTab'
-import { HousesVargasTab } from '@/components/unified/tabs/HousesVargasTab'
-import { PatternsTab } from '@/components/unified/tabs/PatternsTab'
-import { TimeTab }     from '@/components/unified/tabs/TimeTab'
+import { CompareTab }     from '@/components/tabs/CompareTab'
+import { PlanetsTab }     from '@/components/unified/tabs/PlanetsTab'
+import { HousesVargasTab }from '@/components/unified/tabs/HousesVargasTab'
+import { PatternsTab }    from '@/components/unified/tabs/PatternsTab'
+import { DashaTab }       from '@/components/unified/tabs/DashaTab'
+import { TransitsTab }    from '@/components/unified/tabs/TransitsTab'
+import { CareerTab }      from '@/components/unified/tabs/CareerTab'
 import type { AskContext } from '@/components/panels/AskPanel'
 
-type ChartTabId = 'today' | 'chart' | 'planets' | 'houses' | 'patterns' | 'time' | 'compare'
+type ChartTabId = 'today' | 'planets' | 'houses' | 'patterns' | 'dasha' | 'transits' | 'career' | 'compare'
 
 const CHART_TABS: { id: ChartTabId; label: string }[] = [
-  { id: 'today',    label: '◎ Today' },
-  { id: 'chart',    label: 'Chart' },
-  { id: 'planets',  label: 'Planets' },
-  { id: 'houses',   label: 'Houses' },
+  { id: 'today',    label: '◎ Today'   },
+  { id: 'planets',  label: 'Planets'  },
+  { id: 'houses',   label: 'Houses'   },
   { id: 'patterns', label: 'Patterns' },
-  { id: 'time',     label: 'Time' },
-  { id: 'compare',  label: 'Compare' },
+  { id: 'dasha',    label: 'Dasha'    },
+  { id: 'transits', label: 'Transits' },
+  { id: 'career',   label: 'Career'   },
+  { id: 'compare',  label: 'Compare'  },
 ]
 
 interface ProfileViewProps {
@@ -67,12 +68,11 @@ export function ProfileView({
 
   return (
     <div className="flex flex-col min-h-0">
-      {/* Tab bar + edit link */}
-      <div className="flex items-center border-b border-[var(--color-border)]">
-        <div
-          role="tablist"
-          className="flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
+      {/* Tab bar */}
+      <div
+        role="tablist"
+        className="flex-shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-[var(--color-border)]"
+      >
         <div className="flex min-w-max">
           {CHART_TABS.map(t => (
             <button
@@ -94,14 +94,6 @@ export function ProfileView({
             </button>
           ))}
         </div>
-        </div>
-        <Link
-          href={`/profiles/${profile.id}/edit`}
-          className="shrink-0 px-3 text-xs text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
-          title="Edit profile"
-        >
-          Edit
-        </Link>
       </div>
 
       {/* Tab content */}
@@ -112,13 +104,8 @@ export function ProfileView({
               chartOutput={chartOutput}
               transitOutput={transitOutput}
               onAsk={handleAskFromInsight}
-              onExplore={() => setActiveTab('chart')}
+              onExplore={() => setActiveTab('planets')}
             />
-          </div>
-        )}
-        {activeTab === 'chart' && chartOutput && (
-          <div id="profileview-panel-chart" role="tabpanel" aria-labelledby="profileview-tab-chart">
-            <ChartTab chartOutput={chartOutput} />
           </div>
         )}
         {activeTab === 'planets' && chartOutput && (
@@ -139,15 +126,26 @@ export function ProfileView({
             <PatternsTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'time' && chartOutput && (
-          <div id="profileview-panel-time" role="tabpanel" aria-labelledby="profileview-tab-time">
-            <TimeTab
-              chartOutput={chartOutput}
+        {activeTab === 'dasha' && chartOutput && (
+          <div id="profileview-panel-dasha" role="tabpanel" aria-labelledby="profileview-tab-dasha">
+            <DashaTab chartOutput={chartOutput} />
+          </div>
+        )}
+        {activeTab === 'transits' && (
+          <div id="profileview-panel-transits" role="tabpanel" aria-labelledby="profileview-tab-transits">
+            <TransitsTab
               transitOutput={transitOutput}
-              careerOutput={careerOutput}
               isTransitLoading={isTransitLoading}
-              isCareerLoading={isCareerLoading}
               onFetchTransit={onFetchTransit}
+            />
+          </div>
+        )}
+        {activeTab === 'career' && chartOutput && (
+          <div id="profileview-panel-career" role="tabpanel" aria-labelledby="profileview-tab-career">
+            <CareerTab
+              chartOutput={chartOutput}
+              careerOutput={careerOutput}
+              isCareerLoading={isCareerLoading}
               onFetchCareer={onFetchCareer}
             />
           </div>
@@ -157,7 +155,7 @@ export function ProfileView({
             <CompareTab activeProfile={profile} allProfiles={allProfiles} />
           </div>
         )}
-        {!chartOutput && activeTab !== 'today' && activeTab !== 'compare' && (
+        {!chartOutput && activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare' && (
           <div className="flex items-center justify-center h-40">
             <p className="text-sm text-muted-foreground">Loading chart data…</p>
           </div>

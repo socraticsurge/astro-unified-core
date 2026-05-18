@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { NavBar } from "@/components/NavBar"
 import { ProfileView } from "@/components/profiles/ProfileView"
+import { ProfileSidebar } from "@/components/profiles/ProfileSidebar"
 import { AskPanel } from "@/components/panels/AskPanel"
 import type { AskContext } from "@/components/panels/AskPanel"
 import type { Profile } from "@/lib/db"
@@ -110,27 +111,32 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
         onAskOpen={() => handleAskOpen()}
       />
 
-      <div className="flex-1 overflow-hidden">
-        {activeProfile ? (
-          <div key={activeProfileId} className="animate-profile-enter h-full">
-            <ProfileView
-              profile={activeProfile}
-              allProfiles={profiles}
-              chartOutput={chart.data}
-              transitOutput={transit.data}
-              careerOutput={career.data}
-              isTransitLoading={transit.loading}
-              isCareerLoading={career.loading}
-              onFetchTransit={fetchTransit}
-              onFetchCareer={fetchCareer}
-              onAskOpen={handleAskOpen}
-            />
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-muted-foreground">Select a profile above.</p>
-          </div>
+      <div className="flex-1 overflow-hidden flex">
+        {activeProfile && (
+          <ProfileSidebar profile={activeProfile} chartOutput={chart.data} />
         )}
+        <div className="flex-1 overflow-hidden">
+          {activeProfile ? (
+            <div key={activeProfileId} className="animate-profile-enter h-full">
+              <ProfileView
+                profile={activeProfile}
+                allProfiles={profiles}
+                chartOutput={chart.data}
+                transitOutput={transit.data}
+                careerOutput={career.data}
+                isTransitLoading={transit.loading}
+                isCareerLoading={career.loading}
+                onFetchTransit={fetchTransit}
+                onFetchCareer={fetchCareer}
+                onAskOpen={handleAskOpen}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-sm text-muted-foreground">Select a profile above.</p>
+            </div>
+          )}
+        </div>
       </div>
 
       <AskPanel

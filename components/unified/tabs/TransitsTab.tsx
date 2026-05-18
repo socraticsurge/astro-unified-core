@@ -1,0 +1,110 @@
+"use client";
+import { useEffect } from "react";
+import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PLANET_ORDER } from "@/components/unified/types";
+
+export function TransitsTab({
+  transitOutput,
+  isTransitLoading,
+  onFetchTransit,
+}: {
+  transitOutput: Record<string, unknown> | null;
+  isTransitLoading: boolean;
+  onFetchTransit: (force?: boolean) => void;
+}) {
+  useEffect(() => {
+    if (!transitOutput && !isTransitLoading) onFetchTransit();
+  }, [transitOutput, isTransitLoading, onFetchTransit]);
+
+  const transit = ((transitOutput as Record<string, unknown> | null)?.data ?? transitOutput) as Record<string, unknown> | null;
+
+  const transitPlanets = transit?.planets as Record<string, {
+    sign?: string;
+    is_retrograde?: boolean;
+    house_from_lagna?: number;
+    house_from_moon?: number;
+    sav_points?: number;
+  }> | undefined;
+  const sadeSati = transit?.sade_sati as { active?: boolean; phase?: string } | undefined;
+  const rahuKetu = transit?.rahu_ketu_axis as {
+    rahu_sign?: string;
+    rahu_house_from_lagna?: number;
+    ketu_sign?: string;
+    ketu_house_from_lagna?: number;
+  } | undefined;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Today&apos;s Transits
+        </h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onFetchTransit(true)}
+          disabled={isTransitLoading}
+          className="h-6 text-xs gap-1"
+        >
+          <RefreshCw className={`h-3 w-3 ${isTransitLoading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      </div>
+
+      {isTransitLoading && <p className="text-xs text-muted-foreground">Loading transits…</p>}
+
+      {transit && (
+        <>
+          {sadeSati?.active && (
+            <div className="px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 text-xs">
+              Sade Sati active · {sadeSati.phase} phase
+            </div>
+          )}
+
+          {rahuKetu && (
+            <div className="px-3 py-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs flex gap-6">
+              <span>Rahu: {rahuKetu.rahu_sign} (H{rahuKetu.rahu_house_from_lagna})</span>
+              <span>Ketu: {rahuKetu.ketu_sign} (H{rahuKetu.ketu_house_from_lagna})</span>
+            </div>
+          )}
+
+          {transitPlanets && (
+            <div className="overflow-x-auto">
+              <table className="text-xs border-collapse w-full">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    {["Planet", "Transit Sign", "H/Lagna", "H/Moon", "SAV"].map(h => (
+                      <th key={h} className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {PLANET_ORDER.map(name => {
+                    const p = transitPlanets[name];
+                    if (!p) return null;
+                    const savVal = p.sav_points ?? 0;
+                    return (
+                      <tr key={name} className="border-b border-[var(--color-border)]/40">
+                        <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">
+                          {name}
+                          {p.is_retrograde && <span className="ml-1 text-orange-400">℞</span>}
+                        </td>
+                        <td className="py-1.5 px-2 text-[var(--color-ink-2)]">{p.sign}</td>
+                        <td className="py-1.5 px-2 text-center text-muted-foreground">{p.house_from_lagna}</td>
+                        <td className="py-1.5 px-2 text-center text-muted-foreground">{p.house_from_moon}</td>
+                        <td className={`py-1.5 px-2 text-center font-bold font-mono ${savVal >= 30 ? "text-emerald-400" : savVal <= 22 ? "text-red-400" : "text-muted-foreground"}`}>
+                          {savVal}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
