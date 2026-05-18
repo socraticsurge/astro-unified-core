@@ -1,9 +1,10 @@
 "use client";
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
-import { DIGNITY_COLORS, TABLE_STYLES } from "@/components/unified/types";
+import { PLANET_ORDER, DIGNITY_COLORS, TABLE_STYLES } from "@/components/unified/types";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 
 type TenthHouse = {
@@ -56,21 +57,28 @@ export function CareerTab({
   const career     = ((careerOutput as Record<string, unknown> | null)?.data ?? careerOutput) as CareerData | null;
   const tenth      = career?.tenth_house;
   const indicators = career?.d10_indicators ?? {};
-  const primary    = career?.primary_planets ?? [];
+  const primary    = new Set(career?.primary_planets ?? []);
+  // significators = primary planets + any planet marked strong in D10, in chart order
+  const significators = PLANET_ORDER.filter(
+    p => primary.has(p) || indicators[p]?.d10_strong
+  );
 
   return (
     <div className="space-y-8">
 
-      {/* Refresh */}
-      <div className="flex justify-end">
-        <button
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <SectionHeading>Career Analysis</SectionHeading>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => onFetchCareer(true)}
           disabled={isCareerLoading}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[var(--color-ink-2)] transition-colors disabled:opacity-40"
+          className="h-6 text-xs gap-1"
         >
           <RefreshCw className={`h-3 w-3 ${isCareerLoading ? "animate-spin" : ""}`} />
-          {isCareerLoading ? "Loading…" : "Refresh"}
-        </button>
+          Refresh
+        </Button>
       </div>
 
       {isCareerLoading && (
@@ -80,7 +88,7 @@ export function CareerTab({
       {career && (
         <>
           {/* Key Professional Significators */}
-          {primary.length > 0 && (
+          {significators.length > 0 && (
             <section>
               <SectionHeading>Key Professional Significators</SectionHeading>
               <div className="overflow-x-auto">
@@ -94,7 +102,7 @@ export function CareerTab({
                     </tr>
                   </thead>
                   <tbody>
-                    {primary.map(p => {
+                    {significators.map(p => {
                       const ind = indicators[p];
                       return (
                         <tr key={p} className={row}>
