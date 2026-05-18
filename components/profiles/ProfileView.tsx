@@ -76,7 +76,7 @@ export function ProfileView({
   const needsChart = activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare'
 
   return (
-    <div className="flex flex-col min-h-0">
+    <div className="h-full flex flex-col min-h-0">
       {/* Tab bar */}
       <div
         role="tablist"

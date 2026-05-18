@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { CheckCircle2, XCircle, MinusCircle, Loader2 } from "lucide-react"
+import { CheckCircle2, XCircle, MinusCircle, Loader2, X } from "lucide-react"
 import type { Profile, CompatibilityCheck } from "@/lib/db"
 import type { CompatResult, AdditionalKuta } from "@/lib/compatibility"
 import { KOOTA_MAX, scoreColor, scoreLabel } from "@/lib/compatibility"
@@ -62,9 +62,9 @@ function ScoreArc({ score }: { score: number }) {
 // ── Result pill ───────────────────────────────────────────────────────────────
 
 function ResultPill({ result }: { result?: string }) {
-  if (result === "good")       return <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Auspicious</span>
-  if (result === "bad")        return <span className="text-xs font-semibold text-red-400 flex items-center gap-1"><XCircle className="h-3 w-3" />Inauspicious</span>
-  if (result === "acceptable") return <span className="text-xs font-semibold text-amber-400 flex items-center gap-1"><MinusCircle className="h-3 w-3" />Moderate</span>
+  if (result === "good")       return <span className="text-xs font-semibold text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Auspicious</span>
+  if (result === "bad")        return <span className="text-xs font-semibold text-danger flex items-center gap-1"><XCircle className="h-3 w-3" />Inauspicious</span>
+  if (result === "acceptable") return <span className="text-xs font-semibold text-warning flex items-center gap-1"><MinusCircle className="h-3 w-3" />Moderate</span>
   return <span className="text-xs text-muted-foreground flex items-center gap-1"><MinusCircle className="h-3 w-3" />Neutral</span>
 }
 
@@ -95,18 +95,16 @@ function FullResult({ check, groomProfile, brideProfile }: {
   }
 
   if (!result) return (
-    <div className="p-6 text-center text-xs text-muted-foreground rounded-lg border border-[var(--color-border)]">
-      Result data unavailable.
-    </div>
+    <p className="text-xs text-muted-foreground italic py-4">Result data unavailable.</p>
   )
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
 
       {/* Score + verdict */}
-      <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-[var(--color-surface-1)] border border-[var(--color-border)]">
+      <section className="flex items-center gap-4">
         <ScoreArc score={score} />
-        <div className="flex-1 min-w-0 space-y-1">
+        <div className="space-y-1">
           <p className="text-sm font-semibold" style={{ color }}>{scoreLabel(score)}</p>
           <p className="text-xs text-[var(--color-ink-3)] leading-snug">
             {score >= 26 ? "Highly auspicious for marriage."
@@ -114,129 +112,138 @@ function FullResult({ check, groomProfile, brideProfile }: {
               : score >= 12 ? "Below 18 gunas — worth careful deliberation."
               : "Significant incompatibilities identified."}
           </p>
-          <p className="text-[10px] text-muted-foreground/50">Ashtakoota Milan · {score}/36 gunas</p>
+          <p className="text-[10px] text-muted-foreground/50">{score}/36 gunas · Classical Ashtakoota Milan</p>
         </div>
-      </div>
+      </section>
 
       {/* Guna breakdown */}
       {Object.keys(scores).length > 0 && (
-        <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
+        <section>
           <SectionHeading>Guna Breakdown</SectionHeading>
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--color-surface-2)]">
-              <tr>
-                <th className={th}>Koota</th>
-                <th className={`${th} text-right`}>Score</th>
-                <th className={`${th} text-right`}>Max</th>
-                <th className={`${th} text-center`}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(scores).map(([name, pts]) => {
-                const max = KOOTA_MAX[name]
-                const full = typeof max === "number" && pts >= max
-                const zero = pts === 0
-                return (
-                  <tr key={name} className={row}>
-                    <td className={td}>{name}</td>
-                    <td className={`${td} text-right font-semibold`}
-                      style={{ color: full ? "#34d399" : zero ? "#f87171" : "#fbbf24" }}>{pts}</td>
-                    <td className={`${td} text-right text-muted-foreground`}>{max ?? "—"}</td>
-                    <td className={`${td} text-center`}>
-                      {full  && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 inline" />}
-                      {zero  && <XCircle      className="h-3.5 w-3.5 text-red-400 inline" />}
-                      {!full && !zero && <MinusCircle className="h-3.5 w-3.5 text-amber-400 inline" />}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-[var(--color-border)]">
+                  <th className={th}>Koota</th>
+                  <th className={`${th} text-right`}>Score</th>
+                  <th className={`${th} text-right`}>Max</th>
+                  <th className={`${th} text-center`}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(scores).map(([name, pts]) => {
+                  const max = KOOTA_MAX[name]
+                  const full = typeof max === "number" && pts >= max
+                  const zero = pts === 0
+                  return (
+                    <tr key={name} className={row}>
+                      <td className={td}>{name}</td>
+                      <td className={`${td} text-right font-semibold`}
+                        style={{ color: full ? "var(--color-success)" : zero ? "var(--color-danger)" : "var(--color-warning)" }}>
+                        {pts}
+                      </td>
+                      <td className={`${td} text-right text-muted-foreground`}>{max ?? "—"}</td>
+                      <td className={`${td} text-center`}>
+                        {full  && <CheckCircle2 className="h-3.5 w-3.5 text-success inline" />}
+                        {zero  && <XCircle      className="h-3.5 w-3.5 text-danger  inline" />}
+                        {!full && !zero && <MinusCircle className="h-3.5 w-3.5 text-warning inline" />}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* Natal Moon Profiles */}
       {(result.male_details || result.female_details) && (
-        <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
+        <section>
           <SectionHeading>Natal Moon Profiles</SectionHeading>
           <div className="grid grid-cols-2 divide-x divide-[var(--color-border)]">
             {([
-              { label: groomProfile.name ?? "Groom", details: result.male_details,   color: "rgba(196,180,255,0.85)" },
-              { label: brideProfile.name  ?? "Bride", details: result.female_details, color: "rgba(251,191,200,0.85)" },
-            ] as const).map(({ label, details, color: c }) => (
-              <div key={label} className="p-3 space-y-1.5">
-                <p className="text-xs font-semibold truncate" style={{ color: c }}>{label}</p>
-                {(["Moon Sign", "Nakshatra", "Gana", "Nadi", "Yoni"] as const).map(k => {
-                  const val = details?.[k.toLowerCase().replace(" ", "_") as keyof typeof details]
+              { label: groomProfile.name ?? "Groom", details: result.male_details,   tokenColor: "var(--color-compat-groom)" },
+              { label: brideProfile.name  ?? "Bride", details: result.female_details, tokenColor: "var(--color-compat-bride)" },
+            ] as const).map(({ label, details, tokenColor }) => (
+              <div key={label} className="pr-4 pl-1 first:pl-0 space-y-1.5 py-2">
+                <p className="text-xs font-semibold" style={{ color: tokenColor }}>{label}</p>
+                {(["moon_sign", "nakshatra", "gana", "nadi", "yoni"] as const).map(k => {
+                  const val = details?.[k]
+                  const labelMap: Record<string, string> = { moon_sign: "Moon Sign", nakshatra: "Nakshatra", gana: "Gana", nadi: "Nadi", yoni: "Yoni" }
                   return val ? (
                     <div key={k} className="flex justify-between text-xs gap-2">
-                      <span className="text-muted-foreground shrink-0">{k}</span>
-                      <span className="text-[var(--color-ink-2)] font-medium capitalize truncate">{val}</span>
+                      <span className="text-muted-foreground shrink-0">{labelMap[k]}</span>
+                      <span className="text-[var(--color-ink-2)] font-medium capitalize">{val}</span>
                     </div>
                   ) : null
                 })}
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Dosha summary row */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg border p-3 space-y-1"
-          style={{
-            borderColor: hasManglik ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.25)",
-            background:  hasManglik ? "rgba(127,29,29,0.10)" : "rgba(4,120,87,0.07)",
-          }}>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Mangal Dosha</p>
-          <p className="text-sm font-semibold" style={{ color: hasManglik ? "#fca5a5" : "#6ee7b7" }}>
-            {hasManglik ? "Present" : "Not Present"}
-          </p>
-          {kujaDosha?.male?.is_manglik   && <p className="text-[10px] text-muted-foreground">{groomProfile.name} is Manglik</p>}
-          {kujaDosha?.female?.is_manglik && <p className="text-[10px] text-muted-foreground">{brideProfile.name} is Manglik</p>}
-          {kujaDosha?.compatibility?.description && (
-            <p className="text-[10px] text-muted-foreground leading-relaxed">{kujaDosha.compatibility.description}</p>
-          )}
+      {/* Dosha summary */}
+      <section>
+        <SectionHeading>Doshas</SectionHeading>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg border p-3 space-y-1"
+            style={{
+              borderColor: hasManglik ? "var(--color-danger-border)"  : "var(--color-success-border)",
+              background:  hasManglik ? "var(--color-danger-faint)"   : "var(--color-success-faint)",
+            }}>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Mangal Dosha</p>
+            <p className="text-sm font-semibold" style={{ color: hasManglik ? "var(--color-danger)" : "var(--color-success)" }}>
+              {hasManglik ? "Present" : "Not Present"}
+            </p>
+            {kujaDosha?.male?.is_manglik   && <p className="text-[10px] text-muted-foreground">{groomProfile.name} is Manglik</p>}
+            {kujaDosha?.female?.is_manglik && <p className="text-[10px] text-muted-foreground">{brideProfile.name} is Manglik</p>}
+            {kujaDosha?.compatibility?.description && (
+              <p className="text-[10px] text-muted-foreground leading-relaxed">{kujaDosha.compatibility.description}</p>
+            )}
+          </div>
+          <div className="rounded-lg border p-3 space-y-1"
+            style={{
+              borderColor: hasBhakoot ? "var(--color-danger-border)"  : "var(--color-success-border)",
+              background:  hasBhakoot ? "var(--color-danger-faint)"   : "var(--color-success-faint)",
+            }}>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Bhakoot Dosha</p>
+            <p className="text-sm font-semibold" style={{ color: hasBhakoot ? "var(--color-danger)" : "var(--color-success)" }}>
+              {hasBhakoot ? "Present" : "Not Present"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {hasBhakoot ? "Unfavourable lunar alignment" : "Auspicious"}
+            </p>
+          </div>
         </div>
-        <div className="rounded-lg border p-3 space-y-1"
-          style={{
-            borderColor: hasBhakoot ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.25)",
-            background:  hasBhakoot ? "rgba(127,29,29,0.10)" : "rgba(4,120,87,0.07)",
-          }}>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Bhakoot Dosha</p>
-          <p className="text-sm font-semibold" style={{ color: hasBhakoot ? "#fca5a5" : "#6ee7b7" }}>
-            {hasBhakoot ? "Present" : "Not Present"}
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            {hasBhakoot ? "Unfavourable lunar alignment" : "Auspicious"}
-          </p>
-        </div>
-      </div>
+      </section>
 
-      {/* Kuja Dosha per-person detail */}
+      {/* Kuja Dosha detail */}
       {kujaDosha && (kujaDosha.male?.breakdown || kujaDosha.female?.breakdown) && (
-        <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
+        <section>
           <SectionHeading>Kuja Dosha Detail</SectionHeading>
-          <p className="px-3 pt-1 pb-2 text-[10px] text-muted-foreground">Mars · Saturn · Rahu · Ketu · Sun in houses 2 · 4 · 7 · 8 · 12</p>
+          <p className="text-[10px] text-muted-foreground mb-2">Mars · Saturn · Rahu · Ketu · Sun in houses 2 · 4 · 7 · 8 · 12</p>
           <div className="grid grid-cols-2 divide-x divide-[var(--color-border)]">
             {([
-              { label: groomProfile.name ?? "Groom", dosha: kujaDosha.male,   color: "rgba(196,180,255,0.85)" },
-              { label: brideProfile.name  ?? "Bride", dosha: kujaDosha.female, color: "rgba(251,191,200,0.85)" },
-            ] as const).map(({ label, dosha, color: c }) => (
-              <div key={label} className="p-3">
+              { label: groomProfile.name ?? "Groom", dosha: kujaDosha.male,   tokenColor: "var(--color-compat-groom)" },
+              { label: brideProfile.name  ?? "Bride", dosha: kujaDosha.female, tokenColor: "var(--color-compat-bride)" },
+            ] as const).map(({ label, dosha, tokenColor }) => (
+              <div key={label} className="pr-4 pl-1 first:pl-0 py-2">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold truncate" style={{ color: c }}>{label}</span>
-                  <span className={`text-[10px] font-semibold ${dosha?.is_manglik ? "text-red-400" : "text-emerald-400"}`}>
+                  <span className="text-xs font-semibold" style={{ color: tokenColor }}>{label}</span>
+                  <span className="text-[10px] font-semibold" style={{ color: dosha?.is_manglik ? "var(--color-danger)" : "var(--color-success)" }}>
                     {dosha?.is_manglik ? "Manglik" : "Not Manglik"}
                   </span>
                 </div>
                 {dosha?.breakdown && Object.keys(dosha.breakdown).length > 0 ? (
                   <div className="space-y-1">
                     {Object.entries(dosha.breakdown).map(([planet, entry]) => (
-                      <div key={planet} className="flex items-center justify-between text-[10px] bg-red-950/20 rounded px-2 py-1 border border-red-900/25">
-                        <span className="font-medium text-red-300">{planet}</span>
+                      <div key={planet} className="flex items-center justify-between text-[10px] rounded px-2 py-1"
+                        style={{ background: "var(--color-danger-faint)", border: "1px solid var(--color-danger-border)" }}>
+                        <span className="font-medium text-danger">{planet}</span>
                         <span className="text-muted-foreground">H{entry.house} · {entry.sign}</span>
-                        <span className="text-red-400 font-semibold">+{entry.score}</span>
+                        <span className="text-danger font-semibold">+{entry.score}</span>
                       </div>
                     ))}
                   </div>
@@ -246,54 +253,53 @@ function FullResult({ check, groomProfile, brideProfile }: {
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Additional Kutas */}
       {Object.keys(additionalKutas).length > 0 && (
-        <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
+        <section>
           <SectionHeading>Additional Kutas</SectionHeading>
           <div className="divide-y divide-[var(--color-border)]/50">
             {Object.entries(additionalKutas).map(([key, val]) => {
               const label = KUTA_LABELS[key] ?? key
               const kuta: AdditionalKuta = typeof val === "string" ? { result: val } : val
               return (
-                <div key={key} className="px-3 py-2.5 space-y-1">
+                <div key={key} className="py-2.5 space-y-1">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-medium text-[var(--color-ink-2)]">{label}</span>
                     <ResultPill result={kuta.result} />
                   </div>
                   {(kuta.male || kuta.female) && (
                     <p className="text-[10px] text-muted-foreground">
-                      <span style={{ color: "rgba(196,180,255,0.8)" }}>{groomProfile.name}: {kuta.male}</span>
+                      <span style={{ color: "var(--color-compat-groom)" }}>{groomProfile.name}: {kuta.male}</span>
                       <span className="mx-1.5 text-muted-foreground/30">·</span>
-                      <span style={{ color: "rgba(251,191,200,0.8)" }}>{brideProfile.name}: {kuta.female}</span>
+                      <span style={{ color: "var(--color-compat-bride)" }}>{brideProfile.name}: {kuta.female}</span>
                     </p>
                   )}
                   {kuta.description && <p className="text-[10px] text-muted-foreground">{kuta.description}</p>}
                   {kuta.issues?.map((issue, i) => (
-                    <p key={i} className="text-[10px] text-red-400">· {issue}</p>
+                    <p key={i} className="text-[10px] text-danger">· {issue}</p>
                   ))}
                 </div>
               )
             })}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Dosha exceptions */}
+      {/* Dosha mitigations */}
       {exceptions.length > 0 && (
-        <div className="rounded-lg border overflow-hidden"
-          style={{ borderColor: "rgba(217,119,6,0.3)", background: "rgba(120,53,15,0.08)" }}>
+        <section>
           <SectionHeading>Dosha Mitigations</SectionHeading>
-          <ul className="divide-y divide-amber-900/20">
+          <ul className="space-y-2 pt-1">
             {exceptions.map((ex, i) => (
-              <li key={i} className="px-3 py-2 flex items-start gap-2 text-xs text-amber-200/80">
-                <CheckCircle2 className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />{ex}
+              <li key={i} className="flex items-start gap-2 text-xs text-[var(--color-ink-3)]">
+                <CheckCircle2 className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />{ex}
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
     </div>
@@ -308,7 +314,7 @@ interface CompareTabProps {
 }
 
 export function CompareTab({ activeProfile, allProfiles }: CompareTabProps) {
-  const [selected, setSelected] = useState<Profile | null>(null)
+  const [selectedId, setSelectedId] = useState<string>("")
   const [result, setResult] = useState<CompatibilityCheck | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -316,10 +322,13 @@ export function CompareTab({ activeProfile, allProfiles }: CompareTabProps) {
   const candidates = filterCandidates(allProfiles, activeProfile)
   const activeRole = resolveRole(activeProfile.gender)
   const partnerRole = oppositeRole(activeRole)
+  const selected = candidates.find(p => p.id === selectedId) ?? null
 
-  const handleSelect = async (profile: Profile) => {
-    if (selected?.id === profile.id && result) return   // already loaded
-    setSelected(profile)
+  const handleSelect = async (id: string) => {
+    if (!id) { handleClear(); return }
+    const profile = candidates.find(p => p.id === id)
+    if (!profile) return
+    setSelectedId(id)
     setResult(null)
     setError(null)
     setLoading(true)
@@ -342,73 +351,87 @@ export function CompareTab({ activeProfile, allProfiles }: CompareTabProps) {
     }
   }
 
+  const handleClear = () => {
+    setSelectedId("")
+    setResult(null)
+    setError(null)
+  }
+
   const groomProfile = activeRole === "groom" ? activeProfile : selected
   const brideProfile = activeRole === "bride" ? activeProfile : selected
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
 
-      {/* Persistent picker — always visible */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Active profile — fixed chip */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-nav-chip-active-border)] text-xs font-medium text-[var(--color-ink-1)] shrink-0">
-          <ProfileAvatar name={activeProfile.name ?? "?"} size="xs" />
-          <span>{activeProfile.name?.split(" ")[0]}</span>
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wide ml-0.5">{roleLabel(activeRole)}</span>
+      {/* ── Selector row ── */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Active profile */}
+        <div className="flex items-center gap-2 shrink-0">
+          <ProfileAvatar name={activeProfile.name ?? "?"} size="sm" />
+          <div>
+            <p className="text-sm font-medium text-[var(--color-ink-1)] leading-tight">{activeProfile.name}</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabel(activeRole)}</p>
+          </div>
         </div>
 
-        <span className="text-muted-foreground/40 text-sm">×</span>
+        <span className="text-muted-foreground/40 text-sm shrink-0">×</span>
 
-        {/* Candidate chips */}
+        {/* Candidate select */}
         {candidates.length === 0 ? (
           <a href="/profiles/new"
-            className="text-xs text-muted-foreground border border-dashed border-[var(--color-border)] rounded-full px-2.5 py-1.5 hover:border-[var(--color-nav-chip-active-border)] transition-colors">
-            + Add {roleLabel(partnerRole).toLowerCase()}
+            className="text-xs text-muted-foreground border border-dashed border-[var(--color-border)] rounded-lg px-3 py-1.5 hover:border-[var(--color-nav-chip-active-border)] transition-colors">
+            + Add {roleLabel(partnerRole).toLowerCase()} profile
           </a>
         ) : (
-          candidates.map(p => {
-            const isActive = selected?.id === p.id
-            return (
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedId}
+              onChange={e => handleSelect(e.target.value)}
+              disabled={loading}
+              className="text-sm bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-[var(--color-ink-2)] hover:border-[var(--color-nav-chip-active-border)] focus:outline-none focus:border-[var(--color-nav-chip-active-border)] transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <option value="">Select {roleLabel(partnerRole).toLowerCase()}…</option>
+              {candidates.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+
+            {selectedId && (
               <button
-                key={p.id}
-                onClick={() => handleSelect(p)}
-                disabled={loading}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors shrink-0 ${
-                  isActive
-                    ? "bg-[var(--color-surface-hover)] border-[var(--color-nav-chip-active-border)] text-[var(--color-ink-1)]"
-                    : "bg-[var(--color-surface-1)] border-[var(--color-border)] text-[var(--color-ink-3)] hover:border-[var(--color-nav-chip-active-border)] hover:text-[var(--color-ink-2)]"
-                }`}
+                onClick={handleClear}
+                aria-label="Clear selection"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
-                <ProfileAvatar name={p.name ?? "?"} size="xs" />
-                <span>{p.name?.split(" ")[0]}</span>
+                <X className="h-3.5 w-3.5" />
               </button>
-            )
-          })
+            )}
+          </div>
         )}
       </div>
 
-      {/* Error */}
+      {/* ── Error ── */}
       {error && (
-        <div className="px-3 py-2 rounded-lg border border-red-900/40 bg-red-950/20 text-xs text-red-400">
+        <div className="px-3 py-2 rounded-lg border text-xs text-danger"
+          style={{ borderColor: "var(--color-danger-border)", background: "var(--color-danger-faint)" }}>
           {error}
         </div>
       )}
 
-      {/* Loading */}
-      {loading && selected && (
-        <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+      {/* ── Loading ── */}
+      {loading && (
+        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Calculating…
         </div>
       )}
 
-      {/* Full result */}
-      {!loading && result && selected && groomProfile && brideProfile && (
+      {/* ── Result ── */}
+      {!loading && result && groomProfile && brideProfile && (
         <FullResult check={result} groomProfile={groomProfile} brideProfile={brideProfile} />
       )}
 
-      {/* Empty state */}
-      {!loading && !result && !error && candidates.length > 0 && (
-        <p className="text-xs text-muted-foreground text-center py-8">
+      {/* ── Empty state ── */}
+      {!loading && !result && !error && candidates.length > 0 && !selectedId && (
+        <p className="text-xs text-muted-foreground text-center py-12">
           Select a {roleLabel(partnerRole).toLowerCase()} above to run the compatibility check.
         </p>
       )}

@@ -8,6 +8,27 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — CompareTab UX overhaul; scroll fix; design token additions
+
+### Fixed
+- **ProfileView scroll** (`components/profiles/ProfileView.tsx`) — outer div changed from `flex flex-col min-h-0` to `h-full flex flex-col min-h-0` so the `flex-1 overflow-y-auto` tab panel correctly gets a constrained height and scrolls. All tabs (especially Compare with its long result) can now be scrolled.
+
+### Changed
+- **CompareTab** — third iteration addressing UX issues:
+  - **Full names**: removed all `.split(" ")[0]` truncation everywhere in the tab.
+  - **Dropdown picker**: candidate selection changed from chips to a native `<select>` — one name visible, clean, no horizontal overflow.
+  - **Clear / blank state**: `×` button next to the select resets the tab back to empty state.
+  - **Token colours**: all hardcoded `rgba()` values replaced with design system tokens. Dosha cards now use `--color-success-faint/border` and `--color-danger-faint/border`. Groom/bride name tints use `--color-compat-groom` and `--color-compat-bride`. Score colours use `--color-success/warning/danger`.
+  - **Section structure**: result sections now use `<section>` + `SectionHeading` matching the rest of the unified tabs.
+
+### Added
+- **`app/globals.css`** — new design tokens (dark + light themes, registered in `@theme inline`):
+  - `--color-success-faint`, `--color-success-border` — green tinted backgrounds / borders
+  - `--color-danger-faint`, `--color-danger-border` — red tinted backgrounds / borders
+  - `--color-compat-groom`, `--color-compat-bride` — compatibility persona accent colours
+
+---
+
 ## [2026-05-18] — Fix stale engine cache; restyle CareerTab
 
 ### Fixed

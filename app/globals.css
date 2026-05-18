@@ -70,9 +70,17 @@
   --color-border-subtle: var(--color-border-subtle);
 
   /* ── Status tokens → Tailwind: text-success, bg-danger, etc. ── */
-  --color-success: var(--color-success);
-  --color-warning: var(--color-warning);
-  --color-danger: var(--color-danger);
+  --color-success:        var(--color-success);
+  --color-warning:        var(--color-warning);
+  --color-danger:         var(--color-danger);
+  --color-success-faint:  var(--color-success-faint);
+  --color-success-border: var(--color-success-border);
+  --color-danger-faint:   var(--color-danger-faint);
+  --color-danger-border:  var(--color-danger-border);
+
+  /* ── Compatibility persona tokens ── */
+  --color-compat-groom: var(--color-compat-groom);
+  --color-compat-bride: var(--color-compat-bride);
 
   /* ── Dignity scale ── */
   --color-dignity-exalted:     var(--color-dignity-exalted);
@@ -141,6 +149,14 @@
   --color-success:         rgba(52,211,153,0.9);
   --color-warning:         rgba(251,191,36,0.9);
   --color-danger:          rgba(248,113,113,0.9);
+  --color-success-faint:   rgba(4,120,87,0.12);
+  --color-success-border:  rgba(52,211,153,0.25);
+  --color-danger-faint:    rgba(127,29,29,0.12);
+  --color-danger-border:   rgba(239,68,68,0.30);
+
+  /* Color — compatibility personas */
+  --color-compat-groom:    rgba(196,180,255,0.85);
+  --color-compat-bride:    rgba(251,191,200,0.85);
 
   /* ── Dignity scale ── */
   --color-dignity-exalted:     oklch(0.79 0.15 162);
@@ -298,6 +314,14 @@
   --color-success:         #166534;
   --color-warning:         #92400E;
   --color-danger:          #991B1B;
+  --color-success-faint:   rgba(220,252,231,0.5);
+  --color-success-border:  rgba(22,163,74,0.35);
+  --color-danger-faint:    rgba(254,226,226,0.5);
+  --color-danger-border:   rgba(239,68,68,0.35);
+
+  /* Color — compatibility personas */
+  --color-compat-groom:    rgba(109,40,217,0.85);
+  --color-compat-bride:    rgba(190,24,93,0.85);
 
   /* ── Dignity scale ── */
   --color-dignity-exalted:     #166534;
