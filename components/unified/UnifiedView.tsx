@@ -80,7 +80,7 @@ export function UnifiedView({
             </TabsContent>
 
             <TabsContent value="houses">
-              <HousesVargasTab chartOutput={chartOutput} lagnaSign={lagnaSign} />
+              <HousesVargasTab chartOutput={chartOutput} />
             </TabsContent>
 
             <TabsContent value="patterns">

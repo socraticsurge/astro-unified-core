@@ -124,10 +124,7 @@ export function ProfileView({
         )}
         {activeTab === 'divisional' && chartOutput && (
           <div id="profileview-panel-divisional" role="tabpanel" aria-labelledby="profileview-tab-divisional">
-            <HousesVargasTab
-              chartOutput={chartOutput}
-              lagnaSign={((chartOutput?.data as Record<string, unknown> | undefined)?.lagna as Record<string, unknown> | undefined)?.sign as string | undefined}
-            />
+            <HousesVargasTab chartOutput={chartOutput} />
           </div>
         )}
         {activeTab === 'yogas' && chartOutput && (

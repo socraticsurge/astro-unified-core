@@ -1,11 +1,10 @@
 "use client";
-import { PLANET_ORDER, SIGNS_ORDER, TABLE_STYLES } from "@/components/unified/types";
+import { PLANET_ORDER, TABLE_STYLES } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 
 const th = TABLE_STYLES.th;
-const td = TABLE_STYLES.td;
 
 // Each divisional chart: label, signKey, lagna key in the lagna object
 const DIVISIONAL_CHARTS: {
@@ -27,33 +26,14 @@ const DIVISIONAL_CHARTS: {
   { label: "D60 — Shashtiamsha",signKey: "d60_sign", lagnaKey: "d60_sign" },
 ];
 
-function houseToSign(lagnaSign: string, house: number): string | undefined {
-  const idx = SIGNS_ORDER.indexOf(lagnaSign as (typeof SIGNS_ORDER)[number]);
-  if (idx < 0) return undefined;
-  return SIGNS_ORDER[(idx + house - 1) % 12];
-}
-
 export function HousesVargasTab({
   chartOutput,
-  lagnaSign,
 }: {
   chartOutput: Record<string, unknown>;
-  lagnaSign?: string;
 }) {
-  const data         = chartOutput?.data as Record<string, unknown> | undefined;
-  const planets      = data?.planets     as Record<string, Planet>  | undefined;
-  const ashtakavarga = data?.ashtakavarga as Record<string, unknown> | undefined;
-  const sav          = ashtakavarga?.sarvashtakavarga as Record<string, number> | undefined;
-  const lagna        = data?.lagna as Record<string, unknown> | undefined;
-
-  const houseMap: Record<number, string[]> = {};
-  for (let i = 1; i <= 12; i++) houseMap[i] = [];
-  if (planets) {
-    PLANET_ORDER.forEach(name => {
-      const h = planets[name]?.house;
-      if (h != null && h >= 1 && h <= 12) houseMap[h].push(name);
-    });
-  }
+  const data    = chartOutput?.data as Record<string, unknown> | undefined;
+  const planets = data?.planets     as Record<string, Planet>  | undefined;
+  const lagna   = data?.lagna as Record<string, unknown> | undefined;
 
   return (
     <div className="space-y-10">
@@ -82,59 +62,6 @@ export function HousesVargasTab({
           </div>
         </section>
       )}
-
-      {/* Houses — Occupants & SAV */}
-      <section>
-        <SectionHeading>Houses — Occupants &amp; SAV</SectionHeading>
-        {!planets ? (
-          <p className="text-xs text-muted-foreground italic">House data not available.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="text-xs border-collapse w-full max-w-lg">
-              <thead>
-                <tr className="border-b border-[var(--color-border)]">
-                  {["House", "Occupants", "SAV Bindus"].map(h => (
-                    <th key={h} className={th}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map(h => {
-                  const sign  = lagnaSign ? houseToSign(lagnaSign, h) : undefined;
-                  const savVal: number | undefined = sav && sign ? sav[sign] : undefined;
-                  return (
-                    <tr key={h} className="border-b border-[var(--color-border)]/40">
-                      <td className={`${td} font-bold text-[var(--color-ink-1)]`}>{h}</td>
-                      <td className={td}>
-                        {houseMap[h].length > 0
-                          ? houseMap[h].join(", ")
-                          : <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                      <td className={td}>
-                        {savVal !== undefined
-                          ? (
-                            <span className={
-                              savVal >= 28
-                                ? "text-success font-bold"
-                                : savVal < 22
-                                  ? "text-danger"
-                                  : ""
-                            }>
-                              {savVal}
-                            </span>
-                          ) : <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <p className="mt-2 text-[10px] text-muted-foreground/50">
-              SAV Bindus: ≥28 favorable · &lt;22 challenging
-            </p>
-          </div>
-        )}
-      </section>
 
       {/* Varga Matrix — kept as efficient lookup table */}
       {planets && (
