@@ -38,12 +38,11 @@ export function CareerTab({
       {/* D10 chart — left column */}
       {planets && (
         <div className="flex-shrink-0">
-          <SectionHeading>D10 — Dashamsha</SectionHeading>
           <NatalChartGrid
             planets={planets}
             lagnaSign={lagnaD10}
             signKey="d10_sign"
-            label="D10"
+            label="D10 — Dashamsha"
           />
         </div>
       )}

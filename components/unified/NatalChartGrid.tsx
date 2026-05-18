@@ -92,18 +92,11 @@ export function NatalChartGrid({
           aspectRatio: "1 / 1",
         }}
       >
-        {/* Center 2×2 — shows the chart label as a watermark */}
+        {/* Center 2×2 */}
         <div
-          className="border-r border-b border-[var(--color-border)] flex items-center justify-center"
+          className="border-r border-b border-[var(--color-border)]"
           style={{ gridArea: "2 / 2 / 4 / 4" }}
-        >
-          <span className={cn(
-            "font-bold uppercase tracking-widest text-muted-foreground/20",
-            compact ? "text-[8px]" : "text-[11px]"
-          )}>
-            {label}
-          </span>
-        </div>
+        />
 
         {/* 12 sign cells */}
         {(Object.entries(SIGN_GRID_AREA) as [SignName, string][]).map(([sign, gridArea]) => {

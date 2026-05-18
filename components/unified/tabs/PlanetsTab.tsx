@@ -141,36 +141,28 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
         )}
 
         {/* Bhava Chalit */}
-        {bhavaChalit && (
-          <section>
-            <SectionHeading>Bhava Chalit — House Shifts</SectionHeading>
-            <div className="overflow-x-auto">
-              <table className="text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--color-border)]">
-                    {["Planet", "Rasi House", "Bhava House", "Shifted"].map(h => (
-                      <th key={h} className={th}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {PLANET_ORDER.map(name => {
-                    const b = bhavaChalit[name];
-                    if (!b) return null;
-                    return (
-                      <tr key={name} className={row}>
-                        <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">{name}</td>
-                        <td className={td}>{b.rashi_house ?? "—"}</td>
-                        <td className={`${td} ${b.shifted ? "text-amber-300 font-semibold" : ""}`}>{b.bhava_house ?? "—"}</td>
-                        <td className={td}>{b.shifted ? "Yes" : "—"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
+        {bhavaChalit && (() => {
+          const shifted = Object.entries(bhavaChalit).filter(([, v]) => v.shifted);
+          return (
+            <section>
+              <SectionHeading>Bhava Chalit — House Shifts</SectionHeading>
+              {shifted.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No planets shift house in Bhava Chalit.</p>
+              ) : (
+                <div className="space-y-1">
+                  {shifted.map(([planet, v]) => (
+                    <div key={planet} className="flex items-center gap-2 text-sm">
+                      <span className="w-20 font-semibold text-[var(--color-ink-1)]">{planet}</span>
+                      <span className="text-muted-foreground">Rasi H{v.rashi_house}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="text-amber-300 font-semibold">Bhava H{v.bhava_house}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })()}
 
       </div>
 
