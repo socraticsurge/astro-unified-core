@@ -64,7 +64,7 @@ export function CareerTab({
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-2xl">
 
       {/* Header */}
       <div className="flex items-center justify-between">

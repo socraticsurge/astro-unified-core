@@ -32,7 +32,7 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
 
       {/* Chara Karakas */}
       {jaiminiKarakas && (
-        <div className="overflow-x-auto max-w-lg">
+        <div className="overflow-x-auto max-w-2xl">
           <table className="text-xs border-collapse w-full">
             <thead>
               <tr className="border-b border-[var(--color-border)]">

@@ -93,7 +93,7 @@ function FullResult({ check, groomProfile, brideProfile }: {
   )
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-2xl">
 
       {/* Score + verdict */}
       <section className="space-y-1 pb-2 border-b border-[var(--color-border)]/40">
