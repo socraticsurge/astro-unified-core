@@ -1,10 +1,9 @@
 "use client";
-import { PLANET_ORDER, DIGNITY_COLORS, formatAspects } from "@/components/unified/types";
+import { PLANET_ORDER, DIGNITY_COLORS, formatAspects, TABLE_STYLES } from "@/components/unified/types";
 import type { Planet, ShadbalaPlanet } from "@/components/unified/types";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 
-const th = "text-left py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide";
-const td = "py-2 px-2 text-sm text-[var(--color-ink-2)]";
-const row = "border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)]/20 transition-colors";
+const { th, td, row } = TABLE_STYLES;
 
 const SHADBALA_COLS = [
   { key: "sthana_bala", label: "Sthana" },
@@ -42,7 +41,7 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
     <div className="space-y-8">
       {/* Planet positions */}
       <section>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Positions</h3>
+        <SectionHeading>Positions</SectionHeading>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -72,12 +71,12 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
                     <td className="py-2 px-2 font-mono text-sm text-[var(--color-ink-3)]">{p.degree != null ? `${p.degree.toFixed(1)}°` : "—"}</td>
                     <td className="py-2 px-2 text-center text-sm text-[var(--color-ink-2)]">{p.house ?? "—"}</td>
                     <td className={`${td} whitespace-nowrap`}>{p.nakshatra ?? "—"} · P{p.pada ?? "—"}</td>
-                    <td className={`py-2 px-2 text-sm ${DIGNITY_COLORS[p.dignity ?? ""] ?? "text-slate-300"}`}>{p.dignity ?? "—"}</td>
+                    <td className={`py-2 px-2 text-sm ${DIGNITY_COLORS[p.dignity ?? ""] ?? "text-dignity-neutral"}`}>{p.dignity ?? "—"}</td>
                     <td className="py-2 px-2 text-center">
-                      {p.is_retrograde ? <span className="text-orange-400 font-semibold">℞</span> : <span className="text-muted-foreground/30">—</span>}
+                      {p.is_retrograde ? <span className="text-planet-retrograde font-semibold">℞</span> : <span className="text-muted-foreground/30">—</span>}
                     </td>
                     <td className="py-2 px-2 text-center">
-                      {p.is_combust ? <span className="text-red-400 font-semibold">●</span> : <span className="text-muted-foreground/30">—</span>}
+                      {p.is_combust ? <span className="text-planet-combust font-semibold">●</span> : <span className="text-muted-foreground/30">—</span>}
                     </td>
                     <td className={`${td} whitespace-nowrap`}>{av?.avastha ?? "—"}</td>
                     <td className="py-2 px-2 font-mono text-xs text-muted-foreground whitespace-nowrap">{formatAspects(p.aspects)}</td>
@@ -92,7 +91,7 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
       {/* Shadbala */}
       {shadbala && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Shadbala (Rupas)</h3>
+          <SectionHeading>Shadbala (Rupas)</SectionHeading>
           <div className="overflow-x-auto">
             <table className="text-sm border-collapse">
               <thead>
@@ -115,17 +114,17 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
                     <tr key={name} className={row}>
                       <td className="py-2 px-2 font-semibold text-[var(--color-ink-1)]">{name}</td>
                       {SHADBALA_COLS.map(c => (
-                        <td key={c.key} className={`py-2 px-2 text-center font-mono text-xs ${c.key === "total_rupas" && strong ? "text-emerald-400 font-bold" : "text-[var(--color-ink-3)]"}`}>
+                        <td key={c.key} className={`py-2 px-2 text-center font-mono text-xs ${c.key === "total_rupas" && strong ? "text-success font-bold" : "text-[var(--color-ink-3)]"}`}>
                           {getShadVal(sb, c.key)}
                         </td>
                       ))}
                       <td className="py-2 px-2 text-center font-mono text-xs text-[var(--color-ink-3)]">
                         {req != null ? req.toFixed(2) : "—"}
                       </td>
-                      <td className="py-2 px-2 text-center font-mono text-xs text-emerald-400">
+                      <td className="py-2 px-2 text-center font-mono text-xs text-success">
                         {sb.ishta_phala ?? "—"}
                       </td>
-                      <td className="py-2 px-2 text-center font-mono text-xs text-red-400">
+                      <td className="py-2 px-2 text-center font-mono text-xs text-danger">
                         {sb.kashta_phala ?? "—"}
                       </td>
                     </tr>

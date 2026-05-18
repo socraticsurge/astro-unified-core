@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,9 +42,7 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
       {/* Current dasha period — 5-level stack */}
       {dashas && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Current Dasha Period (Vimshottari)
-          </h3>
+          <SectionHeading>Current Dasha Period (Vimshottari)</SectionHeading>
           <div className="space-y-1">
             {DASHA_LEVELS.map(({ key, label }, depth) => {
               const d = dashas[key];
@@ -66,9 +65,7 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
 
       {/* Maha Dasha timeline with antardasha accordion */}
       <section>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-          Vimshottari Maha Dasha Timeline
-        </h3>
+        <SectionHeading>Vimshottari Maha Dasha Timeline</SectionHeading>
         {!dashas?.timeline || dashas.timeline.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">Timeline data not available.</p>
         ) : (

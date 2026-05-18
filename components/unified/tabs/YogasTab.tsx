@@ -1,4 +1,5 @@
 "use client";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 
 const MAJOR_YOGAS = new Set([
   "Malavya Yoga", "Shasha Yoga", "Bhadra Yoga", "Hamsa Yoga", "Ruchaka Yoga",
@@ -22,9 +23,7 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
 
       {/* Yogas */}
       <section>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-          Yogas ({yogas.length})
-        </h3>
+        <SectionHeading>Yogas ({yogas.length})</SectionHeading>
         {yogas.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">No yoga data available.</p>
         ) : (
@@ -66,19 +65,19 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
 
       {/* Doshas */}
       <section>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Doshas</h3>
+        <SectionHeading>Doshas</SectionHeading>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className={`p-3 rounded-lg border ${kaalSarpa ? "border-red-500/40 bg-red-500/5" : "border-[var(--color-border)] bg-[var(--color-surface-1)]"}`}>
             <p className="font-semibold text-sm text-[var(--color-ink-1)]">Kaal Sarpa</p>
             {kaalSarpa ? (
               <>
-                <p className="text-xs text-red-300 mt-0.5">{kaalSarpa.type} · {kaalSarpa.direction}</p>
+                <p className="text-xs text-danger mt-0.5">{kaalSarpa.type} · {kaalSarpa.direction}</p>
                 {kaalSarpa.description && (
                   <p className="text-xs text-muted-foreground mt-1">{kaalSarpa.description}</p>
                 )}
               </>
             ) : (
-              <p className="text-xs text-emerald-400 mt-0.5">Not detected</p>
+              <p className="text-xs text-success mt-0.5">Not detected</p>
             )}
           </div>
 
@@ -89,9 +88,9 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
               </p>
               {grahaYuddha.map((gw, i) => (
                 <div key={i} className="text-xs text-muted-foreground mb-1">
-                  <span className="text-orange-300 font-semibold">{gw.winner}</span>
+                  <span className="text-warning font-semibold">{gw.winner}</span>
                   <span className="mx-1">defeats</span>
-                  <span className="text-red-400">{gw.loser}</span>
+                  <span className="text-danger">{gw.loser}</span>
                   {gw.description && (
                     <span className="ml-2 text-muted-foreground/60">({gw.description})</span>
                   )}

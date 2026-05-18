@@ -1,10 +1,11 @@
 "use client";
-import { PLANET_ORDER, SIGNS_ORDER } from "@/components/unified/types";
+import { PLANET_ORDER, SIGNS_ORDER, TABLE_STYLES } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 
-const th = "text-left py-1.5 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide";
-const td = "py-1.5 px-2 text-xs text-[var(--color-ink-2)]";
+const th = TABLE_STYLES.th;
+const td = TABLE_STYLES.td;
 
 // Each divisional chart: label, signKey, lagna key in the lagna object
 const DIVISIONAL_CHARTS: {
@@ -67,9 +68,7 @@ export function HousesVargasTab({
       {/* Divisional Charts grid — 4 per row */}
       {planets && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
-            Divisional Charts
-          </h3>
+          <SectionHeading>Divisional Charts</SectionHeading>
           <div className="overflow-x-auto">
             <div className="grid grid-cols-4 gap-4 min-w-[560px]">
               {DIVISIONAL_CHARTS.map(({ label, signKey, lagnaKey }) => {
@@ -93,9 +92,7 @@ export function HousesVargasTab({
 
       {/* Bhava Chalit */}
       <section>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-          Bhava Chalit — House Shifts
-        </h3>
+        <SectionHeading>Bhava Chalit — House Shifts</SectionHeading>
         {!bhavaChalit ? (
           <p className="text-xs text-muted-foreground italic">Bhava Chalit data not available.</p>
         ) : shifts.length === 0 ? (
@@ -143,9 +140,7 @@ export function HousesVargasTab({
 
       {/* Houses — Occupants & SAV */}
       <section>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-          Houses — Occupants &amp; SAV
-        </h3>
+        <SectionHeading>Houses — Occupants &amp; SAV</SectionHeading>
         {!planets ? (
           <p className="text-xs text-muted-foreground italic">House data not available.</p>
         ) : (
@@ -175,9 +170,9 @@ export function HousesVargasTab({
                           ? (
                             <span className={
                               savVal >= 28
-                                ? "text-emerald-400 font-bold"
+                                ? "text-success font-bold"
                                 : savVal < 22
-                                  ? "text-red-400"
+                                  ? "text-danger"
                                   : ""
                             }>
                               {savVal}
@@ -199,9 +194,7 @@ export function HousesVargasTab({
       {/* Varga Matrix — kept as efficient lookup table */}
       {planets && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Varga Matrix
-          </h3>
+          <SectionHeading>Varga Matrix</SectionHeading>
           <div className="overflow-x-auto">
             <table className="text-xs border-collapse">
               <thead>

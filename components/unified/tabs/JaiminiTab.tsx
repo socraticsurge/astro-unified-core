@@ -1,12 +1,14 @@
 "use client";
+import { TABLE_STYLES } from "@/components/unified/types";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 
 const KARAKA_ORDER = [
   "Atmakaraka", "Amatyakaraka", "Bhratrikaraka", "Matrikaraka",
   "Putrakaraka", "Gnatikaraka", "Darakaraka",
 ];
 
-const th = "text-left py-1.5 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide";
-const td = "py-1.5 px-2 text-xs text-[var(--color-ink-2)]";
+const th = TABLE_STYLES.th;
+const td = TABLE_STYLES.td;
 
 type KarakaEntry = { planet?: string; description?: string };
 type ArudhaPada  = { name?: string; sign?: string };
@@ -26,9 +28,7 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-        Jaimini — Soul Indicators
-      </h3>
+      <SectionHeading>Jaimini — Soul Indicators</SectionHeading>
 
       {/* Chara Karakas */}
       {jaiminiKarakas && (

@@ -1,9 +1,10 @@
 "use client";
-import { SIGNS_ORDER } from "@/components/unified/types";
+import { SIGNS_ORDER, TABLE_STYLES } from "@/components/unified/types";
 import type { SignName } from "@/components/unified/types";
 import { SavChartGrid } from "@/components/unified/SavChartGrid";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 
-const th = "text-left py-1.5 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide";
+const th = TABLE_STYLES.th;
 
 export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, unknown> }) {
   const data         = chartOutput?.data as Record<string, unknown> | undefined;
@@ -25,9 +26,7 @@ export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, u
       {/* SAV chart */}
       {sav && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Sarvashtakavarga (SAV)
-          </h3>
+          <SectionHeading>Sarvashtakavarga (SAV)</SectionHeading>
           <SavChartGrid sav={sav} lagnaSign={lagnaSign} />
         </section>
       )}
@@ -35,9 +34,7 @@ export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, u
       {/* BAV per planet */}
       {bav && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Bhinnashtakavarga (BAV) — per planet
-          </h3>
+          <SectionHeading>Bhinnashtakavarga (BAV) — per planet</SectionHeading>
           <div className="overflow-x-auto">
             <table className="text-xs border-collapse">
               <thead>
@@ -63,7 +60,7 @@ export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, u
                           <td
                             key={sign}
                             className={`py-1.5 px-1.5 text-center font-mono ${
-                              val >= 6 ? "text-emerald-400 font-bold" : val <= 2 ? "text-red-400" : "text-muted-foreground"
+                              val >= 6 ? "text-success font-bold" : val <= 2 ? "text-danger" : "text-muted-foreground"
                             }`}
                           >
                             {val}

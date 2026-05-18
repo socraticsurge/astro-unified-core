@@ -4,6 +4,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 
 export function CareerTab({
   chartOutput,
@@ -52,9 +53,7 @@ export function CareerTab({
       {/* Career analysis — right column */}
       <div className="flex-1 space-y-4 min-w-0">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Career Analysis
-          </h3>
+          <SectionHeading>Career Analysis</SectionHeading>
           {!career && (
             <Button
               variant="ghost"
@@ -104,7 +103,7 @@ export function CareerTab({
                 <ul className="space-y-0.5">
                   {career.strength_factors.map(f => (
                     <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                      <span className="text-emerald-400 mt-0.5">·</span>{f}
+                      <span className="text-success mt-0.5">·</span>{f}
                     </li>
                   ))}
                 </ul>

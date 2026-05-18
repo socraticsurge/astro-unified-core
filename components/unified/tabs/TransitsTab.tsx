@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PLANET_ORDER } from "@/components/unified/types";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 
 export function TransitsTab({
   transitOutput,
@@ -37,9 +38,7 @@ export function TransitsTab({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Today&apos;s Transits
-        </h3>
+        <SectionHeading>Today&apos;s Transits</SectionHeading>
         <Button
           variant="ghost"
           size="sm"
@@ -57,7 +56,7 @@ export function TransitsTab({
       {transit && (
         <>
           {sadeSati?.active && (
-            <div className="px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 text-xs">
+            <div className="px-3 py-2 rounded-lg bg-warning/10 border border-warning/30 text-warning text-xs">
               Sade Sati active · {sadeSati.phase} phase
             </div>
           )}
@@ -88,12 +87,12 @@ export function TransitsTab({
                       <tr key={name} className="border-b border-[var(--color-border)]/40">
                         <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">
                           {name}
-                          {p.is_retrograde && <span className="ml-1 text-orange-400">℞</span>}
+                          {p.is_retrograde && <span className="ml-1 text-planet-retrograde">℞</span>}
                         </td>
                         <td className="py-1.5 px-2 text-[var(--color-ink-2)]">{p.sign}</td>
                         <td className="py-1.5 px-2 text-center text-muted-foreground">{p.house_from_lagna}</td>
                         <td className="py-1.5 px-2 text-center text-muted-foreground">{p.house_from_moon}</td>
-                        <td className={`py-1.5 px-2 text-center font-bold font-mono ${savVal >= 30 ? "text-emerald-400" : savVal <= 22 ? "text-red-400" : "text-muted-foreground"}`}>
+                        <td className={`py-1.5 px-2 text-center font-bold font-mono ${savVal >= 30 ? "text-success" : savVal <= 22 ? "text-danger" : "text-muted-foreground"}`}>
                           {savVal}
                         </td>
                       </tr>
