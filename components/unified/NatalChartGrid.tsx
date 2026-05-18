@@ -7,7 +7,7 @@ import type { Planet, SignName } from "@/components/unified/types";
 
 // Single source-of-truth for chart dimensions.
 // Change CHART_SIZE_PX here and all charts in the app resize together.
-export const CHART_SIZE_PX = 200;
+export const CHART_SIZE_PX = 240;
 
 // Fixed positions in the South Indian 4×4 grid.
 // CSS grid-area: "row-start / col-start / row-end / col-end" (1-indexed)
@@ -69,12 +69,6 @@ export function NatalChartGrid({
     });
   }
 
-  const lagnaIdx = lagnaSign ? SIGNS_ORDER.indexOf(lagnaSign) : -1;
-  function houseNum(sign: SignName): number {
-    if (lagnaIdx < 0) return 0;
-    return ((SIGNS_ORDER.indexOf(sign) - lagnaIdx + 12) % 12) + 1;
-  }
-
   const textBase  = compact ? "text-[8px]"  : "text-[10px]";
   const textSmall = compact ? "text-[7px]"  : "text-[9px]";
   const pad       = compact ? "p-0.5"       : "p-1";
@@ -98,7 +92,7 @@ export function NatalChartGrid({
           aspectRatio: "1 / 1",
         }}
       >
-        {/* Center 2×2 — empty, just shows the chart label */}
+        {/* Center 2×2 — shows the chart label as a watermark */}
         <div
           className="border-r border-b border-[var(--color-border)] flex items-center justify-center"
           style={{ gridArea: "2 / 2 / 4 / 4" }}
@@ -115,43 +109,29 @@ export function NatalChartGrid({
         {(Object.entries(SIGN_GRID_AREA) as [SignName, string][]).map(([sign, gridArea]) => {
           const isLagna  = sign === lagnaSign;
           const cellPlts = signPlanets[sign] ?? [];
-          const h        = houseNum(sign);
 
           return (
             <div
               key={sign}
               style={{ gridArea }}
               className={cn(
-                "border-r border-b border-[var(--color-border)] flex flex-col overflow-hidden",
+                "border-r border-b border-[var(--color-border)] flex flex-col overflow-hidden relative",
                 pad,
-                isLagna
-                  ? "bg-[var(--color-surface-2)]"
-                  : "bg-transparent"
+                isLagna ? "bg-[var(--color-surface-2)]" : "bg-transparent"
               )}
             >
-              {/* House number + Lg tag */}
-              <div className="flex items-start justify-between leading-none mb-px">
+              {/* Lagna indicator — top-right corner, only on lagna cell */}
+              {isLagna && (
                 <span className={cn(
-                  "font-semibold leading-none",
-                  textSmall,
-                  isLagna
-                    ? "text-[var(--color-accent)]"
-                    : "text-muted-foreground/35"
+                  "absolute top-0.5 right-0.5 font-bold leading-none text-[var(--color-accent)]",
+                  textSmall
                 )}>
-                  {h > 0 ? h : ""}
+                  Lg
                 </span>
-                {isLagna && (
-                  <span className={cn(
-                    "font-bold leading-none text-[var(--color-accent)]",
-                    textSmall
-                  )}>
-                    Lg
-                  </span>
-                )}
-              </div>
+              )}
 
-              {/* Planet abbreviations */}
-              <div className="flex flex-wrap gap-x-px leading-tight">
+              {/* Planet abbreviations — centered */}
+              <div className="flex-1 flex items-center justify-center flex-wrap gap-0.5 leading-tight">
                 {cellPlts.map((pl, i) => (
                   <span
                     key={i}
@@ -163,7 +143,10 @@ export function NatalChartGrid({
                         : pl.dignityClass ?? "text-[var(--color-ink-1)]"
                     )}
                   >
-                    {pl.abbr}{pl.retro ? "℞" : ""}
+                    {pl.abbr}
+                    {pl.retro && (
+                      <span className="align-super leading-none" style={{ fontSize: "0.55em" }}>r</span>
+                    )}
                   </span>
                 ))}
               </div>

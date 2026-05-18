@@ -17,8 +17,6 @@ const DIVISIONAL_CHARTS: {
   { label: "D3 — Drekkana",     signKey: "d3_sign",  lagnaKey: "d3_sign"  },
   { label: "D4 — Chaturthamsha",signKey: "d4_sign",  lagnaKey: "d4_sign"  },
   { label: "D7 — Saptamsha",    signKey: "d7_sign",  lagnaKey: "d7_sign"  },
-  { label: "D9 — Navamsa",      signKey: "d9_sign",  lagnaKey: "d9_sign"  },
-  { label: "D10 — Dashamsha",   signKey: "d10_sign", lagnaKey: "d10_sign" },
   { label: "D12 — Dvadashamsha",signKey: "d12_sign", lagnaKey: "d12_sign" },
   { label: "D16 — Shodashamsha",signKey: "d16_sign", lagnaKey: "d16_sign" },
   { label: "D20 — Vimshamsha",  signKey: "d20_sign", lagnaKey: "d20_sign" },
@@ -70,7 +68,7 @@ export function HousesVargasTab({
         <section>
           <SectionHeading>Divisional Charts</SectionHeading>
           <div className="overflow-x-auto">
-            <div className="grid grid-cols-4 gap-4 min-w-[560px]">
+            <div className="grid grid-cols-4 gap-4 min-w-max">
               {DIVISIONAL_CHARTS.map(({ label, signKey, lagnaKey }) => {
                 const divLagnaSign = lagna?.[lagnaKey] as SignName | undefined;
                 const hasDivData = PLANET_ORDER.some(n => planets[n]?.[signKey]);
@@ -204,11 +202,7 @@ export function HousesVargasTab({
                   {DIVISIONAL_CHARTS.map(({ label }) => (
                     <th
                       key={label}
-                      className={`py-1.5 px-1 text-center text-xs font-medium uppercase tracking-wide ${
-                        label.startsWith("D9") || label.startsWith("D10")
-                          ? "text-[var(--color-ink-2)]"
-                          : "text-muted-foreground"
-                      }`}
+                      className="py-1.5 px-1 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground"
                     >
                       {label.split(" ")[0]}
                     </th>
@@ -227,12 +221,8 @@ export function HousesVargasTab({
                       </td>
                       {DIVISIONAL_CHARTS.map(({ signKey, label }) => {
                         const val = p[signKey] as string | undefined;
-                        const isKey = label.startsWith("D9") || label.startsWith("D10");
                         return (
-                          <td
-                            key={label}
-                            className={`py-1.5 px-1 text-center text-xs ${isKey ? "text-[var(--color-ink-2)] font-medium" : "text-muted-foreground"}`}
-                          >
+                          <td key={label} className="py-1.5 px-1 text-center text-xs text-muted-foreground">
                             {val?.slice(0, 3) ?? "—"}
                           </td>
                         );
@@ -242,7 +232,6 @@ export function HousesVargasTab({
                 })}
               </tbody>
             </table>
-            <p className="mt-2 text-[10px] text-muted-foreground/50">D9 and D10 highlighted — most consulted vargas.</p>
           </div>
         </section>
       )}
