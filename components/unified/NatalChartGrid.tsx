@@ -34,14 +34,12 @@ interface CellPlanet {
 
 interface NatalChartGridProps {
   planets: Record<string, Planet>;
-  // Sign of the ascendant in this chart (D1 lagna for D1, d9_sign for D9, etc.)
   lagnaSign: SignName | undefined;
-  // Which field on Planet holds this chart's sign ("sign" for D1, "d9_sign" for D9, …)
   signKey?: keyof Planet;
-  // Displayed above the grid and in the center cell
   label?: string;
-  // Reduce text/padding for thumbnail grids
   compact?: boolean;
+  // Optional SAV bindu scores per sign — shown as a small number in each cell
+  savScores?: Record<string, number>;
 }
 
 export function NatalChartGrid({
@@ -50,6 +48,7 @@ export function NatalChartGrid({
   signKey = "sign",
   label = "D1",
   compact = false,
+  savScores,
 }: NatalChartGridProps) {
   // Map sign → planet abbreviation list
   const signPlanets: Record<string, CellPlanet[]> = {};
@@ -113,13 +112,28 @@ export function NatalChartGrid({
                 isLagna ? "bg-[var(--color-surface-2)]" : "bg-transparent"
               )}
             >
-              {/* Lagna indicator — top-right corner, only on lagna cell */}
+              {/* Lagna indicator — top-right corner */}
               {isLagna && (
                 <span className={cn(
                   "absolute top-0.5 right-0.5 font-bold leading-none text-[var(--color-accent)]",
                   textSmall
                 )}>
                   Lg
+                </span>
+              )}
+
+              {/* SAV bindu — bottom-right corner */}
+              {savScores && savScores[sign] !== undefined && (
+                <span className={cn(
+                  "absolute bottom-0.5 right-0.5 font-mono font-bold leading-none",
+                  textSmall,
+                  savScores[sign] >= 28
+                    ? "text-success"
+                    : savScores[sign] < 22
+                      ? "text-danger"
+                      : "text-muted-foreground/40"
+                )}>
+                  {savScores[sign]}
                 </span>
               )}
 

@@ -1,10 +1,8 @@
 "use client";
-import { PLANET_ORDER, TABLE_STYLES } from "@/components/unified/types";
+import { PLANET_ORDER } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import { SectionHeading } from "@/components/unified/SectionHeading";
-
-const th = TABLE_STYLES.th;
 
 // Each divisional chart: label, signKey, lagna key in the lagna object
 const DIVISIONAL_CHARTS: {
@@ -63,52 +61,6 @@ export function HousesVargasTab({
         </section>
       )}
 
-      {/* Varga Matrix — kept as efficient lookup table */}
-      {planets && (
-        <section>
-          <SectionHeading>Varga Matrix</SectionHeading>
-          <div className="overflow-x-auto">
-            <table className="text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--color-border)]">
-                  <th className={th}>Planet</th>
-                  <th className="py-1.5 px-2 text-center text-xs font-semibold text-[var(--color-ink-2)] uppercase tracking-wide">D1</th>
-                  {DIVISIONAL_CHARTS.map(({ label }) => (
-                    <th
-                      key={label}
-                      className="py-1.5 px-1 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                    >
-                      {label.split(" ")[0]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {PLANET_ORDER.map(name => {
-                  const p = planets[name];
-                  if (!p) return null;
-                  return (
-                    <tr key={name} className="border-b border-[var(--color-border)]/40">
-                      <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">{name}</td>
-                      <td className="py-1.5 px-2 text-center text-xs font-medium text-[var(--color-ink-2)]">
-                        {p.sign?.slice(0, 3) ?? "—"}
-                      </td>
-                      {DIVISIONAL_CHARTS.map(({ signKey, label }) => {
-                        const val = p[signKey] as string | undefined;
-                        return (
-                          <td key={label} className="py-1.5 px-1 text-center text-xs text-muted-foreground">
-                            {val?.slice(0, 3) ?? "—"}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
