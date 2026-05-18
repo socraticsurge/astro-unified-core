@@ -60,7 +60,27 @@ export function CareerTab({
   const allRows    = PLANET_ORDER.filter(p => indicators[p]);
 
   return (
-    <div className="flex flex-col sm:flex-row gap-6 items-start">
+    <div className="space-y-6">
+
+      {/* ── Header row: title + refresh ──────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-[var(--color-ink-1)]">Career Analysis</h2>
+        <button
+          onClick={() => onFetchCareer(true)}
+          disabled={isCareerLoading}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[var(--color-ink-2)] transition-colors disabled:opacity-40"
+        >
+          <RefreshCw className={`h-3 w-3 ${isCareerLoading ? "animate-spin" : ""}`} />
+          {isCareerLoading ? "Loading…" : "Refresh"}
+        </button>
+      </div>
+
+      {isCareerLoading && (
+        <p className="text-xs text-muted-foreground">Loading career analysis…</p>
+      )}
+
+      {/* ── Two-column body ───────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-6 items-start">
 
       {/* ── Left column: chart + supporting context ─────────────────── */}
       <div className="shrink-0 w-[260px] space-y-6">
@@ -108,22 +128,6 @@ export function CareerTab({
 
       {/* ── Right column: analysis data ──────────────────────────────── */}
       <div className="flex-1 space-y-8 min-w-0">
-
-        {/* Refresh sits quietly at the top right, no heading above it */}
-        <div className="flex justify-end -mt-1">
-          <button
-            onClick={() => onFetchCareer(true)}
-            disabled={isCareerLoading}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[var(--color-ink-2)] transition-colors disabled:opacity-40"
-          >
-            <RefreshCw className={`h-3 w-3 ${isCareerLoading ? "animate-spin" : ""}`} />
-            {isCareerLoading ? "Loading…" : "Refresh"}
-          </button>
-        </div>
-
-        {isCareerLoading && (
-          <p className="text-xs text-muted-foreground">Loading career analysis…</p>
-        )}
 
         {career && (
           <>
@@ -219,6 +223,7 @@ export function CareerTab({
           </>
         )}
       </div>
+      </div>{/* end two-column body */}
     </div>
   );
 }
