@@ -8,6 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — Visual consistency: full domain token sweep across all unified components
+
+### Added
+- **9 domain color tokens** in `app/globals.css` (`@theme inline`): dignity scale (exalted → debilitated), planet retrograde, planet combust, planet name. Values defined for both dark and light themes.
+- **`TABLE_STYLES`** exported from `components/unified/types.ts` — single source for `th`, `td`, and `row` class strings; all tab tables now consume this.
+- **`SectionHeading`** component (`components/unified/SectionHeading.tsx`) — replaces repeated inline `h3` pattern across every tab.
+
+### Changed
+- **All hardcoded Tailwind color classes removed from `components/unified/`** — every color in the content layer (dignity, retrograde, combust, SAV/BAV scores, Sade Sati banners, planet name highlights, Kaal Sarpa, Graha Yuddha) now resolves through `globals.css` tokens. Affected files: `PlanetsTab`, `HousesVargasTab`, `YogasTab`, `DashaTab`, `JaiminiTab`, `AshtakavargaTab`, `CareerTab`, `TransitsTab`, `ChartTab`, `TimeTab`, `PatternsTab`, `IdentityStrip`, `NatalChartGrid`, `SavChartGrid`.
+- Changing any domain color (e.g. "exalted dignity", "Sade Sati warning") now requires editing one line in `globals.css` — both dark and light themes update automatically.
+
+---
+
 ## [2026-05-18] — Elevated tabs: Yogas, Jaimini, Ashtakavarga; Divisional rename; Planets cleanup
 
 ### Added
