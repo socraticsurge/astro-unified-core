@@ -194,11 +194,11 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
                 <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
                   Panchang at Birth
                 </p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                <div className="space-y-1">
                   {panchangRows.map(({ label, value }) => (
-                    <div key={label} className="flex flex-col">
-                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold leading-none mb-0.5">{label}</span>
-                      <span className="text-[11px] font-semibold text-[var(--color-ink-1)] leading-tight">{value || "—"}</span>
+                    <div key={label} className="flex gap-2 text-xs">
+                      <span className="text-muted-foreground w-20 shrink-0">{label}</span>
+                      <span className="text-[var(--color-ink-2)] leading-tight">{value || "—"}</span>
                     </div>
                   ))}
                 </div>

@@ -36,10 +36,6 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
   const yogas      = data?.yogas      as { name: string; formed_by?: string[] }[] | undefined;
   const bhavaChalit = data?.bhava_chalit as Record<string, { rashi_house?: number; bhava_house?: number; shifted?: boolean }> | undefined;
 
-  const shifts = bhavaChalit
-    ? Object.entries(bhavaChalit).filter(([, v]) => v.shifted)
-    : [];
-
   if (!planets) return null;
 
   return (
@@ -93,99 +89,90 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
         </div>
       </section>
 
-      {/* Bhava Chalit */}
-      {bhavaChalit && (
-        <section>
-          <SectionHeading>Bhava Chalit — House Shifts</SectionHeading>
-          {shifts.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No planets shift house in Bhava Chalit.</p>
-          ) : (
-            <div className="space-y-1 mb-4">
-              {shifts.map(([planet, v]) => (
-                <div key={planet} className="flex items-center gap-2 text-sm">
-                  <span className="w-20 font-semibold text-[var(--color-ink-1)]">{planet}</span>
-                  <span className="text-muted-foreground">Rasi H{v.rashi_house}</span>
-                  <span className="text-muted-foreground">→</span>
-                  <span className="text-amber-300 font-semibold">Bhava H{v.bhava_house}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="overflow-x-auto">
-            <table className="text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--color-border)]">
-                  {["Planet", "Rasi House", "Bhava House", "Shifted"].map(h => (
-                    <th key={h} className={th}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {PLANET_ORDER.map(name => {
-                  const b = bhavaChalit[name];
-                  if (!b) return null;
-                  return (
-                    <tr key={name} className={row}>
-                      <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">{name}</td>
-                      <td className={td}>{b.rashi_house ?? "—"}</td>
-                      <td className={`${td} ${b.shifted ? "text-amber-300 font-semibold" : ""}`}>{b.bhava_house ?? "—"}</td>
-                      <td className={td}>{b.shifted ? "Yes" : "—"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+      {/* Shadbala + Bhava Chalit side by side */}
+      <div className="flex flex-wrap gap-8 items-start">
 
-      {/* Shadbala */}
-      {shadbala && (
-        <section>
-          <SectionHeading>Shadbala (Rupas)</SectionHeading>
-          <div className="overflow-x-auto">
-            <table className="text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--color-border)]">
-                  <th className={th}>Planet</th>
-                  {SHADBALA_COLS.map(c => <th key={c.key} className={`${th} text-center`}>{c.label}</th>)}
-                  <th className={`${th} text-center`}>Req</th>
-                  <th className={`${th} text-center`}>Ishta</th>
-                  <th className={`${th} text-center`}>Kashta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {PLANET_ORDER.map(name => {
-                  const sb = shadbala[name];
-                  if (!sb) return null;
-                  const total = sb.total_rupas;
-                  const req   = sb.required_rupas;
-                  const strong = req != null && total != null && total >= req;
-                  return (
-                    <tr key={name} className={row}>
-                      <td className="py-2 px-2 font-semibold text-[var(--color-ink-1)]">{name}</td>
-                      {SHADBALA_COLS.map(c => (
-                        <td key={c.key} className={`py-2 px-2 text-center font-mono text-xs ${c.key === "total_rupas" && strong ? "text-success font-bold" : "text-[var(--color-ink-3)]"}`}>
-                          {getShadVal(sb, c.key)}
+        {/* Shadbala */}
+        {shadbala && (
+          <section>
+            <SectionHeading>Shadbala (Rupas)</SectionHeading>
+            <div className="overflow-x-auto">
+              <table className="text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    <th className={th}>Planet</th>
+                    {SHADBALA_COLS.map(c => <th key={c.key} className={`${th} text-center`}>{c.label}</th>)}
+                    <th className={`${th} text-center`}>Req</th>
+                    <th className={`${th} text-center`}>Ishta</th>
+                    <th className={`${th} text-center`}>Kashta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {PLANET_ORDER.map(name => {
+                    const sb = shadbala[name];
+                    if (!sb) return null;
+                    const total = sb.total_rupas;
+                    const req   = sb.required_rupas;
+                    const strong = req != null && total != null && total >= req;
+                    return (
+                      <tr key={name} className={row}>
+                        <td className="py-2 px-2 font-semibold text-[var(--color-ink-1)]">{name}</td>
+                        {SHADBALA_COLS.map(c => (
+                          <td key={c.key} className={`py-2 px-2 text-center font-mono text-xs ${c.key === "total_rupas" && strong ? "text-success font-bold" : "text-[var(--color-ink-3)]"}`}>
+                            {getShadVal(sb, c.key)}
+                          </td>
+                        ))}
+                        <td className="py-2 px-2 text-center font-mono text-xs text-[var(--color-ink-3)]">
+                          {req != null ? req.toFixed(2) : "—"}
                         </td>
-                      ))}
-                      <td className="py-2 px-2 text-center font-mono text-xs text-[var(--color-ink-3)]">
-                        {req != null ? req.toFixed(2) : "—"}
-                      </td>
-                      <td className="py-2 px-2 text-center font-mono text-xs text-success">
-                        {sb.ishta_phala ?? "—"}
-                      </td>
-                      <td className="py-2 px-2 text-center font-mono text-xs text-danger">
-                        {sb.kashta_phala ?? "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+                        <td className="py-2 px-2 text-center font-mono text-xs text-success">
+                          {sb.ishta_phala ?? "—"}
+                        </td>
+                        <td className="py-2 px-2 text-center font-mono text-xs text-danger">
+                          {sb.kashta_phala ?? "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* Bhava Chalit */}
+        {bhavaChalit && (
+          <section>
+            <SectionHeading>Bhava Chalit — House Shifts</SectionHeading>
+            <div className="overflow-x-auto">
+              <table className="text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    {["Planet", "Rasi House", "Bhava House", "Shifted"].map(h => (
+                      <th key={h} className={th}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {PLANET_ORDER.map(name => {
+                    const b = bhavaChalit[name];
+                    if (!b) return null;
+                    return (
+                      <tr key={name} className={row}>
+                        <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">{name}</td>
+                        <td className={td}>{b.rashi_house ?? "—"}</td>
+                        <td className={`${td} ${b.shifted ? "text-amber-300 font-semibold" : ""}`}>{b.bhava_house ?? "—"}</td>
+                        <td className={td}>{b.shifted ? "Yes" : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+      </div>
 
     </div>
   );
