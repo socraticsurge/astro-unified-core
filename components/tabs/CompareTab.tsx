@@ -141,7 +141,6 @@ function FullResult({ check, groomProfile, brideProfile }: {
                   <th className={th}>Koota</th>
                   <th className={`${th} text-right`}>Score</th>
                   <th className={`${th} text-right`}>Max</th>
-                  <th className={`${th} text-center`}></th>
                 </tr>
               </thead>
               <tbody>
@@ -152,16 +151,10 @@ function FullResult({ check, groomProfile, brideProfile }: {
                   return (
                     <tr key={name} className={row}>
                       <td className={td}>{name}</td>
-                      <td className={`${td} text-right font-semibold`}
-                        style={{ color: full ? "var(--color-success)" : zero ? "var(--color-danger)" : "var(--color-warning)" }}>
+                      <td className={`${td} text-right font-semibold ${full ? "text-success" : zero ? "text-danger" : "text-warning"}`}>
                         {pts}
                       </td>
                       <td className={`${td} text-right text-muted-foreground`}>{max ?? "—"}</td>
-                      <td className={`${td} text-center`}>
-                        {full  && <CheckCircle2 className="h-3.5 w-3.5 text-success inline" />}
-                        {zero  && <XCircle      className="h-3.5 w-3.5 text-danger  inline" />}
-                        {!full && !zero && <MinusCircle className="h-3.5 w-3.5 text-warning inline" />}
-                      </td>
                     </tr>
                   )
                 })}
@@ -175,26 +168,30 @@ function FullResult({ check, groomProfile, brideProfile }: {
       {(result.male_details || result.female_details) && (
         <section>
           <SectionHeading>Natal Moon Profiles</SectionHeading>
-          <div className="grid grid-cols-2 divide-x divide-[var(--color-border)]">
-            {([
-              { label: groomProfile.name ?? "Groom", details: result.male_details,   tokenColor: "var(--color-compat-groom)" },
-              { label: brideProfile.name  ?? "Bride", details: result.female_details, tokenColor: "var(--color-compat-bride)" },
-            ] as const).map(({ label, details, tokenColor }) => (
-              <div key={label} className="pr-4 pl-1 first:pl-0 space-y-1.5 py-2">
-                <p className="text-xs font-semibold" style={{ color: tokenColor }}>{label}</p>
-                {(["moon_sign", "nakshatra", "gana", "nadi", "yoni"] as const).map(k => {
-                  const val = details?.[k]
-                  const labelMap: Record<string, string> = { moon_sign: "Moon Sign", nakshatra: "Nakshatra", gana: "Gana", nadi: "Nadi", yoni: "Yoni" }
-                  return val ? (
-                    <div key={k} className="flex justify-between text-xs gap-2">
-                      <span className="text-muted-foreground shrink-0">{labelMap[k]}</span>
-                      <span className="text-[var(--color-ink-2)] font-medium capitalize">{val}</span>
-                    </div>
-                  ) : null
-                })}
-              </div>
-            ))}
-          </div>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-[var(--color-border)]">
+                <th className={th}></th>
+                <th className={`${th} text-right`}>{groomProfile.name}</th>
+                <th className={`${th} text-right`}>{brideProfile.name}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(["moon_sign", "nakshatra", "gana", "nadi", "yoni"] as const).map(k => {
+                const gVal = result.male_details?.[k]
+                const bVal = result.female_details?.[k]
+                if (!gVal && !bVal) return null
+                const labelMap: Record<string, string> = { moon_sign: "Moon Sign", nakshatra: "Nakshatra", gana: "Gana", nadi: "Nadi", yoni: "Yoni" }
+                return (
+                  <tr key={k} className={row}>
+                    <td className={`${td} text-muted-foreground`}>{labelMap[k]}</td>
+                    <td className={`${td} text-right capitalize`}>{gVal ?? "—"}</td>
+                    <td className={`${td} text-right capitalize`}>{bVal ?? "—"}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </section>
       )}
 
@@ -380,44 +377,40 @@ export function CompareTab({ activeProfile, allProfiles, selectedId, onSelectedI
     <div className="space-y-6">
 
       {/* ── Selector row ── */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {/* Active profile pill */}
-        <ProfilePill profile={activeProfile} role={activeRole} />
-
-        {/* Separator */}
-        <span className="text-muted-foreground/40 text-base shrink-0 select-none">♡</span>
-
-        {/* Candidate: dropdown until selected, then profile pill */}
-        {candidates.length === 0 ? (
-          <a href="/profiles/new"
-            className="text-xs text-muted-foreground border border-dashed border-[var(--color-border)] rounded-lg px-3 py-1.5 hover:border-[var(--color-nav-chip-active-border)] transition-colors">
-            + Add {roleLabel(partnerRole).toLowerCase()} profile
-          </a>
-        ) : selected ? (
-          <>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <ProfilePill profile={activeProfile} role={activeRole} />
+          <span className="text-muted-foreground/40 text-base shrink-0 select-none">♡</span>
+          {candidates.length === 0 ? (
+            <a href="/profiles/new"
+              className="text-xs text-muted-foreground border border-dashed border-[var(--color-border)] rounded-lg px-3 py-1.5 hover:border-[var(--color-nav-chip-active-border)] transition-colors">
+              + Add {roleLabel(partnerRole).toLowerCase()} profile
+            </a>
+          ) : selected ? (
             <ProfilePill profile={selected} role={partnerRole} />
-            <button
-              onClick={handleClear}
-              aria-label="Reset compatibility check"
-              title="Reset"
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] transition-colors"
+          ) : (
+            <select
+              value={selectedId}
+              onChange={e => handleSelect(e.target.value)}
+              disabled={loading}
+              className="text-sm bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-[var(--color-ink-2)] hover:border-[var(--color-nav-chip-active-border)] focus:outline-none focus:border-[var(--color-nav-chip-active-border)] transition-colors disabled:opacity-50 cursor-pointer"
             >
-              <RotateCcw className="h-3 w-3" />
-              Reset
-            </button>
-          </>
-        ) : (
-          <select
-            value={selectedId}
-            onChange={e => handleSelect(e.target.value)}
-            disabled={loading}
-            className="text-sm bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-[var(--color-ink-2)] hover:border-[var(--color-nav-chip-active-border)] focus:outline-none focus:border-[var(--color-nav-chip-active-border)] transition-colors disabled:opacity-50 cursor-pointer"
+              <option value="">Select {roleLabel(partnerRole).toLowerCase()}…</option>
+              {candidates.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+        {selected && (
+          <button
+            onClick={handleClear}
+            aria-label="Reset compatibility check"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] transition-colors shrink-0"
           >
-            <option value="">Select {roleLabel(partnerRole).toLowerCase()}…</option>
-            {candidates.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            <RotateCcw className="h-3 w-3" />
+            Reset
+          </button>
         )}
       </div>
 
