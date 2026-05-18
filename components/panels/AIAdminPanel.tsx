@@ -4,8 +4,8 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { ModelPicker } from "@/components/ui/ModelPicker"
 import { AIInsightCard } from "@/components/engines/AIInsightCard"
-import { RefreshCw, Sparkles, Send } from "lucide-react"
-import { DEFAULT_INSIGHT_MODEL, DEFAULT_CHAT_MODEL, type AiModelKey } from "@/lib/engines/models"
+import { RefreshCw, Sparkles, Send, Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react"
+import { DEFAULT_INSIGHT_MODEL, type AiModelKey } from "@/lib/engines/models"
 import type { TabInsight, InsightTab } from "@/lib/ai-insight"
 import type { ChartTabId } from "@/components/profiles/ProfileView"
 
@@ -37,7 +37,12 @@ type InsightState = {
   rating:    1 | -1 | null
 } | null
 
-type Message = { role: "user" | "assistant"; content: string }
+type Message = {
+  role:    "user" | "assistant"
+  content: string
+  rating?: 1 | -1 | null
+  copied?: boolean
+}
 
 interface Props {
   open:    boolean
@@ -162,9 +167,17 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  useEffect(() => {
-    setModel(subTab === "chat" ? DEFAULT_CHAT_MODEL : DEFAULT_INSIGHT_MODEL)
-  }, [subTab])
+  const copyMessage = useCallback(async (idx: number, content: string) => {
+    await navigator.clipboard.writeText(content)
+    setMessages(prev => prev.map((m, i) => i === idx ? { ...m, copied: true } : m))
+    setTimeout(() => setMessages(prev => prev.map((m, i) => i === idx ? { ...m, copied: false } : m)), 2000)
+  }, [])
+
+  const rateMessage = useCallback((idx: number, value: 1 | -1) => {
+    setMessages(prev => prev.map((m, i) =>
+      i === idx ? { ...m, rating: m.rating === value ? null : value } : m
+    ))
+  }, [])
 
   const breadcrumb = context
     ? isCompare
@@ -280,7 +293,7 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
                     </p>
                   )}
                   {messages.map((m, i) => (
-                    <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div key={i} className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}>
                       <span className={`inline-block px-3 py-2 rounded-xl max-w-[88%] text-sm leading-relaxed ${
                         m.role === "user"
                           ? "bg-violet-700/30 text-[var(--color-ink-1)]"
@@ -288,6 +301,33 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
                       }`}>
                         {m.content}
                       </span>
+                      {m.role === "assistant" && (
+                        <div className="flex items-center gap-0.5 mt-1 ml-1">
+                          <button
+                            onClick={() => copyMessage(i, m.content)}
+                            title="Copy"
+                            className="p-1 rounded text-muted-foreground hover:text-[var(--color-ink-2)] transition-colors"
+                          >
+                            {m.copied
+                              ? <Check className="h-3 w-3 text-[var(--color-success)]" />
+                              : <Copy className="h-3 w-3" />}
+                          </button>
+                          <button
+                            onClick={() => rateMessage(i, 1)}
+                            title="Helpful"
+                            className={`p-1 rounded transition-colors ${m.rating === 1 ? "text-[var(--color-success)]" : "text-muted-foreground hover:text-[var(--color-ink-2)]"}`}
+                          >
+                            <ThumbsUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => rateMessage(i, -1)}
+                            title="Not helpful"
+                            className={`p-1 rounded transition-colors ${m.rating === -1 ? "text-[var(--color-danger)]" : "text-muted-foreground hover:text-[var(--color-ink-2)]"}`}
+                          >
+                            <ThumbsDown className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {chatLoading && (
