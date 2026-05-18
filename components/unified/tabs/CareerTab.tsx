@@ -4,7 +4,7 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
-import { DIGNITY_COLORS, TABLE_STYLES } from "@/components/unified/types";
+import { PLANET_ORDER, DIGNITY_COLORS, TABLE_STYLES } from "@/components/unified/types";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 
 type TenthHouse = {
@@ -60,10 +60,13 @@ export function CareerTab({
   const indicators = career?.d10_indicators ?? {};
   const primary    = career?.primary_planets ?? [];
 
+  // All planets in PLANET_ORDER that have D10 indicator data
+  const allPlanetRows = PLANET_ORDER.filter(p => indicators[p]);
+
   return (
     <div className="flex flex-col sm:flex-row gap-6 items-start">
 
-      {/* D10 chart — left column */}
+      {/* D10 chart */}
       {planets && (
         <div className="flex-shrink-0">
           <NatalChartGrid
@@ -75,133 +78,155 @@ export function CareerTab({
         </div>
       )}
 
-      {/* Career analysis — right column */}
-      <div className="flex-1 space-y-5 min-w-0">
+      {/* Analysis column */}
+      <div className="flex-1 space-y-8 min-w-0">
+
         <div className="flex items-center justify-between">
           <SectionHeading>Career Analysis</SectionHeading>
-          {!career && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onFetchCareer(true)}
-              disabled={isCareerLoading}
-              className="h-6 text-xs gap-1"
-            >
-              <RefreshCw className={`h-3 w-3 ${isCareerLoading ? "animate-spin" : ""}`} />
-              {isCareerLoading ? "Loading…" : "Load"}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onFetchCareer(true)}
+            disabled={isCareerLoading}
+            className="h-6 text-xs gap-1 text-muted-foreground"
+          >
+            <RefreshCw className={`h-3 w-3 ${isCareerLoading ? "animate-spin" : ""}`} />
+            {isCareerLoading ? "Loading…" : "Refresh"}
+          </Button>
         </div>
 
-        {isCareerLoading && <p className="text-xs text-muted-foreground">Loading career analysis…</p>}
+        {isCareerLoading && (
+          <p className="text-xs text-muted-foreground">Loading career analysis…</p>
+        )}
 
         {career && (
-          <div className="space-y-5">
-
-            {/* 10th House significator */}
+          <>
+            {/* 10th House */}
             {tenth && (
-              <div className="rounded-lg border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface-1)]">
+              <section>
                 <SectionHeading>10th House — Karma Bhava</SectionHeading>
-                <div className="divide-y divide-[var(--color-border)]/50">
-                  <div className="grid grid-cols-2 gap-x-4 px-3 py-2 text-xs">
+                <div className="space-y-0 divide-y divide-[var(--color-border)]/40">
+                  <div className="flex justify-between py-2 text-sm">
                     <span className="text-muted-foreground">Sign</span>
                     <span className="text-[var(--color-ink-1)] font-medium">{tenth.sign ?? "—"}</span>
                   </div>
                   {tenth.occupants && tenth.occupants.length > 0 && (
-                    <div className="grid grid-cols-2 gap-x-4 px-3 py-2 text-xs">
+                    <div className="flex justify-between py-2 text-sm">
                       <span className="text-muted-foreground">Occupants</span>
                       <span className="text-planet-name font-medium">{tenth.occupants.join(", ")}</span>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-x-4 px-3 py-2 text-xs">
+                  <div className="flex justify-between py-2 text-sm">
                     <span className="text-muted-foreground">Lord</span>
                     <span className="text-planet-name font-medium">{tenth.lord ?? "—"}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 px-3 py-2 text-xs">
-                    <span className="text-muted-foreground">Lord in</span>
+                  <div className="flex justify-between py-2 text-sm">
+                    <span className="text-muted-foreground">Lord placed in</span>
                     <span className="text-[var(--color-ink-2)]">
                       House {tenth.lord_house ?? "—"}
                       {tenth.lord_sign ? ` · ${tenth.lord_sign}` : ""}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 px-3 py-2 text-xs">
+                  <div className="flex justify-between py-2 text-sm">
                     <span className="text-muted-foreground">Lord dignity</span>
                     <span className={`font-semibold capitalize ${DIGNITY_COLORS[tenth.lord_dignity ?? ""] ?? "text-dignity-neutral"}`}>
                       {tenth.lord_dignity?.replace(/_/g, " ") ?? "—"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 px-3 py-2 text-xs">
+                  <div className="flex justify-between py-2 text-sm">
                     <span className="text-muted-foreground">Lord in D10</span>
                     <span className="text-[var(--color-ink-2)]">{tenth.lord_d10 ?? "—"}</span>
                   </div>
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* Primary significators — D10 strength table */}
-            {primary.length > 0 && Object.keys(indicators).length > 0 && (
-              <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
-                <SectionHeading>Significators in D10</SectionHeading>
-                <table className="w-full text-sm">
-                  <thead className="bg-[var(--color-surface-2)]">
-                    <tr>
-                      <th className={th}>Planet</th>
-                      <th className={th}>D10 Sign</th>
-                      <th className={th}>D10 Lord</th>
-                      <th className={`${th} text-center`}>Strong</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {primary.map(p => {
-                      const ind = indicators[p];
-                      if (!ind) return null;
-                      return (
-                        <tr key={p} className={row}>
-                          <td className={`${td} text-planet-name font-medium`}>{p}</td>
-                          <td className={td}>{ind.d10_sign ?? "—"}</td>
-                          <td className={`${td} text-planet-name`}>{ind.d10_lord ?? "—"}</td>
-                          <td className={`${td} text-center`}>
-                            {ind.d10_strong
-                              ? <span className="text-dignity-exalted font-semibold">✓</span>
-                              : <span className="text-muted-foreground/40">—</span>}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+            {/* Key significators callout */}
+            {primary.length > 0 && (
+              <section>
+                <SectionHeading>Key Significators</SectionHeading>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {primary.map(p => {
+                    const ind = indicators[p]
+                    const strong = ind?.d10_strong
+                    return (
+                      <div key={p} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-1)] text-xs">
+                        <span className="text-planet-name font-semibold">{p}</span>
+                        {strong && (
+                          <span className="text-[10px] text-dignity-exalted font-medium uppercase tracking-wide">strong in D10</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Full D10 planetary table */}
+            {allPlanetRows.length > 0 && (
+              <section>
+                <SectionHeading>D10 Planetary Positions</SectionHeading>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-[var(--color-border)]">
+                        <th className={th}>Planet</th>
+                        <th className={th}>D10 Sign</th>
+                        <th className={th}>D10 Lord</th>
+                        <th className={`${th} text-center`}>Strong</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allPlanetRows.map(p => {
+                        const ind = indicators[p]
+                        const isPrimary = primary.includes(p)
+                        return (
+                          <tr key={p} className={row}>
+                            <td className={`${td} ${isPrimary ? "text-planet-name font-semibold" : "text-[var(--color-ink-2)]"}`}>{p}</td>
+                            <td className={td}>{ind?.d10_sign ?? "—"}</td>
+                            <td className={`${td} text-planet-name`}>{ind?.d10_lord ?? "—"}</td>
+                            <td className={`${td} text-center`}>
+                              {ind?.d10_strong
+                                ? <span className="text-dignity-exalted font-semibold">✓</span>
+                                : <span className="text-muted-foreground/30">—</span>}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             )}
 
             {/* Career themes */}
             {career.career_themes && career.career_themes.length > 0 && (
-              <div>
+              <section>
                 <SectionHeading>Career Themes</SectionHeading>
-                <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+                <div className="flex flex-wrap gap-1.5 pt-1">
                   {career.career_themes.map(t => (
                     <span key={t} className="px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs text-[var(--color-ink-2)] capitalize">
                       {t.replace(/_/g, " ")}
                     </span>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
             {/* Strength indicators */}
             {career.strength_factors && career.strength_factors.length > 0 && (
-              <div>
+              <section>
                 <SectionHeading>Indicators</SectionHeading>
-                <ul className="space-y-1.5 px-3 pb-3">
+                <ul className="space-y-2 pt-1">
                   {career.strength_factors.map(f => (
                     <li key={f} className="text-xs text-[var(--color-ink-3)] flex items-start gap-2">
                       <span className="text-dignity-exalted mt-0.5 shrink-0">·</span>{f}
                     </li>
                   ))}
                 </ul>
-              </div>
+              </section>
             )}
-
-          </div>
+          </>
         )}
       </div>
     </div>

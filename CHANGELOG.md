@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — Fix stale engine cache; restyle CareerTab
+
+### Fixed
+- **Stale engine cache** (`app/api/readings/career/route.ts`, `app/api/readings/dashaflow/route.ts`) — cached readings were returned unconditionally even if the profile's birth data had since been edited. The GET handler now builds the `input` object first, then checks `birthDataChanged()` against the cached `input_snapshot` before serving the cache. If birth data changed, the cache is skipped and a fresh result is computed. New helper: `lib/engines/cache-validate.ts`.
+
+### Changed
+- **CareerTab** restyled to match PlanetsTab/AshtakavargaTab conventions: plain `<section>` elements with `SectionHeading`, `divide-y` row separators instead of bordered card boxes, `TABLE_STYLES` for the D10 planetary table, and `DIGNITY_COLORS` / `text-planet-name` / `text-dignity-exalted` tokens throughout. Refresh button now always visible (not only when data is absent). D10 planetary table now shows all 9 planets ordered by `PLANET_ORDER`, with primary significators bolded.
+
+---
+
 ## [2026-05-18] — CompareTab: persistent chip picker, full compatibility result
 
 ### Changed

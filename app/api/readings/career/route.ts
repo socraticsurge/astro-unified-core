@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { fetchCareer } from "@/lib/engines/career";
 import { extractEngineError } from "@/lib/engine-error";
 import { rateLimit } from "@/lib/rate-limit";
+import { birthDataChanged } from "@/lib/engines/cache-validate";
 
 const ENGINE = "career";
 
@@ -28,15 +29,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  const cached = await db.readings.latestByEngine(profile_id, ENGINE);
-  if (cached) {
-    try {
-      return NextResponse.json({ output: JSON.parse(cached.output_data as string), cached: true });
-    } catch {
-      // Corrupted cache row — fall through to recalculate below.
-    }
-  }
-
   const input = {
     date_of_birth: profile.date_of_birth,
     time_of_birth: profile.time_of_birth,
@@ -44,6 +36,15 @@ export async function GET(req: NextRequest) {
     longitude: profile.longitude,
     timezone: profile.timezone,
   };
+
+  const cached = await db.readings.latestByEngine(profile_id, ENGINE);
+  if (cached && !birthDataChanged(cached.input_snapshot as string, input)) {
+    try {
+      return NextResponse.json({ output: JSON.parse(cached.output_data as string), cached: true });
+    } catch {
+      // Corrupted cache row — fall through to recalculate below.
+    }
+  }
 
   const output = await fetchCareer(input);
   const errMsg = extractEngineError(output);
