@@ -12,41 +12,173 @@ const DASHA_LEVELS = [
   { key: "prana",      label: "Prana"      },
 ];
 
-type DashaEntry = { planet?: string; start?: string; end?: string };
-type MahaEntry  = DashaEntry & { antardashas?: DashaEntry[] };
+// Fixed Vimshottari period lengths (years) per Parasara
+const VIMSHOTTARI_YEARS: Record<string, number> = {
+  Sun: 6, Moon: 10, Mars: 7, Rahu: 18,
+  Jupiter: 16, Saturn: 19, Mercury: 17, Ketu: 7, Venus: 20,
+};
+const SEQUENCE = ["Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury", "Ketu", "Venus"];
 
-function dashaYears(start?: string, end?: string): string {
-  const s = start ? new Date(start).getTime() : NaN;
-  const e = end   ? new Date(end).getTime()   : NaN;
-  if (isNaN(s) || isNaN(e)) return "—";
-  return ((e - s) / (365.25 * 24 * 3600 * 1000)).toFixed(1);
+type RawEntry = { planet?: string; start?: string; end?: string };
+type SubDasha = { planet: string; start: string; end: string; years: number };
+
+function addYears(dateStr: string, years: number): string {
+  try {
+    return new Date(new Date(dateStr).getTime() + years * 365.25 * 86400000)
+      .toISOString().slice(0, 10);
+  } catch { return "?"; }
+}
+
+function computeSubDashas(parentStart: string, parentPlanet: string, parentYears: number): SubDasha[] {
+  const seqIdx = SEQUENCE.indexOf(parentPlanet);
+  if (seqIdx === -1 || !parentStart || parentStart === "?") return [];
+  let cursor = parentStart;
+  return SEQUENCE.map((_, i) => {
+    const planet = SEQUENCE[(seqIdx + i) % 9];
+    const years  = (parentYears * VIMSHOTTARI_YEARS[planet]) / 120;
+    const end    = addYears(cursor, years);
+    const entry: SubDasha = { planet, start: cursor, end, years };
+    cursor = end;
+    return entry;
+  });
+}
+
+function formatDuration(years: number): string {
+  if (years >= 1)   return `${years.toFixed(1)} yr`;
+  if (years * 12 >= 1) return `${(years * 12).toFixed(1)} mo`;
+  return `${Math.round(years * 365)} d`;
+}
+
+function dkey(planet: string, start: string) { return `${planet}|${start}`; }
+
+const TODAY = new Date().toISOString().slice(0, 10);
+function isNow(start: string, end: string) { return TODAY >= start && TODAY < end; }
+
+const MAX_DEPTH = 4;
+const LEVEL_LABELS = ["Maha", "Antar", "Pratyantar", "Sookshma", "Prana"];
+
+interface RowsProps {
+  entries:  SubDasha[];
+  depth:    number;
+  expanded: string[];
+  onToggle: (depth: number, key: string) => void;
+}
+
+function DashaRows({ entries, depth, expanded, onToggle }: RowsProps) {
+  if (depth > MAX_DEPTH) return null;
+  const isLeaf = depth === MAX_DEPTH;
+
+  return (
+    <>
+      {entries.map(e => {
+        const key    = dkey(e.planet, e.start);
+        const isOpen = !isLeaf && expanded[depth] === key;
+        const active = isNow(e.start, e.end);
+        const sub    = isOpen ? computeSubDashas(e.start, e.planet, e.years) : [];
+
+        return (
+          <div key={key}>
+            <button
+              type="button"
+              disabled={isLeaf}
+              onClick={() => !isLeaf && onToggle(depth, key)}
+              style={{ paddingLeft: `${depth * 14 + 10}px` }}
+              className={cn(
+                "w-full flex items-center gap-2 py-1 pr-3 text-left border-b border-[var(--color-border)]/20 transition-colors",
+                active
+                  ? "bg-[var(--color-nav-chip-active-bg)]/70"
+                  : depth === 0
+                    ? "bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-hover)]/20"
+                    : "hover:bg-[var(--color-surface-hover)]/10",
+                isLeaf && "cursor-default"
+              )}
+            >
+              <span className="w-3 shrink-0 text-muted-foreground/40">
+                {!isLeaf && (isOpen
+                  ? <ChevronDown className="h-3 w-3" />
+                  : <ChevronRight className="h-3 w-3" />
+                )}
+              </span>
+              <span className="text-[10px] uppercase tracking-wider w-16 shrink-0 text-muted-foreground/50">
+                {LEVEL_LABELS[depth]}
+              </span>
+              <span className={cn(
+                "font-semibold w-20 shrink-0",
+                depth === 0 ? "text-sm" : "text-xs",
+                active
+                  ? "text-[var(--color-nav-chip-active-text)]"
+                  : depth === 0 ? "text-[var(--color-ink-1)]" : "text-[var(--color-ink-2)]"
+              )}>
+                {e.planet}
+                {active && <span className="ml-1 text-[9px] opacity-60">← now</span>}
+              </span>
+              <span className="font-mono text-xs text-[var(--color-ink-3)] w-24 shrink-0">{e.start}</span>
+              <span className="font-mono text-xs text-muted-foreground/40 w-24 shrink-0">{e.end}</span>
+              <span className="text-xs text-muted-foreground/40 ml-auto shrink-0">
+                {formatDuration(e.years)}
+              </span>
+            </button>
+
+            {isOpen && sub.length > 0 && (
+              <DashaRows
+                entries={sub}
+                depth={depth + 1}
+                expanded={expanded}
+                onToggle={onToggle}
+              />
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
 }
 
 export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown> }) {
   const data   = chartOutput?.data as Record<string, unknown> | undefined;
-  const dashas = data?.dashas as (Record<string, DashaEntry> & { timeline?: MahaEntry[] }) | undefined;
+  const dashas = data?.dashas as (Record<string, RawEntry> & { timeline?: RawEntry[] }) | undefined;
 
-  const [expandedMaha, setExpandedMaha] = useState<string | null>(() => {
-    // Auto-expand the current maha dasha on first render
-    return dashas?.maha?.planet && dashas?.maha?.start
-      ? `${dashas.maha.planet}-${dashas.maha.start}`
-      : null;
-  });
+  // Enrich flat timeline entries with Vimshottari year lengths
+  const mahaTimeline: SubDasha[] = (dashas?.timeline ?? [])
+    .map(t => ({
+      planet: t.planet ?? "",
+      start:  t.start  ?? "",
+      end:    t.end    ?? "",
+      years:  VIMSHOTTARI_YEARS[t.planet ?? ""] ?? 0,
+    }))
+    .filter(t => t.planet && t.start);
 
-  const toggleMaha = (key: string) =>
-    setExpandedMaha(prev => (prev === key ? null : key));
+  // Auto-expand current Maha on mount
+  const currentMahaKey = dashas?.maha?.planet && dashas?.maha?.start
+    ? dkey(dashas.maha.planet, dashas.maha.start)
+    : undefined;
+
+  const [expanded, setExpanded] = useState<string[]>(() =>
+    currentMahaKey ? [currentMahaKey] : []
+  );
+
+  function onToggle(depth: number, key: string) {
+    setExpanded(prev => {
+      const next = [...prev];
+      if (next[depth] === key) {
+        return next.slice(0, depth);         // collapse this level + all deeper
+      }
+      next[depth] = key;
+      return next.slice(0, depth + 1);       // open this level, clear deeper
+    });
+  }
 
   return (
     <div className="space-y-8">
 
-      {/* Current dasha period — 5-level stack */}
+      {/* Current dasha period — 5-level stack from sidecar */}
       {dashas && (
         <section>
           <SectionHeading>Current Dasha Period (Vimshottari)</SectionHeading>
           <div className="space-y-1">
             {DASHA_LEVELS.map(({ key, label }, depth) => {
-              const d = dashas[key];
-              if (!d) return null;
+              const d = dashas[key] as RawEntry | undefined;
+              if (!d?.planet) return null;
               return (
                 <div
                   key={key}
@@ -63,86 +195,24 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
         </section>
       )}
 
-      {/* Maha Dasha timeline with antardasha accordion */}
+      {/* 5-level expandable Maha Dasha timeline */}
       <section>
         <SectionHeading>Vimshottari Maha Dasha Timeline</SectionHeading>
-        {!dashas?.timeline || dashas.timeline.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground/60 mb-3">
+          Click any row to expand its sub-periods down to Prana level. Sub-dasha dates computed from Vimshottari proportions.
+        </p>
+        {mahaTimeline.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">Timeline data not available.</p>
         ) : (
-          <div className="space-y-0.5">
-            {dashas.timeline.map((t, i) => {
-              const isCurrent = dashas.maha?.planet === t.planet && dashas.maha?.start === t.start;
-              const rowKey = `${t.planet}-${t.start}`;
-              const isOpen = expandedMaha === rowKey;
-              const hasAntar = t.antardashas && t.antardashas.length > 0;
-
-              return (
-                <div key={i} className="rounded-lg overflow-hidden border border-[var(--color-border)]/50">
-                  {/* Maha row */}
-                  <button
-                    type="button"
-                    onClick={() => hasAntar && toggleMaha(rowKey)}
-                    className={cn(
-                      "w-full flex items-center gap-3 py-2 px-3 text-left transition-colors",
-                      isCurrent
-                        ? "bg-[var(--color-nav-chip-active-bg)]"
-                        : "bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-hover)]/20",
-                      !hasAntar && "cursor-default"
-                    )}
-                  >
-                    {/* Expand icon */}
-                    <span className="text-muted-foreground/40 w-3 shrink-0">
-                      {hasAntar
-                        ? isOpen
-                          ? <ChevronDown className="h-3 w-3" />
-                          : <ChevronRight className="h-3 w-3" />
-                        : null}
-                    </span>
-                    <span className={cn(
-                      "font-semibold text-sm w-24",
-                      isCurrent ? "text-[var(--color-nav-chip-active-text)]" : "text-[var(--color-ink-1)]"
-                    )}>
-                      {t.planet ?? "—"}
-                      {isCurrent && <span className="ml-1.5 text-xs opacity-70">← now</span>}
-                    </span>
-                    <span className="font-mono text-xs text-[var(--color-ink-3)] w-28">{t.start ?? "—"}</span>
-                    <span className="font-mono text-xs text-[var(--color-ink-3)] w-28">{t.end ?? "—"}</span>
-                    <span className="text-xs text-muted-foreground ml-auto">{dashaYears(t.start, t.end)} yr</span>
-                  </button>
-
-                  {/* Antardasha rows */}
-                  {isOpen && hasAntar && (
-                    <div className="border-t border-[var(--color-border)]/30">
-                      {t.antardashas!.map((a, j) => {
-                        const isCurrentAntar =
-                          isCurrent &&
-                          dashas.antar?.planet === a.planet &&
-                          dashas.antar?.start === a.start;
-                        return (
-                          <div
-                            key={j}
-                            className={cn(
-                              "flex items-center gap-3 py-1.5 px-3 pl-8 text-xs border-b border-[var(--color-border)]/20 last:border-0",
-                              isCurrentAntar
-                                ? "bg-[var(--color-nav-chip-active-bg)]/60 text-[var(--color-nav-chip-active-text)]"
-                                : "text-[var(--color-ink-3)]"
-                            )}
-                          >
-                            <span className="font-medium w-24">
-                              {a.planet ?? "—"}
-                              {isCurrentAntar && <span className="ml-1 opacity-70">← now</span>}
-                            </span>
-                            <span className="font-mono w-28">{a.start ?? "—"}</span>
-                            <span className="font-mono w-28">{a.end ?? "—"}</span>
-                            <span className="text-muted-foreground ml-auto">{dashaYears(a.start, a.end)} yr</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="overflow-x-auto">
+            <div className="border border-[var(--color-border)] rounded-lg overflow-hidden min-w-[560px]">
+              <DashaRows
+                entries={mahaTimeline}
+                depth={0}
+                expanded={expanded}
+                onToggle={onToggle}
+              />
+            </div>
           </div>
         )}
       </section>
