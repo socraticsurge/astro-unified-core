@@ -2,28 +2,35 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { Profile } from '@/lib/db'
-import { TodayTab }       from '@/components/tabs/TodayTab'
+import { TodayTab }          from '@/components/tabs/TodayTab'
 import type { TodayInsight } from '@/components/tabs/TodayInsightCard'
-import { CompareTab }     from '@/components/tabs/CompareTab'
-import { PlanetsTab }     from '@/components/unified/tabs/PlanetsTab'
-import { HousesVargasTab }from '@/components/unified/tabs/HousesVargasTab'
-import { PatternsTab }    from '@/components/unified/tabs/PatternsTab'
-import { DashaTab }       from '@/components/unified/tabs/DashaTab'
-import { TransitsTab }    from '@/components/unified/tabs/TransitsTab'
-import { CareerTab }      from '@/components/unified/tabs/CareerTab'
-import type { AskContext } from '@/components/panels/AskPanel'
+import { CompareTab }        from '@/components/tabs/CompareTab'
+import { PlanetsTab }        from '@/components/unified/tabs/PlanetsTab'
+import { HousesVargasTab }   from '@/components/unified/tabs/HousesVargasTab'
+import { YogasTab }          from '@/components/unified/tabs/YogasTab'
+import { JaiminiTab }        from '@/components/unified/tabs/JaiminiTab'
+import { AshtakavargaTab }   from '@/components/unified/tabs/AshtakavargaTab'
+import { DashaTab }          from '@/components/unified/tabs/DashaTab'
+import { TransitsTab }       from '@/components/unified/tabs/TransitsTab'
+import { CareerTab }         from '@/components/unified/tabs/CareerTab'
+import type { AskContext }   from '@/components/panels/AskPanel'
 
-type ChartTabId = 'today' | 'planets' | 'houses' | 'patterns' | 'dasha' | 'transits' | 'career' | 'compare'
+type ChartTabId =
+  | 'today' | 'planets' | 'divisional'
+  | 'yogas' | 'jaimini' | 'ashtakavarga'
+  | 'dasha' | 'transits' | 'career' | 'compare'
 
 const CHART_TABS: { id: ChartTabId; label: string }[] = [
-  { id: 'today',    label: '◎ Today'   },
-  { id: 'planets',  label: 'Planets'  },
-  { id: 'houses',   label: 'Houses'   },
-  { id: 'patterns', label: 'Patterns' },
-  { id: 'dasha',    label: 'Dasha'    },
-  { id: 'transits', label: 'Transits' },
-  { id: 'career',   label: 'Career'   },
-  { id: 'compare',  label: 'Compare'  },
+  { id: 'today',        label: '◎ Today'      },
+  { id: 'planets',      label: 'Planets'      },
+  { id: 'divisional',   label: 'Divisional'   },
+  { id: 'yogas',        label: 'Yogas'        },
+  { id: 'jaimini',      label: 'Jaimini'      },
+  { id: 'ashtakavarga', label: 'Ashtakavarga' },
+  { id: 'dasha',        label: 'Dasha'        },
+  { id: 'transits',     label: 'Transits'     },
+  { id: 'career',       label: 'Career'       },
+  { id: 'compare',      label: 'Compare'      },
 ]
 
 interface ProfileViewProps {
@@ -65,6 +72,8 @@ export function ProfileView({
       antardasha: dashas?.antar?.planet ?? '',
     })
   }
+
+  const needsChart = activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare'
 
   return (
     <div className="flex flex-col min-h-0">
@@ -113,17 +122,27 @@ export function ProfileView({
             <PlanetsTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'houses' && chartOutput && (
-          <div id="profileview-panel-houses" role="tabpanel" aria-labelledby="profileview-tab-houses">
+        {activeTab === 'divisional' && chartOutput && (
+          <div id="profileview-panel-divisional" role="tabpanel" aria-labelledby="profileview-tab-divisional">
             <HousesVargasTab
               chartOutput={chartOutput}
               lagnaSign={((chartOutput?.data as Record<string, unknown> | undefined)?.lagna as Record<string, unknown> | undefined)?.sign as string | undefined}
             />
           </div>
         )}
-        {activeTab === 'patterns' && chartOutput && (
-          <div id="profileview-panel-patterns" role="tabpanel" aria-labelledby="profileview-tab-patterns">
-            <PatternsTab chartOutput={chartOutput} />
+        {activeTab === 'yogas' && chartOutput && (
+          <div id="profileview-panel-yogas" role="tabpanel" aria-labelledby="profileview-tab-yogas">
+            <YogasTab chartOutput={chartOutput} />
+          </div>
+        )}
+        {activeTab === 'jaimini' && chartOutput && (
+          <div id="profileview-panel-jaimini" role="tabpanel" aria-labelledby="profileview-tab-jaimini">
+            <JaiminiTab chartOutput={chartOutput} />
+          </div>
+        )}
+        {activeTab === 'ashtakavarga' && chartOutput && (
+          <div id="profileview-panel-ashtakavarga" role="tabpanel" aria-labelledby="profileview-tab-ashtakavarga">
+            <AshtakavargaTab chartOutput={chartOutput} />
           </div>
         )}
         {activeTab === 'dasha' && chartOutput && (
@@ -155,7 +174,7 @@ export function ProfileView({
             <CompareTab activeProfile={profile} allProfiles={allProfiles} />
           </div>
         )}
-        {!chartOutput && activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare' && (
+        {needsChart && !chartOutput && (
           <div className="flex items-center justify-center h-40">
             <p className="text-sm text-muted-foreground">Loading chart data…</p>
           </div>

@@ -29,14 +29,12 @@ function getShadVal(sb: ShadbalaPlanet, key: string): string {
   return v != null ? (v as number).toFixed(2) : "—";
 }
 
-type Yoga = { name: string; formed_by: string[]; description?: string };
-
 export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknown> }) {
   const data     = chartOutput?.data as Record<string, unknown> | undefined;
   const planets  = data?.planets  as Record<string, Planet>         | undefined;
   const shadbala = data?.shadbala as Record<string, ShadbalaPlanet> | undefined;
   const avasthas = data?.avasthas as Record<string, { avastha?: string; description?: string }> | undefined;
-  const yogas    = data?.yogas    as Yoga[] | undefined;
+  const yogas    = data?.yogas    as { name: string; formed_by?: string[] }[] | undefined;
 
   if (!planets) return null;
 
@@ -139,29 +137,6 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
         </section>
       )}
 
-      {/* Yogas by planet */}
-      {yogas && yogas.length > 0 && (
-        <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Yogas by Planet</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--color-border)]">
-                  {["Yoga","Formed by"].map(h => <th key={h} className={th}>{h}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {yogas.map((y, i) => (
-                  <tr key={i} className={row}>
-                    <td className="py-2 px-2 font-medium text-[var(--color-ink-1)]">{y.name}</td>
-                    <td className="py-2 px-2 text-muted-foreground text-xs">{y.formed_by?.join(", ") ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
     </div>
   );
 }

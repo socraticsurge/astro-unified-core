@@ -1,5 +1,5 @@
 "use client";
-import { PLANET_ORDER, SIGNS_ORDER, VARGA_KEYS } from "@/components/unified/types";
+import { PLANET_ORDER, SIGNS_ORDER } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 
@@ -63,28 +63,6 @@ export function HousesVargasTab({
 
   return (
     <div className="space-y-10">
-
-      {/* Lagna across vargas strip */}
-      {lagna && (
-        <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Lagna across Vargas
-          </h3>
-          <div className="flex flex-wrap gap-1.5">
-            <span className="px-2 py-0.5 rounded border-l-2 border-[var(--color-accent)] bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-ink-1)]">
-              D1: {String(lagna.sign ?? "—")}
-            </span>
-            {VARGA_KEYS.map(({ label, key }) => {
-              const val = (lagna as Record<string, unknown>)[key];
-              return val ? (
-                <span key={label} className="px-2 py-0.5 rounded bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs text-[var(--color-ink-3)]">
-                  {label}: {String(val)}
-                </span>
-              ) : null;
-            })}
-          </div>
-        </section>
-      )}
 
       {/* Divisional Charts grid — 4 per row */}
       {planets && (

@@ -67,10 +67,11 @@ describe("PlanetsTab", () => {
     expect(screen.getByText("4.10")).toBeDefined();
   });
 
-  it("shows yoga name in Yogas table without any click", () => {
+  it("shows yoga indicator badge on planet row", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    // Yogas by Planet table is always visible
-    expect(screen.getByText("Budhaditya Yoga")).toBeDefined();
+    // Yoga name appears as tooltip on the ✦ badge in the planet's row
+    const badge = document.querySelector('[title="Budhaditya Yoga"]');
+    expect(badge).not.toBeNull();
   });
 
   it("renders nothing when chartOutput is empty", () => {

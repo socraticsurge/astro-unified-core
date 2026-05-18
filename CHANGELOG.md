@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — Elevated tabs: Yogas, Jaimini, Ashtakavarga; Divisional rename; Planets cleanup
+
+### Added
+- **YogasTab** (`components/unified/tabs/YogasTab.tsx`) — primary tab combining Yogas (2-col) + Doshas (2-col) sections, elevated from Patterns sub-tab.
+- **JaiminiTab** (`components/unified/tabs/JaiminiTab.tsx`) — primary tab for Jaimini indicators: Chara Karakas, Karakamsha, Arudha Padas, Upapada.
+- **AshtakavargaTab** (`components/unified/tabs/AshtakavargaTab.tsx`) — primary tab with SAV chart (SavChartGrid) + BAV per-planet table.
+
+### Changed
+- **ProfileView** — new 10-tab layout: `Today | Planets | Divisional | Yogas | Jaimini | Ashtakavarga | Dasha | Transits | Career | Compare`. Removed `Patterns` tab (content split into three elevated tabs).
+- **Planets tab** — removed "Yogas by Planet" section; yoga participation is still shown as a ✦ tooltip badge on each planet row in the Positions table.
+- **Houses tab renamed to "Divisional"** — clearer name for a tab containing divisional charts, Bhava Chalit, house occupants, and Varga Matrix. Removed the "Lagna across Vargas" chip strip (lagna is already highlighted in each chart).
+
+---
+
 ## [2026-05-18] — Chart sizing, inline edit, SAV chart, antardasha accordion, 2-col patterns
 
 ### Added
