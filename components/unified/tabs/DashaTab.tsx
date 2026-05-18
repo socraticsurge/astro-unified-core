@@ -1,4 +1,6 @@
 "use client";
+import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DASHA_LEVELS = [
@@ -10,15 +12,33 @@ const DASHA_LEVELS = [
 ];
 
 type DashaEntry = { planet?: string; start?: string; end?: string };
+type MahaEntry  = DashaEntry & { antardashas?: DashaEntry[] };
+
+function dashaYears(start?: string, end?: string): string {
+  const s = start ? new Date(start).getTime() : NaN;
+  const e = end   ? new Date(end).getTime()   : NaN;
+  if (isNaN(s) || isNaN(e)) return "—";
+  return ((e - s) / (365.25 * 24 * 3600 * 1000)).toFixed(1);
+}
 
 export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown> }) {
   const data   = chartOutput?.data as Record<string, unknown> | undefined;
-  const dashas = data?.dashas as (Record<string, DashaEntry> & { timeline?: DashaEntry[] }) | undefined;
+  const dashas = data?.dashas as (Record<string, DashaEntry> & { timeline?: MahaEntry[] }) | undefined;
+
+  const [expandedMaha, setExpandedMaha] = useState<string | null>(() => {
+    // Auto-expand the current maha dasha on first render
+    return dashas?.maha?.planet && dashas?.maha?.start
+      ? `${dashas.maha.planet}-${dashas.maha.start}`
+      : null;
+  });
+
+  const toggleMaha = (key: string) =>
+    setExpandedMaha(prev => (prev === key ? null : key));
 
   return (
     <div className="space-y-8">
 
-      {/* Current dasha period */}
+      {/* Current dasha period — 5-level stack */}
       {dashas && (
         <section>
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
@@ -44,7 +64,7 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
         </section>
       )}
 
-      {/* Maha Dasha timeline */}
+      {/* Maha Dasha timeline with antardasha accordion */}
       <section>
         <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
           Vimshottari Maha Dasha Timeline
@@ -52,45 +72,80 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
         {!dashas?.timeline || dashas.timeline.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">Timeline data not available.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--color-border)]">
-                  {["Planet", "Start", "End", "Duration"].map(h => (
-                    <th key={h} className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {dashas.timeline.map((t, i) => {
-                  const isCurrent = dashas.maha?.planet === t.planet && dashas.maha?.start === t.start;
-                  const startMs = t.start ? new Date(t.start).getTime() : NaN;
-                  const endMs   = t.end   ? new Date(t.end).getTime()   : NaN;
-                  const years   = !isNaN(startMs) && !isNaN(endMs)
-                    ? ((endMs - startMs) / (365.25 * 24 * 3600 * 1000)).toFixed(1)
-                    : "—";
-                  return (
-                    <tr
-                      key={i}
-                      className={cn(
-                        "border-b border-[var(--color-border)]/50 transition-colors",
-                        isCurrent
-                          ? "bg-[var(--color-nav-chip-active-bg)]"
-                          : "hover:bg-[var(--color-surface-hover)]/20"
-                      )}
-                    >
-                      <td className={cn("py-2 px-3 font-semibold", isCurrent ? "text-[var(--color-nav-chip-active-text)]" : "text-[var(--color-ink-1)]")}>
-                        {t.planet ?? "—"}
-                        {isCurrent && <span className="ml-1.5 text-xs opacity-70">← now</span>}
-                      </td>
-                      <td className="py-2 px-3 font-mono text-xs text-[var(--color-ink-3)]">{t.start ?? "—"}</td>
-                      <td className="py-2 px-3 font-mono text-xs text-[var(--color-ink-3)]">{t.end ?? "—"}</td>
-                      <td className="py-2 px-3 text-xs text-muted-foreground">{years} yr</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="space-y-0.5">
+            {dashas.timeline.map((t, i) => {
+              const isCurrent = dashas.maha?.planet === t.planet && dashas.maha?.start === t.start;
+              const rowKey = `${t.planet}-${t.start}`;
+              const isOpen = expandedMaha === rowKey;
+              const hasAntar = t.antardashas && t.antardashas.length > 0;
+
+              return (
+                <div key={i} className="rounded-lg overflow-hidden border border-[var(--color-border)]/50">
+                  {/* Maha row */}
+                  <button
+                    type="button"
+                    onClick={() => hasAntar && toggleMaha(rowKey)}
+                    className={cn(
+                      "w-full flex items-center gap-3 py-2 px-3 text-left transition-colors",
+                      isCurrent
+                        ? "bg-[var(--color-nav-chip-active-bg)]"
+                        : "bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-hover)]/20",
+                      !hasAntar && "cursor-default"
+                    )}
+                  >
+                    {/* Expand icon */}
+                    <span className="text-muted-foreground/40 w-3 shrink-0">
+                      {hasAntar
+                        ? isOpen
+                          ? <ChevronDown className="h-3 w-3" />
+                          : <ChevronRight className="h-3 w-3" />
+                        : null}
+                    </span>
+                    <span className={cn(
+                      "font-semibold text-sm w-24",
+                      isCurrent ? "text-[var(--color-nav-chip-active-text)]" : "text-[var(--color-ink-1)]"
+                    )}>
+                      {t.planet ?? "—"}
+                      {isCurrent && <span className="ml-1.5 text-xs opacity-70">← now</span>}
+                    </span>
+                    <span className="font-mono text-xs text-[var(--color-ink-3)] w-28">{t.start ?? "—"}</span>
+                    <span className="font-mono text-xs text-[var(--color-ink-3)] w-28">{t.end ?? "—"}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{dashaYears(t.start, t.end)} yr</span>
+                  </button>
+
+                  {/* Antardasha rows */}
+                  {isOpen && hasAntar && (
+                    <div className="border-t border-[var(--color-border)]/30">
+                      {t.antardashas!.map((a, j) => {
+                        const isCurrentAntar =
+                          isCurrent &&
+                          dashas.antar?.planet === a.planet &&
+                          dashas.antar?.start === a.start;
+                        return (
+                          <div
+                            key={j}
+                            className={cn(
+                              "flex items-center gap-3 py-1.5 px-3 pl-8 text-xs border-b border-[var(--color-border)]/20 last:border-0",
+                              isCurrentAntar
+                                ? "bg-[var(--color-nav-chip-active-bg)]/60 text-[var(--color-nav-chip-active-text)]"
+                                : "text-[var(--color-ink-3)]"
+                            )}
+                          >
+                            <span className="font-medium w-24">
+                              {a.planet ?? "—"}
+                              {isCurrentAntar && <span className="ml-1 opacity-70">← now</span>}
+                            </span>
+                            <span className="font-mono w-28">{a.start ?? "—"}</span>
+                            <span className="font-mono w-28">{a.end ?? "—"}</span>
+                            <span className="text-muted-foreground ml-auto">{dashaYears(a.start, a.end)} yr</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

@@ -8,6 +8,21 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — Chart sizing, inline edit, SAV chart, antardasha accordion, 2-col patterns
+
+### Added
+- **SavChartGrid** (`components/unified/SavChartGrid.tsx`) — South Indian 4×4 grid showing SAV bindus per sign. Green ≥28, red <22. Rendered in PatternsTab → Ashtakavarga sub-tab, replacing the horizontal table.
+- **Inline edit in ProfileSidebar** — "Edit" button opens a compact form in the sidebar itself (no redirect). Fields: name, relationship, gender, DOB, TOB, place of birth, current location. Save POSTs to `/api/profiles/:id` and reloads the page. Cancel dismisses.
+- **CHART_SIZE_PX = 200** exported from `NatalChartGrid.tsx`. All chart instances read this constant; changing it in one place resizes charts everywhere.
+
+### Changed
+- **ProfileSidebar** — D1 and D9 charts now stack vertically (was side-by-side) giving each chart 200 px. Profile info now shows gender and current location in addition to DOB, time, and birthplace.
+- **CareerTab** — D10 chart and career analysis are now side-by-side (`flex-row` on sm+), making better use of horizontal space.
+- **DashaTab** — Maha Dasha timeline rows are now accordion buttons. Clicking a row expands its `antardashas[]` array (if provided by sidecar). Current maha row auto-expands on load. Current antardasha sub-row is highlighted.
+- **PatternsTab** — Yogas changed from single-column to `grid-cols-2` on sm+. Doshas changed from single-column to `grid-cols-2` on sm+.
+
+---
+
 ## [2026-05-18] — Sidebar layout, dedicated Dasha/Transits/Career tabs, 4-per-row divisional charts
 
 ### Added

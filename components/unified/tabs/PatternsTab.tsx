@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { SIGNS_ORDER } from "@/components/unified/types";
+import type { SignName } from "@/components/unified/types";
+import { SavChartGrid } from "@/components/unified/SavChartGrid";
 import { cn } from "@/lib/utils";
 
 const MAJOR_YOGAS = new Set([
@@ -82,7 +84,7 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
           {yogas.length === 0 ? (
             <p className="text-xs text-muted-foreground italic">No yoga data available.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {yogas.map((y, i) => (
                 <div
                   key={`${y.name}-${i}`}
@@ -122,7 +124,7 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
       {activeTab === 'doshas' && (
         <section>
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Doshas</h3>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className={`p-3 rounded-lg border ${kaalSarpa ? "border-red-500/40 bg-red-500/5" : "border-[var(--color-border)] bg-[var(--color-surface-1)]"}`}>
               <p className="font-semibold text-sm text-[var(--color-ink-1)]">Kaal Sarpa</p>
               {kaalSarpa ? (
@@ -292,36 +294,15 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
           </h3>
 
           {sav && (
-            <div className="mb-4 overflow-x-auto">
-              <p className="text-xs uppercase text-muted-foreground mb-1">Sarvashtakavarga (SAV)</p>
-              <table className="text-xs border-collapse">
-                <thead>
-                  <tr>
-                    {SIGNS_ORDER.map(s => (
-                      <th key={s} className="py-1 px-1.5 text-center text-xs text-muted-foreground font-medium">
-                        {s.slice(0, 3)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    {SIGNS_ORDER.map(s => {
-                      const val = sav[s] ?? 0;
-                      return (
-                        <td
-                          key={s}
-                          className={`py-1.5 px-1.5 text-center font-bold font-mono ${
-                            val >= 28 ? "text-emerald-400" : val < 22 ? "text-red-400" : "text-muted-foreground"
-                          }`}
-                        >
-                          {val}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                </tbody>
-              </table>
+            <div className="mb-6">
+              <SavChartGrid
+                sav={sav}
+                lagnaSign={
+                  ((chartOutput?.data as Record<string, unknown> | undefined)
+                    ?.lagna as Record<string, unknown> | undefined)
+                    ?.sign as SignName | undefined
+                }
+              />
             </div>
           )}
 

@@ -5,6 +5,10 @@ import {
 } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 
+// Single source-of-truth for chart dimensions.
+// Change CHART_SIZE_PX here and all charts in the app resize together.
+export const CHART_SIZE_PX = 200;
+
 // Fixed positions in the South Indian 4×4 grid.
 // CSS grid-area: "row-start / col-start / row-end / col-end" (1-indexed)
 const SIGN_GRID_AREA: Record<SignName, string> = {
@@ -76,7 +80,7 @@ export function NatalChartGrid({
   const pad       = compact ? "p-0.5"       : "p-1";
 
   return (
-    <div className="w-full">
+    <div style={{ width: CHART_SIZE_PX }} className="flex-shrink-0">
       {label && (
         <p className={cn(
           "font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1.5",

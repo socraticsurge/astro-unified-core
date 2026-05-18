@@ -32,28 +32,26 @@ export function CareerTab({
   } | null;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col sm:flex-row gap-6 items-start">
 
-      {/* D10 chart */}
+      {/* D10 chart — left column */}
       {planets && (
-        <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            D10 — Dashamsha (Career Chart)
-          </h3>
-          <div className="max-w-[200px]">
-            <NatalChartGrid
-              planets={planets}
-              lagnaSign={lagnaD10}
-              signKey="d10_sign"
-              label="D10"
-            />
-          </div>
-        </section>
+        <div className="flex-shrink-0">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            D10 — Dashamsha
+          </p>
+          <NatalChartGrid
+            planets={planets}
+            lagnaSign={lagnaD10}
+            signKey="d10_sign"
+            label="D10"
+          />
+        </div>
       )}
 
-      {/* Career analysis */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
+      {/* Career analysis — right column */}
+      <div className="flex-1 space-y-4 min-w-0">
+        <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Career Analysis
           </h3>
@@ -114,7 +112,7 @@ export function CareerTab({
             )}
           </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }
