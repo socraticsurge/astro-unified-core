@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { DashboardClient } from "@/app/dashboard/DashboardClient";
@@ -30,6 +31,7 @@ export default async function DashboardPage({
     <DashboardClient
       profiles={profiles}
       initialProfileId={initialProfileId}
+      isAdmin={isAdmin(session)}
     />
   );
 }

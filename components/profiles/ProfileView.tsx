@@ -1,5 +1,6 @@
 "use client"
 import { useState } from 'react'
+import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Profile, CompatibilityCheck } from '@/lib/db'
 import { TodayTab }          from '@/components/tabs/TodayTab'
@@ -15,7 +16,7 @@ import { TransitsTab }       from '@/components/unified/tabs/TransitsTab'
 import { CareerTab }         from '@/components/unified/tabs/CareerTab'
 import type { AskContext }   from '@/components/panels/AskPanel'
 
-type ChartTabId =
+export type ChartTabId =
   | 'today' | 'planets' | 'divisional'
   | 'yogas' | 'jaimini' | 'ashtakavarga'
   | 'dasha' | 'transits' | 'career' | 'compare'
@@ -33,6 +34,13 @@ const CHART_TABS: { id: ChartTabId; label: string }[] = [
   { id: 'compare',      label: 'Marriage Compatibility' },
 ]
 
+export interface AIOpenPayload {
+  activeTab:      ChartTabId
+  tabLabel:       string
+  compareCheckId: string | null
+  partnerName:    string | null
+}
+
 interface ProfileViewProps {
   profile: Profile
   allProfiles: Profile[]
@@ -44,6 +52,8 @@ interface ProfileViewProps {
   onFetchTransit: (force?: boolean) => void
   onFetchCareer: (force?: boolean) => void
   onAskOpen: (context?: Partial<AskContext>) => void
+  onAIOpen?: (payload: AIOpenPayload) => void
+  isAdmin?: boolean
   defaultTab?: ChartTabId
 }
 
@@ -58,11 +68,27 @@ export function ProfileView({
   onFetchTransit,
   onFetchCareer,
   onAskOpen,
+  onAIOpen,
+  isAdmin = false,
   defaultTab = 'today',
 }: ProfileViewProps) {
   const [activeTab, setActiveTab] = useState<ChartTabId>(defaultTab)
   const [compareSelectedId, setCompareSelectedId] = useState<string>("")
   const [compareResult, setCompareResult] = useState<CompatibilityCheck | null>(null)
+
+  const handleAIOpen = () => {
+    if (!onAIOpen) return
+    const tabEntry = CHART_TABS.find(t => t.id === activeTab)
+    if (activeTab === 'compare') {
+      const partnerId = compareResult
+        ? (compareResult.profile_id_1 === profile.id ? compareResult.profile_id_2 : compareResult.profile_id_1)
+        : null
+      const partner = partnerId ? allProfiles.find(p => p.id === partnerId) : null
+      onAIOpen({ activeTab, tabLabel: tabEntry?.label ?? 'Compare', compareCheckId: compareResult?.id ?? null, partnerName: partner?.name ?? null })
+    } else {
+      onAIOpen({ activeTab, tabLabel: tabEntry?.label ?? activeTab, compareCheckId: null, partnerName: null })
+    }
+  }
 
   const handleAskFromInsight = (insight?: TodayInsight) => {
     const data = chartOutput?.data as Record<string, unknown> | undefined
@@ -80,31 +106,44 @@ export function ProfileView({
   return (
     <div className="h-full flex flex-col min-h-0">
       {/* Tab bar */}
-      <div
-        role="tablist"
-        className="flex-shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-[var(--color-border)]"
-      >
-        <div className="flex min-w-max">
-          {CHART_TABS.map(t => (
-            <button
-              key={t.id}
-              id={`profileview-tab-${t.id}`}
-              role="tab"
-              type="button"
-              aria-selected={activeTab === t.id}
-              aria-controls={`profileview-panel-${t.id}`}
-              onClick={() => setActiveTab(t.id)}
-              className={cn(
-                'px-4 py-3 text-xs font-medium whitespace-nowrap border-b-2 -mb-px transition-colors',
-                activeTab === t.id
-                  ? 'border-[var(--color-nav-chip-active-text)] text-[var(--color-ink-1)]'
-                  : 'border-transparent text-muted-foreground hover:text-[var(--color-ink-2)]'
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
+      <div className="flex-shrink-0 flex items-stretch border-b border-[var(--color-border)]">
+        <div
+          role="tablist"
+          className="flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="flex min-w-max">
+            {CHART_TABS.map(t => (
+              <button
+                key={t.id}
+                id={`profileview-tab-${t.id}`}
+                role="tab"
+                type="button"
+                aria-selected={activeTab === t.id}
+                aria-controls={`profileview-panel-${t.id}`}
+                onClick={() => setActiveTab(t.id)}
+                className={cn(
+                  'px-4 py-3 text-xs font-medium whitespace-nowrap border-b-2 -mb-px transition-colors',
+                  activeTab === t.id
+                    ? 'border-[var(--color-nav-chip-active-text)] text-[var(--color-ink-1)]'
+                    : 'border-transparent text-muted-foreground hover:text-[var(--color-ink-2)]'
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={handleAIOpen}
+            title="Open AI Assistant"
+            className="shrink-0 flex items-center gap-1 px-3 border-l border-[var(--color-border)] text-[11px] font-medium text-muted-foreground hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] transition-colors"
+          >
+            <Sparkles className="h-3 w-3 text-violet-400" />
+            AI
+          </button>
+        )}
       </div>
 
       {/* Tab content */}

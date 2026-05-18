@@ -2,14 +2,18 @@
 import { useState, useEffect, useCallback } from "react"
 import { NavBar } from "@/components/NavBar"
 import { ProfileView } from "@/components/profiles/ProfileView"
+import type { AIOpenPayload } from "@/components/profiles/ProfileView"
 import { ProfileSidebar } from "@/components/profiles/ProfileSidebar"
 import { AskPanel } from "@/components/panels/AskPanel"
 import type { AskContext } from "@/components/panels/AskPanel"
+import { AIAdminPanel } from "@/components/panels/AIAdminPanel"
+import type { AIPanelContext } from "@/components/panels/AIAdminPanel"
 import type { Profile } from "@/lib/db"
 
 interface DashboardClientProps {
   profiles: Profile[]
   initialProfileId?: string
+  isAdmin?: boolean
 }
 
 type EngineState<T> = { data: T | null; loading: boolean; error: string | null }
@@ -18,7 +22,7 @@ function initState<T>(): EngineState<T> {
   return { data: null, loading: false, error: null }
 }
 
-export function DashboardClient({ profiles, initialProfileId }: DashboardClientProps) {
+export function DashboardClient({ profiles, initialProfileId, isAdmin = false }: DashboardClientProps) {
   const [activeProfileId, setActiveProfileId] = useState<string | null>(
     initialProfileId ?? profiles[0]?.id ?? null
   )
@@ -27,6 +31,8 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
   const [career,  setCareer]  = useState(initState<Record<string, unknown>>())
   const [askOpen, setAskOpen] = useState(false)
   const [askCtx,  setAskCtx]  = useState<Partial<AskContext>>({})
+  const [aiOpen,  setAiOpen]  = useState(false)
+  const [aiCtx,   setAiCtx]   = useState<AIPanelContext | null>(null)
 
   const activeProfile = profiles.find(p => p.id === activeProfileId) ?? null
 
@@ -35,6 +41,7 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
     setChart({ data: null, loading: true, error: null })
     setTransit(initState())
     setCareer(initState())
+    setAiOpen(false)
 
     fetch(`/api/readings/dashaflow?profile_id=${activeProfileId}`)
       .then(r => r.json())
@@ -63,6 +70,19 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
       .then(data => setCareer({ data: data.output ?? null, loading: false, error: data.error ?? null }))
       .catch(e => setCareer({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId, career.data])
+
+  const handleAIOpen = useCallback((payload: AIOpenPayload) => {
+    if (!activeProfile) return
+    setAiCtx({
+      profileId:      activeProfile.id,
+      profileName:    activeProfile.name,
+      activeTab:      payload.activeTab,
+      tabLabel:       payload.tabLabel,
+      compareCheckId: payload.compareCheckId,
+      partnerName:    payload.partnerName,
+    })
+    setAiOpen(true)
+  }, [activeProfile])
 
   const handleAskOpen = useCallback((ctx?: Partial<AskContext>) => {
     const data = chart.data?.data as Record<string, unknown> | undefined
@@ -129,6 +149,8 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
                 onFetchTransit={fetchTransit}
                 onFetchCareer={fetchCareer}
                 onAskOpen={handleAskOpen}
+                onAIOpen={handleAIOpen}
+                isAdmin={isAdmin}
               />
             </div>
           ) : (
@@ -151,6 +173,14 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
           insightTitle: askCtx.insightTitle,
         }}
       />
+
+      {isAdmin && (
+        <AIAdminPanel
+          open={aiOpen}
+          onClose={() => setAiOpen(false)}
+          context={aiCtx}
+        />
+      )}
     </div>
   )
 }
