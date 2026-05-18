@@ -35,9 +35,9 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
     setTransit(initState())
     setCareer(initState())
 
-    fetch(`/api/readings/dashaflow?profileId=${activeProfileId}`)
+    fetch(`/api/readings/dashaflow?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setChart({ data, loading: false, error: null }))
+      .then(data => setChart({ data: data.output ?? null, loading: false, error: data.error ?? null }))
       .catch(e => setChart({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId])
 
@@ -46,9 +46,9 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
     if (transit.data && !force) return
     setTransit(s => ({ ...s, loading: true }))
 
-    fetch(`/api/readings/transit?profileId=${activeProfileId}`)
+    fetch(`/api/readings/transit?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setTransit({ data, loading: false, error: null }))
+      .then(data => setTransit({ data: data.output ?? null, loading: false, error: data.error ?? null }))
       .catch(e => setTransit({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId, transit.data])
 
@@ -57,9 +57,9 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
     if (career.data && !force) return
     setCareer(s => ({ ...s, loading: true }))
 
-    fetch(`/api/readings/career?profileId=${activeProfileId}`)
+    fetch(`/api/readings/career?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setCareer({ data, loading: false, error: null }))
+      .then(data => setCareer({ data: data.output ?? null, loading: false, error: data.error ?? null }))
       .catch(e => setCareer({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId, career.data])
 
