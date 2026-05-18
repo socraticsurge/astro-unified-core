@@ -73,6 +73,19 @@
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-danger: var(--color-danger);
+
+  /* ── Dignity scale ── */
+  --color-dignity-exalted:     var(--color-dignity-exalted);
+  --color-dignity-mooltrikona: var(--color-dignity-mooltrikona);
+  --color-dignity-own:         var(--color-dignity-own);
+  --color-dignity-friend:      var(--color-dignity-friend);
+  --color-dignity-neutral:     var(--color-dignity-neutral);
+  --color-dignity-enemy:       var(--color-dignity-enemy);
+  --color-dignity-debilitated: var(--color-dignity-debilitated);
+
+  /* ── Planet state indicators ── */
+  --color-planet-retrograde:   var(--color-planet-retrograde);
+  --color-planet-combust:      var(--color-planet-combust);
 }
 
 /* ── Fallback root (shadcn needs a base :root) ── */
@@ -125,6 +138,19 @@
   --color-success:         rgba(52,211,153,0.9);
   --color-warning:         rgba(251,191,36,0.9);
   --color-danger:          rgba(248,113,113,0.9);
+
+  /* ── Dignity scale ── */
+  --color-dignity-exalted:     oklch(0.79 0.15 162);
+  --color-dignity-mooltrikona: oklch(0.84 0.12 162);
+  --color-dignity-own:         oklch(0.80 0.13 220);
+  --color-dignity-friend:      oklch(0.85 0.10 220);
+  --color-dignity-neutral:     oklch(0.70 0.00 0);
+  --color-dignity-enemy:       oklch(0.78 0.13 55);
+  --color-dignity-debilitated: oklch(0.65 0.20 25);
+
+  /* ── Planet state indicators ── */
+  --color-planet-retrograde:   oklch(0.78 0.13 55);
+  --color-planet-combust:      oklch(0.65 0.20 25);
 
   /* Shape */
   --radius-sm:             12px;
@@ -268,6 +294,19 @@
   --color-success:         #166534;
   --color-warning:         #92400E;
   --color-danger:          #991B1B;
+
+  /* ── Dignity scale ── */
+  --color-dignity-exalted:     #166534;
+  --color-dignity-mooltrikona: #15803D;
+  --color-dignity-own:         #0369A1;
+  --color-dignity-friend:      #0284C7;
+  --color-dignity-neutral:     #57534E;
+  --color-dignity-enemy:       #B45309;
+  --color-dignity-debilitated: #991B1B;
+
+  /* ── Planet state indicators ── */
+  --color-planet-retrograde:   #B45309;
+  --color-planet-combust:      #991B1B;
 
   /* Shape */
   --radius-sm:             0px;
