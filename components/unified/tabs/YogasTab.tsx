@@ -82,7 +82,7 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
           </div>
 
           {grahaYuddha.length > 0 && (
-            <div className="p-3 rounded-lg border border-orange-500/30 bg-orange-500/5">
+            <div className="p-3 rounded-lg border border-warning/30 bg-warning/5">
               <p className="font-semibold text-sm text-[var(--color-ink-1)] mb-2">
                 Graha Yuddha — Planetary Wars ({grahaYuddha.length})
               </p>

@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PLANET_ORDER } from "@/components/unified/types";
+import { PLANET_ORDER, TABLE_STYLES } from "@/components/unified/types";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 
 export function TransitsTab({
@@ -74,7 +74,7 @@ export function TransitsTab({
                 <thead>
                   <tr className="border-b border-[var(--color-border)]">
                     {["Planet", "Transit Sign", "H/Lagna", "H/Moon", "SAV"].map(h => (
-                      <th key={h} className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">{h}</th>
+                      <th key={h} className={TABLE_STYLES.th}>{h}</th>
                     ))}
                   </tr>
                 </thead>
