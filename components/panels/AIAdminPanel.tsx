@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { ModelPicker } from "@/components/ui/ModelPicker"
 import { AIInsightCard } from "@/components/engines/AIInsightCard"
@@ -9,7 +9,9 @@ import { DEFAULT_INSIGHT_MODEL, DEFAULT_CHAT_MODEL, type AiModelKey } from "@/li
 import type { TabInsight, InsightTab } from "@/lib/ai-insight"
 import type { ChartTabId } from "@/components/profiles/ProfileView"
 
+// today → natal so the panel works on every tab
 const CHART_TAB_TO_INSIGHT: Partial<Record<ChartTabId, InsightTab>> = {
+  today:        "natal",
   planets:      "natal",
   divisional:   "vargas",
   yogas:        "natal",
@@ -54,18 +56,18 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
   const [summaryError,    setSummaryError]    = useState<string | null>(null)
 
   // Chat
-  const [messages,     setMessages]     = useState<Message[]>([])
-  const [chatInput,    setChatInput]    = useState("")
-  const [chatLoading,  setChatLoading]  = useState(false)
-  const [chatError,    setChatError]    = useState<string | null>(null)
+  const [messages,    setMessages]    = useState<Message[]>([])
+  const [chatInput,   setChatInput]   = useState("")
+  const [chatLoading, setChatLoading] = useState(false)
+  const [chatError,   setChatError]   = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const isCompare   = context?.activeTab === "compare"
-  const insightTab  = context ? CHART_TAB_TO_INSIGHT[context.activeTab] : null
-  const hasSummary  = isCompare ? !!context?.compareCheckId : !!insightTab
-  const hasChat     = isCompare ? !!context?.compareCheckId : !!context?.profileId
+  const isCompare  = context?.activeTab === "compare"
+  const insightTab = context ? CHART_TAB_TO_INSIGHT[context.activeTab] : null
+  const hasSummary = isCompare ? !!context?.compareCheckId : !!insightTab
+  const hasChat    = isCompare ? !!context?.compareCheckId : !!context?.profileId
 
-  // Reset everything when the meaningful context changes (profile, tab, or compare check)
+  // Reset everything when the meaningful context changes
   const contextKey = context
     ? `${context.profileId}|${context.activeTab}|${context.compareCheckId ?? ""}`
     : ""
@@ -80,7 +82,7 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
     setChatError(null)
   }, [contextKey])
 
-  // Cache check whenever the panel opens or context changes
+  // Cache check whenever panel opens or context changes
   useEffect(() => {
     if (!open || !context || !hasSummary) return
     let cancelled = false
@@ -103,7 +105,6 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
 
     checkCache()
     return () => { cancelled = true }
-  // contextKey captures all the deps we care about; open re-triggers on panel open
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, contextKey])
 
@@ -161,7 +162,6 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Switch to DEFAULT_CHAT_MODEL when entering chat, DEFAULT_INSIGHT_MODEL for summary
   useEffect(() => {
     setModel(subTab === "chat" ? DEFAULT_CHAT_MODEL : DEFAULT_INSIGHT_MODEL)
   }, [subTab])
@@ -174,24 +174,31 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={isOpen => { if (!isOpen) onClose() }}>
-      <SheetContent side="right" className="sm:max-w-sm w-full flex flex-col overflow-hidden p-0 gap-0">
-
-        {/* Header */}
-        <SheetHeader className="px-4 pt-4 pb-3 shrink-0 border-b border-[var(--color-border)]">
-          <SheetTitle className="flex items-center gap-1.5 text-sm font-semibold">
-            <Sparkles className="h-3.5 w-3.5 text-violet-400 shrink-0" />
-            AI Assistant
-          </SheetTitle>
-          {breadcrumb && (
-            <p className="text-[11px] text-muted-foreground">{breadcrumb}</p>
-          )}
-          <div className="flex items-center justify-between pt-1">
+      <SheetContent
+        side="right"
+        className="sm:max-w-sm w-full flex flex-col p-0 gap-0 overflow-hidden"
+      >
+        {/* ── Fixed header ── */}
+        <div className="shrink-0 px-4 pt-5 pb-0 border-b border-[var(--color-border)]">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <SheetTitle className="flex items-center gap-1.5 text-sm font-semibold">
+                <Sparkles className="h-3.5 w-3.5 text-violet-400 shrink-0" />
+                AI Assistant
+              </SheetTitle>
+              {breadcrumb && (
+                <p className="text-[11px] text-muted-foreground mt-0.5">{breadcrumb}</p>
+              )}
+            </div>
             <ModelPicker value={model} onChange={setModel} disabled={summaryLoading || chatLoading} />
           </div>
-          <div className="flex gap-0 -mb-3 -mx-4 px-4">
+
+          {/* Sub-tab switcher */}
+          <div className="flex gap-0">
             {(["summary", "chat"] as const).map(t => (
               <button
                 key={t}
+                type="button"
                 onClick={() => setSubTab(t)}
                 className={`px-4 py-2 text-xs font-medium capitalize border-b-2 transition-colors ${
                   subTab === t
@@ -199,13 +206,13 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
                     : "border-transparent text-muted-foreground hover:text-[var(--color-ink-2)]"
                 }`}
               >
-                {t === "chat" ? "Chat" : "Summary"}
+                {t === "summary" ? "Summary" : "Chat"}
               </button>
             ))}
           </div>
-        </SheetHeader>
+        </div>
 
-        {/* Summary sub-tab */}
+        {/* ── Summary sub-tab ── */}
         {subTab === "summary" && (
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {!hasSummary ? (
@@ -255,22 +262,21 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
           </div>
         )}
 
-        {/* Chat sub-tab */}
+        {/* ── Chat sub-tab ── */}
         {subTab === "chat" && (
           <div className="flex-1 flex flex-col overflow-hidden">
             {!hasChat ? (
               <p className="p-4 text-xs text-muted-foreground italic">
-                {isCompare ? "Run a compatibility check first." : "No chat available for this tab."}
+                {isCompare ? "Run a compatibility check first." : "No chat available."}
               </p>
             ) : (
               <>
-                {/* Message list */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {messages.length === 0 && (
                     <p className="text-xs text-muted-foreground italic text-center pt-8">
                       {isCompare
                         ? `Ask about the compatibility between ${context?.profileName} and ${context?.partnerName ?? "?"}.`
-                        : `Ask about the ${context?.tabLabel ?? ""} tab for ${context?.profileName ?? ""}.`}
+                        : `Ask anything about ${context?.profileName ?? ""}'s chart.`}
                     </p>
                   )}
                   {messages.map((m, i) => (
@@ -296,7 +302,6 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input */}
                 <div className="shrink-0 p-3 border-t border-[var(--color-border)] flex gap-2 items-end">
                   <textarea
                     value={chatInput}
@@ -320,7 +325,6 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
             )}
           </div>
         )}
-
       </SheetContent>
     </Sheet>
   )
