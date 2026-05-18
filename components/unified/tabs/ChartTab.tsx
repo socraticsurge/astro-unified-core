@@ -49,7 +49,7 @@ export function ChartTab({ chartOutput }: { chartOutput: Record<string, unknown>
       {panchang && (
         <section>
           <SectionHeading>Panchang at Birth</SectionHeading>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="p-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] flex flex-wrap gap-x-6 gap-y-2 items-center text-sm">
             {[
               { label: "Tithi",     value: `${panchang.tithi?.name ?? ""}${panchang.tithi?.paksha ? ` · ${panchang.tithi.paksha}` : ""}` },
               { label: "Vara",      value: `${panchang.vara?.name ?? ""} · ${panchang.vara?.lord ?? ""}` },
@@ -57,9 +57,9 @@ export function ChartTab({ chartOutput }: { chartOutput: Record<string, unknown>
               { label: "Yoga",      value: panchang.yoga?.name ?? "" },
               { label: "Karana",    value: panchang.karana ?? "" },
             ].map(({ label, value }) => (
-              <div key={label} className="p-2.5 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)]">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</p>
-                <p className="text-sm font-medium text-[var(--color-ink-1)]">{value || "—"}</p>
+              <div key={label} className="flex flex-col">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">{label}</span>
+                <span className="font-semibold text-[var(--color-ink-1)]">{value || "—"}</span>
               </div>
             ))}
           </div>

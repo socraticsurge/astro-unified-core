@@ -38,9 +38,7 @@ export function CareerTab({
       {/* D10 chart — left column */}
       {planets && (
         <div className="flex-shrink-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            D10 — Dashamsha
-          </p>
+          <SectionHeading>D10 — Dashamsha</SectionHeading>
           <NatalChartGrid
             planets={planets}
             lagnaSign={lagnaD10}

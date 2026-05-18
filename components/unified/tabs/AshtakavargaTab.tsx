@@ -41,18 +41,18 @@ export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, u
                 <tr className="border-b border-[var(--color-border)]">
                   <th className={th}>Planet</th>
                   {SIGNS_ORDER.map(s => (
-                    <th key={s} className="py-1.5 px-1.5 text-center text-xs font-medium text-muted-foreground">
+                    <th key={s} className={`${th} text-center px-1.5`}>
                       {s.slice(0, 3)}
                     </th>
                   ))}
-                  <th className="py-1.5 px-2 text-center text-xs font-medium text-muted-foreground">Σ</th>
+                  <th className={`${th} text-center`}>Σ</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(bav).map(([planet, scores]) => {
                   const total = SIGNS_ORDER.reduce((acc, sign) => acc + (scores[sign] ?? 0), 0);
                   return (
-                    <tr key={planet} className="border-b border-[var(--color-border)]/40">
+                    <tr key={planet} className={TABLE_STYLES.row}>
                       <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-2)]">{planet}</td>
                       {SIGNS_ORDER.map(sign => {
                         const val = scores[sign] ?? 0;

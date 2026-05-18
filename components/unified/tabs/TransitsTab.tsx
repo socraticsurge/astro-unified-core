@@ -84,7 +84,7 @@ export function TransitsTab({
                     if (!p) return null;
                     const savVal = p.sav_points ?? 0;
                     return (
-                      <tr key={name} className="border-b border-[var(--color-border)]/40">
+                      <tr key={name} className={TABLE_STYLES.row}>
                         <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">
                           {name}
                           {p.is_retrograde && <span className="ml-1 text-planet-retrograde">℞</span>}
