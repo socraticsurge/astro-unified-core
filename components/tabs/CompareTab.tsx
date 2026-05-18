@@ -76,10 +76,10 @@ function ScoreArc({ score }: { score: number }) {
 // ── Result pill ───────────────────────────────────────────────────────────────
 
 function ResultPill({ result }: { result?: string }) {
-  if (result === "good")       return <span className="text-xs font-semibold text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />Auspicious</span>
-  if (result === "bad")        return <span className="text-xs font-semibold text-danger flex items-center gap-1"><XCircle className="h-3 w-3" />Inauspicious</span>
-  if (result === "acceptable") return <span className="text-xs font-semibold text-warning flex items-center gap-1"><MinusCircle className="h-3 w-3" />Moderate</span>
-  return <span className="text-xs text-muted-foreground flex items-center gap-1"><MinusCircle className="h-3 w-3" />Neutral</span>
+  if (result === "good")       return <span className="text-xs font-medium text-success">Auspicious</span>
+  if (result === "bad")        return <span className="text-xs font-medium text-danger">Inauspicious</span>
+  if (result === "acceptable") return <span className="text-xs font-medium text-warning">Moderate</span>
+  return <span className="text-xs text-muted-foreground">Neutral</span>
 }
 
 // ── Full inline result ────────────────────────────────────────────────────────
@@ -198,34 +198,25 @@ function FullResult({ check, groomProfile, brideProfile }: {
       {/* Dosha summary */}
       <section>
         <SectionHeading>Doshas</SectionHeading>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border p-3 space-y-1"
-            style={{
-              borderColor: hasManglik ? "var(--color-danger-border)"  : "var(--color-success-border)",
-              background:  hasManglik ? "var(--color-danger-faint)"   : "var(--color-success-faint)",
-            }}>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Mangal Dosha</p>
-            <p className="text-sm font-semibold" style={{ color: hasManglik ? "var(--color-danger)" : "var(--color-success)" }}>
+        <div className="divide-y divide-[var(--color-border)]/40">
+          <div className="flex items-start justify-between gap-4 py-2.5 text-xs">
+            <div className="space-y-0.5">
+              <span className="text-[var(--color-ink-2)]">Mangal Dosha</span>
+              {kujaDosha?.male?.is_manglik   && <p className="text-muted-foreground">{groomProfile.name} is Manglik</p>}
+              {kujaDosha?.female?.is_manglik && <p className="text-muted-foreground">{brideProfile.name} is Manglik</p>}
+              {kujaDosha?.compatibility?.description && (
+                <p className="text-muted-foreground leading-relaxed">{kujaDosha.compatibility.description}</p>
+              )}
+            </div>
+            <span className={`font-semibold shrink-0 ${hasManglik ? "text-danger" : "text-success"}`}>
               {hasManglik ? "Present" : "Not Present"}
-            </p>
-            {kujaDosha?.male?.is_manglik   && <p className="text-[10px] text-muted-foreground">{groomProfile.name} is Manglik</p>}
-            {kujaDosha?.female?.is_manglik && <p className="text-[10px] text-muted-foreground">{brideProfile.name} is Manglik</p>}
-            {kujaDosha?.compatibility?.description && (
-              <p className="text-[10px] text-muted-foreground leading-relaxed">{kujaDosha.compatibility.description}</p>
-            )}
+            </span>
           </div>
-          <div className="rounded-lg border p-3 space-y-1"
-            style={{
-              borderColor: hasBhakoot ? "var(--color-danger-border)"  : "var(--color-success-border)",
-              background:  hasBhakoot ? "var(--color-danger-faint)"   : "var(--color-success-faint)",
-            }}>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Bhakoot Dosha</p>
-            <p className="text-sm font-semibold" style={{ color: hasBhakoot ? "var(--color-danger)" : "var(--color-success)" }}>
+          <div className="flex items-center justify-between gap-4 py-2.5 text-xs">
+            <span className="text-[var(--color-ink-2)]">Bhakoot Dosha</span>
+            <span className={`font-semibold ${hasBhakoot ? "text-danger" : "text-success"}`}>
               {hasBhakoot ? "Present" : "Not Present"}
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              {hasBhakoot ? "Unfavourable lunar alignment" : "Auspicious"}
-            </p>
+            </span>
           </div>
         </div>
       </section>
@@ -234,36 +225,39 @@ function FullResult({ check, groomProfile, brideProfile }: {
       {kujaDosha && (kujaDosha.male?.breakdown || kujaDosha.female?.breakdown) && (
         <section>
           <SectionHeading>Kuja Dosha Detail</SectionHeading>
-          <p className="text-[10px] text-muted-foreground mb-2">Mars · Saturn · Rahu · Ketu · Sun in houses 2 · 4 · 7 · 8 · 12</p>
-          <div className="grid grid-cols-2 divide-x divide-[var(--color-border)]">
-            {([
-              { label: groomProfile.name ?? "Groom", dosha: kujaDosha.male,   tokenColor: "var(--color-compat-groom)" },
-              { label: brideProfile.name  ?? "Bride", dosha: kujaDosha.female, tokenColor: "var(--color-compat-bride)" },
-            ] as const).map(({ label, dosha, tokenColor }) => (
-              <div key={label} className="pr-4 pl-1 first:pl-0 py-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold" style={{ color: tokenColor }}>{label}</span>
-                  <span className="text-[10px] font-semibold" style={{ color: dosha?.is_manglik ? "var(--color-danger)" : "var(--color-success)" }}>
-                    {dosha?.is_manglik ? "Manglik" : "Not Manglik"}
-                  </span>
-                </div>
-                {dosha?.breakdown && Object.keys(dosha.breakdown).length > 0 ? (
-                  <div className="space-y-1">
-                    {Object.entries(dosha.breakdown).map(([planet, entry]) => (
-                      <div key={planet} className="flex items-center justify-between text-[10px] rounded px-2 py-1"
-                        style={{ background: "var(--color-danger-faint)", border: "1px solid var(--color-danger-border)" }}>
-                        <span className="font-medium text-danger">{planet}</span>
-                        <span className="text-muted-foreground">H{entry.house} · {entry.sign}</span>
-                        <span className="text-danger font-semibold">+{entry.score}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-muted-foreground/50 italic">No contributing planets</p>
-                )}
-              </div>
-            ))}
-          </div>
+          <p className="text-[10px] text-muted-foreground mb-3">Mars · Saturn · Rahu · Ketu · Sun in houses 2 · 4 · 7 · 8 · 12</p>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-[var(--color-border)]">
+                <th className={th}>Person</th>
+                <th className={th}>Planet</th>
+                <th className={th}>House · Sign</th>
+                <th className={`${th} text-right`}>Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {([
+                { label: groomProfile.name ?? "Groom", dosha: kujaDosha.male },
+                { label: brideProfile.name  ?? "Bride", dosha: kujaDosha.female },
+              ] as const).map(({ label, dosha }) =>
+                dosha?.breakdown && Object.keys(dosha.breakdown).length > 0
+                  ? Object.entries(dosha.breakdown).map(([planet, entry], i) => (
+                    <tr key={`${label}-${planet}`} className={row}>
+                      <td className={`${td} text-muted-foreground`}>{i === 0 ? label : ""}</td>
+                      <td className={`${td} text-planet-name`}>{planet}</td>
+                      <td className={td}>H{entry.house} · {entry.sign}</td>
+                      <td className={`${td} text-right text-danger font-semibold`}>+{entry.score}</td>
+                    </tr>
+                  ))
+                  : [(
+                    <tr key={label} className={row}>
+                      <td className={`${td} text-muted-foreground`}>{label}</td>
+                      <td colSpan={3} className={`${td} text-muted-foreground/50 italic`}>No contributing planets</td>
+                    </tr>
+                  )]
+              )}
+            </tbody>
+          </table>
         </section>
       )}
 
@@ -283,9 +277,9 @@ function FullResult({ check, groomProfile, brideProfile }: {
                   </div>
                   {(kuta.male || kuta.female) && (
                     <p className="text-[10px] text-muted-foreground">
-                      <span style={{ color: "var(--color-compat-groom)" }}>{groomProfile.name}: {kuta.male}</span>
+                      <span>{groomProfile.name}: {kuta.male}</span>
                       <span className="mx-1.5 text-muted-foreground/30">·</span>
-                      <span style={{ color: "var(--color-compat-bride)" }}>{brideProfile.name}: {kuta.female}</span>
+                      <span>{brideProfile.name}: {kuta.female}</span>
                     </p>
                   )}
                   {kuta.description && <p className="text-[10px] text-muted-foreground">{kuta.description}</p>}
@@ -305,8 +299,8 @@ function FullResult({ check, groomProfile, brideProfile }: {
           <SectionHeading>Dosha Mitigations</SectionHeading>
           <ul className="space-y-2 pt-1">
             {exceptions.map((ex, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-[var(--color-ink-3)]">
-                <CheckCircle2 className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />{ex}
+              <li key={i} className="text-xs text-[var(--color-ink-3)] flex gap-2">
+                <span className="text-muted-foreground/50 shrink-0">·</span>{ex}
               </li>
             ))}
           </ul>
