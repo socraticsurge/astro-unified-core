@@ -37,4 +37,13 @@ describe('DashaRow', () => {
     render(<DashaRow entry={mahaEntry} level={0} defaultExpanded={true} />)
     expect(screen.getByText('● now')).toBeInTheDocument()
   })
+
+  it('renders a leaf row without aria-expanded and does not throw on click', async () => {
+    const leaf = { planet: 'Rahu', start: '2022-01-01', end: '2023-01-01', isCurrentPeriod: false }
+    render(<DashaRow entry={leaf} level={0} />)
+    const btn = screen.getByRole('button')
+    expect(btn).not.toHaveAttribute('aria-expanded')
+    await userEvent.click(btn)
+    expect(screen.queryByText('Moon')).not.toBeInTheDocument()
+  })
 })

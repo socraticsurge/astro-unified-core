@@ -47,6 +47,7 @@ export function DashaRow({ entry, level, defaultExpanded = false }: DashaRowProp
       <button
         type="button"
         aria-expanded={hasChildren ? expanded : undefined}
+        aria-controls={hasChildren ? `dasha-children-${entry.planet}-${level}` : undefined}
         onClick={() => hasChildren && setExpanded(e => !e)}
         className={cn(
           'w-full flex items-center gap-2 py-1.5 px-2 rounded text-left hover:bg-[var(--color-surface-1)] transition-colors',
@@ -68,14 +69,18 @@ export function DashaRow({ entry, level, defaultExpanded = false }: DashaRowProp
         )}
       </button>
 
-      {expanded && children.map((child, i) => (
-        <DashaRow
-          key={`${child.planet}-${i}`}
-          entry={child}
-          level={level + 1}
-          defaultExpanded={child.isCurrentPeriod}
-        />
-      ))}
+      {expanded && (
+        <div id={`dasha-children-${entry.planet}-${level}`}>
+          {children.map((child, i) => (
+            <DashaRow
+              key={`${level}-${i}-${child.planet}`}
+              entry={child}
+              level={level + 1}
+              defaultExpanded={child.isCurrentPeriod}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
