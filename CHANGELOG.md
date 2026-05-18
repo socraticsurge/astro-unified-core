@@ -8,6 +8,17 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — CareerTab: surface lord dignity, occupants, and D10 significator strength
+
+### Changed
+- **CareerTab** (`components/unified/tabs/CareerTab.tsx`) — expanded career analysis display using fields the sidecar already returns but were not shown:
+  - **10th House block** now shows lord dignity (colour-coded via `DIGNITY_COLORS` tokens: exalted → debilitated), lord's D1 sign, and 10th house occupants alongside the existing lord/house/D10 fields.
+  - **Significators in D10 table** (new) — one row per primary planet (10th lord + 10th house occupants), showing their D10 sign, D10 lord, and a ✓ when they are exalted or in own sign in D10. Uses shared `TABLE_STYLES` (`th`, `td`, `row`) and `text-planet-name` / `text-dignity-exalted` tokens.
+  - Career themes and Indicators sections wrapped in `SectionHeading` for visual consistency with other tabs; career theme labels now have underscores replaced with spaces.
+  - No new API calls or sidecar changes — all data was already in the `/career` response.
+
+---
+
 ## [2026-05-18] — Compare tab: inline compatibility with smart gender roles
 
 ### Changed
