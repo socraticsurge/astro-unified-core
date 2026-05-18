@@ -1,5 +1,6 @@
 "use client"
 import { useState } from 'react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { Profile } from '@/lib/db'
 import { TodayTab } from '@/components/tabs/TodayTab'
@@ -66,11 +67,12 @@ export function ProfileView({
 
   return (
     <div className="flex flex-col min-h-0">
-      {/* Tab bar */}
-      <div
-        role="tablist"
-        className="overflow-x-auto border-b border-[var(--color-border)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
+      {/* Tab bar + edit link */}
+      <div className="flex items-center border-b border-[var(--color-border)]">
+        <div
+          role="tablist"
+          className="flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
         <div className="flex min-w-max">
           {CHART_TABS.map(t => (
             <button
@@ -92,6 +94,14 @@ export function ProfileView({
             </button>
           ))}
         </div>
+        </div>
+        <Link
+          href={`/profiles/${profile.id}/edit`}
+          className="shrink-0 px-3 text-xs text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
+          title="Edit profile"
+        >
+          Edit
+        </Link>
       </div>
 
       {/* Tab content */}
@@ -118,7 +128,10 @@ export function ProfileView({
         )}
         {activeTab === 'houses' && chartOutput && (
           <div id="profileview-panel-houses" role="tabpanel" aria-labelledby="profileview-tab-houses">
-            <HousesVargasTab chartOutput={chartOutput} />
+            <HousesVargasTab
+              chartOutput={chartOutput}
+              lagnaSign={((chartOutput?.data as Record<string, unknown> | undefined)?.lagna as Record<string, unknown> | undefined)?.sign as string | undefined}
+            />
           </div>
         )}
         {activeTab === 'patterns' && chartOutput && (

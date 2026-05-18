@@ -4,8 +4,6 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PLANET_ORDER } from "@/components/unified/types";
 import { cn } from "@/lib/utils";
-import { DashaTimeline } from "@/components/unified/tabs/timeline/DashaTimeline";
-import type { DashaPeriodEntry } from "@/components/unified/tabs/timeline/DashaRow";
 
 const DASHA_LEVELS = [
   { key: "maha",       label: "Maha Dasha" },
@@ -121,15 +119,53 @@ export function TimeTab({
       {/* Timeline sub-tab */}
       {activeTab === 'timeline' && (
         <section id="timetab-panel-timeline" role="tabpanel" aria-labelledby="timetab-tab-timeline" tabIndex={0}>
-          <DashaTimeline
-            timeline={(dashas?.timeline ?? []).map(e => ({
-              planet: e.planet ?? '',
-              start: e.start ?? '',
-              end: e.end ?? '',
-              isCurrentPeriod: false,
-            }))}
-            currentMahaDasha={dashas?.maha?.planet ?? ''}
-          />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Vimshottari Maha Dasha Timeline
+          </h3>
+          {!dashas?.timeline || dashas.timeline.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">Timeline data not available.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--color-border)]">
+                    {["Planet","Start","End","Duration"].map(h => (
+                      <th key={h} className="text-left py-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashas.timeline.map((t, i) => {
+                    const isCurrent = dashas.maha?.planet === t.planet && dashas.maha?.start === t.start;
+                    const startMs = t.start ? new Date(t.start).getTime() : NaN;
+                    const endMs   = t.end   ? new Date(t.end).getTime()   : NaN;
+                    const years   = !isNaN(startMs) && !isNaN(endMs)
+                      ? ((endMs - startMs) / (365.25 * 24 * 3600 * 1000)).toFixed(1)
+                      : "—";
+                    return (
+                      <tr
+                        key={i}
+                        className={cn(
+                          "border-b border-[var(--color-border)]/50 transition-colors",
+                          isCurrent
+                            ? "bg-[var(--color-nav-chip-active-bg)]"
+                            : "hover:bg-[var(--color-surface-hover)]/20"
+                        )}
+                      >
+                        <td className={cn("py-2 px-3 font-semibold", isCurrent ? "text-[var(--color-nav-chip-active-text)]" : "text-[var(--color-ink-1)]")}>
+                          {t.planet ?? "—"}
+                          {isCurrent && <span className="ml-1.5 text-[10px] opacity-70">← now</span>}
+                        </td>
+                        <td className="py-2 px-3 font-mono text-xs text-[var(--color-ink-3)]">{t.start ?? "—"}</td>
+                        <td className="py-2 px-3 font-mono text-xs text-[var(--color-ink-3)]">{t.end ?? "—"}</td>
+                        <td className="py-2 px-3 text-xs text-muted-foreground">{years} yr</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       )}
 

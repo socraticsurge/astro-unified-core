@@ -9,7 +9,7 @@ const profiles = [
 ]
 
 describe('ProfileNav', () => {
-  it('renders first name of each profile as a chip', () => {
+  it('renders full name of each profile as a chip', () => {
     render(
       <ProfileNav
         profiles={profiles}
@@ -18,8 +18,8 @@ describe('ProfileNav', () => {
         onAskOpen={() => {}}
       />
     )
-    expect(screen.getByText('Vinay')).toBeInTheDocument()
-    expect(screen.getByText('Priya')).toBeInTheDocument()
+    expect(screen.getByText('Vinay Kumar')).toBeInTheDocument()
+    expect(screen.getByText('Priya Kumar')).toBeInTheDocument()
   })
 
   it('renders the add profile link', () => {
@@ -61,7 +61,7 @@ describe('ProfileNav', () => {
         onAskOpen={() => {}}
       />
     )
-    await userEvent.click(screen.getByText('Priya'))
+    await userEvent.click(screen.getByText('Priya Kumar'))
     expect(onProfileChange).toHaveBeenCalledWith('2')
   })
 })

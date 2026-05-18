@@ -87,7 +87,7 @@ export function generateInsights(
 
   // 5. Major yogas (up to 2)
   type Yoga = { name: string }
-  const MAJOR_YOGA_NAMES = new Set(['Malavya', 'Shasha', 'Bhadra', 'Hamsa', 'Ruchaka', 'Gajakesari', 'Raj Yoga'])
+  const MAJOR_YOGA_NAMES = new Set(['Malavya Yoga', 'Shasha Yoga', 'Bhadra Yoga', 'Hamsa Yoga', 'Ruchaka Yoga', 'Gajakesari Yoga', 'Raj Yoga', 'Lakshmi Yoga', 'Adhi Yoga'])
   const yogas = (data.yogas as Yoga[] | undefined) ?? []
   const majorYogas = yogas.filter(y => MAJOR_YOGA_NAMES.has(y.name)).slice(0, 2)
   for (const yoga of majorYogas) {

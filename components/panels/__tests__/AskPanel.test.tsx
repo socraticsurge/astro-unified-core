@@ -28,16 +28,8 @@ describe('AskPanel', () => {
     expect(screen.getByText(/Jupiter in 10th/)).toBeInTheDocument()
   })
 
-  it('renders all 4 topic options', () => {
+  it('renders the submit button disabled when question is empty', () => {
     render(<AskPanel open={true} onClose={() => {}} context={ctx} />)
-    expect(screen.getByLabelText(/career/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/dasha transition/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/relationship/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/general/i)).toBeInTheDocument()
-  })
-
-  it('renders the submit button', () => {
-    render(<AskPanel open={true} onClose={() => {}} context={ctx} />)
-    expect(screen.getByRole('button', { name: /request consultation/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /request consultation/i })).toBeDisabled()
   })
 })

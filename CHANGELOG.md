@@ -8,6 +8,23 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — UX polish pass: flat tables, inline edit, simplified ask panel
+
+### Changed
+- **ProfileChip** — chips now show full name + `· relationship` on a single line (e.g. "Venkata · Spouse") instead of a two-line stacked layout.
+- **PlanetsTab** — replaced expandable cards with three flat tables: Positions, Shadbala (all numeric columns), Yogas by Planet. Retro/Combust are separate columns; planet name gets a ✦ dot if it participates in a yoga.
+- **ChartTab** — Retro and Combust split into their own columns; D1 lagna uses a left-border accent instead of a highlight background; table body upgraded to `text-sm`.
+- **TimeTab (Timeline sub-tab)** — replaced accordion with a flat maha dasha table (Planet · Start · End · Duration in years); current period is highlighted in place.
+- **TodayTab** — removed redundant "Ask an expert" bottom button; hero card shows dasha date range; section text bumped to `text-xs`; content constrained to `max-w-xl`.
+- **AskPanel** — stripped topic-picker fieldset entirely; now just context block + free-text textarea + submit. Submit disabled until question is non-empty.
+- **ProfileView** — added an Edit link at the right edge of the tab bar linking to `/profiles/[id]/edit`; fixed `lagnaSign` prop forwarded to HousesVargasTab.
+- **PatternsTab + `lib/insights.ts`** — fixed MAJOR_YOGAS name set to include "Yoga" suffix (e.g. "Malavya Yoga") matching the sidecar's production output format.
+
+### Tests
+- Updated ProfileChip, ProfileNav, AskPanel, PlanetsTab tests to match new UI shape.
+
+---
+
 ## [2026-05-18] — Navigation redesign: chip-first profile nav and unified dashboard shell
 
 ### Added

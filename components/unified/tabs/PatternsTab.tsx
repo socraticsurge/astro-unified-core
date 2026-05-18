@@ -4,8 +4,8 @@ import { SIGNS_ORDER } from "@/components/unified/types";
 import { cn } from "@/lib/utils";
 
 const MAJOR_YOGAS = new Set([
-  "Malavya", "Shasha", "Bhadra", "Hamsa", "Ruchaka",
-  "Gajakesari", "Raj Yoga", "Lakshmi Yoga", "Adhi Yoga",
+  "Malavya Yoga", "Shasha Yoga", "Bhadra Yoga", "Hamsa Yoga", "Ruchaka Yoga",
+  "Gajakesari Yoga", "Raj Yoga", "Lakshmi Yoga", "Adhi Yoga",
 ]);
 
 const KARAKA_ORDER = [

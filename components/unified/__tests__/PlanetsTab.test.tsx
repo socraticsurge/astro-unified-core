@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { PlanetsTab } from "../tabs/PlanetsTab";
 
@@ -46,33 +46,35 @@ const mockOutput = {
 };
 
 describe("PlanetsTab", () => {
-  it("renders 9 planet rows", () => {
+  it("renders 9 planet name cells in the positions table", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    expect(screen.getAllByTestId(/^planet-card-/).length).toBe(9);
+    // Each planet appears as a bold cell in the positions table
+    const planetNames = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    for (const name of planetNames) {
+      expect(screen.getAllByText(name).length).toBeGreaterThan(0);
+    }
   });
 
   it("shows retrograde marker for Mercury", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    const mercuryCard = screen.getByTestId("planet-card-Mercury").closest("div")!;
-    expect(within(mercuryCard).getByText("℞")).toBeDefined();
+    // ℞ appears in the Retro column — no click needed in flat table
+    expect(screen.getByText("℞")).toBeDefined();
   });
 
-  it("expands Sun card and shows shadbala total", () => {
+  it("shows shadbala total for Sun without any click", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    const sunTrigger = screen.getByTestId("planet-card-Sun");
-    fireEvent.click(sunTrigger);
-    expect(screen.getByText(/4\.1/)).toBeDefined();
+    // Shadbala table is always visible; Sun total_rupas = 4.1
+    expect(screen.getByText("4.10")).toBeDefined();
   });
 
-  it("shows yoga cross-reference for Sun", () => {
+  it("shows yoga name in Yogas table without any click", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    const sunTrigger = screen.getByTestId("planet-card-Sun");
-    fireEvent.click(sunTrigger);
-    expect(screen.getByText(/Budhaditya/)).toBeDefined();
+    // Yogas by Planet table is always visible
+    expect(screen.getByText("Budhaditya Yoga")).toBeDefined();
   });
 
   it("renders nothing when chartOutput is empty", () => {
     const { container } = render(<PlanetsTab chartOutput={{}} />);
-    expect(container.querySelector("[data-testid^='planet-card-']")).toBeNull();
+    expect(container.querySelector("table")).toBeNull();
   });
 });

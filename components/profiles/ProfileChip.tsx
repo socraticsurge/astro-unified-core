@@ -19,27 +19,29 @@ export function ProfileChip({
   hasAlert,
   onClick,
 }: ProfileChipProps) {
-  const firstName = name.split(' ')[0]
+  const label = relationship ? `${name} · ${relationship}` : name
 
   return (
     <button
       type="button"
       onClick={() => onClick(id)}
-      aria-label={`${firstName} — ${relationship}`}
+      aria-label={label}
       aria-pressed={isActive}
       className={cn(
-        'relative flex flex-col items-start gap-0.5 rounded-full border px-3 py-2 transition-colors',
+        'relative flex items-center rounded-full border px-3 py-1.5 transition-colors whitespace-nowrap',
         isActive
           ? 'border-[var(--color-nav-chip-active-border)] bg-[var(--color-nav-chip-active-bg)] text-[var(--color-nav-chip-active-text)]'
           : 'border-[var(--color-border)] bg-transparent text-muted-foreground hover:border-[var(--color-nav-chip-active-border)]'
       )}
     >
-      <span className="text-[11px] font-bold leading-tight whitespace-nowrap">
-        {firstName}
+      <span className="text-xs font-semibold leading-tight">
+        {name}
       </span>
-      <span className="text-[9px] leading-tight opacity-60 whitespace-nowrap">
-        {relationship}
-      </span>
+      {relationship && (
+        <span className="ml-1 text-xs leading-tight opacity-60">
+          · {relationship}
+        </span>
+      )}
       {hasAlert && (
         <div
           data-testid="alert-dot"
