@@ -1,6 +1,7 @@
 import { fonts, colors } from "@/lib/typography";
 
 const SIZE_MAP = {
+  xs: { outer: 20,  font: "0.6rem"  },
   sm: { outer: 36,  font: "0.8rem"  },
   md: { outer: 48,  font: "1rem"    },
   lg: { outer: 64,  font: "1.2rem"  },

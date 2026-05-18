@@ -8,6 +8,24 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — CompareTab: persistent chip picker, full compatibility result
+
+### Changed
+- **CompareTab** — second rewrite addressing UX and completeness:
+  - **No more back-navigation**: picker is now a persistent chip row at the top of the tab. Tapping a different candidate chip immediately swaps the result below — no "Compare another" back button needed.
+  - **Compact chips**: active profile and candidates are shown as small rounded chips (avatar + first name) not full-width list rows. Active profile is always shown on the left; candidates on the right.
+  - **Full result** now shows all compatibility sections in compacted form using shared `TABLE_STYLES` / `SectionHeading` tokens:
+    - Score arc + tier label + verdict text
+    - Guna Breakdown as a proper table (Koota / Score / Max / indicator icon)
+    - Natal Moon Profiles — two-column: moon sign, nakshatra, gana, nadi, yoni per person
+    - Dosha summary — Mangal Dosha (with per-person Manglik status and description) + Bhakoot
+    - Kuja Dosha Detail — per-person planet breakdown table (only shown when breakdown data exists)
+    - Additional Kutas — one row per kuta with ResultPill, male/female values, and description
+    - Dosha Mitigations / exceptions (amber-toned block, shown when classical exceptions apply)
+- **ProfileAvatar** — added `xs` size (20 px / 0.6 rem) for use in compact chip contexts.
+
+---
+
 ## [2026-05-18] — CareerTab: surface lord dignity, occupants, and D10 significator strength
 
 ### Changed
