@@ -19,35 +19,31 @@ export function ProfileChip({
   hasAlert,
   onClick,
 }: ProfileChipProps) {
-  const label = relationship ? `${name} · ${relationship}` : name
-
   return (
     <button
       type="button"
       onClick={() => onClick(id)}
-      aria-label={label}
       aria-pressed={isActive}
+      aria-label={relationship ? `${name} · ${relationship}` : name}
       className={cn(
-        'relative flex items-center rounded-full border px-3 py-1.5 transition-colors whitespace-nowrap',
+        'relative flex flex-col justify-center px-4 h-full border-b-2 transition-colors whitespace-nowrap',
         isActive
-          ? 'border-[var(--color-nav-chip-active-border)] bg-[var(--color-nav-chip-active-bg)] text-[var(--color-nav-chip-active-text)]'
-          : 'border-[var(--color-border)] bg-transparent text-muted-foreground hover:border-[var(--color-nav-chip-active-border)]'
+          ? 'border-[var(--color-nav-chip-active-text)] text-[var(--color-ink-1)]'
+          : 'border-transparent text-muted-foreground hover:text-[var(--color-ink-2)]'
       )}
     >
-      <span className="text-xs font-semibold leading-tight">
-        {name}
-      </span>
+      <span className="text-xs font-medium leading-tight">{name}</span>
       {relationship && (
-        <span className="ml-1 text-xs leading-tight opacity-60">
-          · {relationship}
+        <span className="text-[9px] uppercase tracking-wider leading-none mt-0.5 opacity-50">
+          {relationship}
         </span>
       )}
       {hasAlert && (
-        <div
+        <span
           data-testid="alert-dot"
           aria-label="Alert"
           role="status"
-          className="absolute right-1 top-1 size-1.5 rounded-full bg-[var(--color-nav-alert)]"
+          className="absolute right-2 top-2.5 size-1.5 rounded-full bg-[var(--color-nav-alert)]"
         />
       )}
     </button>

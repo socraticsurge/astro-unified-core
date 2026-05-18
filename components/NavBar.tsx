@@ -1,7 +1,7 @@
 "use client"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
-import { Settings, ShieldCheck, LogOut } from "lucide-react"
+import { Settings, ShieldCheck, LogOut, UserPlus } from "lucide-react"
 import { fonts, motion } from "@/lib/typography"
 import { ProfileNav } from "@/components/profiles/ProfileNav"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -51,84 +51,106 @@ interface NavBarProps {
 
 export function NavBar({ profiles = [], activeProfileId = null, onProfileChange, onAskOpen }: NavBarProps) {
   const { data: session, status } = useSession()
-  const isLoggedIn  = status === "authenticated"
-  const showAdmin   = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true
+  const isLoggedIn = status === "authenticated"
+  const showAdmin  = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true
 
   return (
     <nav
       className="sticky top-0 z-40 border-b border-[var(--color-border)]"
       style={{ ...navGlassStyle, transition: `background ${motion.standard}` }}
     >
-      <div className="w-full px-3 sm:px-5 py-2.5 flex items-center gap-3">
+      <div className="flex items-stretch h-12">
 
-        {/* Logo */}
-        <Link
-          href={isLoggedIn ? "/dashboard" : "/"}
-          className="flex items-center gap-2 shrink-0"
-          aria-label="Home"
-        >
-          <TwoOrbits size={32} />
-          <span style={wordmarkStyle} className="hidden sm:block">
-            <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
-            <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
-          </span>
-        </Link>
+        {/* Logo — same width as the profile sidebar so profile tabs align below */}
+        <div className="w-auto md:w-80 shrink-0 flex items-center gap-2 px-4 border-r border-[var(--color-border)]">
+          <Link
+            href={isLoggedIn ? "/dashboard" : "/"}
+            className="flex items-center gap-2"
+            aria-label="Home"
+          >
+            <TwoOrbits size={28} />
+            <span style={wordmarkStyle} className="hidden sm:block">
+              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
+              <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
+            </span>
+          </Link>
+        </div>
 
-        {/* Divider */}
-        {isLoggedIn && (
-          <div className="h-6 w-px bg-[var(--color-border)] flex-shrink-0" />
+        {/* Profile tabs — fills remaining space */}
+        {isLoggedIn && onProfileChange && (
+          <div className="flex-1 min-w-0">
+            <ProfileNav
+              profiles={profiles}
+              activeProfileId={activeProfileId}
+              onProfileChange={onProfileChange}
+            />
+          </div>
         )}
 
-        {/* Profile chips + Ask button */}
-        {isLoggedIn && onProfileChange && onAskOpen && (
-          <ProfileNav
-            profiles={profiles}
-            activeProfileId={activeProfileId}
-            onProfileChange={onProfileChange}
-            onAskOpen={onAskOpen}
-          />
-        )}
-
-        {/* Right side: settings */}
-        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
-          {isLoggedIn ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] transition-colors"
-                aria-label="Settings"
+        {/* Right: Add profile · Ask an expert · Settings */}
+        <div className="flex items-center gap-1 px-3 shrink-0 ml-auto">
+          {isLoggedIn && (
+            <>
+              <Link
+                href="/profiles/new"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
-                <Settings className="w-4 h-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem>
-                  <Link href="/settings" className="w-full">Account settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="p-0">
-                  <ThemeToggle />
-                </DropdownMenuItem>
-                {showAdmin && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <Link href="/admin" className="flex items-center gap-2 w-full">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        Admin
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  variant="destructive"
-                  className="flex items-center gap-2"
+                <UserPlus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Add profile</span>
+              </Link>
+
+              {onAskOpen && (
+                <button
+                  type="button"
+                  onClick={onAskOpen}
+                  className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-nav-ask-bg)] border-[var(--color-nav-ask-border)] text-[var(--color-nav-ask-text)]"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
+                  <span aria-hidden="true">✦</span>
+                  <span className="hidden sm:inline">Ask an expert</span>
+                  <span className="sm:hidden">Ask</span>
+                </button>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] transition-colors"
+                  aria-label="Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem>
+                    <Link href="/settings" className="w-full">Account settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="p-0">
+                    <ThemeToggle />
+                  </DropdownMenuItem>
+                  {showAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <Link href="/admin" className="flex items-center gap-2 w-full">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    variant="destructive"
+                    className="flex items-center gap-2"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+
+          {!isLoggedIn && (
             <Link
               href="/auth/signin"
               className="px-4 py-1.5 rounded-md text-sm font-medium border border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] text-[var(--color-accent)]"
@@ -140,19 +162,6 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
         </div>
 
       </div>
-
-      {/* Unauthenticated mobile — keep sign-in visible */}
-      {!isLoggedIn && (
-        <div className="sm:hidden border-t border-[var(--color-border)] px-4 py-2 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2" aria-label="Home">
-            <TwoOrbits size={24} />
-            <span style={{ ...wordmarkStyle, fontSize: "0.95rem" }}>
-              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
-              <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
-            </span>
-          </Link>
-        </div>
-      )}
     </nav>
   )
 }
