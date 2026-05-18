@@ -8,6 +8,23 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — Full Chart (Experimental): unified single-view with 5 tabs
+
+### Added
+- **Full Chart (Experimental)** — third view mode on profile pages (admin-gated). Unified single-view intended to replace Basic/Professional once validated. Five intent-based tabs: Chart (panchang + planet table), Planets (per-planet shadbala bars + avastha + aspects), Houses & Vargas (Bhava Chalit + varga matrix), Patterns (yogas + doshas + Jaimini + Ashtakavarga BAV), Time (dasha stack + transits + career D10).
+- **Aspects column** — BPHS planet aspects surfaced in the planet table for the first time, reading `planets[N].aspects` from the sidecar (previously ignored).
+- **Per-planet BAV tables** — Bhinnashtakavarga sign-by-sign bindus per planet (Bhinnashtakavarga), previously present in the sidecar response but never displayed.
+- **House Grid** — compact 12-box D1 + D9 visual in a sticky left panel (desktop only), showing which planets occupy each house.
+- **Bhava Chalit shift summary** — shifted planets highlighted with Rasi→Bhava house alongside full Bhava Chalit table.
+- **Karakamsha + Ishta Devata** surfaced as a featured card in the Jaimini section (previously one buried line).
+- **Identity Strip** — persistent header chip row showing lagna, moon nakshatra, current dasha pair, and Sade Sati badge when active.
+- `components/unified/` component tree: `UnifiedView`, `IdentityStrip`, `HouseGrid`, `ChartTab`, `PlanetsTab`, `HousesVargasTab`, `PatternsTab`, `TimeTab`, `types.ts`.
+
+### Changed
+- Profile page view toggle widened from 2-button (Basic / Professional) to 3-button (Basic / Professional / Full Chart) — admin-only.
+
+---
+
 ## [2026-05-17] — Polish: global selection, scrollbar, tap highlight, placeholder, focus ring, shadow tokens
 
 ### Added
