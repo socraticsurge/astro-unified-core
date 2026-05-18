@@ -3,7 +3,7 @@ import { useState } from "react"
 import { CheckCircle2, XCircle, MinusCircle, Loader2, RotateCcw } from "lucide-react"
 import type { Profile, CompatibilityCheck } from "@/lib/db"
 import type { CompatResult, AdditionalKuta } from "@/lib/compatibility"
-import { KOOTA_MAX, scoreColor, scoreLabel } from "@/lib/compatibility"
+import { KOOTA_MAX, scoreLabel } from "@/lib/compatibility"
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar"
 import { SectionHeading } from "@/components/unified/SectionHeading"
 import { TABLE_STYLES } from "@/components/unified/types"
@@ -53,26 +53,6 @@ function ProfilePill({ profile, role }: { profile: Profile; role: Role }) {
   )
 }
 
-// ── Score arc ─────────────────────────────────────────────────────────────────
-
-function ScoreArc({ score }: { score: number }) {
-  const color = scoreColor(score)
-  const r = 36
-  const circ = 2 * Math.PI * r
-  return (
-    <svg width="88" height="88" viewBox="0 0 88 88" aria-hidden="true" className="shrink-0">
-      <circle cx="44" cy="44" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
-      <circle cx="44" cy="44" r={r} fill="none" stroke={color} strokeWidth="6"
-        strokeLinecap="round"
-        strokeDasharray={`${(score / 36) * circ} ${circ}`}
-        transform="rotate(-90 44 44)"
-      />
-      <text x="44" y="41" textAnchor="middle" fill={color} fontSize="18" fontWeight="700" fontFamily="system-ui">{score}</text>
-      <text x="44" y="54" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="9" fontFamily="system-ui">/36</text>
-    </svg>
-  )
-}
-
 // ── Result pill ───────────────────────────────────────────────────────────────
 
 function ResultPill({ result }: { result?: string }) {
@@ -94,7 +74,7 @@ function FullResult({ check, groomProfile, brideProfile }: {
 
   const { th, td, row } = TABLE_STYLES
   const score = result?.total_score ?? check.score
-  const color = scoreColor(score)
+  const scoreClass = score >= 26 ? "text-success" : score >= 18 ? "text-warning" : "text-danger"
   const scores = result?.scores ?? {}
   const kujaDosha = result?.kuja_dosha
   const additionalKutas = result?.additional_kutas ?? {}
@@ -116,18 +96,19 @@ function FullResult({ check, groomProfile, brideProfile }: {
     <div className="space-y-8">
 
       {/* Score + verdict */}
-      <section className="flex items-center gap-4">
-        <ScoreArc score={score} />
-        <div className="space-y-1">
-          <p className="text-sm font-semibold" style={{ color }}>{scoreLabel(score)}</p>
-          <p className="text-xs text-[var(--color-ink-3)] leading-snug">
-            {score >= 26 ? "Highly auspicious for marriage."
-              : score >= 18 ? "Above the auspicious threshold of 18 gunas."
-              : score >= 12 ? "Below 18 gunas — worth careful deliberation."
-              : "Significant incompatibilities identified."}
-          </p>
-          <p className="text-[10px] text-muted-foreground/50">{score}/36 gunas · Classical Ashtakoota Milan</p>
+      <section className="space-y-1 pb-2 border-b border-[var(--color-border)]/40">
+        <div className="flex items-baseline gap-2">
+          <span className={`text-2xl font-semibold tabular-nums ${scoreClass}`}>{score}</span>
+          <span className="text-xs text-muted-foreground">/ 36 gunas</span>
+          <span className={`text-xs font-medium ${scoreClass}`}>{scoreLabel(score)}</span>
         </div>
+        <p className="text-xs text-[var(--color-ink-3)]">
+          {score >= 26 ? "Highly auspicious for marriage."
+            : score >= 18 ? "Above the auspicious threshold of 18 gunas."
+            : score >= 12 ? "Below 18 gunas — worth careful deliberation."
+            : "Significant incompatibilities identified."}
+        </p>
+        <p className="text-[10px] text-muted-foreground/40">Classical Ashtakoota Milan</p>
       </section>
 
       {/* Guna breakdown */}
