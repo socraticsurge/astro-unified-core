@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Pencil, Trash2, X } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
@@ -118,6 +119,12 @@ interface ProfileSidebarProps {
 export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Delete ${profile.name}? This cannot be undone.`)) return;
+    await fetch(`/api/profiles/${profile.id}`, { method: "DELETE" });
+    window.location.href = "/dashboard";
+  };
+
   const data     = chartOutput?.data as Record<string, unknown> | undefined;
   const panchang = data?.panchang as {
     tithi?:     { name?: string; paksha?: string };
@@ -158,12 +165,24 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
               </p>
             )}
           </div>
-          <button
-            onClick={() => setIsEditing(v => !v)}
-            className="shrink-0 text-xs text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
-          >
-            {isEditing ? "×" : "Edit"}
-          </button>
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              onClick={() => setIsEditing(v => !v)}
+              title={isEditing ? "Cancel" : "Edit profile"}
+              className="p-1.5 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
+            >
+              {isEditing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+            </button>
+            {!isEditing && (
+              <button
+                onClick={handleDelete}
+                title="Delete profile"
+                className="p-1.5 rounded text-muted-foreground hover:text-danger transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {isEditing ? (

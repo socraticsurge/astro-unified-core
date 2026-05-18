@@ -32,7 +32,7 @@ export const profiles = {
   async list(userId: string): Promise<Profile[]> {
     await ensureSchema();
     const rs = await getClient().execute({
-      sql: "SELECT * FROM profiles WHERE user_id = ? ORDER BY created_at DESC",
+      sql: "SELECT * FROM profiles WHERE user_id = ? ORDER BY created_at ASC",
       args: [userId],
     });
     return rs.rows as unknown as Profile[];

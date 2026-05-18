@@ -7,7 +7,7 @@ import type { Planet, SignName } from "@/components/unified/types";
 
 // Single source-of-truth for chart dimensions.
 // Change CHART_SIZE_PX here and all charts in the app resize together.
-export const CHART_SIZE_PX = 260;
+export const CHART_SIZE_PX = 300;
 
 // Fixed positions in the South Indian 4×4 grid.
 // CSS grid-area: "row-start / col-start / row-end / col-end" (1-indexed)
@@ -68,8 +68,8 @@ export function NatalChartGrid({
     });
   }
 
-  const textBase  = compact ? "text-[8px]"  : "text-[10px]";
-  const textSmall = compact ? "text-[7px]"  : "text-[9px]";
+  const textBase  = compact ? "text-[8px]"  : "text-[11px]";
+  const textSmall = compact ? "text-[7px]"  : "text-[10px]";
   const pad       = compact ? "p-0.5"       : "p-1";
 
   return (

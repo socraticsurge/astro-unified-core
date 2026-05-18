@@ -40,8 +40,8 @@ export function HousesVargasTab({
       {planets && (
         <section>
           <SectionHeading>Divisional Charts</SectionHeading>
-          <div className="overflow-x-auto">
-            <div className="grid grid-cols-4 gap-4 min-w-max">
+          <div className="overflow-x-auto overflow-y-visible">
+            <div className="grid grid-cols-4 gap-6 min-w-max pb-2">
               {DIVISIONAL_CHARTS.map(({ label, signKey, lagnaKey }) => {
                 const divLagnaSign = lagna?.[lagnaKey] as SignName | undefined;
                 const hasDivData = PLANET_ORDER.some(n => planets[n]?.[signKey]);
