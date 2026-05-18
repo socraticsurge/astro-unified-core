@@ -1,7 +1,6 @@
 "use client";
 import { SIGNS_ORDER, TABLE_STYLES } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
-import { SavChartGrid } from "@/components/unified/SavChartGrid";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 
@@ -24,14 +23,6 @@ export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, u
 
   return (
     <div className="space-y-8">
-
-      {/* SAV chart */}
-      {sav && (
-        <section>
-          <SectionHeading>Sarvashtakavarga (SAV)</SectionHeading>
-          <SavChartGrid sav={sav} lagnaSign={lagnaSign} />
-        </section>
-      )}
 
       {/* D1 chart with SAV bindus per sign */}
       {planets && sav && (
