@@ -64,13 +64,16 @@ export const PLANET_ORDER: readonly PlanetName[] = [
 ];
 
 export const DIGNITY_COLORS: Record<string, string> = {
-  exalted:     "text-emerald-400",
-  mooltrikona: "text-emerald-300",
-  own:         "text-sky-300",
-  friend:      "text-sky-200",
-  neutral:     "text-slate-300",
-  enemy:       "text-orange-300",
-  debilitated: "text-red-500",
+  exalted:      "text-emerald-400",
+  mooltrikona:  "text-emerald-300",
+  own:          "text-sky-300",
+  own_sign:     "text-sky-300",
+  great_friend: "text-sky-200",
+  friend:       "text-sky-200",
+  neutral:      "text-slate-300",
+  enemy:        "text-orange-300",
+  great_enemy:  "text-red-400",
+  debilitated:  "text-red-500",
 };
 
 export const VARGA_KEYS: { label: string; key: keyof Planet }[] = [
