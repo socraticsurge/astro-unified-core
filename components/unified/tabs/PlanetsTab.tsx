@@ -18,9 +18,11 @@ function barColor(pct: number): string {
   return "bg-red-500";
 }
 
+type NumericShadbalaKey = "dig_bala" | "kala_bala" | "chesta_bala" | "naisargika_bala" | "drik_bala";
+
 function getShadbalaValue(sb: ShadbalaPlanet, key: string): number | undefined {
   if (key === "sthana_bala") return sb.sthana_bala?.total;
-  return (sb as unknown as Record<string, number>)[key];
+  return sb[key as NumericShadbalaKey];
 }
 
 type Yoga = { name: string; formed_by: string[]; description?: string };

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { PlanetsTab } from "../tabs/PlanetsTab";
 
@@ -48,13 +48,13 @@ const mockOutput = {
 describe("PlanetsTab", () => {
   it("renders 9 planet rows", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    expect(screen.getByText("Sun")).toBeDefined();
-    expect(screen.getByText("Ketu")).toBeDefined();
+    expect(screen.getAllByTestId(/^planet-card-/).length).toBe(9);
   });
 
   it("shows retrograde marker for Mercury", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    expect(screen.getAllByText(/℞/).length).toBeGreaterThan(0);
+    const mercuryCard = screen.getByTestId("planet-card-Mercury").closest("div")!;
+    expect(within(mercuryCard).getByText("℞")).toBeDefined();
   });
 
   it("expands Sun card and shows shadbala total", () => {
