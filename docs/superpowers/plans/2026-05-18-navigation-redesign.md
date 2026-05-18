@@ -39,6 +39,185 @@
 
 ---
 
+## Task 0: Add navigation design tokens to globals.css
+
+**Files:**
+- Modify: `app/globals.css`
+
+All hardcoded Tailwind color classes in the new navigation components (`bg-purple-600/20`, `border-purple-500/30`, `text-purple-300`, `bg-orange-400`, etc.) must be replaced with CSS variables defined here. This task must be completed before any component task starts. With these in place, the entire nav color scheme — chip highlight, Ask button, alert dot, Today hero, insight categories, Ask panel — can be changed for both themes from one file.
+
+### Token groups to add
+
+**Group 1 — Profile chip**
+| Token | Purpose |
+|---|---|
+| `--color-nav-chip-active-bg` | Background of the active chip |
+| `--color-nav-chip-active-border` | Border of the active chip |
+| `--color-nav-chip-active-text` | Text of the active chip |
+
+**Group 2 — Ask button**
+| Token | Purpose |
+|---|---|
+| `--color-nav-ask-bg` | Ask button background |
+| `--color-nav-ask-border` | Ask button border |
+| `--color-nav-ask-text` | Ask button text |
+
+**Group 3 — Alert dot**
+| Token | Purpose |
+|---|---|
+| `--color-nav-alert` | Alert dot on chip (imminent event) |
+
+**Group 4 — Today tab**
+| Token | Purpose |
+|---|---|
+| `--color-today-hero-border` | Hero dasha card border |
+| `--color-today-ask-cta-text` | "Ask an expert about your chart" button text |
+| `--color-today-ask-cta-border` | That button's border |
+| `--color-today-ask-cta-hover` | That button's hover background |
+
+**Group 5 — Insight card category dots**
+| Token | Purpose |
+|---|---|
+| `--color-insight-dasha` | Dot colour for dasha-category insights |
+| `--color-insight-transit` | Dot colour for transit-category insights |
+| `--color-insight-dosha` | Dot colour for dosha-category insights |
+| `--color-insight-yoga` | Dot colour for yoga-category insights |
+
+**Group 6 — Ask panel**
+| Token | Purpose |
+|---|---|
+| `--color-ask-ctx-bg` | Context block background |
+| `--color-ask-ctx-border` | Context block border |
+| `--color-ask-ctx-name` | Profile name highlight colour in context block |
+| `--color-ask-option-active-bg` | Selected topic option background |
+| `--color-ask-option-active-border` | Selected topic option border |
+| `--color-ask-option-active-text` | Selected topic option text |
+
+---
+
+- [ ] **Step 1: Add tokens to the `[data-theme="dark"]` block**
+
+Insert the following block at the end of the `[data-theme="dark"]` section in `app/globals.css`, immediately before the closing `}` of that block:
+
+```css
+  /* ── Navigation — profile chips & Ask button ── */
+  --color-nav-chip-active-bg:       #1e1a2e;
+  --color-nav-chip-active-border:   rgba(168, 85, 247, 0.30);
+  --color-nav-chip-active-text:     rgba(192, 132, 252, 1);
+  --color-nav-ask-bg:               rgba(147, 51, 234, 0.18);
+  --color-nav-ask-border:           rgba(168, 85, 247, 0.28);
+  --color-nav-ask-text:             rgba(216, 180, 254, 1);
+  --color-nav-alert:                rgba(251, 146, 60, 1);
+
+  /* ── Today tab ── */
+  --color-today-hero-border:        rgba(168, 85, 247, 0.18);
+  --color-today-ask-cta-text:       rgba(192, 132, 252, 1);
+  --color-today-ask-cta-border:     rgba(168, 85, 247, 0.18);
+  --color-today-ask-cta-hover:      rgba(168, 85, 247, 0.10);
+
+  /* ── Insight card category colours ── */
+  --color-insight-dasha:            rgba(192, 132, 252, 1);
+  --color-insight-transit:          rgba(56, 189, 248, 1);
+  --color-insight-dosha:            rgba(249, 115, 22, 1);
+  --color-insight-yoga:             rgba(251, 191, 36, 1);
+
+  /* ── Ask panel ── */
+  --color-ask-ctx-bg:               rgba(168, 85, 247, 0.10);
+  --color-ask-ctx-border:           rgba(168, 85, 247, 0.20);
+  --color-ask-ctx-name:             rgba(216, 180, 254, 1);
+  --color-ask-option-active-bg:     rgba(168, 85, 247, 0.08);
+  --color-ask-option-active-border: rgba(168, 85, 247, 0.35);
+  --color-ask-option-active-text:   rgba(192, 132, 252, 1);
+```
+
+- [ ] **Step 2: Add tokens to the `[data-theme="light"]` block**
+
+Insert the same set at the end of the `[data-theme="light"]` block, adjusted for the parchment/crimson aesthetic:
+
+```css
+  /* ── Navigation — profile chips & Ask button ── */
+  --color-nav-chip-active-bg:       rgba(153, 27, 27, 0.06);
+  --color-nav-chip-active-border:   rgba(153, 27, 27, 0.35);
+  --color-nav-chip-active-text:     #7F1D1D;
+  --color-nav-ask-bg:               rgba(153, 27, 27, 0.06);
+  --color-nav-ask-border:           rgba(153, 27, 27, 0.25);
+  --color-nav-ask-text:             #991B1B;
+  --color-nav-alert:                #92400E;
+
+  /* ── Today tab ── */
+  --color-today-hero-border:        rgba(153, 27, 27, 0.18);
+  --color-today-ask-cta-text:       #991B1B;
+  --color-today-ask-cta-border:     rgba(153, 27, 27, 0.18);
+  --color-today-ask-cta-hover:      rgba(153, 27, 27, 0.05);
+
+  /* ── Insight card category colours ── */
+  --color-insight-dasha:            #7C3AED;
+  --color-insight-transit:          #0369A1;
+  --color-insight-dosha:            #C2410C;
+  --color-insight-yoga:             #92400E;
+
+  /* ── Ask panel ── */
+  --color-ask-ctx-bg:               rgba(153, 27, 27, 0.05);
+  --color-ask-ctx-border:           rgba(153, 27, 27, 0.18);
+  --color-ask-ctx-name:             #991B1B;
+  --color-ask-option-active-bg:     rgba(153, 27, 27, 0.06);
+  --color-ask-option-active-border: rgba(153, 27, 27, 0.30);
+  --color-ask-option-active-text:   #7F1D1D;
+```
+
+- [ ] **Step 3: Verify both blocks have no syntax errors**
+
+```bash
+npx postcss app/globals.css --no-map 2>&1 | head -20
+```
+
+Expected: no errors (or just "no output plugin" warning — that is fine).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add app/globals.css
+git commit -m "feat: add navigation design tokens to globals.css (both themes)"
+```
+
+---
+
+### Token usage reference for all subsequent tasks
+
+When writing component code in Tasks 1–15, replace every hardcoded color with the corresponding variable:
+
+| Instead of this (hardcoded) | Use this (variable) |
+|---|---|
+| `bg-purple-600/20` | `bg-[var(--color-nav-ask-bg)]` |
+| `border-purple-500/30` | `border-[var(--color-nav-ask-border)]` |
+| `text-purple-300` / `text-purple-400` | `text-[var(--color-nav-ask-text)]` |
+| `bg-[#1e1a2e]` or `bg-purple-900/30` (chip active bg) | `bg-[var(--color-nav-chip-active-bg)]` |
+| `border-purple-500/30` (chip active border) | `border-[var(--color-nav-chip-active-border)]` |
+| `text-purple-400` (chip active text) | `text-[var(--color-nav-chip-active-text)]` |
+| `bg-orange-400` / `bg-orange-500` (alert dot) | `bg-[var(--color-nav-alert)]` |
+| `border-purple-500/20` (Today hero card) | `border-[var(--color-today-hero-border)]` |
+| `text-purple-400` (Today CTA button text) | `text-[var(--color-today-ask-cta-text)]` |
+| `border-purple-500/20` (Today CTA button border) | `border-[var(--color-today-ask-cta-border)]` |
+| `hover:bg-purple-500/10` (Today CTA button hover) | `hover:bg-[var(--color-today-ask-cta-hover)]` |
+| `bg-purple-500/10` (Ask panel context block bg) | `bg-[var(--color-ask-ctx-bg)]` |
+| `border-purple-500/20` (Ask panel context block border) | `border-[var(--color-ask-ctx-border)]` |
+| `text-purple-300` (Ask panel profile name) | `text-[var(--color-ask-ctx-name)]` |
+| Insight category colours in `generateInsights()` | Use `var(--color-insight-dasha)` etc. in the CSS; or keep as hex constants in `lib/insights.ts` since JS can't read CSS vars — these are fine as hex because they are passed as inline `style` props on the dot span |
+
+> **Note on insight colours in `lib/insights.ts`:** The category colour hex values in the insight generator (`#c084fc`, `#38bdf8`, etc.) are intentionally duplicated from the CSS variables — they are passed as inline `style` props on the dot `<span>`, where CSS custom properties also work. Prefer `var(--color-insight-dasha)` etc. as the value in `generateInsights()` so the light theme colours apply automatically:
+>
+> ```typescript
+> // lib/insights.ts — preferred
+> const CATEGORY_COLORS = {
+>   dasha:   'var(--color-insight-dasha)',
+>   transit: 'var(--color-insight-transit)',
+>   dosha:   'var(--color-insight-dosha)',
+>   yoga:    'var(--color-insight-yoga)',
+> }
+> ```
+
+---
+
 ## Pre-task: Verify sidecar dasha nesting
 
 The Timeline accordion (Task 9) needs `dashas.timeline[n].antardashas[]` arrays — not just the flat timeline Mahadasha list. Verify before building.
