@@ -28,12 +28,6 @@ export function TransitsTab({
     sav_points?: number;
   }> | undefined;
   const sadeSati = transit?.sade_sati as { active?: boolean; phase?: string } | undefined;
-  const rahuKetu = transit?.rahu_ketu_axis as {
-    rahu_sign?: string;
-    rahu_house_from_lagna?: number;
-    ketu_sign?: string;
-    ketu_house_from_lagna?: number;
-  } | undefined;
 
   return (
     <div className="space-y-4">
@@ -58,13 +52,6 @@ export function TransitsTab({
           {sadeSati?.active && (
             <div className="px-3 py-2 rounded-lg bg-warning/10 border border-warning/30 text-warning text-xs">
               Sade Sati active · {sadeSati.phase} phase
-            </div>
-          )}
-
-          {rahuKetu && (
-            <div className="px-3 py-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs flex gap-6">
-              <span>Rahu: {rahuKetu.rahu_sign} (H{rahuKetu.rahu_house_from_lagna})</span>
-              <span>Ketu: {rahuKetu.ketu_sign} (H{rahuKetu.ketu_house_from_lagna})</span>
             </div>
           )}
 
