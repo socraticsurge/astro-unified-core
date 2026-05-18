@@ -96,17 +96,24 @@ export function CareerTab({
                   <thead>
                     <tr className="border-b border-[var(--color-border)]">
                       <th className={th}>Planet</th>
+                      <th className={`${th} text-center`}>Primary</th>
                       <th className={th}>D10 Sign</th>
                       <th className={th}>D10 Lord</th>
-                      <th className={`${th} text-center`}>Strong</th>
+                      <th className={`${th} text-center`}>Strong in D10</th>
                     </tr>
                   </thead>
                   <tbody>
                     {significators.map(p => {
                       const ind = indicators[p];
+                      const isPrimary = primary.has(p);
                       return (
                         <tr key={p} className={row}>
                           <td className={`${td} text-planet-name font-semibold`}>{p}</td>
+                          <td className={`${td} text-center`}>
+                            {isPrimary
+                              ? <span className="text-[var(--color-accent)] font-semibold">✓</span>
+                              : <span className="text-muted-foreground/30">—</span>}
+                          </td>
                           <td className={td}>{ind?.d10_sign ?? "—"}</td>
                           <td className={`${td} text-planet-name`}>{ind?.d10_lord ?? "—"}</td>
                           <td className={`${td} text-center`}>
