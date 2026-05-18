@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — UI refinements: Bhava Chalit to Planets tab, sidebar Panchang strip, transit cleanup, larger charts
+
+### Changed
+- **Bhava Chalit moved into PlanetsTab** — shifts summary and full house table now live alongside planet positions and Shadbala; removed from HousesVargasTab (it remains there for the compact lookup context in that tab).
+- **ProfileSidebar Panchang** restyled from card grid to inline flex strip, matching the IdentityStrip layout used in ChartTab.
+- **TransitsTab** — removed Rahu/Ketu axis strip; the information is redundant with the planet table rows for Rahu and Ketu.
+- **NatalChartGrid** `CHART_SIZE_PX` bumped 240 → 260px for improved readability across all chart instances.
+
+---
+
 ## [2026-05-18] — Visual consistency: full domain token sweep across all unified components
 
 ### Added
