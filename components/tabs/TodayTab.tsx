@@ -32,11 +32,12 @@ export function TodayTab({ chartOutput, transitOutput, onAsk, onExplore }: Today
 
   let shiftPill: string | null = null
   if (antarEnd) {
-    const weeksLeft = Math.round(
-      (new Date(antarEnd).getTime() - Date.now()) / (7 * 24 * 60 * 60 * 1000)
-    )
-    if (weeksLeft >= 0 && weeksLeft <= 8) {
-      shiftPill = `Changes in ${weeksLeft} week${weeksLeft === 1 ? '' : 's'}`
+    const ms = new Date(antarEnd).getTime()
+    if (!isNaN(ms)) {
+      const weeksLeft = Math.round((ms - Date.now()) / (7 * 24 * 60 * 60 * 1000))
+      if (weeksLeft >= 0 && weeksLeft <= 8) {
+        shiftPill = `Changes in ${weeksLeft} week${weeksLeft === 1 ? '' : 's'}`
+      }
     }
   }
 
