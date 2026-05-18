@@ -8,6 +8,17 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — Compare tab: inline compatibility with smart gender roles
+
+### Changed
+- **CompareTab** (`components/tabs/CompareTab.tsx`) — full rewrite. Was a stub with broken links; now a self-contained inline compatibility flow:
+  - **Smart gender role assignment** — active profile's gender determines their role (male → Groom, female → Bride, unset → Person A). Only opposite-gender profiles are shown as candidates; if active gender is unknown all other profiles are shown.
+  - **Profile picker** — clicking a candidate immediately POSTs to `/api/compatibility` (which is idempotent — returns an existing result if the pair was already checked, otherwise calls the sidecar and saves).
+  - **Inline result** — Score arc (out of 36), verdict banner, Guna breakdown table with full/partial/zero indicators, Mangal Dosha card, Bhakoot Dosha card. No navigation away from the dashboard.
+  - **"Compare another" back button** — resets to profile picker without leaving the tab.
+
+---
+
 ## [2026-05-18] — UI refinements: Bhava Chalit to Planets tab, sidebar Panchang strip, transit cleanup, larger charts
 
 ### Changed
