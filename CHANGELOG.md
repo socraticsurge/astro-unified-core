@@ -8,6 +8,21 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Unified view UI/UX polish: themes, tables, and design tokens
+
+### Changed
+- **`app/globals.css`** — Dark theme (Cosmic) contrast significantly improved across two passes. First pass: `--color-ink-3` lifted 38%→52%, `--color-ink-4` 22%→35%, `--color-border` 10%→15%, `--color-border-subtle` 5%→9%, surfaces bumped. Second pass (opacity-stacking audit): `--color-ink-3` 52%→65%, `--color-ink-4` 35%→45%, `--color-border` 15%→22%, `--color-border-subtle` 9%→13%. Resolves widespread unreadability where muted-foreground text stacked with `/30`–`/50` modifiers became near-invisible.
+- **`components/unified/tabs/YogasTab.tsx`** — Replaced hardcoded `amber-500`/`amber-300` Tailwind colors on major yoga cards, major badge, and Gandanta card with `var(--color-accent)` tokens. Cards now adapt correctly between dark (amber-gold) and light (crimson) themes.
+- **`components/unified/tabs/DashaTab.tsx`** — Replaced `style={{ paddingLeft }}` inline styles with static Tailwind class lookup arrays (`ROWS_PL`, `PERIOD_PL`) so Tailwind can scan classes at build time. Fixed `border-[var(--color-border)]/20` (near-invisible 2% border) → `border-[var(--color-border)]`.
+- **`components/unified/tabs/TransitsTab.tsx`** — Table column headers renamed: `"H/Lagna"` → `"From Lagna"`, `"H/Moon"` → `"From Moon"` for clarity.
+- **`components/unified/tabs/JaiminiTab.tsx`** — Karakas table wrapper changed to `max-w-2xl overflow-x-auto` so the description column has enough room and the table doesn't span full page width.
+- **`components/unified/tabs/CareerTab.tsx`** — Outer container constrained to `max-w-2xl`. Added "Primary" column to Key Professional Significators table. Renamed "Strong" column header to "Strong in D10".
+- **`components/profiles/ProfileSidebar.tsx`** — Form label size increased `text-[9px]` → `text-[10px]`. Error text changed from hardcoded `text-red-400` to semantic `text-danger`.
+- **`components/tabs/CompareTab.tsx`** — `FullResult` outer wrapper constrained to `max-w-2xl`; Guna Breakdown table to `max-w-xs`; Natal Moon Profiles table to `max-w-sm`. Kuja Dosha Detail table wrapped in `overflow-x-auto` for tablet viewports. Error div converted from inline `style` to semantic `border-danger/40 bg-danger/5`.
+- **`components/profiles/ProfileView.tsx`** — Removed leading `◎` symbol from "Today" tab label for consistency.
+
+---
+
 ## [2026-05-18] — Marriage Compatibility tab; CompareTab persistence & UX polish; CareerTab card; sidebar disclaimer
 
 ### Added

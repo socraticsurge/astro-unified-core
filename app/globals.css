@@ -130,14 +130,14 @@
   --color-surface-active:  rgba(255,255,255,0.16);
 
   /* Color — borders */
-  --color-border:          rgba(255,255,255,0.15);
-  --color-border-subtle:   rgba(255,255,255,0.09);
+  --color-border:          rgba(255,255,255,0.22);
+  --color-border-subtle:   rgba(255,255,255,0.13);
 
   /* Color — ink (text hierarchy) */
   --color-ink-1:           rgba(255,255,255,0.94);
   --color-ink-2:           rgba(255,255,255,0.70);
-  --color-ink-3:           rgba(255,255,255,0.52);
-  --color-ink-4:           rgba(255,255,255,0.35);
+  --color-ink-3:           rgba(255,255,255,0.65);
+  --color-ink-4:           rgba(255,255,255,0.45);
 
   /* Color — accent (brand: amber gold) */
   --color-accent:          rgba(251,191,36,1);

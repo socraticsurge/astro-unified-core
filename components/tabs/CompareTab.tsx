@@ -207,6 +207,7 @@ function FullResult({ check, groomProfile, brideProfile }: {
         <section>
           <SectionHeading>Kuja Dosha Detail</SectionHeading>
           <p className="text-[10px] text-muted-foreground mb-3">Mars · Saturn · Rahu · Ketu · Sun in houses 2 · 4 · 7 · 8 · 12</p>
+          <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
@@ -239,6 +240,7 @@ function FullResult({ check, groomProfile, brideProfile }: {
               )}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 
