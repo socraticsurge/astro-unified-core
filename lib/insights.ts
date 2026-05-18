@@ -11,7 +11,9 @@ const CATEGORY_COLORS = {
 }
 
 function weeksUntil(dateStr: string, from: Date): number {
-  return (new Date(dateStr).getTime() - from.getTime()) / (7 * 24 * 60 * 60 * 1000)
+  const ts = new Date(dateStr).getTime()
+  if (isNaN(ts)) return Infinity
+  return (ts - from.getTime()) / (7 * 24 * 60 * 60 * 1000)
 }
 
 export function generateInsights(
