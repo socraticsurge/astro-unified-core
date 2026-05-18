@@ -89,8 +89,8 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
         </div>
       </section>
 
-      {/* Shadbala + Bhava Chalit side by side */}
-      <div className="flex flex-wrap gap-8 items-start">
+      {/* Shadbala then Bhava Chalit stacked */}
+      <div className="space-y-8">
 
         {/* Shadbala */}
         {shadbala && (
