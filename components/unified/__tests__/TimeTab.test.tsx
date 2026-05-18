@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { TimeTab } from "../tabs/TimeTab";
 
@@ -50,18 +50,21 @@ describe("TimeTab", () => {
     expect(screen.getAllByText(/Saturn/).length).toBeGreaterThan(0);
   });
 
-  it("shows transit Sun sign", () => {
+  it("shows transit Sun sign after clicking Transits tab", () => {
     render(<TimeTab {...defaultProps} />);
+    fireEvent.click(screen.getByRole("tab", { name: /transits/i }));
     expect(screen.getByText(/Taurus/)).toBeDefined();
   });
 
-  it("shows career theme badge", () => {
+  it("shows career theme badge after clicking Career tab", () => {
     render(<TimeTab {...defaultProps} />);
+    fireEvent.click(screen.getByRole("tab", { name: /career/i }));
     expect(screen.getByText(/administration/i)).toBeDefined();
   });
 
   it("renders nothing for transit when transitOutput is null", () => {
     render(<TimeTab {...defaultProps} transitOutput={null} isTransitLoading={false} />);
+    fireEvent.click(screen.getByRole("tab", { name: /transits/i }));
     expect(screen.queryByText(/Taurus/)).toBeNull();
   });
 });
