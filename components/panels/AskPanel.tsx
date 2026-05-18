@@ -27,9 +27,13 @@ interface AskPanelProps {
 
 export function AskPanel({ open, onClose, context, onSubmit }: AskPanelProps) {
   const [question, setQuestion] = React.useState("")
+  const [sent, setSent] = React.useState(false)
 
   React.useEffect(() => {
-    if (!open) setQuestion("")
+    if (!open) {
+      setQuestion("")
+      setSent(false)
+    }
   }, [open])
 
   const placeholder = context.insightTitle
@@ -43,47 +47,65 @@ export function AskPanel({ open, onClose, context, onSubmit }: AskPanelProps) {
           <SheetTitle>✦ Ask an expert</SheetTitle>
         </SheetHeader>
 
-        {/* Context block */}
-        <div className="rounded-md border p-3 text-sm bg-[var(--color-ask-ctx-bg)] border-[var(--color-ask-ctx-border)]">
-          <div className="font-medium text-[var(--color-ask-ctx-name)]">
-            {context.profileName}
-            {context.relationship && (
-              <span className="ml-1 font-normal opacity-70">· {context.relationship}</span>
-            )}
+        {sent ? (
+          /* Confirmation state */
+          <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center py-10">
+            <div className="text-3xl text-[var(--color-accent)]">✦</div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-ink-1)] mb-1">Question sent</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                An astrologer will review your question and respond within 2 days.
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose} className="mt-2">
+              Close
+            </Button>
           </div>
-          <div className="mt-0.5 text-xs opacity-80">
-            {context.mahadasha} · {context.antardasha} dasha
-          </div>
-          {context.insightTitle && (
-            <div className="mt-1 text-xs italic opacity-70">{context.insightTitle}</div>
-          )}
-        </div>
+        ) : (
+          <>
+            {/* Context block */}
+            <div className="rounded-md border p-3 text-sm bg-[var(--color-ask-ctx-bg)] border-[var(--color-ask-ctx-border)]">
+              <div className="font-medium text-[var(--color-ask-ctx-name)]">
+                {context.profileName}
+                {context.relationship && (
+                  <span className="ml-1 font-normal opacity-70">· {context.relationship}</span>
+                )}
+              </div>
+              <div className="mt-0.5 text-xs opacity-80">
+                {context.mahadasha} · {context.antardasha} dasha
+              </div>
+              {context.insightTitle && (
+                <div className="mt-1 text-xs italic opacity-70">{context.insightTitle}</div>
+              )}
+            </div>
 
-        {/* Question */}
-        <div className="flex flex-col gap-2 flex-1">
-          <label htmlFor="ask-question" className="text-xs font-medium uppercase tracking-wide opacity-60">
-            Your question
-          </label>
-          <textarea
-            id="ask-question"
-            className="flex-1 w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-ring min-h-[120px] resize-none"
-            placeholder={placeholder}
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-          />
-        </div>
+            {/* Question */}
+            <div className="flex flex-col gap-2 flex-1">
+              <label htmlFor="ask-question" className="text-xs font-medium uppercase tracking-wide opacity-60">
+                Your question
+              </label>
+              <textarea
+                id="ask-question"
+                className="flex-1 w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-ring min-h-[120px] resize-none"
+                placeholder={placeholder}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+              />
+            </div>
 
-        <Button
-          className="w-full"
-          type="button"
-          disabled={!question.trim()}
-          onClick={() => {
-            onSubmit?.(question)
-            onClose()
-          }}
-        >
-          Request consultation →
-        </Button>
+            <Button
+              className="w-full"
+              type="button"
+              disabled={!question.trim()}
+              onClick={() => {
+                onSubmit?.(question)
+                setSent(true)
+              }}
+            >
+              Request consultation →
+            </Button>
+          </>
+        )}
       </SheetContent>
     </Sheet>
   )

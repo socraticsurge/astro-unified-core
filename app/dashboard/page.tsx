@@ -17,6 +17,9 @@ export default async function DashboardPage({
   const userId  = (session.user as { id: string }).id;
   const profiles = await db.profiles.list(userId);
 
+  // First-time user: send directly to profile creation
+  if (profiles.length === 0) redirect("/profiles/new");
+
   // Allow deep-linking a specific profile via ?profile=id
   const params = searchParams instanceof Promise ? await searchParams : searchParams;
   const initialProfileId = params?.profile

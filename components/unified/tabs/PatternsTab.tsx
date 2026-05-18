@@ -63,7 +63,7 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
             aria-selected={activeTab === t.id}
             onClick={() => setActiveTab(t.id)}
             className={cn(
-              'px-3 py-1 rounded text-[11px] border transition-colors',
+              'px-3 py-1.5 rounded text-xs border transition-colors',
               activeTab === t.id
                 ? 'text-[var(--color-ink-1)] border-[var(--color-border-strong,#2a2a3e)] bg-[var(--color-surface-2)]'
                 : 'text-muted-foreground border-[var(--color-border)] bg-transparent hover:border-[var(--color-border-strong,#2a2a3e)]'
@@ -96,14 +96,14 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
                     <span className={`font-semibold text-sm ${MAJOR_YOGAS.has(y.name) ? "text-amber-300" : "text-[var(--color-ink-1)]"}`}>
                       {y.name}
                       {MAJOR_YOGAS.has(y.name) && (
-                        <span className="ml-1.5 text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full uppercase font-bold tracking-wide">
+                        <span className="ml-1.5 text-xs bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full uppercase font-bold tracking-wide">
                           Major
                         </span>
                       )}
                     </span>
                     <div className="flex gap-1 flex-wrap">
                       {y.formed_by?.map(p => (
-                        <span key={p} className="px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-[10px] text-[var(--color-ink-3)] font-medium">
+                        <span key={p} className="px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-xs text-[var(--color-ink-3)] font-medium">
                           {p}
                         </span>
                       ))}
@@ -210,7 +210,7 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
 
           {karakamsha && (
             <div className="p-4 rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 mb-4">
-              <p className="text-[10px] uppercase tracking-wider text-[var(--color-accent-dim)] font-bold mb-2">
+              <p className="text-xs uppercase tracking-wider text-[var(--color-accent-dim)] font-bold mb-2">
                 Karakamsha — Soul&apos;s Direction
               </p>
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -246,11 +246,11 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
 
           {arudhaPadas && (
             <div className="mb-4">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2">Arudha Padas</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2">Arudha Padas</p>
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
                 {Object.entries(arudhaPadas).map(([num, v]) => (
                   <div key={num} className="p-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)] text-center">
-                    <p className="text-[10px] text-muted-foreground">{v.name ?? `A${num}`}</p>
+                    <p className="text-xs text-muted-foreground">{v.name ?? `A${num}`}</p>
                     <p className="text-xs font-semibold text-[var(--color-ink-1)]">{v.sign}</p>
                   </div>
                 ))}
@@ -260,7 +260,7 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
 
           {upapada && (
             <div className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)]">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">
                 Upapada (A12) — Spouse Indicator
               </p>
               <div className="flex gap-6 text-sm">
@@ -293,12 +293,12 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
 
           {sav && (
             <div className="mb-4 overflow-x-auto">
-              <p className="text-[10px] uppercase text-muted-foreground mb-1">Sarvashtakavarga (SAV)</p>
+              <p className="text-xs uppercase text-muted-foreground mb-1">Sarvashtakavarga (SAV)</p>
               <table className="text-xs border-collapse">
                 <thead>
                   <tr>
                     {SIGNS_ORDER.map(s => (
-                      <th key={s} className="py-1 px-1.5 text-center text-[10px] text-muted-foreground font-medium">
+                      <th key={s} className="py-1 px-1.5 text-center text-xs text-muted-foreground font-medium">
                         {s.slice(0, 3)}
                       </th>
                     ))}
@@ -327,7 +327,7 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
 
           {bav && (
             <div>
-              <p className="text-[10px] uppercase text-muted-foreground mb-2">
+              <p className="text-xs uppercase text-muted-foreground mb-2">
                 Bhinnashtakavarga (BAV) — per planet
               </p>
               <div className="overflow-x-auto">

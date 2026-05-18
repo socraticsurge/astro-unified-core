@@ -8,6 +8,22 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — Natal chart grids, divisional charts, guided UX improvements
+
+### Added
+- **NatalChartGrid** — reusable South Indian 4×4 chart grid (`components/unified/NatalChartGrid.tsx`). Accepts any divisional sign key (`sign`, `d9_sign`, etc.), computes house numbers relative to lagna, colours planets by dignity (D1 only), marks lagna cell, supports `compact` mode for thumbnail grids.
+- **D1 + D9 charts in ChartTab** — "Birth Chart" section at the top shows the Rasi (D1) and Navamsa (D9) grids side by side.
+- **Divisional chart grid in HousesVargasTab** — 2–3 column grid of compact charts for all 14 divisionals (D2–D60). Only charts with data render; charts with no backend data are omitted cleanly.
+
+### Changed
+- **AskPanel** — after submitting a question, shows a confirmation state: "An astrologer will respond within 2 days." Panel resets on close.
+- **Profile transition animation** — switching profiles triggers a 200ms fade-in (`animate-profile-enter` keyframe in globals.css). The re-keyed wrapper ensures stale data from the previous profile never bleeds through.
+- **First-user journey** — `app/dashboard/page.tsx` now redirects unauthenticated first-time users (no profiles) directly to `/profiles/new` instead of showing an empty state.
+- **Font consistency** — all sub-tab buttons (`text-[11px]`) bumped to `text-xs` with `py-1.5` tap target. All section labels and badges inside PatternsTab, TimeTab normalised to `text-xs` minimum. `text-[10px]` retained only for intentional caption/legend lines.
+- **HousesVargasTab** — added SAV legend (≥28 favorable · <22 challenging). D9 and D10 columns highlighted in Varga Matrix. Panchang section header updated to "Panchang at Birth" for clarity.
+
+---
+
 ## [2026-05-18] — UX polish pass: flat tables, inline edit, simplified ask panel
 
 ### Changed

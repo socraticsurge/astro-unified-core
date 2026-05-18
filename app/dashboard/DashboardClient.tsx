@@ -67,7 +67,7 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
     const data = chart.data?.data as Record<string, unknown> | undefined
     const dashas = data?.dashas as { maha?: { planet?: string }; antar?: { planet?: string } } | undefined
     setAskCtx({
-      profileName:  activeProfile?.name.split(' ')[0] ?? '',
+      profileName:  activeProfile?.name ?? '',
       relationship: activeProfile?.relationship ?? 'Other',
       mahadasha:    dashas?.maha?.planet ?? '—',
       antardasha:   dashas?.antar?.planet ?? '—',
@@ -112,18 +112,20 @@ export function DashboardClient({ profiles, initialProfileId }: DashboardClientP
 
       <div className="flex-1 overflow-hidden">
         {activeProfile ? (
-          <ProfileView
-            profile={activeProfile}
-            allProfiles={profiles}
-            chartOutput={chart.data}
-            transitOutput={transit.data}
-            careerOutput={career.data}
-            isTransitLoading={transit.loading}
-            isCareerLoading={career.loading}
-            onFetchTransit={fetchTransit}
-            onFetchCareer={fetchCareer}
-            onAskOpen={handleAskOpen}
-          />
+          <div key={activeProfileId} className="animate-profile-enter h-full">
+            <ProfileView
+              profile={activeProfile}
+              allProfiles={profiles}
+              chartOutput={chart.data}
+              transitOutput={transit.data}
+              careerOutput={career.data}
+              isTransitLoading={transit.loading}
+              isCareerLoading={career.loading}
+              onFetchTransit={fetchTransit}
+              onFetchCareer={fetchCareer}
+              onAskOpen={handleAskOpen}
+            />
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-muted-foreground">Select a profile above.</p>

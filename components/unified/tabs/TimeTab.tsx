@@ -75,7 +75,7 @@ export function TimeTab({
             aria-controls={`timetab-panel-${t.id}`}
             onClick={() => setActiveTab(t.id)}
             className={cn(
-              'px-3 py-1 rounded text-[11px] border transition-colors',
+              'px-3 py-1.5 rounded text-xs border transition-colors',
               activeTab === t.id
                 ? 'text-[var(--color-ink-1)] border-[var(--color-border-strong,#2a2a3e)] bg-[var(--color-surface-2)]'
                 : 'text-muted-foreground border-[var(--color-border)] bg-transparent hover:border-[var(--color-border-strong,#2a2a3e)]'
@@ -104,7 +104,7 @@ export function TimeTab({
                       style={{ paddingLeft: `${depth * 16}px` }}
                       className="flex items-center gap-3 py-2 px-3 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)]"
                     >
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground w-20">{label}</span>
+                      <span className="text-xs uppercase tracking-wider text-muted-foreground w-20">{label}</span>
                       <span className="font-semibold text-sm text-[var(--color-ink-1)] w-20">{d.planet}</span>
                       <span className="text-xs text-muted-foreground">{d.start} → {d.end}</span>
                     </div>
@@ -154,7 +154,7 @@ export function TimeTab({
                       >
                         <td className={cn("py-2 px-3 font-semibold", isCurrent ? "text-[var(--color-nav-chip-active-text)]" : "text-[var(--color-ink-1)]")}>
                           {t.planet ?? "—"}
-                          {isCurrent && <span className="ml-1.5 text-[10px] opacity-70">← now</span>}
+                          {isCurrent && <span className="ml-1.5 text-xs opacity-70">← now</span>}
                         </td>
                         <td className="py-2 px-3 font-mono text-xs text-[var(--color-ink-3)]">{t.start ?? "—"}</td>
                         <td className="py-2 px-3 font-mono text-xs text-[var(--color-ink-3)]">{t.end ?? "—"}</td>
@@ -224,7 +224,7 @@ export function TimeTab({
                           <tr key={name} className="border-b border-[var(--color-border)]/40">
                             <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">
                               {name}
-                              {t.is_retrograde && <span className="ml-1 text-orange-400 text-[10px]">℞</span>}
+                              {t.is_retrograde && <span className="ml-1 text-orange-400">℞</span>}
                             </td>
                             <td className="py-1.5 px-2 text-[var(--color-ink-2)]">{t.sign}</td>
                             <td className="py-1.5 px-2 text-center text-muted-foreground">{t.house_from_lagna}</td>
@@ -271,7 +271,7 @@ export function TimeTab({
             <div className="space-y-3">
               {careerData.tenth_house && (
                 <div className="p-3 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)]">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">10th House (Karma Bhava)</p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">10th House (Karma Bhava)</p>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <span>Sign: <strong className="text-[var(--color-ink-1)]">{careerData.tenth_house.sign}</strong></span>
                     <span>Lord: <strong className="text-sky-300">{careerData.tenth_house.lord}</strong></span>
@@ -283,7 +283,7 @@ export function TimeTab({
 
               {careerData.career_themes && careerData.career_themes.length > 0 && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Career Themes</p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Career Themes</p>
                   <div className="flex flex-wrap gap-1.5">
                     {careerData.career_themes.map(t => (
                       <span key={t} className="px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs text-[var(--color-ink-2)]">
@@ -296,7 +296,7 @@ export function TimeTab({
 
               {careerData.strength_factors && careerData.strength_factors.length > 0 && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Indicators</p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Indicators</p>
                   <ul className="space-y-0.5">
                     {careerData.strength_factors.map(f => (
                       <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
