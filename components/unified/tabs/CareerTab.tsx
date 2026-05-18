@@ -1,7 +1,6 @@
 "use client";
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
 import { PLANET_ORDER, DIGNITY_COLORS, TABLE_STYLES } from "@/components/unified/types";
@@ -54,45 +53,72 @@ export function CareerTab({
   const lagna     = chartData?.lagna   as Record<string, unknown> | undefined;
   const lagnaD10  = lagna?.d10_sign as SignName | undefined;
 
-  const career = ((careerOutput as Record<string, unknown> | null)?.data ?? careerOutput) as CareerData | null;
-
+  const career     = ((careerOutput as Record<string, unknown> | null)?.data ?? careerOutput) as CareerData | null;
   const tenth      = career?.tenth_house;
   const indicators = career?.d10_indicators ?? {};
   const primary    = career?.primary_planets ?? [];
-
-  // All planets in PLANET_ORDER that have D10 indicator data
-  const allPlanetRows = PLANET_ORDER.filter(p => indicators[p]);
+  const allRows    = PLANET_ORDER.filter(p => indicators[p]);
 
   return (
     <div className="flex flex-col sm:flex-row gap-6 items-start">
 
-      {/* D10 chart */}
-      {planets && (
-        <div className="flex-shrink-0">
+      {/* ── Left column: chart + supporting context ─────────────────── */}
+      <div className="shrink-0 space-y-6">
+        {planets && (
           <NatalChartGrid
             planets={planets}
             lagnaSign={lagnaD10}
             signKey="d10_sign"
             label="D10 — Dashamsha"
           />
-        </div>
-      )}
+        )}
 
-      {/* Analysis column */}
+        {career && primary.length > 0 && (
+          <section>
+            <SectionHeading>Key Significators</SectionHeading>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {primary.map(p => {
+                const strong = indicators[p]?.d10_strong;
+                return (
+                  <div key={p} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-1)] text-xs">
+                    <span className="text-planet-name font-semibold">{p}</span>
+                    {strong && (
+                      <span className="text-[10px] text-dignity-exalted font-medium uppercase tracking-wide">strong in D10</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {career?.career_themes && career.career_themes.length > 0 && (
+          <section>
+            <SectionHeading>Career Themes</SectionHeading>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {career.career_themes.map(t => (
+                <span key={t} className="px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs text-[var(--color-ink-2)] capitalize">
+                  {t.replace(/_/g, " ")}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* ── Right column: analysis data ──────────────────────────────── */}
       <div className="flex-1 space-y-8 min-w-0">
 
-        <div className="flex items-center justify-between">
-          <SectionHeading>Career Analysis</SectionHeading>
-          <Button
-            variant="ghost"
-            size="sm"
+        {/* Refresh sits quietly at the top right, no heading above it */}
+        <div className="flex justify-end -mt-1">
+          <button
             onClick={() => onFetchCareer(true)}
             disabled={isCareerLoading}
-            className="h-6 text-xs gap-1 text-muted-foreground"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[var(--color-ink-2)] transition-colors disabled:opacity-40"
           >
             <RefreshCw className={`h-3 w-3 ${isCareerLoading ? "animate-spin" : ""}`} />
             {isCareerLoading ? "Loading…" : "Refresh"}
-          </Button>
+          </button>
         </div>
 
         {isCareerLoading && (
@@ -105,7 +131,7 @@ export function CareerTab({
             {tenth && (
               <section>
                 <SectionHeading>10th House — Karma Bhava</SectionHeading>
-                <div className="space-y-0 divide-y divide-[var(--color-border)]/40">
+                <div className="divide-y divide-[var(--color-border)]/40">
                   <div className="flex justify-between py-2 text-sm">
                     <span className="text-muted-foreground">Sign</span>
                     <span className="text-[var(--color-ink-1)] font-medium">{tenth.sign ?? "—"}</span>
@@ -123,8 +149,7 @@ export function CareerTab({
                   <div className="flex justify-between py-2 text-sm">
                     <span className="text-muted-foreground">Lord placed in</span>
                     <span className="text-[var(--color-ink-2)]">
-                      House {tenth.lord_house ?? "—"}
-                      {tenth.lord_sign ? ` · ${tenth.lord_sign}` : ""}
+                      House {tenth.lord_house ?? "—"}{tenth.lord_sign ? ` · ${tenth.lord_sign}` : ""}
                     </span>
                   </div>
                   <div className="flex justify-between py-2 text-sm">
@@ -141,29 +166,8 @@ export function CareerTab({
               </section>
             )}
 
-            {/* Key significators callout */}
-            {primary.length > 0 && (
-              <section>
-                <SectionHeading>Key Significators</SectionHeading>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {primary.map(p => {
-                    const ind = indicators[p]
-                    const strong = ind?.d10_strong
-                    return (
-                      <div key={p} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-1)] text-xs">
-                        <span className="text-planet-name font-semibold">{p}</span>
-                        {strong && (
-                          <span className="text-[10px] text-dignity-exalted font-medium uppercase tracking-wide">strong in D10</span>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* Full D10 planetary table */}
-            {allPlanetRows.length > 0 && (
+            {/* D10 planetary table */}
+            {allRows.length > 0 && (
               <section>
                 <SectionHeading>D10 Planetary Positions</SectionHeading>
                 <div className="overflow-x-auto">
@@ -177,9 +181,9 @@ export function CareerTab({
                       </tr>
                     </thead>
                     <tbody>
-                      {allPlanetRows.map(p => {
-                        const ind = indicators[p]
-                        const isPrimary = primary.includes(p)
+                      {allRows.map(p => {
+                        const ind = indicators[p];
+                        const isPrimary = primary.includes(p);
                         return (
                           <tr key={p} className={row}>
                             <td className={`${td} ${isPrimary ? "text-planet-name font-semibold" : "text-[var(--color-ink-2)]"}`}>{p}</td>
@@ -191,7 +195,7 @@ export function CareerTab({
                                 : <span className="text-muted-foreground/30">—</span>}
                             </td>
                           </tr>
-                        )
+                        );
                       })}
                     </tbody>
                   </table>
@@ -199,21 +203,7 @@ export function CareerTab({
               </section>
             )}
 
-            {/* Career themes */}
-            {career.career_themes && career.career_themes.length > 0 && (
-              <section>
-                <SectionHeading>Career Themes</SectionHeading>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {career.career_themes.map(t => (
-                    <span key={t} className="px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs text-[var(--color-ink-2)] capitalize">
-                      {t.replace(/_/g, " ")}
-                    </span>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Strength indicators */}
+            {/* Indicators */}
             {career.strength_factors && career.strength_factors.length > 0 && (
               <section>
                 <SectionHeading>Indicators</SectionHeading>

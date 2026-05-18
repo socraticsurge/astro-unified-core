@@ -8,7 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
-## [2026-05-18] — CompareTab UX overhaul; scroll fix; design token additions
+## [2026-05-18] — CareerTab layout reorganisation; CompareTab UX overhaul; scroll fix; design token additions
+
+### Changed
+- **CareerTab layout** (`components/unified/tabs/CareerTab.tsx`) — reorganised to reduce visual noise:
+  - Removed "Career Analysis" meta-heading that appeared before any real content.
+  - Moved **Key Significators** chips and **Career Themes** chips into the left column, below the D10 NatalChartGrid — contextually paired with the chart they annotate.
+  - Right column now starts directly with the small inline **Refresh** button (top-right, no heading above it), followed immediately by the 10th House section, D10 Planetary Positions table, and Indicators.
 
 ### Fixed
 - **ProfileView scroll** (`components/profiles/ProfileView.tsx`) — outer div changed from `flex flex-col min-h-0` to `h-full flex flex-col min-h-0` so the `flex-1 overflow-y-auto` tab panel correctly gets a constrained height and scrolls. All tabs (especially Compare with its long result) can now be scrolled.
