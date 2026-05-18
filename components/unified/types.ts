@@ -54,12 +54,12 @@ export type UnifiedViewProps = {
   onFetchCareer: (force?: boolean) => void;
 };
 
-export const SIGNS_ORDER: SignName[] = [
+export const SIGNS_ORDER: readonly SignName[] = [
   "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
   "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces",
 ];
 
-export const PLANET_ORDER: PlanetName[] = [
+export const PLANET_ORDER: readonly PlanetName[] = [
   "Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu",
 ];
 
@@ -73,7 +73,7 @@ export const DIGNITY_COLORS: Record<string, string> = {
   debilitated: "text-red-500",
 };
 
-export const VARGA_KEYS: { label: string; key: string }[] = [
+export const VARGA_KEYS: { label: string; key: keyof Planet }[] = [
   { label: "D2",  key: "d2_sign"  }, { label: "D3",  key: "d3_sign"  },
   { label: "D4",  key: "d4_sign"  }, { label: "D7",  key: "d7_sign"  },
   { label: "D9",  key: "d9_sign"  }, { label: "D10", key: "d10_sign" },
