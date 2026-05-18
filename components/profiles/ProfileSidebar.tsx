@@ -11,7 +11,7 @@ const SELECT_CLASS =
   "flex h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-2.5 py-1.5 text-xs text-[var(--color-ink-1)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
 const INPUT_CLASS =
   "flex h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-2.5 py-1.5 text-xs text-[var(--color-ink-1)] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
-const LABEL_CLASS = "text-[9px] uppercase tracking-wider text-muted-foreground";
+const LABEL_CLASS = "text-[10px] uppercase tracking-wider text-muted-foreground";
 
 function InlineEditForm({ profile, onCancel }: { profile: Profile; onCancel: () => void }) {
   const [form, setForm] = useState({
@@ -89,7 +89,7 @@ function InlineEditForm({ profile, onCancel }: { profile: Profile; onCancel: () 
         <label className={LABEL_CLASS}>Current location</label>
         <input name="current_location" value={form.current_location} onChange={handleChange} className={INPUT_CLASS} placeholder="City, Country" />
       </div>
-      {error && <p className="text-red-400 text-xs">{error}</p>}
+      {error && <p className="text-danger text-xs">{error}</p>}
       <div className="flex gap-2">
         <button
           onClick={handleSave}
@@ -210,7 +210,7 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
             {/* Panchang at birth */}
             {panchangRows.length > 0 && (
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
                   Panchang at Birth
                 </p>
                 <div className="space-y-1">
@@ -227,7 +227,7 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
             {/* D1 chart */}
             {planets && (
               <div className="space-y-3">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Birth Charts
                 </p>
                 <NatalChartGrid
