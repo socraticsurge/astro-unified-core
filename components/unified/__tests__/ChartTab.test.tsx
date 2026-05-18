@@ -62,4 +62,9 @@ describe("ChartTab", () => {
     render(<ChartTab chartOutput={mockOutput} />);
     expect(screen.getByText(/H4.*H7.*H8|H4, H7, H8/)).toBeDefined();
   });
+
+  it("renders nothing when chartOutput is empty", () => {
+    const { container } = render(<ChartTab chartOutput={{}} />);
+    expect(container.querySelector("section")).toBeNull();
+  });
 });

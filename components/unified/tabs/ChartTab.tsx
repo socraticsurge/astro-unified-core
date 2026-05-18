@@ -51,7 +51,7 @@ export function ChartTab({ chartOutput }: { chartOutput: Record<string, unknown>
               D1: {String(lagna.sign ?? "—")}
             </span>
             {VARGA_KEYS.map(({ label, key }) => {
-              const val = (lagna as Record<string, unknown>)[key as string];
+              const val = (lagna as Record<string, unknown>)[key];
               return val ? (
                 <span key={label} className="px-2 py-0.5 rounded bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs text-[var(--color-ink-3)]">
                   {label}: {String(val)}
