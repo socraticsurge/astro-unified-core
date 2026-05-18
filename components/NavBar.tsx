@@ -1,56 +1,18 @@
-"use client";
-import { useSession, signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
-import { fonts, motion } from "@/lib/typography";
-import { NAV_CONFIG } from "@/lib/nav";
-import { ThemeToggle } from "@/components/ThemeToggle";
-
-// ── Bespoke SVG icons ──────────────────────────────────────────────────────────
-
-function NatalIcon({ active }: { active: boolean }) {
-  const c = active ? "var(--color-accent)" : "var(--color-ink-3)";
-  return (
-    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="14" cy="14" r="12" stroke={c} strokeWidth="0.9"/>
-      <circle cx="14" cy="14" r="6"  stroke={c} strokeWidth="0.7"/>
-      <circle cx="14" cy="14" r="1.6" fill={c}/>
-      <line x1="14" y1="2"  x2="14" y2="7"  stroke={c} strokeWidth="0.7"/>
-      <line x1="14" y1="21" x2="14" y2="26" stroke={c} strokeWidth="0.7"/>
-      <line x1="2"  y1="14" x2="7"  y2="14" stroke={c} strokeWidth="0.7"/>
-      <line x1="21" y1="14" x2="26" y2="14" stroke={c} strokeWidth="0.7"/>
-      <line x1="5"  y1="5"  x2="9"  y2="9"  stroke={c} strokeWidth="0.55"/>
-      <line x1="19" y1="19" x2="23" y2="23" stroke={c} strokeWidth="0.55"/>
-      <line x1="23" y1="5"  x2="19" y2="9"  stroke={c} strokeWidth="0.55"/>
-      <line x1="9"  y1="19" x2="5"  y2="23" stroke={c} strokeWidth="0.55"/>
-    </svg>
-  );
-}
-
-function KundaliIcon({ active }: { active: boolean }) {
-  const c    = active ? "var(--color-accent)" : "var(--color-ink-3)";
-  const fill = active ? "var(--color-accent-faint)" : "var(--color-surface-1)";
-  return (
-    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="10" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="var(--color-surface-1)"/>
-      <circle cx="18" cy="14" r="9" stroke={c} strokeWidth="0.9" fill="var(--color-surface-1)"/>
-      <path d="M14 6.6 C16.5 8.8 16.5 19.2 14 21.4 C11.5 19.2 11.5 8.8 14 6.6Z" fill={fill}/>
-    </svg>
-  );
-}
-
-function ConsultIcon({ active }: { active: boolean }) {
-  const c = active ? "var(--color-accent)" : "var(--color-ink-3)";
-  return (
-    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="14" cy="9" r="4.5" stroke={c} strokeWidth="0.9"/>
-      <path d="M5 24 C5 18.5 8.5 15 14 15 C19.5 15 23 18.5 23 24"
-        stroke={c} strokeWidth="0.9" strokeLinecap="round" fill="none"/>
-      <circle cx="14" cy="9" r="1.5" fill={c}/>
-    </svg>
-  );
-}
+"use client"
+import { useSession, signOut } from "next-auth/react"
+import Link from "next/link"
+import { Settings, ShieldCheck, LogOut } from "lucide-react"
+import { fonts, motion } from "@/lib/typography"
+import { ProfileNav } from "@/components/profiles/ProfileNav"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import type { NavProfile } from "@/components/profiles/ProfileNav"
 
 function TwoOrbits({ size = 36 }: { size?: number }) {
   return (
@@ -63,219 +25,134 @@ function TwoOrbits({ size = 36 }: { size?: number }) {
       <circle cx="34.5" cy="32" r="1.5" fill="var(--color-accent-dim)"/>
       <circle cx="24"   cy="24" r="2.6" fill="var(--color-accent)"/>
     </svg>
-  );
+  )
 }
-
-type IconComponent = ({ active }: { active: boolean }) => React.ReactElement;
-
-const NAV_ICONS: Record<string, IconComponent> = {
-  "/dashboard":     NatalIcon,
-  "/compatibility": KundaliIcon,
-  "/consultation":  ConsultIcon,
-};
 
 const navGlassStyle: React.CSSProperties = {
   background:           "var(--surface-blend)",
   backdropFilter:       "var(--backdrop-blur)",
   WebkitBackdropFilter: "var(--backdrop-blur)",
   boxShadow:            "inset 0 1.5px 0 var(--color-border-subtle), inset 0 -1px 0 var(--color-border-subtle)",
-};
+}
 
 const wordmarkStyle: React.CSSProperties = {
   ...fonts.display,
-  fontSize: "1.45rem",
+  fontSize: "1.1rem",
   letterSpacing: "0.02em",
   lineHeight: 1,
-};
+}
 
-const goldStyle: React.CSSProperties = {
-  fontStyle: "italic",
-  color: "var(--color-accent)",
-};
+interface NavBarProps {
+  profiles?: NavProfile[]
+  activeProfileId?: string | null
+  onProfileChange?: (id: string) => void
+  onAskOpen?: () => void
+}
 
-export function NavBar() {
-  const { data: session, status } = useSession();
-  const pathname = usePathname();
-  const isLoggedIn = status === "authenticated";
-  const showAdmin = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true;
-
-  const isActive = (href: string) =>
-    href === "/dashboard"
-      ? pathname === "/dashboard" || (pathname?.startsWith("/profiles") ?? false)
-      : pathname?.startsWith(href) ?? false;
+export function NavBar({ profiles = [], activeProfileId = null, onProfileChange, onAskOpen }: NavBarProps) {
+  const { data: session, status } = useSession()
+  const isLoggedIn  = status === "authenticated"
+  const showAdmin   = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true
 
   return (
-    <>
-      {/* ── Desktop top nav ── */}
-      <nav
-        className="hidden sm:flex sticky top-0 z-40 border-b border-[var(--color-border)] items-center"
-        style={{ ...navGlassStyle, transition: `background ${motion.standard}` }}
-      >
-        <div className="max-w-7xl w-full mx-auto px-6 py-4 flex items-center justify-between gap-6">
+    <nav
+      className="sticky top-0 z-40 border-b border-[var(--color-border)]"
+      style={{ ...navGlassStyle, transition: `background ${motion.standard}` }}
+    >
+      <div className="w-full px-3 sm:px-5 py-2.5 flex items-center gap-3">
 
-          <Link
-            href={isLoggedIn ? "/dashboard" : "/"}
-            className="flex items-center gap-3 shrink-0"
-            aria-label="Home"
-          >
-            <TwoOrbits size={40} />
-            <span style={wordmarkStyle}>
-              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
-              <span style={goldStyle}>Chaganti</span>
-            </span>
-          </Link>
-
-          {isLoggedIn && (
-            <div className="flex items-center gap-1">
-              {NAV_CONFIG.map(({ href, label }) => {
-                const Icon = NAV_ICONS[href];
-                const active = isActive(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={[
-                      "flex items-center gap-2 px-3.5 py-2 rounded-[var(--radius-md)] transition-all whitespace-nowrap",
-                      active
-                        ? "bg-[var(--color-accent-faint)] text-[var(--color-accent)]"
-                        : "text-[var(--color-ink-3)] hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)]",
-                    ].join(" ")}
-                    style={{ ...fonts.uiMedium, fontSize: "0.8rem", letterSpacing: "0.02em" }}
-                  >
-                    <Icon active={active} />
-                    {label}
-                  </Link>
-                );
-              })}
-
-              {showAdmin && (
-                <Link
-                  href="/admin"
-                  className={[
-                    "flex items-center gap-2 px-3.5 py-2 rounded-[var(--radius-md)] transition-all",
-                    isActive("/admin")
-                      ? "bg-[var(--color-accent-faint)] text-[var(--color-accent)]"
-                      : "text-[var(--color-accent-dim)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface-hover)]",
-                  ].join(" ")}
-                  style={{ ...fonts.uiMedium, fontSize: "0.75rem", letterSpacing: "0.02em" }}
-                >
-                  <ShieldCheck className="h-[1.1em] w-[1.1em]" />
-                  Admin
-                </Link>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 shrink-0">
-            <ThemeToggle />
-            {isLoggedIn ? (
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--color-ink-4)] hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-all"
-                style={{ ...fonts.uiItalic, fontSize: "0.8rem", letterSpacing: "0.02em" }}
-              >
-                Sign Out
-              </button>
-            ) : (
-              <Link
-                href="/auth/signin"
-                className="px-4 py-1.5 rounded-[var(--radius-md)] text-sm font-medium border border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)] hover:text-[var(--color-accent-hover)] transition-all"
-                style={fonts.uiMedium}
-              >
-                Sign In
-              </Link>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      {/* ── Mobile bottom nav ── */}
-      {isLoggedIn && (
-        <div
-          className="sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)]"
-          style={{
-            ...navGlassStyle,
-            paddingBottom: "calc(env(safe-area-inset-bottom) + 0.25rem)",
-          }}
+        {/* Logo */}
+        <Link
+          href={isLoggedIn ? "/dashboard" : "/"}
+          className="flex items-center gap-2 shrink-0"
+          aria-label="Home"
         >
-          <div className="flex items-stretch justify-around px-2 pt-1">
-            {NAV_CONFIG.map(({ href, short }) => {
-              const Icon = NAV_ICONS[href];
-              const active = isActive(href);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={[
-                    "flex flex-col items-center gap-1 px-4 py-2 rounded-[var(--radius-md)] transition-all min-h-[52px] justify-center",
-                    active
-                      ? "text-[var(--color-accent)]"
-                      : "text-[var(--color-ink-4)] hover:text-[var(--color-ink-2)]",
-                  ].join(" ")}
-                >
-                  <Icon active={active} />
-                  <span style={{ ...fonts.uiMedium, fontSize: "0.7rem", letterSpacing: "0.03em" }}>
-                    {short}
-                  </span>
-                </Link>
-              );
-            })}
+          <TwoOrbits size={32} />
+          <span style={wordmarkStyle} className="hidden sm:block">
+            <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
+            <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
+          </span>
+        </Link>
 
-            {showAdmin && (
-              <Link
-                href="/admin"
-                className={[
-                  "flex flex-col items-center gap-1 px-4 py-2 rounded-[var(--radius-md)] transition-all min-h-[52px] justify-center",
-                  isActive("/admin")
-                    ? "text-[var(--color-accent)]"
-                    : "text-[var(--color-accent-dim)] hover:text-[var(--color-accent)]",
-                ].join(" ")}
+        {/* Divider */}
+        {isLoggedIn && (
+          <div className="h-6 w-px bg-[var(--color-border)] flex-shrink-0" />
+        )}
+
+        {/* Profile chips + Ask button */}
+        {isLoggedIn && onProfileChange && onAskOpen && (
+          <ProfileNav
+            profiles={profiles}
+            activeProfileId={activeProfileId}
+            onProfileChange={onProfileChange}
+            onAskOpen={onAskOpen}
+          />
+        )}
+
+        {/* Right side: settings */}
+        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+          {isLoggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] transition-colors"
+                aria-label="Settings"
               >
-                <ShieldCheck className="h-5 w-5" />
-                <span style={{ ...fonts.uiMedium, fontSize: "0.7rem" }}>Admin</span>
-              </Link>
-            )}
-          </div>
-
-          {/* Utility strip: theme toggle + sign out */}
-          <div className="flex justify-end items-center gap-2 px-4 pb-0.5">
-            <ThemeToggle />
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-[var(--color-ink-4)] hover:text-[var(--color-ink-2)] transition-all"
-              style={{ ...fonts.ui, fontSize: "0.65rem", letterSpacing: "0.04em" }}
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile unauthenticated */}
-      {!isLoggedIn && (
-        <nav
-          className="sm:hidden sticky top-0 z-40 border-b border-[var(--color-border)] flex items-center justify-between px-4 py-3"
-          style={navGlassStyle}
-        >
-          <Link href="/" className="flex items-center gap-2" aria-label="Home">
-            <TwoOrbits size={26} />
-            <span style={{ ...wordmarkStyle, fontSize: "1.1rem" }}>
-              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
-              <span style={goldStyle}>Chaganti</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
+                <Settings className="w-4 h-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem>
+                  <Link href="/settings" className="w-full">Account settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="p-0">
+                  <ThemeToggle />
+                </DropdownMenuItem>
+                {showAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Link href="/admin" className="flex items-center gap-2 w-full">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  variant="destructive"
+                  className="flex items-center gap-2"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
             <Link
               href="/auth/signin"
-              className="px-4 py-1.5 rounded-[var(--radius-md)] text-sm border border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)] transition-all"
+              className="px-4 py-1.5 rounded-md text-sm font-medium border border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] text-[var(--color-accent)]"
               style={fonts.uiMedium}
             >
               Sign In
             </Link>
-          </div>
-        </nav>
+          )}
+        </div>
+
+      </div>
+
+      {/* Unauthenticated mobile — keep sign-in visible */}
+      {!isLoggedIn && (
+        <div className="sm:hidden border-t border-[var(--color-border)] px-4 py-2 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2" aria-label="Home">
+            <TwoOrbits size={24} />
+            <span style={{ ...wordmarkStyle, fontSize: "0.95rem" }}>
+              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
+              <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
+            </span>
+          </Link>
+        </div>
       )}
-    </>
-  );
+    </nav>
+  )
 }

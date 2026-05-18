@@ -8,6 +8,28 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-18] — Navigation redesign: chip-first profile nav and unified dashboard shell
+
+### Added
+- **ProfileNav** — horizontal scrollable chip row in the top bar. Each chip shows a profile name; the active chip is highlighted. A ✦ Ask button opens the AskPanel with chart context pre-filled.
+- **ProfileChip** — individual chip component with active/inactive states and an optional alert dot.
+- **DashboardClient** — new root interactive shell at `app/dashboard/DashboardClient.tsx`. Owns all interactive state: active profile chip, chart/transit/career engine fetch results, Ask panel open/context.
+- **ProfileView** — 7-tab profile shell (`components/profiles/ProfileView.tsx`): Today, Chart, Planets, Houses, Patterns, Time, Compare. Full ARIA tablist pattern throughout.
+- **TodayTab** — dasha hero card (maha · antar, shift pill when ≤8 weeks) + up to 5 insight cards with Ask/Explore CTAs.
+- **TodayInsightCard + `lib/insights.ts`** — rule-based insight generator: imminent antardasha transition, Sade Sati, Kaal Sarpa, significant Jupiter transit, major yogas (up to 5 insights total).
+- **CompareTab** — lists other profiles linking to `/compatibility/[id]?with=[otherId]`; empty state links to profile creation.
+- **PatternsTab sub-tabs** — 4 sub-tabs (Yogas, Doshas, Jaimini, Ashtakavarga) with full ARIA tablist.
+- **TimeTab sub-tabs** — 4 sub-tabs (Current Period, Timeline, Transits, Career) with lazy fetch for transit and career engines.
+- **DashaTimeline + DashaRow** — recursive expandable accordion for 5-level dasha nesting; graceful fallback when sidecar returns flat data only.
+- **NavBar** replaced — removes section-nav (Dashboard / Compatibility / Consultation links) and replaces with ProfileNav chips. Settings moved to a DropdownMenu (account settings, theme toggle, admin, sign out).
+- **shadcn `dropdown-menu`** installed (base-ui variant).
+
+### Changed
+- `app/dashboard/page.tsx` — now renders `DashboardClient` and accepts `?profile=<id>` query param for deep-linking a specific chip.
+- `app/profiles/[id]/page.tsx` — now redirects to `/dashboard?profile=<id>` (deep-link redirect into chip nav).
+
+---
+
 ## [2026-05-18] — Full Chart (Experimental): unified single-view with 5 tabs
 
 ### Added
