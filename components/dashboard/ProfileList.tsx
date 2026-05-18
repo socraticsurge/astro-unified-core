@@ -69,10 +69,11 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
           </Button>
         </Link>
         <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <input
             type="text"
             placeholder="Search profiles..."
+            aria-label="Search profiles"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-700 rounded-md text-sm"
@@ -119,8 +120,14 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
               </div>
               <div className="flex items-center gap-1">
                 <Link href={`/profiles/${p.id}/edit`}>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                    <Edit2 className="h-3.5 w-3.5" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    aria-label={`Edit ${p.name}`}
+                    title={`Edit ${p.name}`}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" aria-hidden="true" />
                   </Button>
                 </Link>
                 <Button
@@ -128,8 +135,10 @@ export function ProfileList({ initialProfiles }: { initialProfiles: Profile[] })
                   size="icon"
                   onClick={() => handleDelete(p.id)}
                   className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                  aria-label={`Delete ${p.name}`}
+                  title={`Delete ${p.name}`}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
               </div>
             </div>
