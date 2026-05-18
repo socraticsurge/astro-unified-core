@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { CheckCircle2, XCircle, MinusCircle, Loader2, X } from "lucide-react"
+import { CheckCircle2, XCircle, MinusCircle, Loader2, RotateCcw } from "lucide-react"
 import type { Profile, CompatibilityCheck } from "@/lib/db"
 import type { CompatResult, AdditionalKuta } from "@/lib/compatibility"
 import { KOOTA_MAX, scoreColor, scoreLabel } from "@/lib/compatibility"
@@ -37,6 +37,20 @@ function filterCandidates(allProfiles: Profile[], active: Profile): Profile[] {
   if (role === "groom") return others.filter(p => resolveRole(p.gender) === "bride")
   if (role === "bride") return others.filter(p => resolveRole(p.gender) === "groom")
   return others
+}
+
+// ── Profile pill (shared display for both parties) ───────────────────────────
+
+function ProfilePill({ profile, role }: { profile: Profile; role: Role }) {
+  return (
+    <div className="flex items-center gap-2 shrink-0">
+      <ProfileAvatar name={profile.name ?? "?"} size="sm" />
+      <div>
+        <p className="text-sm font-medium text-[var(--color-ink-1)] leading-tight">{profile.name}</p>
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabel(role)}</p>
+      </div>
+    </div>
+  )
 }
 
 // ── Score arc ─────────────────────────────────────────────────────────────────
@@ -311,11 +325,13 @@ function FullResult({ check, groomProfile, brideProfile }: {
 interface CompareTabProps {
   activeProfile: Profile
   allProfiles: Profile[]
+  selectedId: string
+  onSelectedId: (id: string) => void
+  result: CompatibilityCheck | null
+  onResult: (r: CompatibilityCheck | null) => void
 }
 
-export function CompareTab({ activeProfile, allProfiles }: CompareTabProps) {
-  const [selectedId, setSelectedId] = useState<string>("")
-  const [result, setResult] = useState<CompatibilityCheck | null>(null)
+export function CompareTab({ activeProfile, allProfiles, selectedId, onSelectedId, result, onResult }: CompareTabProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -328,8 +344,8 @@ export function CompareTab({ activeProfile, allProfiles }: CompareTabProps) {
     if (!id) { handleClear(); return }
     const profile = candidates.find(p => p.id === id)
     if (!profile) return
-    setSelectedId(id)
-    setResult(null)
+    onSelectedId(id)
+    onResult(null)
     setError(null)
     setLoading(true)
     try {
@@ -343,7 +359,7 @@ export function CompareTab({ activeProfile, allProfiles }: CompareTabProps) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Calculation failed")
-      setResult(data)
+      onResult(data)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong")
     } finally {
@@ -352,8 +368,8 @@ export function CompareTab({ activeProfile, allProfiles }: CompareTabProps) {
   }
 
   const handleClear = () => {
-    setSelectedId("")
-    setResult(null)
+    onSelectedId("")
+    onResult(null)
     setError(null)
   }
 
@@ -365,47 +381,43 @@ export function CompareTab({ activeProfile, allProfiles }: CompareTabProps) {
 
       {/* ── Selector row ── */}
       <div className="flex items-center gap-3 flex-wrap">
-        {/* Active profile */}
-        <div className="flex items-center gap-2 shrink-0">
-          <ProfileAvatar name={activeProfile.name ?? "?"} size="sm" />
-          <div>
-            <p className="text-sm font-medium text-[var(--color-ink-1)] leading-tight">{activeProfile.name}</p>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabel(activeRole)}</p>
-          </div>
-        </div>
+        {/* Active profile pill */}
+        <ProfilePill profile={activeProfile} role={activeRole} />
 
-        <span className="text-muted-foreground/40 text-sm shrink-0">×</span>
+        {/* Separator */}
+        <span className="text-muted-foreground/40 text-base shrink-0 select-none">♡</span>
 
-        {/* Candidate select */}
+        {/* Candidate: dropdown until selected, then profile pill */}
         {candidates.length === 0 ? (
           <a href="/profiles/new"
             className="text-xs text-muted-foreground border border-dashed border-[var(--color-border)] rounded-lg px-3 py-1.5 hover:border-[var(--color-nav-chip-active-border)] transition-colors">
             + Add {roleLabel(partnerRole).toLowerCase()} profile
           </a>
-        ) : (
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedId}
-              onChange={e => handleSelect(e.target.value)}
-              disabled={loading}
-              className="text-sm bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-[var(--color-ink-2)] hover:border-[var(--color-nav-chip-active-border)] focus:outline-none focus:border-[var(--color-nav-chip-active-border)] transition-colors disabled:opacity-50 cursor-pointer"
+        ) : selected ? (
+          <>
+            <ProfilePill profile={selected} role={partnerRole} />
+            <button
+              onClick={handleClear}
+              aria-label="Reset compatibility check"
+              title="Reset"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] transition-colors"
             >
-              <option value="">Select {roleLabel(partnerRole).toLowerCase()}…</option>
-              {candidates.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-
-            {selectedId && (
-              <button
-                onClick={handleClear}
-                aria-label="Clear selection"
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+              <RotateCcw className="h-3 w-3" />
+              Reset
+            </button>
+          </>
+        ) : (
+          <select
+            value={selectedId}
+            onChange={e => handleSelect(e.target.value)}
+            disabled={loading}
+            className="text-sm bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-[var(--color-ink-2)] hover:border-[var(--color-nav-chip-active-border)] focus:outline-none focus:border-[var(--color-nav-chip-active-border)] transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <option value="">Select {roleLabel(partnerRole).toLowerCase()}…</option>
+            {candidates.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
         )}
       </div>
 

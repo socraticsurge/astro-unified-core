@@ -63,46 +63,48 @@ export function CareerTab({
     <div className="flex flex-col sm:flex-row gap-6 items-start">
 
       {/* ── Left column: chart + supporting context ─────────────────── */}
-      <div className="shrink-0 space-y-6">
+      <div className="shrink-0 w-[260px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] overflow-hidden">
         {planets && (
-          <NatalChartGrid
-            planets={planets}
-            lagnaSign={lagnaD10}
-            signKey="d10_sign"
-            label="D10 — Dashamsha"
-          />
+          <div className="p-2">
+            <NatalChartGrid
+              planets={planets}
+              lagnaSign={lagnaD10}
+              signKey="d10_sign"
+              label="D10 — Dashamsha"
+            />
+          </div>
         )}
 
         {career && primary.length > 0 && (
-          <section>
+          <div className="border-t border-[var(--color-border)] p-3">
             <SectionHeading>Key Significators</SectionHeading>
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-2">
               {primary.map(p => {
                 const strong = indicators[p]?.d10_strong;
                 return (
-                  <div key={p} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-1)] text-xs">
+                  <div key={p} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] text-xs">
                     <span className="text-planet-name font-semibold">{p}</span>
                     {strong && (
-                      <span className="text-[10px] text-dignity-exalted font-medium uppercase tracking-wide">strong in D10</span>
+                      <span className="text-[10px] text-dignity-exalted font-medium uppercase tracking-wide">strong</span>
                     )}
                   </div>
                 );
               })}
             </div>
-          </section>
+          </div>
         )}
 
         {career?.career_themes && career.career_themes.length > 0 && (
-          <section>
+          <div className="border-t border-[var(--color-border)] p-3">
             <SectionHeading>Career Themes</SectionHeading>
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div className="flex flex-wrap gap-1.5 pt-2">
               {career.career_themes.map(t => (
                 <span key={t} className="px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs text-[var(--color-ink-2)] capitalize">
                   {t.replace(/_/g, " ")}
                 </span>
               ))}
             </div>
-          </section>
+          </div>
         )}
       </div>
 

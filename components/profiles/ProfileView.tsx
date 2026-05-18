@@ -1,7 +1,7 @@
 "use client"
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import type { Profile } from '@/lib/db'
+import type { Profile, CompatibilityCheck } from '@/lib/db'
 import { TodayTab }          from '@/components/tabs/TodayTab'
 import type { TodayInsight } from '@/components/tabs/TodayInsightCard'
 import { CompareTab }        from '@/components/tabs/CompareTab'
@@ -30,7 +30,7 @@ const CHART_TABS: { id: ChartTabId; label: string }[] = [
   { id: 'dasha',        label: 'Dasha'        },
   { id: 'transits',     label: 'Transits'     },
   { id: 'career',       label: 'Career'       },
-  { id: 'compare',      label: 'Compare'      },
+  { id: 'compare',      label: 'Marriage Compatibility' },
 ]
 
 interface ProfileViewProps {
@@ -61,6 +61,8 @@ export function ProfileView({
   defaultTab = 'today',
 }: ProfileViewProps) {
   const [activeTab, setActiveTab] = useState<ChartTabId>(defaultTab)
+  const [compareSelectedId, setCompareSelectedId] = useState<string>("")
+  const [compareResult, setCompareResult] = useState<CompatibilityCheck | null>(null)
 
   const handleAskFromInsight = (insight?: TodayInsight) => {
     const data = chartOutput?.data as Record<string, unknown> | undefined
@@ -168,7 +170,14 @@ export function ProfileView({
         )}
         {activeTab === 'compare' && (
           <div id="profileview-panel-compare" role="tabpanel" aria-labelledby="profileview-tab-compare">
-            <CompareTab activeProfile={profile} allProfiles={allProfiles} />
+            <CompareTab
+            activeProfile={profile}
+            allProfiles={allProfiles}
+            selectedId={compareSelectedId}
+            onSelectedId={setCompareSelectedId}
+            result={compareResult}
+            onResult={setCompareResult}
+          />
           </div>
         )}
         {needsChart && !chartOutput && (

@@ -8,9 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
-## [2026-05-18] — CareerTab layout reorganisation; CompareTab UX overhaul; scroll fix; design token additions
+## [2026-05-18] — Marriage Compatibility tab; CompareTab persistence & UX polish; CareerTab card; sidebar disclaimer
+
+### Added
+- **Astrology disclaimer** (`components/profiles/ProfileSidebar.tsx`) — soft disclaimer text pinned to the bottom of the profile sidebar reminding users to seek expert guidance and not interpret readings as definitive.
 
 ### Changed
+- **"Compare" tab renamed to "Marriage Compatibility"** (`components/profiles/ProfileView.tsx`).
+- **CompareTab persistence** — `selectedId` and `result` state lifted into `ProfileView` so switching tabs and returning no longer resets the compatibility check.
+- **CompareTab selector UX**:
+  - After selecting a partner, the dropdown is replaced by a `ProfilePill` (avatar + full name + role label) matching the active profile display — so both parties appear symmetrically.
+  - Separator between the two parties changed from `×` to `♡`.
+  - Clear button changed from an `X` icon to a labelled `Reset` button with a `RotateCcw` icon.
+- **CareerTab left column** (`components/unified/tabs/CareerTab.tsx`) — D10 chart, Key Significators, and Career Themes are now visually grouped inside a single bordered card (`w-[260px]`, `rounded-lg border`). Each section is separated by a border-top within the card for clear hierarchy.
 - **CareerTab layout** (`components/unified/tabs/CareerTab.tsx`) — reorganised to reduce visual noise:
   - Removed "Career Analysis" meta-heading that appeared before any real content.
   - Moved **Key Significators** chips and **Career Themes** chips into the left column, below the D10 NatalChartGrid — contextually paired with the chart they annotate.
