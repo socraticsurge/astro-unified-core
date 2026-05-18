@@ -7,7 +7,7 @@ import { ProfessionalView } from "@/components/engines/ProfessionalView";
 import { Button } from "@/components/ui/button";
 import {
   RefreshCw, AlertCircle, Code, Copy, Check, Info,
-  LayoutDashboard, User, MessageCircle,
+  LayoutDashboard, User, MessageCircle, Layers,
 } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { textStyles } from "@/lib/typography";
@@ -21,6 +21,7 @@ import {
 } from "@/components/profile-ui";
 import { PageHeader } from "@/components/PageHeader";
 import { ChartSkeleton } from "@/components/ChartSkeleton";
+import { UnifiedView } from "@/components/unified/UnifiedView";
 
 type SectionExplainer = {
   title: string;
@@ -89,7 +90,7 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
   const [career, setCareer] = useState<EngineState>({ output: null, loading: false });
   const [transitDate, setTransitDate] = useState<string | undefined>();
 
-  const [isProfessional, setIsProfessional] = useState(false);
+  const [viewMode, setViewMode] = useState<"basic" | "professional" | "unified">("basic");
   const [showRaw, setShowRaw] = useState(false);
 
   const fetchReading = useCallback(
@@ -246,28 +247,35 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
         <div className="flex gap-2 items-center">
           {showAdminTools && (
             <div className="flex items-center bg-[var(--color-surface-1)] rounded-lg p-0.5 border border-[var(--color-border)] shadow-inner">
-              <Button 
-                variant={isProfessional ? "ghost" : "secondary"} 
-                size="sm" 
-                onClick={() => setIsProfessional(false)}
-                className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider transition-all ${!isProfessional ? "bg-[var(--color-surface-active)] text-[var(--color-ink-1)] shadow-sm" : "text-muted-foreground hover:text-[var(--color-ink-1)]"}`}
-              >
-                <User className="h-3 w-3" />
-                Basic
-              </Button>
-              <Button 
-                variant={isProfessional ? "secondary" : "ghost"} 
-                size="sm" 
-                onClick={() => setIsProfessional(true)}
-                className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider transition-all ${isProfessional ? "bg-[var(--color-surface-2)] text-[var(--color-ink-2)] shadow-sm border border-[var(--color-border)]" : "text-muted-foreground hover:text-[var(--color-ink-1)]"}`}
-              >
-                <LayoutDashboard className="h-3 w-3" />
-                Professional
-              </Button>
+              {(["basic", "professional", "unified"] as const).map(mode => {
+                const icons = {
+                  basic:        <User className="h-3 w-3" />,
+                  professional: <LayoutDashboard className="h-3 w-3" />,
+                  unified:      <Layers className="h-3 w-3" />,
+                };
+                const labels = { basic: "Basic", professional: "Professional", unified: "Full Chart" };
+                const active = viewMode === mode;
+                return (
+                  <Button
+                    key={mode}
+                    variant={active ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode(mode)}
+                    className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider transition-all ${
+                      active
+                        ? "bg-[var(--color-surface-active)] text-[var(--color-ink-1)] shadow-sm"
+                        : "text-muted-foreground hover:text-[var(--color-ink-1)]"
+                    }`}
+                  >
+                    {icons[mode]}
+                    {labels[mode]}
+                  </Button>
+                );
+              })}
             </div>
           )}
 
-          {showAdminTools && !!reading.output && !isProfessional && (
+          {showAdminTools && !!reading.output && viewMode === "basic" && (
             <CopyButton getText={() => summaryText} label="Copy summary" />
           )}
           {showAdminTools && !!reading.output && (
@@ -300,7 +308,7 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
         </details>
       )}
 
-      {isProfessional && reading.output ? (
+      {viewMode === "professional" && reading.output ? (
         <ProfessionalView
           chartOutput={reading.output}
           transitOutput={transit.output}
@@ -314,6 +322,16 @@ export function ProfileDetailClient({ explainers, profile, profiles }: Props) {
           isCareerLoading={career.loading}
           profileId={id}
           isAdmin={showAdminTools}
+        />
+      ) : viewMode === "unified" && reading.output ? (
+        <UnifiedView
+          chartOutput={reading.output}
+          transitOutput={transit.output}
+          careerOutput={career.output}
+          isTransitLoading={transit.loading}
+          isCareerLoading={career.loading}
+          onFetchTransit={fetchTransit}
+          onFetchCareer={fetchCareer}
         />
       ) : (
         <>
