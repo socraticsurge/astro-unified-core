@@ -64,17 +64,23 @@ export const PLANET_ORDER: readonly PlanetName[] = [
 ];
 
 export const DIGNITY_COLORS: Record<string, string> = {
-  exalted:      "text-emerald-400",
-  mooltrikona:  "text-emerald-300",
-  own:          "text-sky-300",
-  own_sign:     "text-sky-300",
-  great_friend: "text-sky-200",
-  friend:       "text-sky-200",
-  neutral:      "text-slate-300",
-  enemy:        "text-orange-300",
-  great_enemy:  "text-red-400",
-  debilitated:  "text-red-500",
+  exalted:      "text-dignity-exalted",
+  mooltrikona:  "text-dignity-mooltrikona",
+  own:          "text-dignity-own",
+  own_sign:     "text-dignity-own",
+  great_friend: "text-dignity-friend",
+  friend:       "text-dignity-friend",
+  neutral:      "text-dignity-neutral",
+  enemy:        "text-dignity-enemy",
+  great_enemy:  "text-dignity-enemy",
+  debilitated:  "text-dignity-debilitated",
 };
+
+export const TABLE_STYLES = {
+  th:  "text-left py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide",
+  td:  "py-2 px-2 text-sm text-[var(--color-ink-2)]",
+  row: "border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)]/20 transition-colors",
+} as const;
 
 export const VARGA_KEYS: { label: string; key: keyof Planet }[] = [
   { label: "D2",  key: "d2_sign"  }, { label: "D3",  key: "d3_sign"  },
