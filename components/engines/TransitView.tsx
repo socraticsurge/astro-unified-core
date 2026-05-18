@@ -155,51 +155,93 @@ export function TransitView({ output, transitDate, explainer }: Props) {
 
       {/* Planet-by-planet transit table */}
       {planets && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className={th}>Planet</th>
-                <th className={th}>Transit Sign</th>
-                <th className={th}>H from Lagna</th>
-                <th className={th}>H from ☽</th>
-                <th className={th}>SAV Points</th>
-                <th className={`${th} text-center`}>Rx</th>
-              </tr>
-            </thead>
-            <tbody>
-              {PLANET_ORDER.map((name) => {
-                const p = planets[name];
-                if (!p) return null;
-                const savScore = p.sav_points;
-                return (
-                  <tr key={name} className={row}>
-                    <td className="py-2 pr-3 font-semibold text-sky-300">{name}</td>
-                    <td className="py-2 pr-3 font-semibold text-sky-200">{p.sign ?? "—"}</td>
-                    <td className="py-2 pr-3 text-muted-foreground">
-                      {p.house_from_lagna !== undefined ? `H${p.house_from_lagna}` : "—"}
-                    </td>
-                    <td className="py-2 pr-3 text-muted-foreground">
-                      {p.house_from_moon !== undefined ? `H${p.house_from_moon}` : "—"}
-                    </td>
-                    <td className="py-2 pr-3">
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse hidden sm:table">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className={th}>Planet</th>
+                  <th className={th}>Transit Sign</th>
+                  <th className={th}>H from Lagna</th>
+                  <th className={th}>H from ☽</th>
+                  <th className={th}>SAV Points</th>
+                  <th className={`${th} text-center`}>Rx</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PLANET_ORDER.map((name) => {
+                  const p = planets[name];
+                  if (!p) return null;
+                  const savScore = p.sav_points;
+                  return (
+                    <tr key={name} className={row}>
+                      <td className="py-2 pr-3 font-semibold text-sky-300">{name}</td>
+                      <td className="py-2 pr-3 font-semibold text-sky-200">{p.sign ?? "—"}</td>
+                      <td className="py-2 pr-3 text-muted-foreground">
+                        {p.house_from_lagna !== undefined ? `H${p.house_from_lagna}` : "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-muted-foreground">
+                        {p.house_from_moon !== undefined ? `H${p.house_from_moon}` : "—"}
+                      </td>
+                      <td className="py-2 pr-3">
+                        {savScore !== undefined ? (
+                          <span className={`font-mono font-bold ${
+                            savScore >= 30 ? "text-emerald-400" : savScore <= 22 ? "text-red-400" : "text-muted-foreground"
+                          }`}>
+                            {savScore}
+                          </span>
+                        ) : "—"}
+                      </td>
+                      <td className="py-2 text-center text-orange-400 font-bold">
+                        {p.is_retrograde ? "℞" : <span className="text-muted-foreground/40 text-xs">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="sm:hidden flex flex-col gap-3 mt-2">
+            {PLANET_ORDER.map((name) => {
+              const p = planets[name];
+              if (!p) return null;
+              const savScore = p.sav_points;
+              return (
+                <div key={name} className="flex flex-col bg-white/5 border border-white/10 rounded-lg p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-semibold text-sky-300 text-sm">{name}</span>
+                    <span className="font-semibold text-sky-200 text-sm">{p.sign ?? "—"}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">H from Lagna: </span>
+                      <span className="text-foreground/80">{p.house_from_lagna !== undefined ? `H${p.house_from_lagna}` : "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">H from ☽: </span>
+                      <span className="text-foreground/80">{p.house_from_moon !== undefined ? `H${p.house_from_moon}` : "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">SAV: </span>
                       {savScore !== undefined ? (
                         <span className={`font-mono font-bold ${
-                          savScore >= 30 ? "text-emerald-400" : savScore <= 22 ? "text-red-400" : "text-muted-foreground"
+                          savScore >= 30 ? "text-emerald-400" : savScore <= 22 ? "text-red-400" : "text-foreground/80"
                         }`}>
                           {savScore}
                         </span>
                       ) : "—"}
-                    </td>
-                    <td className="py-2 text-center text-orange-400 font-bold">
-                      {p.is_retrograde ? "℞" : <span className="text-muted-foreground/40 text-xs">—</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Rx: </span>
+                      <span className="text-orange-400 font-bold">{p.is_retrograde ? "℞" : <span className="text-muted-foreground/40">—</span>}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {!planets && !sadeSati && !rahuKetu && (
