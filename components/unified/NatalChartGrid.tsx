@@ -159,7 +159,7 @@ export function NatalChartGrid({
                       "leading-tight font-medium",
                       textBase,
                       pl.retro
-                        ? "text-orange-400"
+                        ? "text-planet-retrograde"
                         : pl.dignityClass ?? "text-[var(--color-ink-1)]"
                     )}
                   >

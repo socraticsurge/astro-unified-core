@@ -77,7 +77,7 @@ export function CareerTab({
                 <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">10th House (Karma Bhava)</p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <span>Sign: <strong className="text-[var(--color-ink-1)]">{career.tenth_house.sign}</strong></span>
-                  <span>Lord: <strong className="text-sky-300">{career.tenth_house.lord}</strong></span>
+                  <span>Lord: <strong className="text-planet-name">{career.tenth_house.lord}</strong></span>
                   <span>Lord&apos;s house: <strong className="text-[var(--color-ink-2)]">{career.tenth_house.lord_house}</strong></span>
                   <span>Lord&apos;s D10: <strong className="text-[var(--color-ink-2)]">{career.tenth_house.lord_d10 ?? "—"}</strong></span>
                 </div>

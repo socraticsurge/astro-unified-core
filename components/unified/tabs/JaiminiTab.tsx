@@ -48,7 +48,7 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
                 return (
                   <tr key={k} className="border-b border-[var(--color-border)]/40">
                     <td className="py-1.5 px-2 text-xs font-semibold text-[var(--color-ink-2)]">{k}</td>
-                    <td className={`${td} text-sky-300 font-semibold`}>{entry.planet}</td>
+                    <td className={`${td} text-planet-name font-semibold`}>{entry.planet}</td>
                     <td className={`${td} text-muted-foreground`}>{entry.description ?? "—"}</td>
                   </tr>
                 );
@@ -123,7 +123,7 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Lord</p>
-              <p className="font-semibold text-sky-300">{upapada.lord}</p>
+              <p className="font-semibold text-planet-name">{upapada.lord}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">2nd from UL</p>

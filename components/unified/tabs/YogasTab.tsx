@@ -67,7 +67,7 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
       <section>
         <SectionHeading>Doshas</SectionHeading>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className={`p-3 rounded-lg border ${kaalSarpa ? "border-red-500/40 bg-red-500/5" : "border-[var(--color-border)] bg-[var(--color-surface-1)]"}`}>
+          <div className={`p-3 rounded-lg border ${kaalSarpa ? "border-danger/40 bg-danger/5" : "border-[var(--color-border)] bg-[var(--color-surface-1)]"}`}>
             <p className="font-semibold text-sm text-[var(--color-ink-1)]">Kaal Sarpa</p>
             {kaalSarpa ? (
               <>

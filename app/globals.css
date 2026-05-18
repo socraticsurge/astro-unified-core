@@ -86,6 +86,9 @@
   /* ── Planet state indicators ── */
   --color-planet-retrograde:   var(--color-planet-retrograde);
   --color-planet-combust:      var(--color-planet-combust);
+
+  /* ── Planet name highlight ── */
+  --color-planet-name:         var(--color-planet-name);
 }
 
 /* ── Fallback root (shadcn needs a base :root) ── */
@@ -151,6 +154,7 @@
   /* ── Planet state indicators ── */
   --color-planet-retrograde:   oklch(0.78 0.13 55);
   --color-planet-combust:      oklch(0.65 0.20 25);
+  --color-planet-name:         oklch(0.75 0.12 220);
 
   /* Shape */
   --radius-sm:             12px;
@@ -307,6 +311,7 @@
   /* ── Planet state indicators ── */
   --color-planet-retrograde:   #B45309;
   --color-planet-combust:      #991B1B;
+  --color-planet-name:         #0369A1;
 
   /* Shape */
   --radius-sm:             0px;

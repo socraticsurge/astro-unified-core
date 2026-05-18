@@ -36,7 +36,7 @@ export function IdentityStrip({
       {moon && (
         <div className="flex flex-col" data-testid="identity-moon">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Moon</span>
-          <span className="font-semibold text-sky-300">
+          <span className="font-semibold text-planet-name">
             {moon.sign}
             <span className="text-muted-foreground font-normal text-xs ml-1">
               {moon.nakshatra} P{moon.pada}
@@ -65,8 +65,8 @@ export function IdentityStrip({
       )}
 
       {sadeSati?.active && (
-        <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-300 text-xs font-semibold" data-testid="identity-sadesati">
-          <span className="h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse" />
+        <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-warning/15 border border-warning/30 text-warning text-xs font-semibold" data-testid="identity-sadesati">
+          <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
           Sade Sati · {sadeSati.phase}
         </div>
       )}

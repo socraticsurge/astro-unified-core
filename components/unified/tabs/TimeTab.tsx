@@ -193,7 +193,7 @@ export function TimeTab({
           {transit && (
             <>
               {sadeSati?.active && (
-                <div className="mb-3 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-300 text-xs">
+                <div className="mb-3 px-3 py-2 rounded-lg bg-warning/10 border border-warning/30 text-warning text-xs">
                   Sade Sati active · {sadeSati.phase} phase
                 </div>
               )}
@@ -224,12 +224,12 @@ export function TimeTab({
                           <tr key={name} className="border-b border-[var(--color-border)]/40">
                             <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">
                               {name}
-                              {t.is_retrograde && <span className="ml-1 text-orange-400">℞</span>}
+                              {t.is_retrograde && <span className="ml-1 text-planet-retrograde">℞</span>}
                             </td>
                             <td className="py-1.5 px-2 text-[var(--color-ink-2)]">{t.sign}</td>
                             <td className="py-1.5 px-2 text-center text-muted-foreground">{t.house_from_lagna}</td>
                             <td className="py-1.5 px-2 text-center text-muted-foreground">{t.house_from_moon}</td>
-                            <td className={`py-1.5 px-2 text-center font-bold font-mono ${savVal >= 30 ? "text-emerald-400" : savVal <= 22 ? "text-red-400" : "text-muted-foreground"}`}>
+                            <td className={`py-1.5 px-2 text-center font-bold font-mono ${savVal >= 30 ? "text-success" : savVal <= 22 ? "text-danger" : "text-muted-foreground"}`}>
                               {savVal}
                             </td>
                           </tr>
@@ -274,7 +274,7 @@ export function TimeTab({
                   <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">10th House (Karma Bhava)</p>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <span>Sign: <strong className="text-[var(--color-ink-1)]">{careerData.tenth_house.sign}</strong></span>
-                    <span>Lord: <strong className="text-sky-300">{careerData.tenth_house.lord}</strong></span>
+                    <span>Lord: <strong className="text-planet-name">{careerData.tenth_house.lord}</strong></span>
                     <span>Lord&apos;s house: <strong className="text-[var(--color-ink-2)]">{careerData.tenth_house.lord_house}</strong></span>
                     <span>Lord&apos;s D10: <strong className="text-[var(--color-ink-2)]">{careerData.tenth_house.lord_d10 ?? "—"}</strong></span>
                   </div>
@@ -300,7 +300,7 @@ export function TimeTab({
                   <ul className="space-y-0.5">
                     {careerData.strength_factors.map(f => (
                       <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                        <span className="text-emerald-400 mt-0.5">·</span>{f}
+                        <span className="text-success mt-0.5">·</span>{f}
                       </li>
                     ))}
                   </ul>

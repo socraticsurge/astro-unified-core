@@ -125,30 +125,30 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
         <section>
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Doshas</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className={`p-3 rounded-lg border ${kaalSarpa ? "border-red-500/40 bg-red-500/5" : "border-[var(--color-border)] bg-[var(--color-surface-1)]"}`}>
+            <div className={`p-3 rounded-lg border ${kaalSarpa ? "border-danger/40 bg-danger/5" : "border-[var(--color-border)] bg-[var(--color-surface-1)]"}`}>
               <p className="font-semibold text-sm text-[var(--color-ink-1)]">Kaal Sarpa</p>
               {kaalSarpa ? (
                 <>
-                  <p className="text-xs text-red-300 mt-0.5">{kaalSarpa.type} · {kaalSarpa.direction}</p>
+                  <p className="text-xs text-danger mt-0.5">{kaalSarpa.type} · {kaalSarpa.direction}</p>
                   {kaalSarpa.description && (
                     <p className="text-xs text-muted-foreground mt-1">{kaalSarpa.description}</p>
                   )}
                 </>
               ) : (
-                <p className="text-xs text-emerald-400 mt-0.5">Not detected</p>
+                <p className="text-xs text-success mt-0.5">Not detected</p>
               )}
             </div>
 
             {grahaYuddha.length > 0 && (
-              <div className="p-3 rounded-lg border border-orange-500/30 bg-orange-500/5">
+              <div className="p-3 rounded-lg border border-warning/30 bg-warning/5">
                 <p className="font-semibold text-sm text-[var(--color-ink-1)] mb-2">
                   Graha Yuddha — Planetary Wars ({grahaYuddha.length})
                 </p>
                 {grahaYuddha.map((gw, i) => (
                   <div key={i} className="text-xs text-muted-foreground mb-1">
-                    <span className="text-orange-300 font-semibold">{gw.winner}</span>
+                    <span className="text-warning font-semibold">{gw.winner}</span>
                     <span className="mx-1">defeats</span>
-                    <span className="text-red-400">{gw.loser}</span>
+                    <span className="text-danger">{gw.loser}</span>
                     {gw.description && (
                       <span className="ml-2 text-muted-foreground/60">({gw.description})</span>
                     )}
@@ -200,7 +200,7 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
                     return (
                       <tr key={k} className="border-b border-[var(--color-border)]/40">
                         <td className="py-1.5 px-2 text-xs font-semibold text-[var(--color-ink-2)]">{k}</td>
-                        <td className={`${td} text-sky-300 font-semibold`}>{entry.planet}</td>
+                        <td className={`${td} text-planet-name font-semibold`}>{entry.planet}</td>
                         <td className={`${td} text-muted-foreground`}>{entry.description ?? "—"}</td>
                       </tr>
                     );
@@ -272,7 +272,7 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Lord</p>
-                  <p className="font-semibold text-sky-300">{upapada.lord}</p>
+                  <p className="font-semibold text-planet-name">{upapada.lord}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">2nd from UL</p>
@@ -336,7 +336,7 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
                               <td
                                 key={sign}
                                 className={`py-1.5 px-1.5 text-center font-mono ${
-                                  val >= 6 ? "text-emerald-400 font-bold" : val <= 2 ? "text-red-400" : "text-muted-foreground"
+                                  val >= 6 ? "text-success font-bold" : val <= 2 ? "text-danger" : "text-muted-foreground"
                                 }`}
                               >
                                 {val}

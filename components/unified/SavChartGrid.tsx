@@ -61,12 +61,12 @@ export function SavChartGrid({ sav, lagnaSign }: SavChartGridProps) {
           const isLagna = sign === lagnaSign;
           const h = houseNum(sign);
           const colorClass =
-            val >= 28 ? "text-emerald-400 font-bold" :
-            val < 22  ? "text-red-400 font-semibold" :
+            val >= 28 ? "text-success font-bold" :
+            val < 22  ? "text-danger font-semibold" :
                         "text-[var(--color-ink-2)]";
           const bgClass =
-            val >= 28 ? "bg-emerald-500/8" :
-            val < 22  ? "bg-red-500/8" :
+            val >= 28 ? "bg-success/8" :
+            val < 22  ? "bg-danger/8" :
                         isLagna ? "bg-[var(--color-surface-2)]" : "bg-transparent";
 
           return (
@@ -92,7 +92,7 @@ export function SavChartGrid({ sav, lagnaSign }: SavChartGridProps) {
         })}
       </div>
       <p className="text-[8px] text-muted-foreground/40 mt-1">
-        <span className="text-emerald-400">≥28</span> favorable · <span className="text-red-400">&lt;22</span> challenging
+        <span className="text-success">≥28</span> favorable · <span className="text-danger">&lt;22</span> challenging
       </p>
     </div>
   );

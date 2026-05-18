@@ -1,12 +1,10 @@
 "use client";
 import {
-  PLANET_ORDER, DIGNITY_COLORS, VARGA_KEYS, formatAspects,
+  PLANET_ORDER, DIGNITY_COLORS, VARGA_KEYS, formatAspects, TABLE_STYLES,
 } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
-
-const th  = "text-left py-2 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide";
-const row = "border-b border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)]/30 transition-colors";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 
 export function ChartTab({ chartOutput }: { chartOutput: Record<string, unknown> }) {
   const data     = chartOutput?.data as Record<string, unknown> | undefined;
@@ -29,9 +27,7 @@ export function ChartTab({ chartOutput }: { chartOutput: Record<string, unknown>
       {/* Natal charts — D1 + D9 side by side */}
       {planets && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
-            Birth Chart
-          </h3>
+          <SectionHeading>Birth Chart</SectionHeading>
           <div className="grid grid-cols-2 gap-4 sm:gap-6 max-w-xl">
             <NatalChartGrid
               planets={planets}
@@ -52,9 +48,7 @@ export function ChartTab({ chartOutput }: { chartOutput: Record<string, unknown>
       {/* Panchang */}
       {panchang && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Panchang at Birth
-          </h3>
+          <SectionHeading>Panchang at Birth</SectionHeading>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {[
               { label: "Tithi",     value: `${panchang.tithi?.name ?? ""}${panchang.tithi?.paksha ? ` · ${panchang.tithi.paksha}` : ""}` },
@@ -75,9 +69,7 @@ export function ChartTab({ chartOutput }: { chartOutput: Record<string, unknown>
       {/* Divisional lagna strip */}
       {lagna && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Lagna across Vargas
-          </h3>
+          <SectionHeading>Lagna across Vargas</SectionHeading>
           <div className="flex flex-wrap gap-1.5">
             <span className="px-2 py-0.5 rounded border-l-2 border-[var(--color-accent)] bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs font-semibold text-[var(--color-ink-1)]">
               D1: {String(lagna.sign ?? "—")}
@@ -97,15 +89,13 @@ export function ChartTab({ chartOutput }: { chartOutput: Record<string, unknown>
       {/* Planet table */}
       {planets && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Planetary Positions
-          </h3>
+          <SectionHeading>Planetary Positions</SectionHeading>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b border-[var(--color-border)]">
                   {["Planet","Sign","Deg","House","Nakshatra · Pada","Dignity","Retro","Combust","Aspects"].map(h => (
-                    <th key={h} className={th}>{h}</th>
+                    <th key={h} className={TABLE_STYLES.th}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -114,23 +104,23 @@ export function ChartTab({ chartOutput }: { chartOutput: Record<string, unknown>
                   const p = planets[name];
                   if (!p) return null;
                   return (
-                    <tr key={name} className={row}>
+                    <tr key={name} className={TABLE_STYLES.row}>
                       <td className="py-2 px-2 font-semibold text-[var(--color-ink-1)]">{name}</td>
                       <td className="py-2 px-2 text-[var(--color-ink-2)]">{p.sign ?? "—"}</td>
                       <td className="py-2 px-2 font-mono text-[var(--color-ink-3)]">{p.degree != null ? `${p.degree.toFixed(1)}°` : "—"}</td>
                       <td className="py-2 px-2 text-center text-[var(--color-ink-2)]">{p.house ?? "—"}</td>
                       <td className="py-2 px-2 text-[var(--color-ink-3)]">{p.nakshatra ?? "—"} · P{p.pada ?? "—"}</td>
-                      <td className={`py-2 px-2 text-sm ${DIGNITY_COLORS[p.dignity ?? ""] ?? "text-slate-300"}`}>
+                      <td className={`py-2 px-2 text-sm ${DIGNITY_COLORS[p.dignity ?? ""] ?? "text-dignity-neutral"}`}>
                         {p.dignity ?? "—"}
                       </td>
                       <td className="py-2 px-2 text-center">
                         {p.is_retrograde
-                          ? <span className="text-orange-400 font-semibold">℞</span>
+                          ? <span className="text-planet-retrograde font-semibold">℞</span>
                           : <span className="text-muted-foreground/30">—</span>}
                       </td>
                       <td className="py-2 px-2 text-center">
                         {p.is_combust
-                          ? <span className="text-red-400 font-semibold">●</span>
+                          ? <span className="text-planet-combust font-semibold">●</span>
                           : <span className="text-muted-foreground/30">—</span>}
                       </td>
                       <td className="py-2 px-2 text-muted-foreground font-mono text-xs">
