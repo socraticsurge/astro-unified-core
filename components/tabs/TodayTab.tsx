@@ -14,10 +14,8 @@ interface TodayTabProps {
   transitOutput: Record<string, unknown> | null
   todayReadingOutput: TodayReadingOutput | null
   isTodayReadingLoading: boolean
-  todayReadingError?: string | null
   onAsk: (insight?: TodayInsight) => void
   onExplore: (insight: TodayInsight) => void
-  onRefetchTodayReading?: () => void
 }
 
 const DASHA_LEVELS: { key: string; label: string }[] = [
@@ -39,10 +37,8 @@ export function TodayTab({
   transitOutput,
   todayReadingOutput,
   isTodayReadingLoading,
-  todayReadingError,
   onAsk,
   onExplore,
-  onRefetchTodayReading,
 }: TodayTabProps) {
   const data   = chartOutput?.data as Record<string, unknown> | undefined
   const dashas = data?.dashas as Record<string, DashaLevel> | undefined
@@ -121,33 +117,17 @@ export function TodayTab({
         <p className="text-sm text-muted-foreground italic">No significant patterns active right now.</p>
       )}
 
-      {/* AI-generated reading */}
-      <div className="space-y-3">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">Your reading</p>
+      {/* AI-generated reading — only rendered when data is available */}
+      {isTodayReadingLoading && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+          <span className="animate-pulse">●</span>
+          <span>Generating your reading…</span>
+        </div>
+      )}
 
-        {isTodayReadingLoading && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
-            <span className="animate-pulse">●</span>
-            <span>Generating your personalised reading…</span>
-          </div>
-        )}
-
-        {!isTodayReadingLoading && todayReadingError && (
-          <div className="flex items-center gap-2 text-xs text-[var(--color-danger)]">
-            <span>Couldn&apos;t load reading — {todayReadingError}</span>
-            {onRefetchTodayReading && (
-              <button
-                type="button"
-                onClick={onRefetchTodayReading}
-                className="underline underline-offset-2"
-              >
-                Retry
-              </button>
-            )}
-          </div>
-        )}
-
-        {!isTodayReadingLoading && todayReadingOutput && (
+      {!isTodayReadingLoading && todayReadingOutput && (
+        <div className="space-y-3">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Your reading</p>
           <div className="space-y-4">
             {todayReadingOutput.dasha_reading && (
               <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-4 space-y-1.5">
@@ -171,8 +151,8 @@ export function TodayTab({
               </div>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

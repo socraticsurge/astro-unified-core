@@ -53,7 +53,8 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
         throw new Error(data?.error ?? `Failed (${res.status} ${res.statusText})`);
       }
       if (!data?.id) throw new Error("Server returned unexpected response");
-      router.push(`/profiles/${data.id}`);
+      // New profiles: ?new=1 triggers the loading screen in DashboardClient
+      router.push(isEdit ? `/dashboard?profile=${data.id}` : `/dashboard?profile=${data.id}&new=1`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {

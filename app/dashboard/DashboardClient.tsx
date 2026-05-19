@@ -1,9 +1,10 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { NavBar } from "@/components/NavBar"
 import { ProfileView } from "@/components/profiles/ProfileView"
 import type { AIOpenPayload } from "@/components/profiles/ProfileView"
 import { ProfileSidebar } from "@/components/profiles/ProfileSidebar"
+import { ProfileLoadingScreen } from "@/components/ProfileLoadingScreen"
 import { AskPanel } from "@/components/panels/AskPanel"
 import type { AskContext } from "@/components/panels/AskPanel"
 import { AIAdminPanel } from "@/components/panels/AIAdminPanel"
@@ -21,6 +22,7 @@ interface DashboardClientProps {
   profiles: Profile[]
   initialProfileId?: string
   isAdmin?: boolean
+  isNewProfile?: boolean
   initialCompareCheck?: CompatibilityCheck
   appSettings: AppSettings
 }
@@ -35,6 +37,7 @@ export function DashboardClient({
   profiles,
   initialProfileId,
   isAdmin = false,
+  isNewProfile = false,
   initialCompareCheck,
   appSettings,
 }: DashboardClientProps) {
@@ -50,10 +53,92 @@ export function DashboardClient({
   const [aiOpen,  setAiOpen]  = useState(false)
   const [aiCtx,   setAiCtx]   = useState<AIPanelContext | null>(null)
 
+  // Loading screen state — only shown once for new profiles
+  const [showLoadingScreen, setShowLoadingScreen] = useState(isNewProfile)
+  const minTimeReachedRef = useRef(!isNewProfile)
+  const fetchesDoneRef    = useRef(!isNewProfile)
+
+  function tryDismissLoading() {
+    if (minTimeReachedRef.current && fetchesDoneRef.current) {
+      setShowLoadingScreen(false)
+    }
+  }
+
   const activeProfile = profiles.find(p => p.id === activeProfileId) ?? null
 
+  // New profile: parallel prefetch of all engines, loading screen waits for completion
   useEffect(() => {
-    if (!activeProfileId) return
+    if (!isNewProfile || !activeProfileId) return
+
+    minTimeReachedRef.current = false
+    fetchesDoneRef.current    = false
+
+    // Minimum 2s for the animation — feels intentional rather than rushed
+    const timer = setTimeout(() => {
+      minTimeReachedRef.current = true
+      tryDismissLoading()
+    }, 2000)
+
+    // Track how many of the 4 fetches have settled
+    let pending = 4
+
+    function onSettled() {
+      pending--
+      if (pending <= 0) {
+        fetchesDoneRef.current = true
+        tryDismissLoading()
+      }
+    }
+
+    setChart({ data: null, loading: true, error: null })
+    setTransit({ data: null, loading: true, error: null })
+    setCareer({ data: null, loading: true, error: null })
+    setTodayReading({ data: null, loading: true, error: null })
+
+    // Chart — then chain today-reading since it needs chart in DB first
+    fetch(`/api/readings/dashaflow?profile_id=${activeProfileId}`)
+      .then(r => r.json())
+      .then(data => {
+        setChart({ data: data.output ?? null, loading: false, error: data.error ?? null })
+        onSettled()
+
+        // today-reading needs chart cached first
+        fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
+          .then(r => r.json())
+          .then(d => setTodayReading({ data: d.output ?? null, loading: false, error: d.error ?? null }))
+          .catch(() => setTodayReading(initState()))
+          .finally(onSettled)
+      })
+      .catch(e => {
+        setChart({ data: null, loading: false, error: String(e) })
+        onSettled()
+        // today-reading can't run without chart — count it as done
+        setTodayReading(initState())
+        onSettled()
+      })
+
+    // Transit — independent of chart
+    fetch(`/api/readings/transit?profile_id=${activeProfileId}`)
+      .then(r => r.json())
+      .then(data => setTransit({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .catch(() => setTransit(initState()))
+      .finally(onSettled)
+
+    // Career — independent of chart
+    fetch(`/api/readings/career?profile_id=${activeProfileId}`)
+      .then(r => r.json())
+      .then(data => setCareer({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .catch(() => setCareer(initState()))
+      .finally(onSettled)
+
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNewProfile, activeProfileId])
+
+  // Returning user: chart only on profile switch; transit/career load on tab open
+  useEffect(() => {
+    if (isNewProfile || !activeProfileId) return
+
     setChart({ data: null, loading: true, error: null })
     setTransit(initState())
     setCareer(initState())
@@ -69,11 +154,11 @@ export function DashboardClient({
           fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
             .then(r => r.json())
             .then(d => setTodayReading({ data: d.output ?? null, loading: false, error: d.error ?? null }))
-            .catch(e => setTodayReading({ data: null, loading: false, error: String(e) }))
+            .catch(() => setTodayReading(initState()))
         }
       })
       .catch(e => setChart({ data: null, loading: false, error: String(e) }))
-  }, [activeProfileId])
+  }, [isNewProfile, activeProfileId])
 
   const fetchTransit = useCallback((force = false) => {
     if (!activeProfileId) return
@@ -104,7 +189,7 @@ export function DashboardClient({
     fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
       .then(r => r.json())
       .then(data => setTodayReading({ data: data.output ?? null, loading: false, error: data.error ?? null }))
-      .catch(e => setTodayReading({ data: null, loading: false, error: String(e) }))
+      .catch(() => setTodayReading(initState()))
   }, [activeProfileId])
 
   const handleAIOpen = useCallback((payload: AIOpenPayload) => {
@@ -151,7 +236,6 @@ export function DashboardClient({
     }
   }, [activeProfile])
 
-  // Open compare tab pre-loaded when an admin-viewed compatibility check is passed
   const defaultTab = initialCompareCheck ? 'compare' : undefined
 
   if (profiles.length === 0) {
@@ -176,6 +260,10 @@ export function DashboardClient({
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+      {showLoadingScreen && activeProfile && (
+        <ProfileLoadingScreen profileName={activeProfile.name} />
+      )}
+
       <NavBar
         profiles={profiles.map(p => ({
           id: p.id,
@@ -202,14 +290,12 @@ export function DashboardClient({
                 careerOutput={career.data}
                 todayReadingOutput={todayReading.data}
                 isTodayReadingLoading={todayReading.loading}
-                todayReadingError={todayReading.error}
                 isTransitLoading={transit.loading}
                 isCareerLoading={career.loading}
                 transitError={transit.error}
                 careerError={career.error}
                 onFetchTransit={fetchTransit}
                 onFetchCareer={fetchCareer}
-                onFetchTodayReading={fetchTodayReading}
                 onAskOpen={handleAskOpen}
                 onAIOpen={handleAIOpen}
                 isAdmin={isAdmin}

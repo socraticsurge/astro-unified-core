@@ -8,6 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Profile loading screen; graceful LLM failure handling
+
+### Added
+- **Celestial loading screen** (`components/ProfileLoadingScreen.tsx`) — orbital animation shown after new profile creation. Fires chart, transit, and career fetches in parallel; chains today-reading after chart resolves. Minimum 2s display, then cross-fades into profile view. Only triggers on `?new=1`; returning visits skip it entirely.
+- **Parallel prefetch on new profile** (`DashboardClient`) — chart + transit + career fire simultaneously rather than lazily. Today-reading queues immediately after chart completes. All data warm before loading screen lifts.
+
+### Changed
+- **Today tab AI reading** — section hidden entirely when data is null (LLM failure, rate limit, etc.). No error copy shown to users. Retry is passive: next dashboard visit re-generates if cache empty.
+- **Profile creation redirect** — `ProfileForm` now goes directly to `/dashboard?profile=[id]&new=1`; removed the extra hop through `/profiles/[id]`.
+- **DashboardClient** — split into two `useEffect` branches: new-profile (parallel prefetch + loading screen) and returning-user (chart-only with lazy transit/career).
+
+---
+
 ## [2026-05-19] — Today tab: 5-level dasha, AI reading, pratyantar shifts
 
 ### Added

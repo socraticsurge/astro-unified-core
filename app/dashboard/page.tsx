@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ profile?: string; compare?: string }> | { profile?: string; compare?: string }
+  searchParams?: Promise<{ profile?: string; compare?: string; new?: string }> | { profile?: string; compare?: string; new?: string }
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/auth/signin");
@@ -60,6 +60,7 @@ export default async function DashboardPage({
       profiles={profiles}
       initialProfileId={initialProfileId}
       isAdmin={adminUser}
+      isNewProfile={params?.new === "1"}
       initialCompareCheck={initialCompareCheck}
       appSettings={{
         writtenEnabled: appSettings.written_consultation_enabled,
