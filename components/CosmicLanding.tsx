@@ -328,7 +328,8 @@ export function CosmicLanding() {
       <div className={styles.earthWrap}>
         <div className={styles.earthAtmo} />
         <div className={styles.earthClip}>
-          <video autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}>
+          <video autoPlay muted loop playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}>
+            <source src="/earth.webm" type="video/webm" />
             <source src="/earth.mp4" type="video/mp4" />
           </video>
         </div>

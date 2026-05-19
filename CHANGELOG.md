@@ -8,6 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Fix earth globe visibility on landing page
+
+### Fixed
+- **Earth globe loading** (CosmicLanding) — added `preload="auto"` to the earth video so the browser starts buffering immediately on page load rather than waiting for user interaction. Previously the globe was invisible until ~23MB finished loading.
+- **Earth globe fallback** (CosmicLanding.module.css) — added a blue-ocean radial gradient to `.earthClip` as background, so the globe shape is visible instantly while the video buffers.
+- **CSP media-src** (next.config.ts) — added explicit `media-src 'self'` to the Content-Security-Policy header (previously relying on `default-src` fallback, which some browsers interpret inconsistently for video).
+
+### Changed
+- **earth.mp4 compressed** — re-encoded from 23MB (1920×1080, 60fps, with audio) to 632KB (960×540, 24fps, no audio, CRF 38) using ffmpeg libx264 with `-movflags faststart`. 36× size reduction.
+- **earth.webm added** — VP9 WebM version at 1.0MB as primary source (Chrome/Firefox prefer it); MP4 kept as fallback. Total payload for the globe: ~1.6MB vs original 23MB.
+
+---
+
 ## [2026-05-19] — Sprint: logo, landing fonts, theme switcher, mobile UX
 
 ### Added

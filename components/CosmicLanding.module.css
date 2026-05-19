@@ -22,6 +22,7 @@
 .earthClip {
   position: absolute; inset: 0;
   border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle at 35% 30%, #2a6b8a 0%, #1a4f6e 25%, #0f3a5a 50%, #083048 70%, #051e30 100%);
 }
 .earthLight {
   position: absolute; inset: 0; border-radius: 50%;
