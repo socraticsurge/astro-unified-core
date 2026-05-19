@@ -5,8 +5,7 @@ import { db } from "@/lib/db";
 import { MIN_FIELD_LENGTH } from "@/lib/consultation";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAdmin } from "@/lib/admin";
-
-const MAX_FIELD_LENGTH = 2000;
+import { MAX_FIELD_LENGTH, MAX_CONSULTATION_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -22,7 +21,7 @@ export async function POST(request: Request) {
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { success } = rateLimit(`consultation:${userId}`, 5, 60_000);
+  const { success } = rateLimit(`consultation:${userId}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS);
   if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const body = await request.json();
@@ -92,7 +91,7 @@ export async function POST(request: Request) {
 
   // Validate profile_ids belong to the requesting user
   const profileIdsArray: string[] = Array.isArray(profile_ids) ? profile_ids : [profile_ids];
-  if (profileIdsArray.length > 10) {
+  if (profileIdsArray.length > MAX_CONSULTATION_PROFILES) {
     return NextResponse.json({ error: "Too many profiles" }, { status: 400 });
   }
   const admin = isAdmin(session);

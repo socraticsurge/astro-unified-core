@@ -54,6 +54,8 @@ interface ProfileViewProps {
   careerOutput: Record<string, unknown> | null
   isTransitLoading: boolean
   isCareerLoading: boolean
+  transitError?: string | null
+  careerError?: string | null
   onFetchTransit: (force?: boolean) => void
   onFetchCareer: (force?: boolean) => void
   onAskOpen: (context?: Partial<AskContext>) => void
@@ -71,6 +73,8 @@ export function ProfileView({
   careerOutput,
   isTransitLoading,
   isCareerLoading,
+  transitError,
+  careerError,
   onFetchTransit,
   onFetchCareer,
   onAskOpen,
@@ -207,6 +211,7 @@ export function ProfileView({
             <TransitsTab
               transitOutput={transitOutput}
               isTransitLoading={isTransitLoading}
+              transitError={transitError}
               onFetchTransit={onFetchTransit}
             />
           </div>
@@ -217,6 +222,7 @@ export function ProfileView({
               chartOutput={chartOutput}
               careerOutput={careerOutput}
               isCareerLoading={isCareerLoading}
+              careerError={careerError}
               onFetchCareer={onFetchCareer}
             />
           </div>

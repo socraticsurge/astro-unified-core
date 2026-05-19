@@ -38,11 +38,13 @@ export function CareerTab({
   chartOutput,
   careerOutput,
   isCareerLoading,
+  careerError,
   onFetchCareer,
 }: {
   chartOutput: Record<string, unknown>;
   careerOutput: Record<string, unknown> | null;
   isCareerLoading: boolean;
+  careerError?: string | null;
   onFetchCareer: (force?: boolean) => void;
 }) {
   useEffect(() => {
@@ -83,6 +85,13 @@ export function CareerTab({
 
       {isCareerLoading && (
         <p className="text-xs text-muted-foreground">Loading career analysis…</p>
+      )}
+
+      {!isCareerLoading && careerError && (
+        <div className="flex items-center gap-2 text-xs text-[var(--color-danger)]">
+          <span>Couldn&apos;t load career analysis — {careerError}</span>
+          <button type="button" onClick={() => onFetchCareer(true)} className="underline underline-offset-2">Retry</button>
+        </div>
       )}
 
       {career && (

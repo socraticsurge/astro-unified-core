@@ -181,6 +181,8 @@ export function DashboardClient({
                 careerOutput={career.data}
                 isTransitLoading={transit.loading}
                 isCareerLoading={career.loading}
+                transitError={transit.error}
+                careerError={career.error}
                 onFetchTransit={fetchTransit}
                 onFetchCareer={fetchCareer}
                 onAskOpen={handleAskOpen}

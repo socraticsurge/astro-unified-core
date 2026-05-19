@@ -4,6 +4,7 @@ import { geocodePlace } from "@/lib/geocode";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { MAX_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -23,15 +24,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate Limiting Check
-    const rateLimitResult = rateLimit(`create_profile_${userId}`, 5, 60_000);
+    const rateLimitResult = rateLimit(`create_profile_${userId}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS);
     if (!rateLimitResult.success) {
       return NextResponse.json({ error: "Too many requests. Please wait a minute before creating another profile." }, { status: 429 });
     }
 
     // Max Profiles Check
     const existingProfiles = await db.profiles.list(userId);
-    if (existingProfiles.length >= 10) {
-      return NextResponse.json({ error: "You have reached the maximum limit of 10 profiles." }, { status: 403 });
+    if (existingProfiles.length >= MAX_PROFILES) {
+      return NextResponse.json({ error: `You have reached the maximum limit of ${MAX_PROFILES} profiles.` }, { status: 403 });
     }
 
     const body = await req.json();

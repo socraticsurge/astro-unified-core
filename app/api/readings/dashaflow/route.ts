@@ -1,37 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { fetchDashaflow } from "@/lib/engines/dashaflow";
 import { extractEngineError } from "@/lib/engine-error";
 import { rateLimit } from "@/lib/rate-limit";
 import { birthDataChanged } from "@/lib/engines/cache-validate";
+import { RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { resolveProfile } from "@/lib/engines/reading-handler";
 
 const ENGINE = "dashaflow";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = (session.user as { id: string }).id;
-
-  const profile_id = req.nextUrl.searchParams.get("profile_id");
-  if (!profile_id) return NextResponse.json({ error: "profile_id is required" }, { status: 400 });
-
-  const profile = isAdmin(session)
-    ? await db.profiles.getAny(profile_id)
-    : await db.profiles.get(profile_id, userId);
-  if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-
-  const input = {
-    date_of_birth: profile.date_of_birth,
-    time_of_birth: profile.time_of_birth,
-    latitude: profile.latitude,
-    longitude: profile.longitude,
-    timezone: profile.timezone,
-  };
+  const r = await resolveProfile(req.nextUrl.searchParams.get("profile_id"), session);
+  if (!r.ok) return r.response;
+  const { profile_id, input } = r;
 
   const cached = await db.readings.latestByEngine(profile_id, ENGINE);
   if (cached && !birthDataChanged(cached.input_snapshot as string, input)) {
@@ -53,29 +37,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = (session.user as { id: string }).id;
-
   const { profile_id } = await req.json();
-  
-  if (!rateLimit(`refresh_${profile_id}`, 5, 60_000).success) {
+
+  if (!rateLimit(`refresh_${profile_id}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS).success) {
     return NextResponse.json({ error: "Too many refresh requests. Please wait a minute." }, { status: 429 });
   }
 
-  const profile = isAdmin(session)
-    ? await db.profiles.getAny(profile_id)
-    : await db.profiles.get(profile_id, userId);
-  if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-
-  const input = {
-    date_of_birth: profile.date_of_birth,
-    time_of_birth: profile.time_of_birth,
-    latitude: profile.latitude,
-    longitude: profile.longitude,
-    timezone: profile.timezone,
-  };
+  const r = await resolveProfile(profile_id, session);
+  if (!r.ok) return r.response;
+  const { input } = r;
 
   const output = await fetchDashaflow(input);
   const errMsg = extractEngineError(output);

@@ -8,10 +8,12 @@ import { SectionHeading } from "@/components/unified/SectionHeading";
 export function TransitsTab({
   transitOutput,
   isTransitLoading,
+  transitError,
   onFetchTransit,
 }: {
   transitOutput: Record<string, unknown> | null;
   isTransitLoading: boolean;
+  transitError?: string | null;
   onFetchTransit: (force?: boolean) => void;
 }) {
   useEffect(() => {
@@ -46,6 +48,13 @@ export function TransitsTab({
       </div>
 
       {isTransitLoading && <p className="text-xs text-muted-foreground">Loading transits…</p>}
+
+      {!isTransitLoading && transitError && (
+        <div className="flex items-center gap-2 text-xs text-[var(--color-danger)]">
+          <span>Couldn&apos;t load transits — {transitError}</span>
+          <button type="button" onClick={() => onFetchTransit(true)} className="underline underline-offset-2">Retry</button>
+        </div>
+      )}
 
       {transit && (
         <>

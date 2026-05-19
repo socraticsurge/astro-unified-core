@@ -37,8 +37,10 @@ export async function POST(req: NextRequest) {
       (c.profile_id_1 === profile_id_2 && c.profile_id_2 === profile_id_1)
     );
 
-    const p1 = await db.profiles.get(profile_id_1, userId);
-    const p2 = await db.profiles.get(profile_id_2, userId);
+    const [p1, p2] = await Promise.all([
+      db.profiles.get(profile_id_1, userId),
+      db.profiles.get(profile_id_2, userId),
+    ]);
 
     if (!p1 || !p2) {
       return NextResponse.json({ error: "One or both profiles not found" }, { status: 404 });
