@@ -206,7 +206,7 @@ astrounified/
 │   ├── engines/            # HTTP clients for the Python sidecar
 │   ├── content/            # Markdown loader & renderer
 │   └── *.ts                # Auth, DB, geocoding, astro helpers
-├── public/                 # Static assets (ephemeris data, icons)
+├── public/                 # Static assets (icons, landing globe video)
 ├── docs/                   # Developer documentation (this file)
 ├── next.config.ts          # Next.js config
 ├── proxy.ts                # NextAuth middleware (route protection)

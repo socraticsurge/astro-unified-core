@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -16,7 +16,7 @@ export default async function DashboardPage({
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/auth/signin");
 
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
   const adminUser = isAdmin(session);
   const params = searchParams instanceof Promise ? await searchParams : searchParams;
 

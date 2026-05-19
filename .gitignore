@@ -39,7 +39,7 @@ next-env.d.ts
 **/venv/
 **/__pycache__/
 *.pyc
-public/data/hip_main.dat
+/public/data/
 .env*.local
 coverage/
 .worktrees/

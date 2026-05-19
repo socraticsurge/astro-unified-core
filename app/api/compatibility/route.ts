@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -10,7 +10,7 @@ const SIDECAR_URL =
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
 
   const checks = await db.compatibility.list(userId);
   return NextResponse.json(checks);
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = (session.user as { id: string }).id;
+    const userId = getUserId(session);
 
     const { success } = rateLimit(`compat:${userId}`, 10, 60_000);
     if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });

@@ -4,6 +4,10 @@ import { lookupDashaPair, lookupAscendant } from "@/lib/content/lookup";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import type { Profile } from "@/lib/db";
 
+// Bump when the prompt template, content-block selection, or output schema
+// changes in a way that should invalidate cached today-readings.
+export const PROMPT_VERSION = 1;
+
 export type TodayReadingOutput = {
   dasha_reading: string;
   chart_reading: string;
