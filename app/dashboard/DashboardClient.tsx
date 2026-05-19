@@ -275,7 +275,7 @@ export function DashboardClient({
         onAskOpen={() => handleAskOpen()}
       />
 
-      <div className="flex-1 overflow-hidden flex">
+      <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
         {activeProfile && (
           <ProfileSidebar profile={activeProfile} chartOutput={chart.data} />
         )}

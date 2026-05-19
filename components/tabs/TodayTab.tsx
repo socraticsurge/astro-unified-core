@@ -91,7 +91,7 @@ export function TodayTab({
             {shiftPills.map(pill => (
               <span
                 key={pill}
-                className="px-2 py-0.5 rounded-full border border-[var(--color-nav-alert)] text-[var(--color-nav-alert)] text-xs"
+                className="px-2.5 py-1 rounded-full border border-[var(--color-nav-alert)] text-[var(--color-nav-alert)] text-xs"
               >
                 ● {pill}
               </span>

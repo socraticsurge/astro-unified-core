@@ -154,17 +154,17 @@ export function ProfileView({
           <a
             href={`/profiles/${profile.id}/edit`}
             title="Edit profile"
-            className="p-1.5 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
+            className="p-2.5 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
           >
-            <Pencil className="h-3.5 w-3.5" />
+            <Pencil className="h-4 w-4" />
           </a>
           <button
             type="button"
             onClick={handleMobileDelete}
             title="Delete profile"
-            className="p-1.5 rounded text-muted-foreground hover:text-danger transition-colors"
+            className="p-2.5 rounded text-muted-foreground hover:text-danger transition-colors"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>

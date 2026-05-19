@@ -149,6 +149,7 @@ function FullResult({ check, groomProfile, brideProfile }: {
       {(result.male_details || result.female_details) && (
         <section>
           <SectionHeading>Natal Moon Profiles</SectionHeading>
+          <div className="overflow-x-auto">
           <table className="max-w-sm text-sm border-collapse">
             <thead>
               <tr className="border-b border-[var(--color-border)]">
@@ -173,6 +174,7 @@ function FullResult({ check, groomProfile, brideProfile }: {
               })}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 

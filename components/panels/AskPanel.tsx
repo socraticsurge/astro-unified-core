@@ -165,7 +165,7 @@ export function AskPanel({
                   </label>
                   <textarea
                     id="ask-question"
-                    rows={5}
+                    rows={4}
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                     placeholder={placeholder}
                     value={question}

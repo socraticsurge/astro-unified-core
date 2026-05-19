@@ -94,7 +94,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
             <>
               <Link
                 href="/profiles/new"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
                 <UserPlus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Add profile</span>
@@ -104,7 +104,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                 <button
                   type="button"
                   onClick={onAskOpen}
-                  className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)] text-[var(--color-accent)]"
+                  className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)] text-[var(--color-accent)]"
                 >
                   <span aria-hidden="true">✦</span>
                   <span className="hidden sm:inline">Ask an expert</span>
@@ -114,7 +114,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
 
               <DropdownMenu>
                 <DropdownMenuTrigger
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] transition-colors"
+                  className="p-2 rounded-lg text-muted-foreground hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] transition-colors"
                   aria-label="Settings"
                 >
                   <Settings className="w-4 h-4" />

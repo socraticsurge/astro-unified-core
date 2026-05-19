@@ -34,7 +34,7 @@ export function TodayInsightCard({ insight, onAsk, onExplore }: TodayInsightCard
             <button
               type="button"
               onClick={() => insight.cta?.action === 'ask' ? onAsk(insight) : onExplore(insight)}
-              className="mt-1.5 text-xs text-[var(--color-accent)] hover:underline transition-colors"
+              className="mt-2 inline-flex items-center px-2 py-1 rounded text-xs text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)] transition-colors"
             >
               {insight.cta.label}
             </button>
