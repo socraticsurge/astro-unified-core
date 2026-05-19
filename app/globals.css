@@ -576,19 +576,21 @@
 .ac-pill.cool   { color: var(--color-cool);   border-color: var(--color-cool-bg);    background: var(--color-cool-bg); }
 .ac-pill.accent { color: var(--color-accent); border-color: var(--color-accent-dim); background: var(--color-accent-faint); }
 
-/* ── Calendar cells (Tarabalam, Muhurtha) ── */
-.ac-cell-good, .ac-cell-bad {
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.ac-cell-good { color: var(--color-success); background: var(--color-success-faint); }
-.ac-cell-bad  { color: var(--color-danger);  background: var(--color-danger-faint); }
+/* ── Table cell tinting (BAV scores, SAV scores) ── */
+.ac-cell-good { color: var(--color-success); background: var(--color-success-faint); font-weight: 600; }
+.ac-cell-bad  { color: var(--color-danger);  background: var(--color-danger-faint);  font-weight: 600; }
+
+/* ── Planet name + dignity colour utilities ── */
+.text-planet-name       { color: var(--color-planet-name); }
+.text-planet-retrograde { color: var(--color-planet-retrograde); }
+.text-planet-combust    { color: var(--color-planet-combust); }
+.text-dignity-exalted     { color: var(--color-dignity-exalted); }
+.text-dignity-mooltrikona { color: var(--color-dignity-mooltrikona); }
+.text-dignity-own         { color: var(--color-dignity-own); }
+.text-dignity-friend      { color: var(--color-dignity-friend); }
+.text-dignity-neutral     { color: var(--color-dignity-neutral); }
+.text-dignity-enemy       { color: var(--color-dignity-enemy); }
+.text-dignity-debilitated { color: var(--color-dignity-debilitated); }
 
 /* ── Compatibility score ── */
 .ac-score {
