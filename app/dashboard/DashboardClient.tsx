@@ -8,12 +8,21 @@ import { AskPanel } from "@/components/panels/AskPanel"
 import type { AskContext } from "@/components/panels/AskPanel"
 import { AIAdminPanel } from "@/components/panels/AIAdminPanel"
 import type { AIPanelContext } from "@/components/panels/AIAdminPanel"
-import type { Profile } from "@/lib/db"
+import type { Profile, CompatibilityCheck } from "@/lib/db"
+
+export interface AppSettings {
+  writtenEnabled: boolean
+  liveEnabled: boolean
+  writtenFeePaise: number
+  liveFeePaise: number
+}
 
 interface DashboardClientProps {
   profiles: Profile[]
   initialProfileId?: string
   isAdmin?: boolean
+  initialCompareCheck?: CompatibilityCheck
+  appSettings: AppSettings
 }
 
 type EngineState<T> = { data: T | null; loading: boolean; error: string | null }
@@ -22,7 +31,13 @@ function initState<T>(): EngineState<T> {
   return { data: null, loading: false, error: null }
 }
 
-export function DashboardClient({ profiles, initialProfileId, isAdmin = false }: DashboardClientProps) {
+export function DashboardClient({
+  profiles,
+  initialProfileId,
+  isAdmin = false,
+  initialCompareCheck,
+  appSettings,
+}: DashboardClientProps) {
   const [activeProfileId, setActiveProfileId] = useState<string | null>(
     initialProfileId ?? profiles[0]?.id ?? null
   )
@@ -98,6 +113,26 @@ export function DashboardClient({ profiles, initialProfileId, isAdmin = false }:
     setAskOpen(true)
   }, [activeProfile, chart.data])
 
+  const handleAskSubmit = useCallback(async (question: string) => {
+    if (!activeProfile) return
+    const res = await fetch('/api/consultation-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question,
+        profile_ids: [activeProfile.id],
+        delivery_mode: 'written',
+      }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error((data as { error?: string }).error ?? 'Failed to submit')
+    }
+  }, [activeProfile])
+
+  // Open compare tab pre-loaded when an admin-viewed compatibility check is passed
+  const defaultTab = initialCompareCheck ? 'compare' : undefined
+
   if (profiles.length === 0) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -151,6 +186,8 @@ export function DashboardClient({ profiles, initialProfileId, isAdmin = false }:
                 onAskOpen={handleAskOpen}
                 onAIOpen={handleAIOpen}
                 isAdmin={isAdmin}
+                defaultTab={defaultTab}
+                initialCompareCheck={initialCompareCheck}
               />
             </div>
           ) : (
@@ -172,6 +209,10 @@ export function DashboardClient({ profiles, initialProfileId, isAdmin = false }:
           tab:          askCtx.tab          ?? 'Today',
           insightTitle: askCtx.insightTitle,
         }}
+        writtenEnabled={appSettings.writtenEnabled}
+        liveEnabled={appSettings.liveEnabled}
+        writtenFeePaise={appSettings.writtenFeePaise}
+        onSubmit={handleAskSubmit}
       />
 
       {isAdmin && (

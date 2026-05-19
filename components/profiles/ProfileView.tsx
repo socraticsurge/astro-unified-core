@@ -55,6 +55,7 @@ interface ProfileViewProps {
   onAIOpen?: (payload: AIOpenPayload) => void
   isAdmin?: boolean
   defaultTab?: ChartTabId
+  initialCompareCheck?: CompatibilityCheck
 }
 
 export function ProfileView({
@@ -71,10 +72,18 @@ export function ProfileView({
   onAIOpen,
   isAdmin = false,
   defaultTab = 'today',
+  initialCompareCheck,
 }: ProfileViewProps) {
   const [activeTab, setActiveTab] = useState<ChartTabId>(defaultTab)
-  const [compareSelectedId, setCompareSelectedId] = useState<string>("")
-  const [compareResult, setCompareResult] = useState<CompatibilityCheck | null>(null)
+  const [compareSelectedId, setCompareSelectedId] = useState<string>(() => {
+    if (!initialCompareCheck) return ""
+    return initialCompareCheck.profile_id_1 === profile.id
+      ? initialCompareCheck.profile_id_2
+      : initialCompareCheck.profile_id_1
+  })
+  const [compareResult, setCompareResult] = useState<CompatibilityCheck | null>(
+    initialCompareCheck ?? null
+  )
 
   const handleAIOpen = () => {
     if (!onAIOpen) return

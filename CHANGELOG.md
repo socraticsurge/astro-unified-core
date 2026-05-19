@@ -8,6 +8,22 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Admin profile navigation, AskPanel API wiring, consultation settings
+
+### Added
+- **Admin profile deep-link** (`app/dashboard/page.tsx`) — when admin navigates to `/dashboard?profile=[id]`, the server loads that profile via `db.profiles.getAny` (bypasses ownership check). Works for any user's profile without new pages or nav tabs.
+- **Admin compatibility deep-link** — `/dashboard?profile=[p1_id]&compare=[check_id]` also fetches the check and partner profile, then opens the dashboard with the Compare tab pre-populated and the result already loaded.
+- **`initialCompareCheck` prop** (`components/profiles/ProfileView.tsx`) — initialises `compareResult` and `compareSelectedId` state from a server-provided `CompatibilityCheck`, enabling the admin compare deep-link to work without any client-side API call.
+- **`appSettings` prop** (`app/dashboard/DashboardClient.tsx`, `app/dashboard/page.tsx`) — written/live enabled flags and fees now fetched server-side and threaded down to AskPanel.
+
+### Fixed
+- **Questions never reached admin Questions tab** — `AskPanel.onSubmit` was optional and never passed from `DashboardClient`, so submissions silently no-op'd. Now `DashboardClient` provides a handler that POSTs `{ question, profile_ids, delivery_mode: "written" }` to `/api/consultation-requests`. Errors surface in the panel.
+- **AskPanel UX** — removed `flex-1` from textarea (was pushing submit button off-screen). Now uses fixed `rows={5}`. Added character counter (`X/2000`) and minimum-length hint (`N more chars needed`). Submit button shows fee or "Submit question" (free) based on settings.
+- **AskPanel delivery mode** — panel now respects `written_consultation_enabled` / `live_consultation_enabled` from app settings. If only live is enabled, shows a redirect link to `/consultation`. If both off (free), submits written with no fee shown. If live also enabled, shows "Book a live session →" link below form.
+- **Admin table profile links** — all profile and compatibility "View" links now navigate to `/dashboard?profile=...` (and `?compare=...` for compatibility checks) instead of the old `/profiles/[id]` and `/compatibility/[id]` pages. All open in a new tab so admin does not lose their place.
+
+---
+
 ## [2026-05-19] — AI Admin Panel + Admin screen design token overhaul
 
 ### Added

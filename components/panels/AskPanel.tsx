@@ -22,17 +22,39 @@ interface AskPanelProps {
   open: boolean
   onClose: () => void
   context: AskContext
-  onSubmit?: (question: string) => void
+  writtenEnabled: boolean
+  liveEnabled: boolean
+  writtenFeePaise: number
+  onSubmit: (question: string) => Promise<void>
 }
 
-export function AskPanel({ open, onClose, context, onSubmit }: AskPanelProps) {
+const MIN_LENGTH = 30
+const MAX_LENGTH = 2000
+
+function fmtRupees(paise: number) {
+  return "₹" + Math.round(paise / 100).toLocaleString("en-IN")
+}
+
+export function AskPanel({
+  open,
+  onClose,
+  context,
+  writtenEnabled,
+  liveEnabled,
+  writtenFeePaise,
+  onSubmit,
+}: AskPanelProps) {
   const [question, setQuestion] = React.useState("")
+  const [submitting, setSubmitting] = React.useState(false)
   const [sent, setSent] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (!open) {
       setQuestion("")
       setSent(false)
+      setError(null)
+      setSubmitting(false)
     }
   }, [open])
 
@@ -40,19 +62,42 @@ export function AskPanel({ open, onClose, context, onSubmit }: AskPanelProps) {
     ? `Ask about: ${context.insightTitle}`
     : `e.g. What does this ${context.mahadasha} mahadasha mean for my career?`
 
+  const isFree = !writtenEnabled && !liveEnabled
+  const canSubmitWritten = writtenEnabled || isFree
+  const charCount = question.trim().length
+  const canSubmit = charCount >= MIN_LENGTH && charCount <= MAX_LENGTH && !submitting
+
+  const handleSubmit = async () => {
+    setSubmitting(true)
+    setError(null)
+    try {
+      await onSubmit(question.trim())
+      setSent(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to submit. Please try again.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const buttonLabel = () => {
+    if (submitting) return "Submitting…"
+    if (isFree) return "Submit question"
+    return `Request written response · ${fmtRupees(writtenFeePaise)}`
+  }
+
   return (
     <Sheet open={open} onOpenChange={(isOpen: boolean) => { if (!isOpen) onClose() }}>
-      <SheetContent side="right" className="overflow-y-auto sm:max-w-sm w-full flex flex-col gap-4">
+      <SheetContent side="right" className="sm:max-w-sm w-full flex flex-col gap-4 overflow-y-auto">
         <SheetHeader>
           <SheetTitle>✦ Ask an expert</SheetTitle>
         </SheetHeader>
 
         {sent ? (
-          /* Confirmation state */
           <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center py-10">
             <div className="text-3xl text-[var(--color-accent)]">✦</div>
             <div>
-              <p className="text-sm font-semibold text-[var(--color-ink-1)] mb-1">Question sent</p>
+              <p className="text-sm font-semibold text-[var(--color-ink-1)] mb-1">Question submitted</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 An astrologer will review your question and respond within 2 days.
               </p>
@@ -79,31 +124,64 @@ export function AskPanel({ open, onClose, context, onSubmit }: AskPanelProps) {
               )}
             </div>
 
-            {/* Question */}
-            <div className="flex flex-col gap-2 flex-1">
-              <label htmlFor="ask-question" className="text-xs font-medium uppercase tracking-wide opacity-60">
-                Your question
-              </label>
-              <textarea
-                id="ask-question"
-                className="flex-1 w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-ring min-h-[120px] resize-none"
-                placeholder={placeholder}
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-              />
-            </div>
+            {canSubmitWritten ? (
+              <>
+                {/* Question textarea */}
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="ask-question" className="text-xs font-medium uppercase tracking-wide opacity-60">
+                    Your question
+                  </label>
+                  <textarea
+                    id="ask-question"
+                    rows={5}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                    placeholder={placeholder}
+                    value={question}
+                    maxLength={MAX_LENGTH}
+                    onChange={(e) => setQuestion(e.target.value)}
+                  />
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground/60">
+                    <span>{charCount < MIN_LENGTH ? `${MIN_LENGTH - charCount} more chars needed` : ""}</span>
+                    <span>{charCount}/{MAX_LENGTH}</span>
+                  </div>
+                </div>
 
-            <Button
-              className="w-full"
-              type="button"
-              disabled={!question.trim()}
-              onClick={() => {
-                onSubmit?.(question)
-                setSent(true)
-              }}
-            >
-              Request consultation →
-            </Button>
+                {error && (
+                  <p className="text-xs text-[var(--color-danger)]">{error}</p>
+                )}
+
+                <Button
+                  className="w-full"
+                  type="button"
+                  disabled={!canSubmit}
+                  onClick={handleSubmit}
+                >
+                  {buttonLabel()}
+                </Button>
+
+                {liveEnabled && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Looking for a live session?{" "}
+                    <a href="/consultation" className="text-[var(--color-accent)] hover:underline">
+                      Book here →
+                    </a>
+                  </p>
+                )}
+              </>
+            ) : liveEnabled ? (
+              /* Only live is enabled — redirect to full consultation page */
+              <div className="flex flex-col gap-3 pt-2">
+                <p className="text-sm text-[var(--color-ink-2)] leading-relaxed">
+                  Written responses are currently unavailable. You can book a live consultation session instead.
+                </p>
+                <a
+                  href="/consultation"
+                  className="inline-flex items-center justify-center w-full rounded-md bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-[var(--color-accent)] text-sm font-medium px-4 py-2.5 hover:bg-[var(--color-accent-faint)]/80 transition-colors"
+                >
+                  Book a live session →
+                </a>
+              </div>
+            ) : null}
           </>
         )}
       </SheetContent>

@@ -328,7 +328,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
               {sortedProfiles.map((p) => (
                 <tr key={p.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]">
                   <td className="px-3 py-2 font-medium whitespace-nowrap">
-                    <Link href={`/profiles/${p.id}`} className="hover:underline text-[var(--color-accent)]">
+                    <Link href={`/dashboard?profile=${p.id}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-[var(--color-accent)]">
                       {p.name}
                     </Link>
                   </td>
@@ -414,7 +414,12 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        <Link href={`/compatibility/${check.id}`} className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors">
+                        <Link
+                          href={`/dashboard?profile=${check.profile_id_1}&compare=${check.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+                        >
                           View
                         </Link>
                         <details className="relative">
@@ -507,7 +512,9 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                           {profileList.map(p => (
                             <Link
                               key={p.id}
-                              href={`/profiles/${p.id}`}
+                              href={`/dashboard?profile=${p.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="text-xs text-[var(--color-accent)]/80 hover:text-[var(--color-accent)] hover:underline whitespace-nowrap"
                             >
                               {p.name}
