@@ -10,22 +10,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest",
-    "test:vitest": "vitest run lib/content/markdown.test.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@fusionstrings/panchangam": "^0.2.0",
     "@libsql/client": "^0.14.0",
-    "@types/dompurify": "^3.0.5",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "dompurify": "^3.4.3",
     "geo-tz": "^8.1.6",
     "gray-matter": "^4.0.3",
-    "isomorphic-dompurify": "^3.12.0",
     "lucide-react": "^1.14.0",
     "marked": "^18.0.3",
     "next": "16.2.4",
@@ -40,13 +36,11 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "@jest/globals": "^30.4.1",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.19",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -54,12 +48,9 @@
     "@vitest/coverage-v8": "^4.1.6",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
-    "jest": "^30.4.2",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
-    "ts-jest": "^29.4.9",
     "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.6"
   }

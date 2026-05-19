@@ -30,6 +30,6 @@ describe('AskPanel', () => {
 
   it('renders the submit button disabled when question is empty', () => {
     render(<AskPanel open={true} onClose={() => {}} context={ctx} />)
-    expect(screen.getByRole('button', { name: /request consultation/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
   })
 })

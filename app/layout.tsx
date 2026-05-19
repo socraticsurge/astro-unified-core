@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Libre_Baskerville,
   Inter,
@@ -42,6 +42,11 @@ export const metadata: Metadata = {
   title: "Astro Chaganti — Vedic birth charts by Dr. Vinay Kumar Chaganti",
   description:
     "Detailed Vedic birth charts: Lagna, divisional charts, 5-level Vimshottari Dasha, Yogas, Shadbala, Karakamsha, and more. By Dr. Vinay Kumar Chaganti.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

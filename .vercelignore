@@ -1,0 +1,23 @@
+# Local design mockups (24MB) — not part of the deployed app
+design/
+
+# Repo documentation — not needed at runtime
+docs/
+CHANGELOG.md
+AGENTS.md
+
+# Tests — not needed in the production bundle
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+vitest.config.ts
+vitest.setup.ts
+
+# AI agent scratch directories
+.claude/
+.jules/
+.cursor/
+.aider/
+
+# Sidecar cache artifacts that should never have shipped with the web app
+public/data/ephemeris/*.pickle
