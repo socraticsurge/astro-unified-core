@@ -1,6 +1,6 @@
 "use client"
 import { useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Pencil, Trash2, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Profile, CompatibilityCheck } from '@/lib/db'
 import { TodayTab }          from '@/components/tabs/TodayTab'
@@ -23,6 +23,8 @@ export type ChartTabId =
   | 'yogas' | 'jaimini' | 'ashtakavarga'
   | 'dasha' | 'transits' | 'career' | 'compare'
   | 'muhurtha' | 'tarabalam'
+
+const DESKTOP_ONLY_TABS = new Set<ChartTabId>(['planets', 'divisional', 'yogas', 'jaimini', 'ashtakavarga', 'dasha'])
 
 const CHART_TABS: { id: ChartTabId; label: string; adminOnly?: boolean }[] = [
   { id: 'today',        label: 'Today'        },
@@ -130,8 +132,43 @@ export function ProfileView({
 
   const needsChart = activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare' && activeTab !== 'muhurtha' && activeTab !== 'tarabalam'
 
+  const handleMobileDelete = async () => {
+    if (!window.confirm(`Delete ${profile.name}? This cannot be undone.`)) return
+    await fetch(`/api/profiles/${profile.id}`, { method: 'DELETE' })
+    window.location.href = '/dashboard'
+  }
+
   return (
     <div className="h-full flex flex-col min-h-0">
+      {/* Mobile-only profile header — edit/delete without the sidebar */}
+      <div className="md:hidden flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)]">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{profile.name}</p>
+          {(profile.relationship || profile.gender) && (
+            <p className="text-xs text-muted-foreground">
+              {[profile.relationship, profile.gender].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0 ml-2">
+          <a
+            href={`/profiles/${profile.id}/edit`}
+            title="Edit profile"
+            className="p-1.5 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </a>
+          <button
+            type="button"
+            onClick={handleMobileDelete}
+            title="Delete profile"
+            className="p-1.5 rounded text-muted-foreground hover:text-danger transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
       {/* Tab bar */}
       <div className="flex-shrink-0 flex items-stretch border-b border-[var(--color-border)]">
         <div
@@ -260,6 +297,14 @@ export function ProfileView({
           />
           </div>
         )}
+        {/* Desktop nudge for data-heavy tabs */}
+        {DESKTOP_ONLY_TABS.has(activeTab) && (
+          <div className="md:hidden mb-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs text-muted-foreground">
+            <Monitor className="h-3.5 w-3.5 shrink-0" />
+            Best explored on a desktop for full detail and interactivity.
+          </div>
+        )}
+
         {needsChart && !chartOutput && (
           <div className="flex items-center justify-center h-40">
             <p className="text-sm text-muted-foreground">Loading chart data…</p>

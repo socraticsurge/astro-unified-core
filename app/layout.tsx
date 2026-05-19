@@ -5,6 +5,7 @@ import {
   Libre_Baskerville,
   Inter,
   JetBrains_Mono,
+  Cormorant_Garamond,
 } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
@@ -55,6 +56,19 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono-light",
 });
 
+const jetbrainsMonoDark = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  variable: "--font-mono-dark",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-cormorant",
+});
+
 export const metadata: Metadata = {
   title: "Astro Chaganti — Vedic birth charts by Dr. Vinay Kumar Chaganti",
   description:
@@ -73,6 +87,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           libreBaskerville.variable,
           inter.variable,
           jetbrainsMono.variable,
+          jetbrainsMonoDark.variable,
+          cormorant.variable,
           "font-sans antialiased",
         ].join(" ")}
       >

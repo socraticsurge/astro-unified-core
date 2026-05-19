@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Sprint: logo, landing fonts, theme switcher, mobile UX
+
+### Added
+- **Cormorant Garamond font** (`app/layout.tsx`) — landing page brand name and quote text now render in the intended typeface instead of falling back to Georgia. Variable `--font-cormorant` defined globally.
+- **Mobile profile bar** (ProfileView) — `md:hidden` bar above the tab list shows profile name, relationship/gender, edit link (`/profiles/[id]/edit`), and delete button. Fills the gap left by the hidden sidebar on mobile.
+- **Desktop nudge** (ProfileView) — `md:hidden` banner on complex tabs (Planets, Divisional, Yogas, Jaimini, Ashtakavarga, Dasha) with a Monitor icon and "Best explored on a desktop" copy.
+
+### Changed
+- **Logo visibility** (NavBar `TwoOrbits`) — inner ellipse stroke changed from `--color-accent-faint` (8–12% opacity) to `--color-accent-dim` (55%), now fully visible in both themes.
+- **ThemeToggle placement** — moved from the Settings dropdown into the NavBar brand panel (right of "Astro Chaganti" text). Removed from dropdown. Available at a glance on every screen.
+- **Dark mono font** (`layout.tsx`) — added `--font-mono-dark` variable (JetBrains Mono) which was previously undefined, fixing code/mono text in the Cosmic theme.
+
+---
+
 ## [2026-05-19] — Desktop UX polish; theme consistency fixes
 
 ### Changed

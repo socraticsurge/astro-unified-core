@@ -20,7 +20,7 @@ function TwoOrbits({ size = 36 }: { size?: number }) {
       <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)"
         stroke="var(--color-accent-dim)" strokeWidth="1.4" fill="none"/>
       <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)"
-        stroke="var(--color-accent-faint)" strokeWidth="1.1" fill="none"/>
+        stroke="var(--color-accent-dim)" strokeWidth="1.2" fill="none"/>
       <circle cx="13.5" cy="16" r="1.5" fill="var(--color-accent-dim)"/>
       <circle cx="34.5" cy="32" r="1.5" fill="var(--color-accent-dim)"/>
       <circle cx="24"   cy="24" r="2.6" fill="var(--color-accent)"/>
@@ -65,7 +65,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
         <div className="w-auto md:w-80 shrink-0 flex items-center gap-2 px-4 border-r border-[var(--color-border)]">
           <Link
             href={isLoggedIn ? "/dashboard" : "/"}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 flex-1 min-w-0"
             aria-label="Home"
           >
             <TwoOrbits size={28} />
@@ -74,6 +74,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
               <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
             </span>
           </Link>
+          <ThemeToggle />
         </div>
 
         {/* Profile tabs — fills remaining space */}
@@ -121,9 +122,6 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                 <DropdownMenuContent align="end" className="w-44">
                   <DropdownMenuItem>
                     <Link href="/settings" className="w-full">Account settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="p-0">
-                    <ThemeToggle />
                   </DropdownMenuItem>
                   {showAdmin && (
                     <>
