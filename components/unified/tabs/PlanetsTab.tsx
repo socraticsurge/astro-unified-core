@@ -38,9 +38,7 @@ export function PlanetsTab({ chartOutput }: { chartOutput: Record<string, unknow
 
       {/* Planet positions */}
       <section>
-        <SectionHeading action={<button className="ac-btn-ask">✦ Ask about this →</button>}>
-          Positions
-        </SectionHeading>
+        <SectionHeading>Positions</SectionHeading>
         <div className="ac-card overflow-x-auto">
           <table className="ac-table">
             <thead>
