@@ -69,7 +69,7 @@ export function TodayTab({
   return (
     <div className="space-y-5 max-w-xl">
       {/* Hero card — all 5 dasha levels */}
-      <div className="p-4 rounded-xl border border-[var(--color-today-hero-border)] bg-gradient-to-br from-[var(--color-surface-1)] to-[var(--color-surface-2)]">
+      <div className="p-4 rounded-xl border border-[var(--color-border-subtle)] bg-gradient-to-br from-[var(--color-surface-1)] to-[var(--color-surface-2)]">
         <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Current dasha period</p>
         <div className="space-y-1">
           {DASHA_LEVELS.map(({ key, label }) => {

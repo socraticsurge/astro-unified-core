@@ -104,7 +104,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                 <button
                   type="button"
                   onClick={onAskOpen}
-                  className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-nav-ask-bg)] border-[var(--color-nav-ask-border)] text-[var(--color-nav-ask-text)]"
+                  className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)] text-[var(--color-accent)]"
                 >
                   <span aria-hidden="true">✦</span>
                   <span className="hidden sm:inline">Ask an expert</span>

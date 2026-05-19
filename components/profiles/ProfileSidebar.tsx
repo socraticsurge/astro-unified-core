@@ -94,7 +94,7 @@ function InlineEditForm({ profile, onCancel }: { profile: Profile; onCancel: () 
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex-1 h-8 rounded-md bg-[var(--color-accent)] text-white text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="flex-1 h-8 rounded-md bg-[var(--color-accent)] text-[var(--color-button-fg)] text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {saving ? "Saving…" : "Save"}
         </button>

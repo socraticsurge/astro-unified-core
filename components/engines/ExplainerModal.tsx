@@ -243,7 +243,7 @@ export function ExplainerModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="explainer-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm md:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm md:p-6" style={{ background: 'var(--color-overlay)' }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

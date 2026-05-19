@@ -197,7 +197,7 @@ export function CareerView({ output, explainer }: Props) {
             <span className="w-1.5 h-1.5 rounded-full bg-yellow-900/50 group-open:bg-yellow-500"></span>
             View Raw Career Data
           </summary>
-          <pre className="mt-4 p-4 rounded-lg bg-black/40 border border-[var(--color-border-subtle)] text-[10px] font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap">
+          <pre className="mt-4 p-4 rounded-lg border border-[var(--color-border-subtle)] text-[10px] font-mono text-muted-foreground overflow-x-auto whitespace-pre-wrap" style={{ background: 'var(--color-overlay-dim)' }}>
             {JSON.stringify(output, null, 2)}
           </pre>
         </details>

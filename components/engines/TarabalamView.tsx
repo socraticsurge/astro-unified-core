@@ -141,7 +141,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                       }`}
                     >
                       <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${checked ? "bg-violet-500 border-violet-500" : "border-[var(--color-ink-3)]"}`}>
-                        {checked && <span className="text-white text-[8px] leading-none">✓</span>}
+                        {checked && <span className="text-[var(--color-button-fg)] text-[8px] leading-none">✓</span>}
                       </span>
                       {p.name}
                       {isCurrent && <span className="text-violet-400/70 text-[10px]">(you)</span>}
@@ -176,7 +176,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
               onClick={handleSearch}
               disabled={loading}
               size="sm"
-              className="h-9 bg-[var(--color-accent)] hover:opacity-90 text-white gap-1.5"
+              className="h-9 bg-[var(--color-accent)] hover:opacity-90 text-[var(--color-button-fg)] gap-1.5"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               {loading ? "Calculating…" : "Calculate"}

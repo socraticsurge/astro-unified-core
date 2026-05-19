@@ -25,6 +25,8 @@ export function AppStarCanvas() {
     let animId: number;
     let stars: Star[] = [];
     let frame = 0;
+    let lastTheme = '';
+    let starRGB = '220,230,255';
 
     function resize() {
       cv.width = window.innerWidth;
@@ -55,9 +57,11 @@ export function AppStarCanvas() {
         const twinkle = 1 + 0.2 * Math.sin(frame * s.phaseSpeed + s.phase);
         const opacity = Math.min(1, s.baseOpacity * twinkle);
 
+        const theme = document.documentElement.getAttribute('data-theme') ?? 'dark';
+        if (theme !== lastTheme) { lastTheme = theme; starRGB = theme === 'light' ? '60,80,140' : '220,230,255'; }
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(220,230,255,${opacity.toFixed(3)})`;
+        ctx.fillStyle = `rgba(${starRGB},${opacity.toFixed(3)})`;
         ctx.fill();
       }
 

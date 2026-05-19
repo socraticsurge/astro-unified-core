@@ -97,7 +97,7 @@ export function ProfileChat({ profileId }: Props) {
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[85%] rounded-lg px-3 py-2.5 text-sm leading-relaxed ${
               m.role === "user"
-                ? "bg-violet-800/40 text-white"
+                ? "bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-[var(--color-ink-1)]"
                 : "bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-foreground/90"
             }`}>
               <MessageContent content={m.content} />
@@ -146,7 +146,7 @@ export function ProfileChat({ profileId }: Props) {
           onClick={send}
           disabled={!input.trim() || loading}
           size="sm"
-          className="h-9 w-9 p-0 bg-violet-700/60 hover:bg-violet-700/80 text-white border-0 shrink-0"
+          className="h-9 w-9 p-0 bg-[var(--color-accent)] hover:opacity-90 text-[var(--color-button-fg)] border-0 shrink-0"
         >
           <Send className="h-3.5 w-3.5" />
         </Button>

@@ -8,6 +8,24 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Theme system: simplify tokens, fix all hardcoded colors, full light/dark parity
+
+### Added
+- **`--color-overlay` / `--color-overlay-dim`** tokens in both themes — replace scattered `bg-black/60` and `bg-black/40` hardcodes in ExplainerModal and CareerView.
+- **`--color-button-fg`** token — dark: `#1C1917` (dark text on gold), light: `#FFFCF6` (light text on crimson). Applied to all buttons using `bg-[var(--color-accent)]` across ProfileSidebar, MuhurthaView, TarabalamView, ProfileChat.
+
+### Changed
+- **Simplified token set** — removed 10 dead/redundant tokens per theme (20 definitions): `--color-nav-ask-*` (3), `--color-today-ask-cta-*` (3), `--color-today-hero-border`, `--color-ask-option-active-*` (3). Collapsed to existing `--color-accent-*` and `--color-border-subtle` equivalents.
+- **NavBar "Ask an expert" button** — was using `--color-nav-ask-*` bespoke tokens; now uses `--color-accent-faint/dim/accent` directly.
+- **TodayInsightCard CTA link** — was `--color-today-ask-cta-text`; now `--color-accent`.
+- **TodayTab dasha hero border** — was `--color-today-hero-border`; now `--color-border-subtle`.
+- **CompatibilityDetailClient score colors** — replaced hardcoded `#34d399 / #fbbf24 / #f87171` with `var(--color-success/warning/danger)`. Both themes now render correctly.
+- **CompatibilityDetailClient toggle button** — `text-white` → `text-[var(--color-ink-1)]` (was white-on-surface, now correct in both themes).
+- **ProfileChat user bubble** — `bg-violet-800/40 text-white` → accent-faint background with ink-1 text; send button → accent background with button-fg text.
+- **AppStarCanvas star color** — hardcoded `rgba(220,230,255,...)` → theme-reactive: dark stays blue-white, light uses `rgba(60,80,140,...)` (visible on light background).
+
+---
+
 ## [2026-05-19] — Fix earth globe visibility on landing page
 
 ### Fixed

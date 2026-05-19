@@ -244,21 +244,18 @@
   --input:                 var(--color-border);
   --ring:                  var(--color-accent-dim);
 
+  /* ── Overlay ── */
+  --color-overlay:                  rgba(0,0,0,0.60);
+  --color-overlay-dim:              rgba(0,0,0,0.35);
+
+  /* ── Button foreground (text on accent-background buttons) ── */
+  --color-button-fg:                #1C1917;
+
   /* ── Navigation — profile chips & Ask button ── */
   --color-nav-chip-active-bg:       rgba(139, 92, 246, 0.12);
   --color-nav-chip-active-border:   rgba(168, 85, 247, 0.30);
   --color-nav-chip-active-text:     rgba(192, 132, 252, 1);
-  --color-nav-ask-bg:               rgba(147, 51, 234, 0.18);
-  --color-nav-ask-border:           rgba(168, 85, 247, 0.28);
-  --color-nav-ask-text:             rgba(216, 180, 254, 1);
   --color-nav-alert:                rgba(251, 146, 60, 1);
-
-  /* ── Today tab ── */
-  --color-today-hero-border:        rgba(168, 85, 247, 0.18);
-  --color-today-ask-cta-text:       rgba(192, 132, 252, 1);
-  --color-today-ask-cta-border:     rgba(168, 85, 247, 0.18);
-  --color-today-ask-cta-hover:      rgba(168, 85, 247, 0.10);
-  /* today hero card background intentionally uses --color-surface-1 */
 
   /* ── Insight card category colours ── */
   --color-insight-dasha:            rgba(192, 132, 252, 1);
@@ -274,9 +271,6 @@
   --color-ask-ctx-bg:               rgba(168, 85, 247, 0.10);
   --color-ask-ctx-border:           rgba(168, 85, 247, 0.20);
   --color-ask-ctx-name:             rgba(216, 180, 254, 1);
-  --color-ask-option-active-bg:     rgba(168, 85, 247, 0.08);
-  --color-ask-option-active-border: rgba(168, 85, 247, 0.35);
-  --color-ask-option-active-text:   rgba(192, 132, 252, 1);
 }
 
 [data-theme="dark"]  ::selection { background: var(--color-accent-faint); color: var(--color-ink-1); }
@@ -409,21 +403,18 @@
   --input:                 var(--color-border-subtle);
   --ring:                  var(--color-accent);
 
+  /* ── Overlay ── */
+  --color-overlay:                  rgba(28,25,23,0.55);
+  --color-overlay-dim:              rgba(28,25,23,0.30);
+
+  /* ── Button foreground (text on accent-background buttons) ── */
+  --color-button-fg:                #FFFCF6;
+
   /* ── Navigation — profile chips & Ask button ── */
   --color-nav-chip-active-bg:       rgba(153, 27, 27, 0.06);
   --color-nav-chip-active-border:   rgba(153, 27, 27, 0.35);
   --color-nav-chip-active-text:     #7F1D1D;
-  --color-nav-ask-bg:               rgba(153, 27, 27, 0.06);
-  --color-nav-ask-border:           rgba(153, 27, 27, 0.25);
-  --color-nav-ask-text:             #991B1B;
   --color-nav-alert:                #C2410C;
-
-  /* ── Today tab ── */
-  --color-today-hero-border:        rgba(153, 27, 27, 0.18);
-  --color-today-ask-cta-text:       #991B1B;
-  --color-today-ask-cta-border:     rgba(153, 27, 27, 0.18);
-  --color-today-ask-cta-hover:      rgba(153, 27, 27, 0.05);
-  /* today hero card background intentionally uses --color-surface-1 */
 
   /* ── Insight card category colours ── */
   --color-insight-dasha:            #7C3AED;
@@ -439,9 +430,6 @@
   --color-ask-ctx-bg:               rgba(153, 27, 27, 0.05);
   --color-ask-ctx-border:           rgba(153, 27, 27, 0.18);
   --color-ask-ctx-name:             #991B1B;
-  --color-ask-option-active-bg:     rgba(153, 27, 27, 0.06);
-  --color-ask-option-active-border: rgba(153, 27, 27, 0.30);
-  --color-ask-option-active-text:   #7F1D1D;
 }
 
 @layer base {

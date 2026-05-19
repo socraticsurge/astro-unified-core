@@ -170,7 +170,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           <div className="flex items-center bg-[var(--color-surface-1)] rounded-lg p-0.5 border border-[var(--color-border)]">
             <Button variant={isProfessional ? "ghost" : "secondary"} size="sm"
               onClick={() => setIsProfessional(false)}
-              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${!isProfessional ? "bg-[var(--color-surface-hover)] text-white" : "text-muted-foreground"}`}>
+              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${!isProfessional ? "bg-[var(--color-surface-hover)] text-[var(--color-ink-1)]" : "text-muted-foreground"}`}>
               <User className="h-3 w-3" /> Summary
             </Button>
             <Button variant={isProfessional ? "secondary" : "ghost"} size="sm"
@@ -222,7 +222,7 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
                     <span style={{ ...fonts.display, fontSize: "1rem", color: "var(--color-ink-2)" }}>{name}</span>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <span style={{ fontWeight: 600, color: full ? "#34d399" : partial ? "#fbbf24" : "#f87171", fontSize: "1rem" }}>{pts}</span>
+                        <span style={{ fontWeight: 600, color: full ? "var(--color-success)" : partial ? "var(--color-warning)" : "var(--color-danger)", fontSize: "1rem" }}>{pts}</span>
                         <span style={{ color: "var(--color-ink-4)", fontSize: "0.8rem" }}>/{max ?? "—"}</span>
                       </div>
                       {full && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />}

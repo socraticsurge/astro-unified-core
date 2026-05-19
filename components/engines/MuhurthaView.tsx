@@ -73,7 +73,7 @@ export function MuhurthaView({ profileId, explainer }: Props) {
             <Label>End Date</Label>
             <div className="flex gap-2">
               <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className="bg-[var(--color-surface-1)] border-[var(--color-border)]" />
-              <Button onClick={handleSearch} disabled={loading} size="icon" className="shrink-0 bg-[var(--color-accent)] hover:opacity-90 text-white">
+              <Button onClick={handleSearch} disabled={loading} size="icon" className="shrink-0 bg-[var(--color-accent)] hover:opacity-90 text-[var(--color-button-fg)]">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
               </Button>
             </div>
