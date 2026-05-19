@@ -17,7 +17,7 @@ export function ModelPicker({ value, onChange, disabled }: Props) {
           onClick={() => onChange(key)}
           className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors disabled:opacity-40 ${
             value === key
-              ? "bg-violet-700/50 text-violet-200 border border-violet-600/50"
+              ? "bg-[var(--color-accent-faint)] text-[var(--color-accent)] border border-[var(--color-accent-dim)]"
               : "text-muted-foreground hover:text-[var(--color-ink-2)] border border-transparent hover:border-[var(--color-border)]"
           }`}
         >

@@ -197,11 +197,11 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
             {/* Legend */}
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded bg-emerald-800/60 border border-emerald-700/40" />
+                <span className="inline-block w-3 h-3 rounded bg-[var(--color-success-faint)] border border-[var(--color-success-border)]" />
                 Auspicious (2,4,6,8,9 — Sampat, Kshema, Sadhana, Mitra, Parama Mitra)
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded bg-red-900/40 border border-red-700/30" />
+                <span className="inline-block w-3 h-3 rounded bg-[var(--color-danger-faint)] border border-[var(--color-danger-border)]" />
                 Inauspicious (1,3,5,7 — Janma, Vipat, Pratyak, Naidana)
               </span>
             </div>
@@ -288,7 +288,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                         {resultProfiles.length > 1 && (
                           <td className="py-2">
                             {allGood ? (
-                              <span className="text-emerald-400 text-sm">✦</span>
+                              <span className="text-[var(--color-success)] text-sm">✦</span>
                             ) : (
                               <span className="text-muted-foreground/20 text-sm">·</span>
                             )}

@@ -204,7 +204,7 @@ export function ProfileView({
             title="Open AI Assistant"
             className="shrink-0 flex items-center gap-1 px-3 border-l border-[var(--color-border)] text-[11px] font-medium text-muted-foreground hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] transition-colors"
           >
-            <Sparkles className="h-3 w-3 text-violet-400" />
+            <Sparkles className="h-3 w-3 text-[var(--color-accent)]" />
             AI
           </button>
         )}

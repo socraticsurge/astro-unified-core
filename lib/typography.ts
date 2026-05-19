@@ -1,5 +1,27 @@
 import type { CSSProperties } from "react";
 
+// ── When to use this module ───────────────────────────────────────────────────
+//
+// The project has TWO ways to apply theme-aware styling:
+//
+//   1. `.ac-*` utility classes in app/globals.css (e.g. .ac-card, .ac-eyebrow,
+//      .ac-kv, .ac-tag, .ac-cell-good). Prefer these for tabular layouts,
+//      cards, pills, headings, and anything else the unified dashboard uses —
+//      the classes encode the design language directly.
+//
+//   2. The inline-style tokens exported below (fonts, textStyles, glass,
+//      clamp, radii, motion, spacing, shadows, interactive). Use these when:
+//      - the style needs to be computed at runtime (e.g. conditional opacity,
+//        animated transition values)
+//      - Tailwind arbitrary-value syntax becomes unreadable (multiple
+//        inline-styled properties at once)
+//      - the component already uses inline styles for layout reasons
+//
+// Both paths resolve to the same CSS variables in globals.css and switch with
+// the active theme. You do NOT need to migrate existing inline-style usage to
+// `.ac-*` classes wholesale — they are equivalent at runtime. Migrate when
+// a clean class-only replacement exists for a specific element.
+//
 // ── Font family references ─────────────────────────────────────────────────────
 // These reference the active theme's fonts via CSS variables.
 // The actual font families are loaded in app/layout.tsx and assigned per-theme
