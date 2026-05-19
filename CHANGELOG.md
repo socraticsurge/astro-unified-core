@@ -8,6 +8,34 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Docs rewrite + LLM/insight test coverage (B2 + E1)
+
+PR B from the post-#52/#53 follow-up plan. Closes out the audit backlog.
+
+### Added — Test coverage for previously-untested high-risk modules (E1)
+- **`lib/engines/__tests__/cache-validate.test.ts`** (10 tests) — covers `birthDataChanged()`: every field change individually, unparseable JSON, empty string, missing fields, all-null current.
+- **`lib/engines/__tests__/reading-handler.test.ts`** (11 tests) — covers `resolveProfile()`: 401 / 400 / 404 paths, admin vs non-admin `db.profiles.get` scoping, every missing-field branch (date, time, lat=null, empty timezone), and the success payload shape.
+- **`app/api/readings/today-reading/route.test.ts`** (9 tests) — covers the GET handler: 401 / 400 (chart missing) / 500 (corrupt chart JSON) / 502 (LLM throws), cache-hit when fingerprint matches, regeneration when `llm_fingerprint` or `pratyantar_end` mismatches, fall-through on corrupt cache output, and snapshot save shape.
+- **`lib/engines/__tests__/today-reading.test.ts`** (10 tests) — covers `buildTodayReading()`: PROMPT_VERSION shape, empty-blocks short-circuit, LLM-config plumbed to `callAIForJson`, `custom_instructions` appended to system prompt, antar/pratyantar alert windows (4w / 8w), HTML-stripping of content bodies, non-string LLM-output coercion.
+- **`app/api/compatibility/[id]/route.test.ts`** (4 tests) — DELETE handler: 401, ownership-scoped `db.compatibility.get`, no-delete on missing/foreign check, 204 on success.
+- **`app/api/compatibility/route.test.ts`** (8 tests) — GET (401, userId scoping) and POST (401, 429 rate limit, 400 missing IDs, 404 unowned profile, duplicate-in-either-order short-circuit, rate-limit key uses userId).
+
+Net: **+52 tests, total 247/247 passing.**
+
+### Changed — `docs/ARCHITECTURE.md` no longer references deleted components (B2)
+- Removed the stale-section banner added in #52 — the sections below are now actually rewritten.
+- **Section 6 "Astrology Engine Layer / DashaFlow"** — updated the consumer description from `DashaflowView` to the unified dashboard + `tabs/*`.
+- **Section 8 "Profile Detail"** rewritten as "Dashboard / Profile View" — describes the actual flow: `/profiles/[id]` redirects to `/dashboard?profile=…`, which renders `DashboardClient` orchestrating chart/transit/career/today-reading fetches with the per-profile in-memory cache. Includes a table mapping each of the 10 dashboard tabs to its renderer + data source, plus the admin AI panel and Ask panel.
+- **Section 9 "Chart Engine Components" table** rewritten into three groupings: `components/unified/*` (the dashboard set — UnifiedView, IdentityStrip, HouseGrid, NatalChartGrid, SavChartGrid, and all 11 tabs with timeline subcomponents), `components/tabs/*` (TodayTab + CompareTab), and `components/engines/*` (standalone views — MuhurthaView, TarabalamView, SectionShell, ExplainerModal, AIInsightCard, CompatibilityChat).
+- **Section 12 "Journey 3: Viewing a Birth Chart"** rewritten to match the dashboard flow: cache-hit-vs-miss branching, parallel chart+transit prefetch, lazy career-on-tab-open, new-profile loading screen path, and the LLM cache invalidation pipeline (fingerprint check).
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 247/247 pass (was 195)
+- `npm run build` → success
+
+---
+
 ## [2026-05-20] — Perf & theme polish (D1 + D2 + C1 + C2)
 
 PR A from the post-#52/#53 follow-up plan. User-visible perf + theme parity.
