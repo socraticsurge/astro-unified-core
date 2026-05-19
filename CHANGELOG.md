@@ -8,6 +8,27 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Remove dead basic/professional views and all orphaned engine components
+
+### Removed
+- **`app/profiles/[id]/ProfileDetailClient.tsx`** — never imported anywhere; the route page redirects directly to dashboard
+- **`app/profiles/[id]/loading.tsx`** — pointless since the page only redirects
+- **`components/ChartSkeleton`** — only used by the two files above
+- **`components/engines/DashaflowView`** — only used in ProfileDetailClient (dead) and ProfessionalView
+- **`components/engines/ProfessionalView`** — only used in ProfileDetailClient (dead)
+- **`components/engines/VargaDashboard`**, **`AntardashaTimeline`**, **`TransitView`**, **`CareerView`** — only used in ProfessionalView
+- **`components/engines/AIInsightShell`**, **`ProfileChat`** — only used in ProfessionalView
+- **`lib/utils/consultation.ts`** and its test — only called by ProfessionalView
+
+---
+
+## [2026-05-19] — Fix Sade Sati inconsistency in Today tab
+
+### Fixed
+- **Sade Sati not always appearing in Today tab** — `DashboardClient` "returning user" path only fetched chart and deferred transit to lazy load on tab open. `generateInsights` depends on `transitOutput` to detect Sade Sati, so the Today tab showed "No significant patterns active" until the user visited the Transits tab. Fixed by prefetching transit in parallel with chart on profile switch (matching the behavior already in place for new profiles).
+
+---
+
 ## [2026-05-19] — Apply `.ac-*` design language consistently across all tabs and components
 
 ### Changed

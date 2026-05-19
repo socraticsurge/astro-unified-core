@@ -135,12 +135,12 @@ export function DashboardClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNewProfile, activeProfileId])
 
-  // Returning user: chart only on profile switch; transit/career load on tab open
+  // Returning user: chart + transit in parallel; career loads on tab open
   useEffect(() => {
     if (isNewProfile || !activeProfileId) return
 
     setChart({ data: null, loading: true, error: null })
-    setTransit(initState())
+    setTransit({ data: null, loading: true, error: null })
     setCareer(initState())
     setTodayReading(initState())
     setAiOpen(false)
@@ -158,6 +158,11 @@ export function DashboardClient({
         }
       })
       .catch(e => setChart({ data: null, loading: false, error: String(e) }))
+
+    fetch(`/api/readings/transit?profile_id=${activeProfileId}`)
+      .then(r => r.json())
+      .then(data => setTransit({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .catch(() => setTransit(initState()))
   }, [isNewProfile, activeProfileId])
 
   const fetchTransit = useCallback((force = false) => {
