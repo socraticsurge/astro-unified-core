@@ -40,7 +40,7 @@ function InlineEditForm({ profile, onCancel }: { profile: Profile; onCancel: () 
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error((data as { error?: string })?.error ?? `Error ${res.status}`);
-      window.location.reload();
+      window.location.href = `/dashboard?profile=${profile.id}`;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
       setSaving(false);
