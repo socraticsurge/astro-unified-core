@@ -59,34 +59,30 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
       {/* Karakamsha */}
       {karakamsha && (
         <section>
-          <div className="ac-card ac-card-pad" style={{ borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" }}>
-            <div className="ac-eyebrow" style={{ marginBottom: 12 }}>Karakamsha — Soul&apos;s Direction</div>
-            <div className="ac-kv">
+          <SectionHeading><span className="ac-section-title accent">Karakamsha · soul&apos;s direction</span></SectionHeading>
+          <div className="ac-card ac-card-pad" style={{ background: "var(--accent-bg)", borderColor: "var(--accent-line)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--sp-5)" }}>
               <div>
-                <span className="k">Atmakaraka</span>
-                <span className="v">{karakamsha.atmakaraka ?? "—"}</span>
+                <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Atmakaraka</div>
+                <div className="ac-h1" style={{ fontStyle: "italic" }}>{karakamsha.atmakaraka ?? "—"}</div>
               </div>
               <div>
-                <span className="k">Karakamsha sign</span>
-                <span className="v">{karakamsha.karakamsha_sign ?? "—"}</span>
+                <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Karakamsha sign</div>
+                <div className="ac-h1" style={{ fontStyle: "italic" }}>{karakamsha.karakamsha_sign ?? "—"}</div>
               </div>
-              {karakamsha.ishta_devata && (
-                <div>
-                  <span className="k">Ishta Devata</span>
-                  <span className="v accent" style={{ fontSize: 15 }}>{karakamsha.ishta_devata}</span>
-                </div>
-              )}
-            </div>
-            {karakamsha.planets_in_karakamsha && karakamsha.planets_in_karakamsha.length > 0 && (
-              <div style={{ marginTop: 12 }}>
+              <div>
                 <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Planets in Karakamsha</div>
-                <div className="ac-pills">
-                  {karakamsha.planets_in_karakamsha.map(p => (
-                    <span key={p} className="ac-pill cool">{p}</span>
-                  ))}
-                </div>
+                {karakamsha.planets_in_karakamsha && karakamsha.planets_in_karakamsha.length > 0 ? (
+                  <div className="ac-pills" style={{ marginTop: 4 }}>
+                    {karakamsha.planets_in_karakamsha.map(p => (
+                      <span key={p} className="ac-pill cool">{p}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="ac-h1" style={{ fontStyle: "italic" }}>—</div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </section>
       )}
@@ -109,18 +105,25 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
       {/* Upapada */}
       {upapada && (
         <section>
-          <SectionHeading>Upapada (A12) — Spouse Indicator</SectionHeading>
+          <SectionHeading>Upapada (A12) · spouse indicator</SectionHeading>
           <div className="ac-card ac-card-pad">
-            <div className="ac-kv">
-              <div><span className="k">UL sign</span><span className="v">{upapada.sign ?? "—"}</span></div>
-              <div><span className="k">Lord</span><span className="v cool">{upapada.lord ?? "—"}</span></div>
-              <div><span className="k">2nd from UL</span><span className="v">{upapada.second_from_ul ?? "—"}</span></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, auto) 1fr", gap: "var(--sp-6)", alignItems: "baseline" }}>
+              <div>
+                <div className="ac-eyebrow" style={{ marginBottom: 4 }}>UL sign</div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}>{upapada.sign ?? "—"}</div>
+              </div>
+              <div>
+                <div className="ac-eyebrow" style={{ marginBottom: 4 }}>Lord</div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--cool)" }}>{upapada.lord ?? "—"}</div>
+              </div>
+              <div>
+                <div className="ac-eyebrow" style={{ marginBottom: 4 }}>2nd from UL</div>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}>{upapada.second_from_ul ?? "—"}</div>
+              </div>
+              {upapada.description && (
+                <div style={{ color: "var(--color-ink-2)", lineHeight: 1.55, fontSize: 13 }}>{upapada.description}</div>
+              )}
             </div>
-            {upapada.description && (
-              <p style={{ marginTop: 10, fontSize: 12, color: "var(--color-ink-3)", lineHeight: 1.5 }}>
-                {upapada.description}
-              </p>
-            )}
           </div>
         </section>
       )}

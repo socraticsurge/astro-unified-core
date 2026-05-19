@@ -153,24 +153,18 @@ export function CareerTab({
               <SectionHeading>10th House — Karma Bhava</SectionHeading>
               <div className="ac-card ac-card-pad">
                 <div className="ac-kv">
-                  <div><span className="k">Sign</span><span className="v">{tenth.sign ?? "—"}</span></div>
-                  {tenth.occupants && tenth.occupants.length > 0 && (
-                    <div><span className="k">Occupants</span><span className="v cool">{tenth.occupants.join(", ")}</span></div>
-                  )}
-                  <div><span className="k">Lord</span><span className="v cool">{tenth.lord ?? "—"}</span></div>
-                  <div>
-                    <span className="k">Lord placed in</span>
-                    <span className="v">H{tenth.lord_house ?? "—"}{tenth.lord_sign ? ` · ${tenth.lord_sign}` : ""}</span>
-                  </div>
-                  {tenth.lord_dignity && (
-                    <div>
-                      <span className="k">Lord dignity</span>
-                      <span className={`ac-tag ${dignityTone(tenth.lord_dignity)}`} style={{ marginLeft: 0 }}>
-                        {tenth.lord_dignity.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                  )}
-                  <div><span className="k">Lord in D10</span><span className="v">{tenth.lord_d10 ?? "—"}</span></div>
+                  <div className="k">Sign</div><div className="v">{tenth.sign ?? "—"}</div>
+                  {tenth.occupants && tenth.occupants.length > 0 && (<>
+                    <div className="k">Occupants</div><div className="v cool">{tenth.occupants.join(", ")}</div>
+                  </>)}
+                  <div className="k">Lord</div><div className="v cool">{tenth.lord ?? "—"}</div>
+                  <div className="k">Lord placed in</div>
+                  <div className="v">H{tenth.lord_house ?? "—"}{tenth.lord_sign ? ` · ${tenth.lord_sign}` : ""}</div>
+                  {tenth.lord_dignity && (<>
+                    <div className="k">Lord dignity</div>
+                    <div className="v"><span className={`ac-tag ${dignityTone(tenth.lord_dignity)}`}>{tenth.lord_dignity.replace(/_/g, " ")}</span></div>
+                  </>)}
+                  <div className="k">Lord in D10</div><div className="v">{tenth.lord_d10 ?? "—"}</div>
                 </div>
               </div>
             </section>

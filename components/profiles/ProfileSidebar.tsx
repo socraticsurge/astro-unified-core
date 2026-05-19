@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Pencil, Trash2, X } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
@@ -154,70 +154,50 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
       <div className="p-4 space-y-5">
 
         {/* Name + edit toggle */}
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-semibold text-[var(--color-ink-1)] leading-tight">
-              {profile.name}
-            </h2>
-            {(profile.relationship || profile.gender) && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {[profile.relationship, profile.gender].filter(Boolean).join(" · ")}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              onClick={() => setIsEditing(v => !v)}
-              title={isEditing ? "Cancel" : "Edit profile"}
-              className="p-1.5 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
-            >
-              {isEditing ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+        <div className="ac-person-name">
+          <span>{profile.name}</span>
+          <span className="ac-person-name-icons">
+            <button onClick={() => setIsEditing(v => !v)} title={isEditing ? "Cancel" : "Edit profile"}>
+              {isEditing ? <X style={{ width: 13, height: 13 }} /> : <Pencil style={{ width: 13, height: 13 }} />}
             </button>
             {!isEditing && (
-              <button
-                onClick={handleDelete}
-                title="Delete profile"
-                className="p-1.5 rounded text-muted-foreground hover:text-danger transition-colors"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
+              <button onClick={handleDelete} title="Delete profile" style={{ color: "var(--color-danger)" }}>
+                <Trash2 style={{ width: 13, height: 13 }} />
               </button>
             )}
-          </div>
+          </span>
         </div>
+        {(profile.relationship || profile.gender) && (
+          <div className="ac-person-meta" style={{ marginTop: -12 }}>
+            {[profile.relationship, profile.gender].filter(Boolean).join(" · ")}
+          </div>
+        )}
 
         {isEditing ? (
           <InlineEditForm profile={profile} onCancel={() => setIsEditing(false)} />
         ) : (
           <>
             {/* Birth info */}
-            <div className="ac-kv">
-              <div>
-                <span className="k">DOB</span>
-                <span className="v">{profile.date_of_birth} · {profile.time_of_birth}</span>
-              </div>
-              <div>
-                <span className="k">Born</span>
-                <span className="v" style={{ textAlign: "right" }}>{profile.place_of_birth}</span>
-              </div>
-              {profile.current_location && (
-                <div>
-                  <span className="k">Lives</span>
-                  <span className="v" style={{ textAlign: "right" }}>{profile.current_location}</span>
-                </div>
-              )}
+            <div className="ac-bio">
+              <dl>
+                <dt>DOB</dt><dd>{profile.date_of_birth} · {profile.time_of_birth}</dd>
+                <dt>Born</dt><dd>{profile.place_of_birth}</dd>
+                {profile.current_location && (<><dt>Lives</dt><dd>{profile.current_location}</dd></>)}
+              </dl>
             </div>
 
             {/* Panchang at birth */}
             {panchangRows.length > 0 && (
               <div>
-                <div className="ac-eyebrow" style={{ marginBottom: 8 }}>Panchang at Birth</div>
-                <div className="ac-kv">
-                  {panchangRows.map(({ label, value }) => (
-                    <div key={label}>
-                      <span className="k">{label}</span>
-                      <span className="v">{value || "—"}</span>
-                    </div>
-                  ))}
+                <div className="ac-eyebrow with-rule" style={{ marginBottom: "var(--sp-3)" }}>Panchang at birth</div>
+                <div className="ac-bio">
+                  <dl>
+                    {panchangRows.map(({ label, value }) => (
+                      <React.Fragment key={label}>
+                        <dt>{label}</dt><dd>{value || "—"}</dd>
+                      </React.Fragment>
+                    ))}
+                  </dl>
                 </div>
               </div>
             )}
@@ -225,9 +205,7 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
             {/* D1 chart */}
             {planets && (
               <div className="space-y-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Birth Charts
-                </p>
+                <div className="ac-eyebrow with-rule">Birth charts</div>
                 <NatalChartGrid
                   planets={planets}
                   lagnaSign={lagnaSign}

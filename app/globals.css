@@ -279,6 +279,42 @@
 
   /* ── Recessed surface (alternating table rows, code blocks) ── */
   --color-surface-sunk:             #100C08;
+
+  /* ── Short-form aliases — match design system token names ── */
+  --bg:           var(--color-bg);
+  --surface:      var(--color-surface-1);
+  --surface-2:    var(--color-surface-2);
+  --surface-sunk: var(--color-surface-sunk);
+  --line:         var(--color-border);
+  --line-soft:    var(--color-border-subtle);
+  --line-strong:  rgba(232,217,188,0.30);
+  --accent-bg:    var(--color-accent-faint);
+  --accent-line:  var(--color-accent-dim);
+  --accent-soft:  var(--color-accent-hover);
+  --cool:         var(--color-cool);
+  --cool-bg:      var(--color-cool-bg);
+  --good:         var(--color-dignity-exalted);
+  --good-bg:      var(--color-success-faint);
+  --good-line:    var(--color-success-border);
+  --bad:          var(--color-danger);
+  --bad-bg:       var(--color-danger-faint);
+  --bad-line:     var(--color-danger-border);
+  --warn:         var(--color-warning);
+  --warn-bg:      var(--color-warning-faint);
+  --warn-line:    var(--color-warning-border);
+  --dignity-fav:  var(--color-dignity-exalted);
+  --dignity-neu:  var(--color-dignity-neutral);
+  --dignity-unf:  var(--color-dignity-debilitated);
+  --ink-1:        var(--color-ink-1);
+  --ink-2:        var(--color-ink-2);
+  --ink-3:        var(--color-ink-3);
+  --ink-4:        var(--color-ink-4);
+  --on-accent:    var(--color-button-fg);
+  --bw:           var(--border-width);
+  --r-sm:         var(--radius-sm);
+  --r-md:         var(--radius-md);
+  --r-lg:         var(--radius-lg);
+  --r-pill:       var(--radius-full);
 }
 
 [data-theme="dark"]  ::selection { background: var(--color-accent-faint); color: var(--color-ink-1); }
@@ -446,6 +482,48 @@
 
   /* ── Recessed surface ── */
   --color-surface-sunk:             #EAE2D0;
+
+  /* ── Short-form aliases — match design system token names ── */
+  --bg:           var(--color-bg);
+  --surface:      var(--color-surface-1);
+  --surface-2:    var(--color-surface-2);
+  --surface-sunk: var(--color-surface-sunk);
+  --line:         var(--color-border);
+  --line-soft:    var(--color-border-subtle);
+  --line-strong:  #2A2522;
+  --accent-bg:    var(--color-accent-faint);
+  --accent-line:  var(--color-accent-dim);
+  --accent-soft:  var(--color-accent-hover);
+  --cool:         var(--color-cool);
+  --cool-bg:      var(--color-cool-bg);
+  --good:         var(--color-dignity-exalted);
+  --good-bg:      var(--color-success-faint);
+  --good-line:    var(--color-success-border);
+  --bad:          var(--color-danger);
+  --bad-bg:       var(--color-danger-faint);
+  --bad-line:     var(--color-danger-border);
+  --warn:         var(--color-warning);
+  --warn-bg:      var(--color-warning-faint);
+  --warn-line:    var(--color-warning-border);
+  --dignity-fav:  var(--color-dignity-exalted);
+  --dignity-neu:  var(--color-dignity-neutral);
+  --dignity-unf:  var(--color-dignity-debilitated);
+  --ink-1:        var(--color-ink-1);
+  --ink-2:        var(--color-ink-2);
+  --ink-3:        var(--color-ink-3);
+  --ink-4:        var(--color-ink-4);
+  --on-accent:    var(--color-button-fg);
+  --bw:           var(--border-width);
+  --r-sm:         var(--radius-sm);
+  --r-md:         var(--radius-md);
+  --r-lg:         var(--radius-lg);
+  --r-pill:       var(--radius-full);
+}
+
+/* ── Shared spacing aliases (theme-agnostic, matches design tokens.css) ── */
+:root {
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -579,6 +657,54 @@
 /* ── Table cell tinting (BAV scores, SAV scores) ── */
 .ac-cell-good { color: var(--color-success); background: var(--color-success-faint); font-weight: 600; }
 .ac-cell-bad  { color: var(--color-danger);  background: var(--color-danger-faint);  font-weight: 600; }
+
+/* ── Display typography ── */
+.ac-h1 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--color-ink-1);
+  line-height: 1.18;
+}
+.ac-h1 em { color: var(--color-accent); font-style: italic; }
+
+/* ── Sidebar bio — dl/dt/dd label-value grid ── */
+.ac-bio dl {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  row-gap: 6px;
+  column-gap: 8px;
+  font-size: 12px;
+}
+.ac-bio dt { color: var(--color-ink-3); padding-top: 1px; }
+.ac-bio dd { color: var(--color-ink-1); margin: 0; line-height: 1.45; }
+
+/* ── Sidebar person header ── */
+.ac-person-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--color-ink-1);
+  letter-spacing: 0.005em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.ac-person-name-icons { display: flex; gap: 12px; color: var(--color-ink-3); font-size: 11px; }
+.ac-person-meta { font-size: 12px; color: var(--color-ink-3); }
+
+/* ── Eyebrow with horizontal rule ── */
+.ac-eyebrow.with-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ac-eyebrow.with-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-subtle);
+}
 
 /* ── Planet name + dignity colour utilities ── */
 .text-planet-name       { color: var(--color-planet-name); }
