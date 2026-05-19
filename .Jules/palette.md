@@ -1,0 +1,3 @@
+## 2024-03-21 - Feedback Widget Accessibility Improvements
+**Learning:** Custom popovers and interactive rating elements (like emojis) in this application often lack essential ARIA state attributes (`aria-expanded`, `aria-pressed`) and explicit focus indicators, making them difficult to use for screen reader and keyboard-only users.
+**Action:** When implementing or reviewing custom interactive components (like popovers, modals, or custom rating systems), ensure `role`, `aria-expanded`, `aria-controls`, `aria-haspopup`, and `aria-pressed` attributes are explicitly defined where applicable. Always add `focus-visible` utility classes to ensure keyboard navigation is visually clear.

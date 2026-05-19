@@ -57,7 +57,13 @@ export function FeedbackWidget() {
     <div ref={ref} className="fixed bottom-24 sm:bottom-5 right-5 z-50 flex flex-col items-end gap-2">
       {/* Popover */}
       {open && (
-        <div className="w-72 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div
+          id="feedback-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="feedback-dialog-title"
+          className="w-72 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200"
+        >
           {submitted ? (
             <div className="p-6 flex flex-col items-center gap-3 text-center">
               <CheckCircle className="h-10 w-10 text-emerald-400" />
@@ -68,8 +74,12 @@ export function FeedbackWidget() {
             <>
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                <p className="text-sm font-semibold">Share Feedback</p>
-                <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <p id="feedback-dialog-title" className="text-sm font-semibold">Share Feedback</p>
+                <button
+                  onClick={() => setOpen(false)}
+                  aria-label="Close feedback dialog"
+                  className="text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 rounded-sm"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -84,8 +94,10 @@ export function FeedbackWidget() {
                       <button
                         key={r.value}
                         title={r.label}
+                        aria-label={r.label}
+                        aria-pressed={rating === r.value}
                         onClick={() => setRating(r.value)}
-                        className={`text-3xl p-2 rounded-xl transition-all hover:scale-125 ${
+                        className={`text-3xl p-2 rounded-xl transition-all hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 ${
                           rating === r.value
                             ? "bg-amber-900/40 scale-125 ring-2 ring-amber-500/50"
                             : "hover:bg-white/5"
@@ -106,7 +118,7 @@ export function FeedbackWidget() {
                     maxLength={500}
                     rows={3}
                     placeholder="Your thoughts..."
-                    className="w-full px-3 py-2 text-sm bg-zinc-800 border border-white/10 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-muted-foreground/50"
+                    className="w-full px-3 py-2 text-sm bg-zinc-800 border border-white/10 rounded-lg resize-none focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 placeholder:text-muted-foreground/50"
                   />
                 </div>
 
@@ -114,7 +126,7 @@ export function FeedbackWidget() {
                 <button
                   onClick={handleSubmit}
                   disabled={!rating || loading}
-                  className="w-full py-2 rounded-lg text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-amber-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full py-2 rounded-lg text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-amber-950 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
                 >
                   {loading ? "Sending…" : "Send Feedback"}
                 </button>
@@ -127,7 +139,10 @@ export function FeedbackWidget() {
       {/* Trigger Button */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium shadow-lg transition-all hover:scale-105 ${
+        aria-expanded={open}
+        aria-controls={open ? "feedback-dialog" : undefined}
+        aria-haspopup="dialog"
+        className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium shadow-lg transition-all hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 ${
           open
             ? "bg-zinc-700 text-foreground"
             : "bg-zinc-800/90 text-muted-foreground hover:text-foreground border border-white/10"
