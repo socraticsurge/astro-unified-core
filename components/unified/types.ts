@@ -63,6 +63,14 @@ export const PLANET_ORDER: readonly PlanetName[] = [
   "Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu",
 ];
 
+export function dignityTone(dignity: string): "fav" | "neu" | "unf" {
+  if (!dignity) return "neu";
+  const d = dignity.toLowerCase().replace(/[\s_]/g, "_");
+  if (["exalted","mooltrikona","own","own_sign","great_friend","friend"].includes(d)) return "fav";
+  if (["enemy","great_enemy","debilitated"].includes(d)) return "unf";
+  return "neu";
+}
+
 export const DIGNITY_COLORS: Record<string, string> = {
   exalted:      "text-dignity-exalted",
   mooltrikona:  "text-dignity-mooltrikona",

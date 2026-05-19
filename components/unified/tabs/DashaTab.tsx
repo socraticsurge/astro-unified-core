@@ -12,7 +12,6 @@ const DASHA_LEVELS = [
   { key: "prana",      label: "Prana"      },
 ];
 
-// Fixed Vimshottari period lengths (years) per Parasara
 const VIMSHOTTARI_YEARS: Record<string, number> = {
   Sun: 6, Moon: 10, Mars: 7, Rahu: 18,
   Jupiter: 16, Saturn: 19, Mercury: 17, Ketu: 7, Venus: 20,
@@ -44,7 +43,7 @@ function computeSubDashas(parentStart: string, parentPlanet: string, parentYears
 }
 
 function formatDuration(years: number): string {
-  if (years >= 1)   return `${years.toFixed(1)} yr`;
+  if (years >= 1)      return `${years.toFixed(1)} yr`;
   if (years * 12 >= 1) return `${(years * 12).toFixed(1)} mo`;
   return `${Math.round(years * 365)} d`;
 }
@@ -56,9 +55,7 @@ function isNow(start: string, end: string) { return TODAY >= start && TODAY < en
 
 const MAX_DEPTH = 4;
 const LEVEL_LABELS = ["Maha", "Antar", "Pratyantar", "Sookshma", "Prana"];
-// Static Tailwind classes for each depth level (depth * 14 + 10 px)
 const ROWS_PL = ["pl-[10px]", "pl-6", "pl-[38px]", "pl-[52px]", "pl-[66px]"] as const;
-// Static Tailwind classes for current period indent (depth * 16 px)
 const PERIOD_PL = ["pl-0", "pl-4", "pl-8", "pl-12", "pl-16"] as const;
 
 interface RowsProps {
@@ -90,46 +87,47 @@ function DashaRows({ entries, depth, expanded, onToggle }: RowsProps) {
                 ROWS_PL[depth],
                 "w-full flex items-center gap-2 py-1 pr-3 text-left border-b border-[var(--color-border)] transition-colors",
                 active
-                  ? "bg-[var(--color-nav-chip-active-bg)]/70"
+                  ? "bg-[var(--color-accent-faint)]"
                   : depth === 0
-                    ? "bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-hover)]/20"
-                    : "hover:bg-[var(--color-surface-hover)]/10",
+                    ? "bg-[var(--color-surface-sunk)] hover:bg-[var(--color-accent-faint)]"
+                    : "hover:bg-[var(--color-accent-faint)]/50",
                 isLeaf && "cursor-default"
               )}
             >
-              <span className="w-3 shrink-0 text-muted-foreground/40">
+              <span className="w-3 shrink-0" style={{ color: "var(--color-ink-4)" }}>
                 {!isLeaf && (isOpen
                   ? <ChevronDown className="h-3 w-3" />
                   : <ChevronRight className="h-3 w-3" />
                 )}
               </span>
-              <span className="text-[10px] uppercase tracking-wider w-16 shrink-0 text-muted-foreground/50">
+              <span className="ac-eyebrow" style={{ width: 60, flexShrink: 0 }}>
                 {LEVEL_LABELS[depth]}
               </span>
-              <span className={cn(
-                "font-semibold w-20 shrink-0",
-                depth === 0 ? "text-sm" : "text-xs",
-                active
-                  ? "text-[var(--color-nav-chip-active-text)]"
-                  : depth === 0 ? "text-[var(--color-ink-1)]" : "text-[var(--color-ink-2)]"
-              )}>
+              <span style={{
+                fontWeight: 600,
+                width: 80,
+                flexShrink: 0,
+                fontSize: depth === 0 ? 14 : 12,
+                color: active
+                  ? "var(--color-accent)"
+                  : depth === 0 ? "var(--color-ink-1)" : "var(--color-ink-2)",
+              }}>
                 {e.planet}
-                {active && <span className="ml-1 text-[9px] opacity-60">← now</span>}
+                {active && <span style={{ marginLeft: 4, fontSize: 9, opacity: 0.6 }}>← now</span>}
               </span>
-              <span className="font-mono text-xs text-[var(--color-ink-3)] w-24 shrink-0">{e.start}</span>
-              <span className="font-mono text-xs text-muted-foreground/40 w-24 shrink-0">{e.end}</span>
-              <span className="text-xs text-muted-foreground/40 ml-auto shrink-0">
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-ink-3)", width: 96, flexShrink: 0 }}>
+                {e.start}
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-ink-4)", width: 96, flexShrink: 0 }}>
+                {e.end}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--color-ink-4)", marginLeft: "auto", flexShrink: 0 }}>
                 {formatDuration(e.years)}
               </span>
             </button>
 
             {isOpen && sub.length > 0 && (
-              <DashaRows
-                entries={sub}
-                depth={depth + 1}
-                expanded={expanded}
-                onToggle={onToggle}
-              />
+              <DashaRows entries={sub} depth={depth + 1} expanded={expanded} onToggle={onToggle} />
             )}
           </div>
         );
@@ -142,7 +140,6 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
   const data   = chartOutput?.data as Record<string, unknown> | undefined;
   const dashas = data?.dashas as (Record<string, RawEntry> & { timeline?: RawEntry[] }) | undefined;
 
-  // Enrich flat timeline entries with Vimshottari year lengths
   const mahaTimeline: SubDasha[] = (dashas?.timeline ?? [])
     .map(t => ({
       planet: t.planet ?? "",
@@ -152,7 +149,6 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
     }))
     .filter(t => t.planet && t.start);
 
-  // Auto-expand current Maha on mount
   const currentMahaKey = dashas?.maha?.planet && dashas?.maha?.start
     ? dkey(dashas.maha.planet, dashas.maha.start)
     : undefined;
@@ -164,33 +160,31 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
   function onToggle(depth: number, key: string) {
     setExpanded(prev => {
       const next = [...prev];
-      if (next[depth] === key) {
-        return next.slice(0, depth);         // collapse this level + all deeper
-      }
+      if (next[depth] === key) return next.slice(0, depth);
       next[depth] = key;
-      return next.slice(0, depth + 1);       // open this level, clear deeper
+      return next.slice(0, depth + 1);
     });
   }
 
   return (
     <div className="space-y-8">
 
-      {/* Current dasha period — 5-level stack from sidecar */}
+      {/* Current dasha period */}
       {dashas && (
         <section>
           <SectionHeading>Current Dasha Period (Vimshottari)</SectionHeading>
-          <div className="space-y-1">
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {DASHA_LEVELS.map(({ key, label }, depth) => {
               const d = dashas[key] as RawEntry | undefined;
               if (!d?.planet) return null;
               return (
                 <div
                   key={key}
-                  className={cn("flex items-center gap-3 py-2 px-3 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)]", PERIOD_PL[depth])}
+                  className={cn("ac-dasha-row current", PERIOD_PL[depth])}
                 >
-                  <span className="text-xs uppercase tracking-wider text-muted-foreground w-20">{label}</span>
-                  <span className="font-semibold text-sm text-[var(--color-ink-1)] w-20">{d.planet}</span>
-                  <span className="text-xs text-muted-foreground">{d.start} → {d.end}</span>
+                  <span className="level">{label}</span>
+                  <span className="planet-name">{d.planet}</span>
+                  <span className="range">{d.start} → {d.end}</span>
                 </div>
               );
             })}
@@ -201,20 +195,15 @@ export function DashaTab({ chartOutput }: { chartOutput: Record<string, unknown>
       {/* 5-level expandable Maha Dasha timeline */}
       <section>
         <SectionHeading>Vimshottari Maha Dasha Timeline</SectionHeading>
-        <p className="text-[11px] text-muted-foreground/60 mb-3">
-          Click any row to expand its sub-periods down to Prana level. Sub-dasha dates computed from Vimshottari proportions.
+        <p style={{ fontSize: 11, color: "var(--color-ink-4)", marginBottom: 10 }}>
+          Click any row to expand sub-periods down to Prana level.
         </p>
         {mahaTimeline.length === 0 ? (
-          <p className="text-sm text-muted-foreground italic">Timeline data not available.</p>
+          <p style={{ fontSize: 13, fontStyle: "italic", color: "var(--color-ink-3)" }}>Timeline data not available.</p>
         ) : (
           <div className="overflow-x-auto">
-            <div className="border border-[var(--color-border)] rounded-lg overflow-hidden min-w-[560px]">
-              <DashaRows
-                entries={mahaTimeline}
-                depth={0}
-                expanded={expanded}
-                onToggle={onToggle}
-              />
+            <div className="ac-card overflow-hidden" style={{ minWidth: 560 }}>
+              <DashaRows entries={mahaTimeline} depth={0} expanded={expanded} onToggle={onToggle} />
             </div>
           </div>
         )}

@@ -1,10 +1,9 @@
 "use client";
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
-import { PLANET_ORDER, DIGNITY_COLORS, TABLE_STYLES } from "@/components/unified/types";
+import { PLANET_ORDER, dignityTone } from "@/components/unified/types";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 
 type TenthHouse = {
@@ -32,8 +31,6 @@ type CareerData = {
   d10_strong_planets?: string[];
 };
 
-const { th, td, row } = TABLE_STYLES;
-
 export function CareerTab({
   chartOutput,
   careerOutput,
@@ -60,37 +57,36 @@ export function CareerTab({
   const tenth      = career?.tenth_house;
   const indicators = career?.d10_indicators ?? {};
   const primary    = new Set(career?.primary_planets ?? []);
-  // significators = primary planets + any planet marked strong in D10, in chart order
-  const significators = PLANET_ORDER.filter(
-    p => primary.has(p) || indicators[p]?.d10_strong
-  );
+  const significators = PLANET_ORDER.filter(p => primary.has(p) || indicators[p]?.d10_strong);
 
   return (
     <div className="space-y-8 max-w-2xl">
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <SectionHeading>Career Analysis</SectionHeading>
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
+          type="button"
           onClick={() => onFetchCareer(true)}
           disabled={isCareerLoading}
-          className="h-6 text-xs gap-1"
+          style={{
+            display: "flex", alignItems: "center", gap: 4,
+            fontSize: 11, color: "var(--color-ink-3)",
+            background: "none", border: "none", cursor: "pointer", padding: "4px 8px",
+          }}
         >
-          <RefreshCw className={`h-3 w-3 ${isCareerLoading ? "animate-spin" : ""}`} />
+          <RefreshCw style={{ width: 11, height: 11, animation: isCareerLoading ? "spin 1s linear infinite" : "none" }} />
           Refresh
-        </Button>
+        </button>
       </div>
 
       {isCareerLoading && (
-        <p className="text-xs text-muted-foreground">Loading career analysis…</p>
+        <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>Loading career analysis…</p>
       )}
 
       {!isCareerLoading && careerError && (
-        <div className="flex items-center gap-2 text-xs text-[var(--color-danger)]">
+        <div style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-danger)" }}>
           <span>Couldn&apos;t load career analysis — {careerError}</span>
-          <button type="button" onClick={() => onFetchCareer(true)} className="underline underline-offset-2">Retry</button>
+          <button type="button" onClick={() => onFetchCareer(true)} style={{ textDecoration: "underline", background: "none", border: "none", cursor: "pointer", color: "inherit" }}>Retry</button>
         </div>
       )}
 
@@ -100,15 +96,15 @@ export function CareerTab({
           {significators.length > 0 && (
             <section>
               <SectionHeading>Key Professional Significators</SectionHeading>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
+              <div className="ac-card overflow-x-auto">
+                <table className="ac-table">
                   <thead>
-                    <tr className="border-b border-[var(--color-border)]">
-                      <th className={th}>Planet</th>
-                      <th className={`${th} text-center`}>Primary</th>
-                      <th className={th}>D10 Sign</th>
-                      <th className={th}>D10 Lord</th>
-                      <th className={`${th} text-center`}>Strong in D10</th>
+                    <tr>
+                      <th>Planet</th>
+                      <th className="right">Primary</th>
+                      <th>D10 Sign</th>
+                      <th>D10 Lord</th>
+                      <th className="right">Strong in D10</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -116,19 +112,19 @@ export function CareerTab({
                       const ind = indicators[p];
                       const isPrimary = primary.has(p);
                       return (
-                        <tr key={p} className={row}>
-                          <td className={`${td} text-planet-name font-semibold`}>{p}</td>
-                          <td className={`${td} text-center`}>
+                        <tr key={p}>
+                          <td className="planet">{p}</td>
+                          <td className="right">
                             {isPrimary
-                              ? <span className="text-[var(--color-accent)] font-semibold">✓</span>
-                              : <span className="text-muted-foreground/30">—</span>}
+                              ? <span style={{ color: "var(--color-accent)", fontWeight: 600 }}>✓</span>
+                              : <span className="ac-dash">—</span>}
                           </td>
-                          <td className={td}>{ind?.d10_sign ?? "—"}</td>
-                          <td className={`${td} text-planet-name`}>{ind?.d10_lord ?? "—"}</td>
-                          <td className={`${td} text-center`}>
+                          <td>{ind?.d10_sign ?? "—"}</td>
+                          <td className="planet">{ind?.d10_lord ?? "—"}</td>
+                          <td className="right">
                             {ind?.d10_strong
-                              ? <span className="text-dignity-exalted font-semibold">✓</span>
-                              : <span className="text-muted-foreground/30">—</span>}
+                              ? <span style={{ color: "var(--color-success)", fontWeight: 600 }}>✓</span>
+                              : <span className="ac-dash">—</span>}
                           </td>
                         </tr>
                       );
@@ -143,11 +139,9 @@ export function CareerTab({
           {career.career_themes && career.career_themes.length > 0 && (
             <section>
               <SectionHeading>Career Themes</SectionHeading>
-              <div className="flex flex-wrap gap-1.5 pt-1">
+              <div className="ac-pills">
                 {career.career_themes.map(t => (
-                  <span key={t} className="px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs text-[var(--color-ink-2)] capitalize">
-                    {t.replace(/_/g, " ")}
-                  </span>
+                  <span key={t} className="ac-pill cool">{t.replace(/_/g, " ")}</span>
                 ))}
               </div>
             </section>
@@ -157,36 +151,26 @@ export function CareerTab({
           {tenth && (
             <section>
               <SectionHeading>10th House — Karma Bhava</SectionHeading>
-              <div className="divide-y divide-[var(--color-border)]/40">
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="text-muted-foreground">Sign</span>
-                  <span className="text-[var(--color-ink-1)] font-medium">{tenth.sign ?? "—"}</span>
-                </div>
-                {tenth.occupants && tenth.occupants.length > 0 && (
-                  <div className="flex justify-between py-2 text-sm">
-                    <span className="text-muted-foreground">Occupants</span>
-                    <span className="text-planet-name font-medium">{tenth.occupants.join(", ")}</span>
+              <div className="ac-card ac-card-pad">
+                <div className="ac-kv">
+                  <div><span className="k">Sign</span><span className="v">{tenth.sign ?? "—"}</span></div>
+                  {tenth.occupants && tenth.occupants.length > 0 && (
+                    <div><span className="k">Occupants</span><span className="v cool">{tenth.occupants.join(", ")}</span></div>
+                  )}
+                  <div><span className="k">Lord</span><span className="v cool">{tenth.lord ?? "—"}</span></div>
+                  <div>
+                    <span className="k">Lord placed in</span>
+                    <span className="v">H{tenth.lord_house ?? "—"}{tenth.lord_sign ? ` · ${tenth.lord_sign}` : ""}</span>
                   </div>
-                )}
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="text-muted-foreground">Lord</span>
-                  <span className="text-planet-name font-medium">{tenth.lord ?? "—"}</span>
-                </div>
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="text-muted-foreground">Lord placed in</span>
-                  <span className="text-[var(--color-ink-2)]">
-                    House {tenth.lord_house ?? "—"}{tenth.lord_sign ? ` · ${tenth.lord_sign}` : ""}
-                  </span>
-                </div>
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="text-muted-foreground">Lord dignity</span>
-                  <span className={`font-semibold capitalize ${DIGNITY_COLORS[tenth.lord_dignity ?? ""] ?? "text-dignity-neutral"}`}>
-                    {tenth.lord_dignity?.replace(/_/g, " ") ?? "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between py-2 text-sm">
-                  <span className="text-muted-foreground">Lord in D10</span>
-                  <span className="text-[var(--color-ink-2)]">{tenth.lord_d10 ?? "—"}</span>
+                  {tenth.lord_dignity && (
+                    <div>
+                      <span className="k">Lord dignity</span>
+                      <span className={`ac-tag ${dignityTone(tenth.lord_dignity)}`} style={{ marginLeft: 0 }}>
+                        {tenth.lord_dignity.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  )}
+                  <div><span className="k">Lord in D10</span><span className="v">{tenth.lord_d10 ?? "—"}</span></div>
                 </div>
               </div>
             </section>
@@ -196,14 +180,7 @@ export function CareerTab({
           {planets && (
             <section>
               <SectionHeading>D10 — Dashamsha</SectionHeading>
-              <div className="pt-1">
-                <NatalChartGrid
-                  planets={planets}
-                  lagnaSign={lagnaD10}
-                  signKey="d10_sign"
-                  label=""
-                />
-              </div>
+              <NatalChartGrid planets={planets} lagnaSign={lagnaD10} signKey="d10_sign" label="" />
             </section>
           )}
 
@@ -211,10 +188,10 @@ export function CareerTab({
           {career.strength_factors && career.strength_factors.length > 0 && (
             <section>
               <SectionHeading>Astrological Indicators</SectionHeading>
-              <ul className="space-y-2 pt-1">
+              <ul style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {career.strength_factors.map(f => (
-                  <li key={f} className="text-xs text-[var(--color-ink-3)] flex items-start gap-2">
-                    <span className="text-muted-foreground/50 shrink-0 mt-0.5">·</span>{f}
+                  <li key={f} style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-ink-3)" }}>
+                    <span style={{ color: "var(--color-ink-4)", flexShrink: 0 }}>·</span>{f}
                   </li>
                 ))}
               </ul>

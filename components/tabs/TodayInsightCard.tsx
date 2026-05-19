@@ -12,6 +12,13 @@ export interface TodayInsight {
   }
 }
 
+const CATEGORY_TAGS: Record<string, string> = {
+  dasha:   "cool",
+  transit: "cool",
+  dosha:   "unf",
+  yoga:    "fav",
+}
+
 interface TodayInsightCardProps {
   insight: TodayInsight
   onAsk: (insight: TodayInsight) => void
@@ -19,22 +26,23 @@ interface TodayInsightCardProps {
 }
 
 export function TodayInsightCard({ insight, onAsk, onExplore }: TodayInsightCardProps) {
+  const tagClass = CATEGORY_TAGS[insight.category] ?? "neu"
+
   return (
-    <div className="p-3 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)]">
-      <div className="flex items-start gap-2.5">
-        <span
-          className="mt-0.5 w-2 h-2 rounded-full flex-shrink-0"
-          style={{ background: insight.categoryColor }}
-          aria-hidden="true"
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[var(--color-ink-1)] leading-snug">{insight.title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{insight.body}</p>
+    <div className="ac-card ac-card-pad-sm" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <span className={`ac-tag ${tagClass}`} style={{ fontSize: 9, padding: "1px 6px", textTransform: "capitalize", flexShrink: 0, marginTop: 1 }}>
+          {insight.category}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--color-ink-1)", lineHeight: 1.35 }}>{insight.title}</p>
+          <p style={{ fontSize: 12, color: "var(--color-ink-3)", marginTop: 3, lineHeight: 1.5 }}>{insight.body}</p>
           {insight.cta && (
             <button
               type="button"
               onClick={() => insight.cta?.action === 'ask' ? onAsk(insight) : onExplore(insight)}
-              className="mt-2 inline-flex items-center px-2 py-1 rounded text-xs text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)] transition-colors"
+              className="ac-btn-ask"
+              style={{ marginTop: 8 }}
             >
               {insight.cta.label}
             </button>

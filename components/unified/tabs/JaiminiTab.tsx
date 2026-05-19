@@ -1,14 +1,10 @@
 "use client";
-import { TABLE_STYLES } from "@/components/unified/types";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 
 const KARAKA_ORDER = [
   "Atmakaraka", "Amatyakaraka", "Bhratrikaraka", "Matrikaraka",
   "Putrakaraka", "Gnatikaraka", "Darakaraka",
 ];
-
-const th = TABLE_STYLES.th;
-const td = TABLE_STYLES.td;
 
 type KarakaEntry = { planet?: string; description?: string };
 type ArudhaPada  = { name?: string; sign?: string };
@@ -32,112 +28,105 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
 
       {/* Chara Karakas */}
       {jaiminiKarakas && (
-        <div className="overflow-x-auto max-w-2xl">
-          <table className="text-xs border-collapse w-full">
-            <thead>
-              <tr className="border-b border-[var(--color-border)]">
-                {["Karaka", "Planet", "Description"].map(h => (
-                  <th key={h} className={th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {KARAKA_ORDER.map(k => {
-                const entry = jaiminiKarakas[k];
-                if (!entry) return null;
-                return (
-                  <tr key={k} className="border-b border-[var(--color-border)]/40">
-                    <td className="py-1.5 px-2 text-xs font-semibold text-[var(--color-ink-2)]">{k}</td>
-                    <td className={`${td} text-planet-name font-semibold`}>{entry.planet}</td>
-                    <td className={`${td} text-muted-foreground`}>{entry.description ?? "—"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <section>
+          <div className="ac-card overflow-x-auto">
+            <table className="ac-table">
+              <thead>
+                <tr>
+                  {["Karaka", "Planet", "Description"].map(h => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {KARAKA_ORDER.map(k => {
+                  const entry = jaiminiKarakas[k];
+                  if (!entry) return null;
+                  return (
+                    <tr key={k}>
+                      <td>{k}</td>
+                      <td className="planet">{entry.planet ?? "—"}</td>
+                      <td className="muted">{entry.description ?? "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {/* Karakamsha */}
       {karakamsha && (
-        <div className="p-4 rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5">
-          <p className="text-xs uppercase tracking-wider text-[var(--color-accent-dim)] font-bold mb-2">
-            Karakamsha — Soul&apos;s Direction
-          </p>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground">Atmakaraka</p>
-              <p className="font-semibold text-[var(--color-ink-1)]">{karakamsha.atmakaraka}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Karakamsha sign</p>
-              <p className="font-semibold text-[var(--color-ink-1)]">{karakamsha.karakamsha_sign}</p>
-            </div>
-            {karakamsha.ishta_devata && (
-              <div className="col-span-2">
-                <p className="text-xs text-muted-foreground">Ishta Devata</p>
-                <p className="font-semibold text-[var(--color-accent)] text-base">{karakamsha.ishta_devata}</p>
+        <section>
+          <div className="ac-card ac-card-pad" style={{ borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" }}>
+            <div className="ac-eyebrow" style={{ marginBottom: 12 }}>Karakamsha — Soul&apos;s Direction</div>
+            <div className="ac-kv">
+              <div>
+                <span className="k">Atmakaraka</span>
+                <span className="v">{karakamsha.atmakaraka ?? "—"}</span>
               </div>
-            )}
+              <div>
+                <span className="k">Karakamsha sign</span>
+                <span className="v">{karakamsha.karakamsha_sign ?? "—"}</span>
+              </div>
+              {karakamsha.ishta_devata && (
+                <div>
+                  <span className="k">Ishta Devata</span>
+                  <span className="v accent" style={{ fontSize: 15 }}>{karakamsha.ishta_devata}</span>
+                </div>
+              )}
+            </div>
             {karakamsha.planets_in_karakamsha && karakamsha.planets_in_karakamsha.length > 0 && (
-              <div className="col-span-2">
-                <p className="text-xs text-muted-foreground mb-1">Planets in Karakamsha</p>
-                <div className="flex gap-1 flex-wrap">
+              <div style={{ marginTop: 12 }}>
+                <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Planets in Karakamsha</div>
+                <div className="ac-pills">
                   {karakamsha.planets_in_karakamsha.map(p => (
-                    <span key={p} className="px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-xs font-medium text-[var(--color-ink-2)]">
-                      {p}
-                    </span>
+                    <span key={p} className="ac-pill cool">{p}</span>
                   ))}
                 </div>
               </div>
             )}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Arudha Padas */}
       {arudhaPadas && (
-        <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2">Arudha Padas</p>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+        <section>
+          <SectionHeading>Arudha Padas</SectionHeading>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px,1fr))", gap: 6 }}>
             {Object.entries(arudhaPadas).map(([num, v]) => (
-              <div key={num} className="p-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)] text-center">
-                <p className="text-xs text-muted-foreground">{v.name ?? `A${num}`}</p>
-                <p className="text-xs font-semibold text-[var(--color-ink-1)]">{v.sign}</p>
+              <div key={num} className="ac-card" style={{ padding: "8px 10px", textAlign: "center" }}>
+                <div className="ac-eyebrow" style={{ marginBottom: 2 }}>{v.name ?? `A${num}`}</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--color-ink-1)" }}>{v.sign ?? "—"}</div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Upapada */}
       {upapada && (
-        <div className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)]">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">
-            Upapada (A12) — Spouse Indicator
-          </p>
-          <div className="flex gap-6 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground">UL sign</p>
-              <p className="font-semibold text-[var(--color-ink-1)]">{upapada.sign}</p>
+        <section>
+          <SectionHeading>Upapada (A12) — Spouse Indicator</SectionHeading>
+          <div className="ac-card ac-card-pad">
+            <div className="ac-kv">
+              <div><span className="k">UL sign</span><span className="v">{upapada.sign ?? "—"}</span></div>
+              <div><span className="k">Lord</span><span className="v cool">{upapada.lord ?? "—"}</span></div>
+              <div><span className="k">2nd from UL</span><span className="v">{upapada.second_from_ul ?? "—"}</span></div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Lord</p>
-              <p className="font-semibold text-planet-name">{upapada.lord}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">2nd from UL</p>
-              <p className="font-semibold text-[var(--color-ink-2)]">{upapada.second_from_ul}</p>
-            </div>
+            {upapada.description && (
+              <p style={{ marginTop: 10, fontSize: 12, color: "var(--color-ink-3)", lineHeight: 1.5 }}>
+                {upapada.description}
+              </p>
+            )}
           </div>
-          {upapada.description && (
-            <p className="text-xs text-muted-foreground mt-2">{upapada.description}</p>
-          )}
-        </div>
+        </section>
       )}
 
       {!jaiminiKarakas && !karakamsha && !arudhaPadas && (
-        <p className="text-xs text-muted-foreground italic">Jaimini data not available.</p>
+        <p style={{ fontSize: 12, fontStyle: "italic", color: "var(--color-ink-3)" }}>Jaimini data not available.</p>
       )}
     </div>
   );

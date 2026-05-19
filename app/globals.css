@@ -268,6 +268,17 @@
   --color-ask-ctx-bg:               rgba(212,162,74,0.10);
   --color-ask-ctx-border:           rgba(212,162,74,0.25);
   --color-ask-ctx-name:             #E6BD6E;
+
+  /* ── Cool secondary (teal — planet names, links, transit category) ── */
+  --color-cool:                     #6FA3B5;
+  --color-cool-bg:                  rgba(111,163,181,0.08);
+
+  /* ── Warning faint/line (mirrors success/danger pattern) ── */
+  --color-warning-faint:            rgba(212,162,74,0.10);
+  --color-warning-border:           rgba(212,162,74,0.30);
+
+  /* ── Recessed surface (alternating table rows, code blocks) ── */
+  --color-surface-sunk:             #100C08;
 }
 
 [data-theme="dark"]  ::selection { background: var(--color-accent-faint); color: var(--color-ink-1); }
@@ -424,7 +435,255 @@
   --color-ask-ctx-bg:               rgba(142,42,31,0.05);
   --color-ask-ctx-border:           rgba(142,42,31,0.18);
   --color-ask-ctx-name:             #8E2A1F;
+
+  /* ── Cool secondary (teal — planet names, links, transit category) ── */
+  --color-cool:                     #2F5F73;
+  --color-cool-bg:                  rgba(47,95,115,0.08);
+
+  /* ── Warning faint/line ── */
+  --color-warning-faint:            rgba(165,107,30,0.09);
+  --color-warning-border:           rgba(165,107,30,0.30);
+
+  /* ── Recessed surface ── */
+  --color-surface-sunk:             #EAE2D0;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   COMPONENT CLASSES — shared design language
+   Token mapping: --color-* names used throughout the app.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Eyebrow label ── */
+.ac-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+/* ── Section heading row ── */
+.ac-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ac-section-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+.ac-section-title.accent { color: var(--color-accent); }
+
+/* ── Card ── */
+.ac-card {
+  background: var(--color-surface-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.ac-card-pad     { padding: 20px; }
+.ac-card-pad-sm  { padding: 16px; }
+
+/* ── Table ── */
+.ac-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.ac-table thead th {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-1);
+  white-space: nowrap;
+}
+.ac-table tbody td {
+  padding: 10px 14px;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  color: var(--color-ink-1);
+  font-variant-numeric: tabular-nums;
+}
+.ac-table tbody tr:last-child td { border-bottom: 0; }
+.ac-table tbody tr:nth-child(2n) td { background: var(--color-surface-sunk); }
+.ac-table tbody tr:hover td { background: var(--color-accent-faint); transition: background 120ms; }
+.ac-table .num   { font-family: var(--font-mono); font-size: 12px; }
+.ac-table .planet { font-weight: 600; color: var(--color-cool); }
+.ac-table .muted { color: var(--color-ink-3); }
+.ac-table .right { text-align: right; }
+.ac-table th.right { text-align: right; }
+
+/* ── Dignity / status tags ── */
+.ac-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  background: var(--color-surface-sunk);
+  color: var(--color-ink-2);
+  border: var(--border-width) solid var(--color-border);
+  white-space: nowrap;
+}
+.ac-tag.fav  { background: var(--color-success-faint);  color: var(--color-dignity-exalted); border-color: var(--color-success-border); }
+.ac-tag.neu  { background: var(--color-surface-sunk);   color: var(--color-dignity-neutral); border-color: var(--color-border); }
+.ac-tag.unf  { background: var(--color-danger-faint);   color: var(--color-dignity-enemy);   border-color: var(--color-danger-border); }
+.ac-tag.warn { background: var(--color-warning-faint);  color: var(--color-warning);         border-color: var(--color-warning-border); }
+.ac-tag.cool { background: var(--color-cool-bg);        color: var(--color-cool);            border-color: transparent; }
+.ac-tag.solid { background: var(--color-accent); color: var(--color-button-fg); border-color: var(--color-accent); }
+
+/* ── Retrograde / combust / dash markers ── */
+.ac-retro   { color: var(--color-warning); font-family: var(--font-display); font-style: italic; font-weight: 700; }
+.ac-combust { width: 7px; height: 7px; border-radius: 50%; background: var(--color-danger); display: inline-block; vertical-align: middle; }
+.ac-dash    { color: var(--color-ink-4); }
+
+/* ── Key / value grid ── */
+.ac-kv {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+.ac-kv > div {
+  padding: 10px 16px;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  font-size: 13.5px;
+}
+.ac-kv .k { color: var(--color-ink-3); }
+.ac-kv .v { color: var(--color-ink-1); text-align: right; font-weight: 500; }
+.ac-kv .v.accent { color: var(--color-accent); }
+.ac-kv .v.cool   { color: var(--color-cool); }
+
+/* ── Pills ── */
+.ac-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.ac-pill {
+  padding: 4px 11px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-ink-2);
+  white-space: nowrap;
+}
+.ac-pill.cool   { color: var(--color-cool);   border-color: var(--color-cool-bg);    background: var(--color-cool-bg); }
+.ac-pill.accent { color: var(--color-accent); border-color: var(--color-accent-dim); background: var(--color-accent-faint); }
+
+/* ── Calendar cells (Tarabalam, Muhurtha) ── */
+.ac-cell-good, .ac-cell-bad {
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ac-cell-good { color: var(--color-success); background: var(--color-success-faint); }
+.ac-cell-bad  { color: var(--color-danger);  background: var(--color-danger-faint); }
+
+/* ── Compatibility score ── */
+.ac-score {
+  font-family: var(--font-display);
+  font-size: 52px;
+  color: var(--color-accent);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.ac-score-bar {
+  height: 6px;
+  background: var(--color-surface-sunk);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+.ac-score-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+}
+
+/* ── Banner / notice strips ── */
+.ac-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid;
+  font-size: 13.5px;
+}
+.ac-banner.accent { background: var(--color-accent-faint); border-color: var(--color-accent-dim); color: var(--color-accent); }
+.ac-banner.warn   { background: var(--color-warning-faint); border-color: var(--color-warning-border); color: var(--color-warning); }
+
+/* ── Dasha row ── */
+.ac-dasha-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+}
+.ac-dasha-row:last-child { border-bottom: 0; }
+.ac-dasha-row .level {
+  font-size: 10.5px;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  font-weight: 600;
+}
+.ac-dasha-row .planet-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--color-ink-1);
+  font-weight: 700;
+}
+.ac-dasha-row .range {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--color-ink-3);
+}
+.ac-dasha-row.current { background: var(--color-accent-faint); }
+.ac-dasha-row.current .planet-name { color: var(--color-accent); }
+
+/* ── Long-form reading text ── */
+.ac-reading {
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-ink-1);
+  letter-spacing: 0.003em;
+}
+.ac-reading p + p { margin-top: 0.9em; }
+
+/* ── Ask CTA button (inline) ── */
+.ac-btn-ask {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  background: var(--color-accent-faint);
+  color: var(--color-accent);
+  border: var(--border-width) solid var(--color-accent-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 120ms;
+}
+.ac-btn-ask:hover { opacity: 0.8; }
 
 @layer base {
   * {
