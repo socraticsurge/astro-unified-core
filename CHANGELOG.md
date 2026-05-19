@@ -8,6 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Fix Sade Sati inconsistency in Today tab
+
+### Fixed
+- **Sade Sati not always appearing in Today tab** — `DashboardClient` "returning user" path only fetched chart and deferred transit to lazy load on tab open. `generateInsights` depends on `transitOutput` to detect Sade Sati, so the Today tab showed "No significant patterns active" until the user visited the Transits tab. Fixed by prefetching transit in parallel with chart on profile switch (matching the behavior already in place for new profiles).
+
+---
+
 ## [2026-05-19] — Apply `.ac-*` design language consistently across all tabs and components
 
 ### Changed
