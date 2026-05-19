@@ -371,7 +371,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                 }
               }
             }}
-            className="text-xs text-[var(--color-danger)] hover:text-red-300 border border-red-900/50 bg-red-950/20 px-3 py-1.5 rounded-md transition-colors"
+            className="text-xs text-[var(--color-danger)] hover:text-[var(--color-danger)] border border-[var(--color-danger-border)] bg-[var(--color-danger-faint)] px-3 py-1.5 rounded-md transition-colors"
           >
             Clear History
           </button>
@@ -398,7 +398,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
               ) : (
                 sortedComps.map((check) => (
                   <tr key={check.id} className="hover:bg-[var(--color-surface-hover)]">
-                    <td className="px-4 py-3 font-medium text-white">{check.user_email || "Unknown User"}</td>
+                    <td className="px-4 py-3 font-medium text-[var(--color-ink-1)]">{check.user_email || "Unknown User"}</td>
                     <td className="px-4 py-3">{check.p1_name || "Deleted Profile"}</td>
                     <td className="px-4 py-3">{check.p2_name || "Deleted Profile"}</td>
                     <td className="px-4 py-3">
@@ -414,12 +414,12 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        <Link href={`/compatibility/${check.id}`} className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                        <Link href={`/compatibility/${check.id}`} className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors">
                           View
                         </Link>
                         <details className="relative">
-                          <summary className="text-xs text-sky-400 hover:text-sky-300 cursor-pointer list-none">JSON</summary>
-                          <div className="absolute right-0 top-full mt-2 w-96 max-h-96 overflow-y-auto bg-zinc-950 border border-[var(--color-border)] rounded-lg p-4 z-50 text-[10px] font-mono text-left shadow-2xl">
+                          <summary className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] cursor-pointer list-none">JSON</summary>
+                          <div className="absolute right-0 top-full mt-2 w-96 max-h-96 overflow-y-auto bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg p-4 z-50 text-[10px] font-mono text-left shadow-2xl">
                             <pre className="whitespace-pre-wrap text-muted-foreground">{JSON.stringify(JSON.parse(check.result_json), null, 2)}</pre>
                           </div>
                         </details>
@@ -536,9 +536,9 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {isDone && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-900/30 text-[var(--color-success)]">Answered</span>}
-                          {isPaid && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-900/30 text-blue-400">Paid</span>}
-                          {awaitingPayment && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-900/30 text-[var(--color-accent)]">Awaiting Payment</span>}
+                          {isDone && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--color-success-faint)] text-[var(--color-success)]">Answered</span>}
+                          {isPaid && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] text-[var(--color-ink-2)]">Paid</span>}
+                          {awaitingPayment && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--color-accent-faint)] text-[var(--color-accent)]">Awaiting Payment</span>}
                           {req.user_rating === "helpful" && <ThumbsUp className="h-3 w-3 text-[var(--color-success)]" />}
                           {req.user_rating === "not_helpful" && <ThumbsDown className="h-3 w-3 text-[var(--color-danger)]" />}
                         </div>
@@ -546,7 +546,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                       <td className="px-3 py-2.5 text-right">
                         <button
                           onClick={() => setExpandedQId(isExpanded ? null : req.id)}
-                          className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
+                          className="text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
                         >
                           {isExpanded ? "Close" : "View"}
                         </button>
@@ -571,7 +571,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                               </div>
                             )}
                             {req.admin_note && (
-                              <div className="rounded-md border border-green-700/30 bg-green-900/20 px-3 py-2">
+                              <div className="rounded-md border border-[var(--color-success-border)] bg-[var(--color-success-faint)] px-3 py-2">
                                 <p className="text-xs uppercase tracking-wider text-[var(--color-success)] mb-0.5">Your note</p>
                                 <p className="text-xs text-foreground/70">{req.admin_note}</p>
                               </div>
@@ -589,7 +589,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                               <button
                                 disabled={markingPaidId === req.id}
                                 onClick={() => markPaid(req.id)}
-                                className="flex items-center gap-1.5 text-xs bg-blue-700/20 hover:bg-blue-700/30 border border-blue-700/40 text-blue-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                                className="flex items-center gap-1.5 text-xs bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-ink-2)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
                               >
                                 <CheckCircle2 className="h-3.5 w-3.5" />
                                 {markingPaidId === req.id ? "Saving…" : "Mark as Paid"}
@@ -598,10 +598,10 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                             {isPaid && (
                               <div className="space-y-3 pt-1">
                                 {/* Draft Assistant */}
-                                <div className="rounded-md border border-violet-700/30 bg-[var(--color-surface-2)] p-3 space-y-2">
+                                <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 space-y-2">
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-1.5">
-                                      <Sparkles className="h-3 w-3 text-violet-400" />
+                                      <Sparkles className="h-3 w-3 text-[var(--color-accent)]" />
                                       <span className="text-xs font-semibold text-[var(--color-ink-2)]">Draft Assistant</span>
                                     </div>
                                     <ModelPicker value={draftModel} onChange={setDraftModel} disabled={draftGenerating === req.id} />
@@ -609,7 +609,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                                   <button
                                     disabled={draftGenerating === req.id}
                                     onClick={() => generateDraft(req.id)}
-                                    className="text-xs bg-violet-700/20 hover:bg-violet-700/30 border border-violet-700/40 text-violet-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                                    className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
                                   >
                                     {draftGenerating === req.id ? "Generating…" : drafts[req.id] ? "Regenerate Draft" : "Generate Draft"}
                                   </button>
@@ -635,12 +635,12 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                                   placeholder="Optional: add a written note or answer for the user"
                                   value={adminNotes[req.id] ?? ""}
                                   onChange={e => setAdminNotes(prev => ({ ...prev, [req.id]: e.target.value }))}
-                                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-400/50 resize-none"
+                                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50 resize-none"
                                 />
                                 <button
                                   disabled={markingId === req.id}
                                   onClick={() => markAnswered(req.id)}
-                                  className="flex items-center gap-1.5 text-xs bg-green-700/20 hover:bg-green-700/30 border border-green-700/40 text-[var(--color-success)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                                  className="flex items-center gap-1.5 text-xs bg-[var(--color-success-faint)] hover:bg-[var(--color-success-faint)]/80 border border-[var(--color-success-border)] text-[var(--color-success)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
                                 >
                                   <CheckCircle2 className="h-3.5 w-3.5" />
                                   {markingId === req.id ? "Saving…" : "Mark as Answered"}
@@ -744,7 +744,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                     min={0}
                     value={writtenFeeRs}
                     onChange={e => setWrittenFeeRs(parseInt(e.target.value, 10) || 0)}
-                    className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                    className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -754,14 +754,14 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                     min={0}
                     value={liveFeeRs}
                     onChange={e => setLiveFeeRs(parseInt(e.target.value, 10) || 0)}
-                    className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                    className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
                   />
                 </div>
               </div>
               <button
                 disabled={feeSaving}
                 onClick={saveFees}
-                className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+                className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
               >
                 {feeSaving ? "Saving…" : "Save Pricing"}
               </button>
@@ -782,13 +782,13 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                   type="datetime-local"
                   value={newSlotInput}
                   onChange={e => setNewSlotInput(e.target.value)}
-                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-amber-400/50"
+                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
                 />
               </div>
               <button
                 disabled={!newSlotInput || slotAdding}
                 onClick={addSlot}
-                className="text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-2 rounded-md transition-colors disabled:opacity-50 whitespace-nowrap"
+                className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-2 rounded-md transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 {slotAdding ? "Adding…" : "Add Slot"}
               </button>
@@ -819,11 +819,11 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
                     <div className="flex items-center gap-2">
                       <span className="text-xs">{label} IST</span>
                       {slot.is_booked ? (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-900/30 text-[var(--color-success)]">Booked</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--color-success-faint)] text-[var(--color-success)]">Booked</span>
                       ) : isPast ? (
                         <span className="text-[10px] text-muted-foreground">Past</span>
                       ) : (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-900/30 text-[var(--color-accent)]">Available</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--color-accent-faint)] text-[var(--color-accent)]">Available</span>
                       )}
                     </div>
                     {!slot.is_booked && (
@@ -863,9 +863,9 @@ function Toggle({ label, description, enabled, onToggle, disabled }: {
       <button
         disabled={disabled}
         onClick={onToggle}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${enabled ? "bg-amber-500" : "bg-[var(--color-surface-hover)]"}`}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${enabled ? "bg-[var(--color-accent)]" : "bg-[var(--color-surface-hover)]"}`}
       >
-        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
+        <span className={`inline-block h-5 w-5 transform rounded-full bg-[var(--color-ink-1)] shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
       </button>
     </div>
   );

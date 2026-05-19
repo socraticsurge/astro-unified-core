@@ -23,14 +23,14 @@ function NumberInput({
           min={min} max={max} step={step}
           value={value}
           onChange={e => onChange(parseFloat(e.target.value))}
-          className="flex-1 accent-violet-500"
+          className="flex-1 accent-[var(--color-accent)]"
         />
         <input
           type="number"
           min={min} max={max} step={step}
           value={value}
           onChange={e => onChange(parseFloat(e.target.value) || min)}
-          className="w-20 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-violet-400/50"
+          className="w-20 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
         />
       </div>
     </div>
@@ -148,7 +148,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
             value={aiConfig.custom_instructions}
             onChange={e => setAiConfig(c => ({ ...c, custom_instructions: e.target.value }))}
             placeholder="e.g. Always give special attention to career and wealth implications. Focus on actionable guidance."
-            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
+            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50 resize-none"
           />
         </div>
 
@@ -157,7 +157,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
         <button
           disabled={aiSaving}
           onClick={saveAiInsights}
-          className="text-xs bg-violet-700/20 hover:bg-violet-700/30 border border-violet-700/40 text-violet-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+          className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
         >
           {aiSaving ? "Saving…" : aiSaved ? "Saved ✓" : "Save AI Insights Settings"}
         </button>
@@ -203,7 +203,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
             value={chatConfig.custom_instructions}
             onChange={e => setChatConfig(c => ({ ...c, custom_instructions: e.target.value }))}
             placeholder="e.g. Always respond in under 200 words. Be direct and avoid hedging."
-            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
+            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50 resize-none"
           />
         </div>
 
@@ -212,7 +212,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
         <button
           disabled={chatSaving}
           onClick={saveChat}
-          className="text-xs bg-violet-700/20 hover:bg-violet-700/30 border border-violet-700/40 text-violet-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+          className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
         >
           {chatSaving ? "Saving…" : chatSaved ? "Saved ✓" : "Save Chat Settings"}
         </button>
@@ -250,7 +250,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
             value={draftConfig.custom_instructions}
             onChange={e => setDraftConfig(c => ({ ...c, custom_instructions: e.target.value }))}
             placeholder="e.g. Always end with a timing window for the next 6 months. Keep responses under 350 words."
-            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50 resize-none"
+            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50 resize-none"
           />
         </div>
 
@@ -259,7 +259,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
         <button
           disabled={draftSaving}
           onClick={saveDraft}
-          className="text-xs bg-violet-700/20 hover:bg-violet-700/30 border border-violet-700/40 text-violet-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+          className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
         >
           {draftSaving ? "Saving…" : draftSaved ? "Saved ✓" : "Save Draft Settings"}
         </button>

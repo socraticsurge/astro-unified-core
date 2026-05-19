@@ -8,6 +8,21 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — AI Admin Panel + Admin screen design token overhaul
+
+### Added
+- **`components/panels/AIAdminPanel.tsx`** — New admin-only side overlay (Sheet) with two sub-tabs: Summary (generate/regenerate cached AI summaries per profile tab, stored in DB) and Chat (stateless per-profile or compatibility chat with markdown rendering). Features: shared model picker persisted across sub-tabs, Copy + ThumbsUp/ThumbsDown on each assistant message, context-aware breadcrumb (profile + tab or compatibility pair), cache check on panel open to avoid redundant API calls, regenerate option.
+- **`components/profiles/ProfileView.tsx`** — Exported `ChartTabId`, added `AIOpenPayload` interface, `isAdmin` and `onAIOpen` props, sparkles AI button pinned to tab bar right edge (admin-only).
+- **`app/dashboard/DashboardClient.tsx`** — `handleAIOpen` plumbs AI panel open/close state and context; panel closes on profile switch; renders `AIAdminPanel` when admin.
+- **`app/dashboard/page.tsx`** — Passes `isAdmin={isAdmin(session)}` to `DashboardClient`.
+
+### Changed
+- **`app/admin/AdminTables.tsx`** — Full design token audit: replaced all hardcoded Tailwind color names (`violet-*`, `amber-*`, `sky-*`, `blue-*`, `green-*`, `zinc-*`, `white`, `red-*`) with semantic CSS variable tokens (`--color-accent`, `--color-accent-faint`, `--color-accent-dim`, `--color-success`, `--color-success-faint`, `--color-success-border`, `--color-danger`, `--color-danger-faint`, `--color-danger-border`, `--color-ink-*`, `--color-surface-*`). Toggle now uses `--color-accent` when enabled. Admin screens now correctly adapt between dark and light themes.
+- **`components/admin/LlmSettingsPanel.tsx`** — Same audit: `accent-violet-500` → `accent-[var(--color-accent)]`; all `focus:ring-violet-400/50` → `focus:ring-[var(--color-accent)]/50`; save buttons converted to accent tokens.
+- **`components/panels/AIAdminPanel.tsx`** — `text-violet-400` instances (Sparkles, spinner, user bubble) replaced with `--color-accent` tokens for theme consistency.
+
+---
+
 ## [2026-05-19] — Unified view UI/UX polish: themes, tables, and design tokens
 
 ### Changed
