@@ -232,10 +232,10 @@ export function TimeTab({
                 <div className="ac-card ac-card-pad">
                   <div className="ac-eyebrow" style={{ marginBottom: 8 }}>10th House (Karma Bhava)</div>
                   <div className="ac-kv">
-                    <div><span className="k">Sign</span><span className="v">{careerData.tenth_house.sign ?? "—"}</span></div>
-                    <div><span className="k">Lord</span><span className="v cool">{careerData.tenth_house.lord ?? "—"}</span></div>
-                    <div><span className="k">Lord&apos;s house</span><span className="v">{careerData.tenth_house.lord_house ?? "—"}</span></div>
-                    <div><span className="k">Lord&apos;s D10</span><span className="v">{careerData.tenth_house.lord_d10 ?? "—"}</span></div>
+                    <div className="k">Sign</div><div className="v">{careerData.tenth_house.sign ?? "—"}</div>
+                    <div className="k">Lord</div><div className="v cool">{careerData.tenth_house.lord ?? "—"}</div>
+                    <div className="k">Lord&apos;s house</div><div className="v">{careerData.tenth_house.lord_house ?? "—"}</div>
+                    <div className="k">Lord&apos;s D10</div><div className="v">{careerData.tenth_house.lord_d10 ?? "—"}</div>
                   </div>
                 </div>
               )}

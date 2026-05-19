@@ -59,17 +59,15 @@ export function CareerView({ output, explainer }: Props) {
         <div className="ac-card ac-card-pad" style={{ marginBottom: 16, borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" }}>
           <div className="ac-eyebrow" style={{ marginBottom: 10 }}>10th House — Karma Bhava</div>
           <div className="ac-kv">
-            <div><span className="k">Sign</span><span className="v">{tenth.sign ?? "—"}</span></div>
-            <div><span className="k">Lord</span><span className="v cool">{tenth.lord ?? "—"}</span></div>
-            {tenth.lord_house && (
-              <div>
-                <span className="k">Lord placement</span>
-                <span className="v">H{tenth.lord_house} · {tenth.lord_sign}{tenth.lord_dignity ? ` — ${tenth.lord_dignity.replace(/_/g," ")}` : ""}</span>
-              </div>
-            )}
-            {tenth.lord_d10 && (
-              <div><span className="k">Lord in D10</span><span className="v">{tenth.lord_d10}</span></div>
-            )}
+            <div className="k">Sign</div><div className="v">{tenth.sign ?? "—"}</div>
+            <div className="k">Lord</div><div className="v cool">{tenth.lord ?? "—"}</div>
+            {tenth.lord_house && (<>
+              <div className="k">Lord placement</div>
+              <div className="v">H{tenth.lord_house} · {tenth.lord_sign}{tenth.lord_dignity ? ` — ${tenth.lord_dignity.replace(/_/g," ")}` : ""}</div>
+            </>)}
+            {tenth.lord_d10 && (<>
+              <div className="k">Lord in D10</div><div className="v">{tenth.lord_d10}</div>
+            </>)}
           </div>
         </div>
       )}
