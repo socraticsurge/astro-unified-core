@@ -73,7 +73,7 @@ export function NatalChartGrid({
   const pad       = compact ? "p-0.5"       : "p-1";
 
   return (
-    <div style={{ width: CHART_SIZE_PX }} className="flex-shrink-0">
+    <div style={{ maxWidth: CHART_SIZE_PX }} className="w-full flex-shrink-0">
       {label && (
         <p className={cn(
           "font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1.5",

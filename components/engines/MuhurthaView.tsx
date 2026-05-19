@@ -52,8 +52,8 @@ export function MuhurthaView({ profileId, explainer }: Props) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-[var(--color-surface-1)] p-4 rounded-xl border border-[var(--color-border)]">
           <div className="space-y-1.5">
             <Label>Event Type</Label>
-            <select 
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-md p-2 text-sm"
+            <select
+              className="w-full bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[var(--color-ink-1)] rounded-md p-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
               value={form.event_type}
               onChange={(e) => setForm({ ...form, event_type: e.target.value })}
             >
@@ -67,13 +67,13 @@ export function MuhurthaView({ profileId, explainer }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label>Start Date</Label>
-            <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className="bg-zinc-900 border-zinc-800" />
+            <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className="bg-[var(--color-surface-1)] border-[var(--color-border)]" />
           </div>
           <div className="space-y-1.5">
             <Label>End Date</Label>
             <div className="flex gap-2">
-              <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className="bg-zinc-900 border-zinc-800" />
-              <Button onClick={handleSearch} disabled={loading} size="icon" className="shrink-0 bg-violet-600 hover:bg-violet-700">
+              <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className="bg-[var(--color-surface-1)] border-[var(--color-border)]" />
+              <Button onClick={handleSearch} disabled={loading} size="icon" className="shrink-0 bg-[var(--color-accent)] hover:opacity-90 text-white">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
               </Button>
             </div>

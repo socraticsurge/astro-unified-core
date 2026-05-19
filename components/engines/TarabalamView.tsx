@@ -160,7 +160,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 h-9 text-sm w-40"
+                className="bg-[var(--color-surface-1)] border-[var(--color-border)] h-9 text-sm w-40"
               />
             </div>
             <div className="space-y-1">
@@ -169,14 +169,14 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 h-9 text-sm w-40"
+                className="bg-[var(--color-surface-1)] border-[var(--color-border)] h-9 text-sm w-40"
               />
             </div>
             <Button
               onClick={handleSearch}
               disabled={loading}
               size="sm"
-              className="h-9 bg-violet-600 hover:bg-violet-700 gap-1.5"
+              className="h-9 bg-[var(--color-accent)] hover:opacity-90 text-white gap-1.5"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               {loading ? "Calculating…" : "Calculate"}

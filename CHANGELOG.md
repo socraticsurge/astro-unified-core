@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Desktop UX polish; theme consistency fixes
+
+### Changed
+- **Disclaimer text** (ProfileSidebar) — shortened to: "Astrological readings are for self-reflection and guidance only. They do not predict fixed outcomes. Please consult qualified experts before making important decisions."
+- **Sidebar chart spacing** (NatalChartGrid) — switched from fixed `width: 300px` to `maxWidth: 300px` + `w-full` so charts no longer overflow the sidebar's 288px content area.
+- **Muhurtha tab** — replaced hardcoded `bg-zinc-900 border-zinc-800` on form inputs and `bg-violet-600` on button with design tokens (`--color-surface-1`, `--color-border`, `--color-accent`).
+- **Tarabalam tab** — same: date inputs and Calculate button now use design tokens instead of hardcoded dark colors.
+
+---
+
 ## [2026-05-19] — Profile loading screen; graceful LLM failure handling
 
 ### Added

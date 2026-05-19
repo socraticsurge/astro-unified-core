@@ -252,7 +252,7 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
       {/* Disclaimer */}
       <div className="mt-auto p-4 border-t border-[var(--color-border)]">
         <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
-          Astrological readings are for self-reflection and guidance only. They do not predict fixed outcomes. Please consult qualified experts before making important decisions in health, finance, relationships, or legal matters.
+          Astrological readings are for self-reflection and guidance only. They do not predict fixed outcomes. Please consult qualified experts before making important decisions.
         </p>
       </div>
     </aside>
