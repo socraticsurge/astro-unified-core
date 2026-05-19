@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronUp, ChevronDown, ChevronsUpDown, Calendar, CheckCircle2, ThumbsUp, ThumbsDown, Sparkles, Copy } from "lucide-react";
-import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings, ConsultationSlot, AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig } from "@/lib/db";
+import type { User, ProfileWithUser, CompatibilityCheckWithDetails, Feedback, ConsultationRequestWithUser, AppSettings, ConsultationSlot, AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig, TodayReadingLlmConfig } from "@/lib/db";
 import type { AiInsightStat } from "@/lib/db/readings";
 import { assembleStatement } from "@/lib/consultation";
 import { LlmSettingsPanel } from "@/components/admin/LlmSettingsPanel";
@@ -20,7 +20,7 @@ type Props = {
   consultationSlots: ConsultationSlot[];
   appSettings: AppSettings;
   aiInsightStats: AiInsightStat[];
-  llmSettings: { ai_insights: AiInsightsLlmConfig; chat: ChatLlmConfig; draft: DraftLlmConfig };
+  llmSettings: { ai_insights: AiInsightsLlmConfig; chat: ChatLlmConfig; draft: DraftLlmConfig; today_reading: TodayReadingLlmConfig };
 };
 
 export function AdminTables({ users, profiles, feedback, compatibilityChecks, consultationRequests, consultationSlots: initialSlots, appSettings, aiInsightStats, llmSettings }: Props) {
@@ -709,6 +709,7 @@ export function AdminTables({ users, profiles, feedback, compatibilityChecks, co
           initialAiInsights={llmSettings.ai_insights}
           initialChat={llmSettings.chat}
           initialDraft={llmSettings.draft}
+          initialTodayReading={llmSettings.today_reading}
         />
       </TabsContent>
 

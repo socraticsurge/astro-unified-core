@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
-import type { AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig } from "@/lib/db";
+import type { AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig, TodayReadingLlmConfig } from "@/lib/db";
 
 type Props = {
   initialAiInsights: AiInsightsLlmConfig;
   initialChat: ChatLlmConfig;
   initialDraft: DraftLlmConfig;
+  initialTodayReading: TodayReadingLlmConfig;
 };
 
 function NumberInput({
@@ -37,19 +38,23 @@ function NumberInput({
   );
 }
 
-export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft }: Props) {
+export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft, initialTodayReading }: Props) {
   const [aiConfig, setAiConfig] = useState<AiInsightsLlmConfig>(initialAiInsights);
   const [chatConfig, setChatConfig] = useState<ChatLlmConfig>(initialChat);
   const [draftConfig, setDraftConfig] = useState<DraftLlmConfig>(initialDraft);
+  const [todayConfig, setTodayConfig] = useState<TodayReadingLlmConfig>(initialTodayReading);
   const [aiSaving, setAiSaving] = useState(false);
   const [chatSaving, setChatSaving] = useState(false);
   const [draftSaving, setDraftSaving] = useState(false);
+  const [todaySaving, setTodaySaving] = useState(false);
   const [aiSaved, setAiSaved] = useState(false);
   const [chatSaved, setChatSaved] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
+  const [todaySaved, setTodaySaved] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [chatError, setChatError] = useState<string | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
+  const [todayError, setTodayError] = useState<string | null>(null);
 
   const saveAiInsights = async () => {
     setAiSaving(true);
@@ -88,6 +93,26 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
       setChatError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setChatSaving(false);
+    }
+  };
+
+  const saveTodayReading = async () => {
+    setTodaySaving(true);
+    setTodayError(null);
+    setTodaySaved(false);
+    try {
+      const res = await fetch("/api/admin/llm-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "today_reading", config: todayConfig }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Save failed");
+      setTodaySaved(true);
+      setTimeout(() => setTodaySaved(false), 2500);
+    } catch (e) {
+      setTodayError(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setTodaySaving(false);
     }
   };
 
@@ -262,6 +287,54 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft 
           className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
         >
           {draftSaving ? "Saving…" : draftSaved ? "Saved ✓" : "Save Draft Settings"}
+        </button>
+      </div>
+
+      {/* Today Reading — Gemini */}
+      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5 space-y-5">
+        <div>
+          <p className="text-sm font-medium">Today Reading — Gemini</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Used for the dasha period + natal chart reading shown in the Today tab.
+            Cached per pratyantar period; invalidated when birth data or pratyantar period changes.
+          </p>
+        </div>
+
+        <NumberInput
+          label="Temperature (0 = precise, 1 = creative)"
+          value={todayConfig.temperature}
+          onChange={v => setTodayConfig(c => ({ ...c, temperature: v }))}
+          min={0} max={1} step={0.05}
+        />
+
+        <NumberInput
+          label="Max Output Tokens"
+          value={todayConfig.max_tokens}
+          onChange={v => setTodayConfig(c => ({ ...c, max_tokens: v }))}
+          min={256} max={4096} step={128}
+        />
+
+        <div className="space-y-1.5">
+          <label className="text-xs text-muted-foreground">
+            Additional Instructions (appended to system prompt)
+          </label>
+          <textarea
+            rows={4}
+            value={todayConfig.custom_instructions}
+            onChange={e => setTodayConfig(c => ({ ...c, custom_instructions: e.target.value }))}
+            placeholder="e.g. Keep the tone uplifting and practical. Focus on actionable guidance for the current period."
+            className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50 resize-none"
+          />
+        </div>
+
+        {todayError && <p className="text-xs text-[var(--color-danger)]">{todayError}</p>}
+
+        <button
+          disabled={todaySaving}
+          onClick={saveTodayReading}
+          className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+        >
+          {todaySaving ? "Saving…" : todaySaved ? "Saved ✓" : "Save Today Reading Settings"}
         </button>
       </div>
     </div>

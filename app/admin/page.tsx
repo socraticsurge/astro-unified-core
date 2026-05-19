@@ -16,7 +16,7 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings, consultationSlots, aiInsightStats, aiInsightsLlm, chatLlm, draftLlm] = await Promise.all([
+  const [users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings, consultationSlots, aiInsightStats, aiInsightsLlm, chatLlm, draftLlm, todayReadingLlm] = await Promise.all([
     db.users.list(),
     db.profiles.listAllWithUser(),
     db.feedback.list(),
@@ -28,6 +28,7 @@ export default async function AdminPage() {
     db.settings.getAiInsightsLlm(),
     db.settings.getChatLlm(),
     db.settings.getDraftLlm(),
+    db.settings.getTodayReadingLlm(),
   ]);
 
   return (
@@ -74,7 +75,7 @@ export default async function AdminPage() {
         consultationSlots={consultationSlots}
         appSettings={appSettings}
         aiInsightStats={aiInsightStats}
-        llmSettings={{ ai_insights: aiInsightsLlm, chat: chatLlm, draft: draftLlm }}
+        llmSettings={{ ai_insights: aiInsightsLlm, chat: chatLlm, draft: draftLlm, today_reading: todayReadingLlm }}
       />
     </div>
   );

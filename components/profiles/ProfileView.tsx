@@ -46,18 +46,27 @@ export interface AIOpenPayload {
   partnerName:    string | null
 }
 
+interface TodayReadingOutput {
+  dasha_reading: string
+  chart_reading: string
+}
+
 interface ProfileViewProps {
   profile: Profile
   allProfiles: Profile[]
   chartOutput: Record<string, unknown> | null
   transitOutput: Record<string, unknown> | null
   careerOutput: Record<string, unknown> | null
+  todayReadingOutput?: TodayReadingOutput | null
+  isTodayReadingLoading?: boolean
+  todayReadingError?: string | null
   isTransitLoading: boolean
   isCareerLoading: boolean
   transitError?: string | null
   careerError?: string | null
   onFetchTransit: (force?: boolean) => void
   onFetchCareer: (force?: boolean) => void
+  onFetchTodayReading?: () => void
   onAskOpen: (context?: Partial<AskContext>) => void
   onAIOpen?: (payload: AIOpenPayload) => void
   isAdmin?: boolean
@@ -71,12 +80,16 @@ export function ProfileView({
   chartOutput,
   transitOutput,
   careerOutput,
+  todayReadingOutput,
+  isTodayReadingLoading = false,
+  todayReadingError,
   isTransitLoading,
   isCareerLoading,
   transitError,
   careerError,
   onFetchTransit,
   onFetchCareer,
+  onFetchTodayReading,
   onAskOpen,
   onAIOpen,
   isAdmin = false,
@@ -171,8 +184,12 @@ export function ProfileView({
             <TodayTab
               chartOutput={chartOutput}
               transitOutput={transitOutput}
+              todayReadingOutput={todayReadingOutput ?? null}
+              isTodayReadingLoading={isTodayReadingLoading}
+              todayReadingError={todayReadingError}
               onAsk={handleAskFromInsight}
               onExplore={() => setActiveTab('planets')}
+              onRefetchTodayReading={onFetchTodayReading}
             />
           </div>
         )}

@@ -97,4 +97,4 @@ Near-term and medium-term feature intentions. For full context see `PRODUCT.md Â
 
 ---
 
-*Last updated: 2026-05-14*
+*Last updated: 2026-05-19*

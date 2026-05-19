@@ -41,9 +41,10 @@ export function DashboardClient({
   const [activeProfileId, setActiveProfileId] = useState<string | null>(
     initialProfileId ?? profiles[0]?.id ?? null
   )
-  const [chart,   setChart]   = useState(initState<Record<string, unknown>>())
-  const [transit, setTransit] = useState(initState<Record<string, unknown>>())
-  const [career,  setCareer]  = useState(initState<Record<string, unknown>>())
+  const [chart,        setChart]        = useState(initState<Record<string, unknown>>())
+  const [transit,      setTransit]      = useState(initState<Record<string, unknown>>())
+  const [career,       setCareer]       = useState(initState<Record<string, unknown>>())
+  const [todayReading, setTodayReading] = useState(initState<{ dasha_reading: string; chart_reading: string }>())
   const [askOpen, setAskOpen] = useState(false)
   const [askCtx,  setAskCtx]  = useState<Partial<AskContext>>({})
   const [aiOpen,  setAiOpen]  = useState(false)
@@ -56,11 +57,21 @@ export function DashboardClient({
     setChart({ data: null, loading: true, error: null })
     setTransit(initState())
     setCareer(initState())
+    setTodayReading(initState())
     setAiOpen(false)
 
     fetch(`/api/readings/dashaflow?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setChart({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .then(data => {
+        setChart({ data: data.output ?? null, loading: false, error: data.error ?? null })
+        if (data.output) {
+          setTodayReading(s => ({ ...s, loading: true }))
+          fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
+            .then(r => r.json())
+            .then(d => setTodayReading({ data: d.output ?? null, loading: false, error: d.error ?? null }))
+            .catch(e => setTodayReading({ data: null, loading: false, error: String(e) }))
+        }
+      })
       .catch(e => setChart({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId])
 
@@ -85,6 +96,16 @@ export function DashboardClient({
       .then(data => setCareer({ data: data.output ?? null, loading: false, error: data.error ?? null }))
       .catch(e => setCareer({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId, career.data])
+
+  const fetchTodayReading = useCallback(() => {
+    if (!activeProfileId) return
+    setTodayReading(s => ({ ...s, loading: true }))
+
+    fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
+      .then(r => r.json())
+      .then(data => setTodayReading({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .catch(e => setTodayReading({ data: null, loading: false, error: String(e) }))
+  }, [activeProfileId])
 
   const handleAIOpen = useCallback((payload: AIOpenPayload) => {
     if (!activeProfile) return
@@ -179,12 +200,16 @@ export function DashboardClient({
                 chartOutput={chart.data}
                 transitOutput={transit.data}
                 careerOutput={career.data}
+                todayReadingOutput={todayReading.data}
+                isTodayReadingLoading={todayReading.loading}
+                todayReadingError={todayReading.error}
                 isTransitLoading={transit.loading}
                 isCareerLoading={career.loading}
                 transitError={transit.error}
                 careerError={career.error}
                 onFetchTransit={fetchTransit}
                 onFetchCareer={fetchCareer}
+                onFetchTodayReading={fetchTodayReading}
                 onAskOpen={handleAskOpen}
                 onAIOpen={handleAIOpen}
                 isAdmin={isAdmin}

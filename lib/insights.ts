@@ -1,7 +1,7 @@
 import type { TodayInsight } from '@/components/tabs/TodayInsightCard'
 
 type DashaInfo = { planet: string; start: string; end: string }
-type ChartDashas = { maha: DashaInfo; antar: DashaInfo; pratyantar?: DashaInfo }
+type ChartDashas = { maha: DashaInfo; antar: DashaInfo; pratyantar?: DashaInfo; sukshma?: DashaInfo; prana?: DashaInfo }
 
 const CATEGORY_COLORS = {
   dasha:   '#c084fc',
@@ -28,7 +28,7 @@ export function generateInsights(
   const dashas = data.dashas as ChartDashas | undefined
   const transit = ((transitOutput as Record<string, unknown> | null)?.data ?? transitOutput) as Record<string, unknown> | null
 
-  // 1. Imminent antardasha transition (within 8 weeks)
+  // 1a. Imminent antardasha transition (within 8 weeks)
   if (dashas?.antar?.end) {
     const weeksLeft = weeksUntil(dashas.antar.end, today)
     if (weeksLeft >= 0 && weeksLeft <= 8) {
@@ -37,8 +37,24 @@ export function generateInsights(
         id: 'dasha-transition',
         category: 'dasha',
         categoryColor: CATEGORY_COLORS.dasha,
-        title: `${dashas.antar.planet} antardasha dasha shift in ~${weeksDisplay} week${weeksDisplay === 1 ? '' : 's'}`,
+        title: `${dashas.antar.planet} antardasha shift in ~${weeksDisplay} week${weeksDisplay === 1 ? '' : 's'}`,
         body: `A new antardasha period begins within the ${dashas.maha.planet} mahadasha. Transitions are important moments for reflection and intention.`,
+        cta: { label: 'Ask an expert about this →', action: 'ask' },
+      })
+    }
+  }
+
+  // 1b. Imminent pratyantar transition (within 4 weeks)
+  if (dashas?.pratyantar?.end) {
+    const weeksLeft = weeksUntil(dashas.pratyantar.end, today)
+    if (weeksLeft >= 0 && weeksLeft <= 4) {
+      const weeksDisplay = Math.round(weeksLeft)
+      results.push({
+        id: 'pratyantar-transition',
+        category: 'dasha',
+        categoryColor: CATEGORY_COLORS.dasha,
+        title: `${dashas.pratyantar.planet} pratyantar shift in ~${weeksDisplay} week${weeksDisplay === 1 ? '' : 's'}`,
+        body: `A short sub-period transition is approaching within your current dasha. A good time to notice subtle shifts in energy and focus.`,
         cta: { label: 'Ask an expert about this →', action: 'ask' },
       })
     }
@@ -69,37 +85,8 @@ export function generateInsights(
     })
   }
 
-  // 4. Significant Jupiter transit
-  const transitPlanets = transit?.planets as Record<string, { house_from_lagna?: number; sign?: string }> | undefined
-  if (transitPlanets) {
-    const jupiter = transitPlanets['Jupiter']
-    if (jupiter?.house_from_lagna && [1, 5, 9, 10, 11].includes(jupiter.house_from_lagna)) {
-      results.push({
-        id: 'jupiter-transit',
-        category: 'transit',
-        categoryColor: CATEGORY_COLORS.transit,
-        title: `Jupiter transiting your ${jupiter.house_from_lagna}th house`,
-        body: `Jupiter in ${jupiter.sign ?? 'transit'} brings expansion and opportunity to the matters of this house.`,
-        cta: { label: 'Explore in Chart →', action: 'explore' },
-      })
-    }
-  }
-
-  // 5. Major yogas (up to 2)
-  type Yoga = { name: string }
-  const MAJOR_YOGA_NAMES = new Set(['Malavya Yoga', 'Shasha Yoga', 'Bhadra Yoga', 'Hamsa Yoga', 'Ruchaka Yoga', 'Gajakesari Yoga', 'Raj Yoga', 'Lakshmi Yoga', 'Adhi Yoga'])
-  const yogas = (data.yogas as Yoga[] | undefined) ?? []
-  const majorYogas = yogas.filter(y => MAJOR_YOGA_NAMES.has(y.name)).slice(0, 2)
-  for (const yoga of majorYogas) {
-    if (results.length >= 5) break
-    results.push({
-      id: `yoga-${yoga.name}`,
-      category: 'yoga',
-      categoryColor: CATEGORY_COLORS.yoga,
-      title: `${yoga.name} in your natal chart`,
-      body: 'A significant planetary combination that shapes your life themes and natural strengths.',
-    })
-  }
+  // Jupiter transit and major yogas are surfaced via the AI reading on the Today tab.
+  // Keeping the data available here for future re-enablement if needed.
 
   return results.slice(0, 5)
 }

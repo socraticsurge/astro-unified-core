@@ -8,6 +8,22 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Today tab: 5-level dasha, AI reading, pratyantar shifts
+
+### Added
+- **AI reading on Today tab** — two-section LLM reading (dasha period + natal chart overview) generated once per pratyantar period via `GET /api/readings/today-reading`. Grounded in content library snippets (dasha pair + ascendant lookup) before LLM synthesis. Cached in the readings table and invalidated only when pratyantar period changes or birth data changes.
+- **5-level dasha hero card** — Today tab now shows all five Vimshottari levels (Maha, Antar, Pratyantar, Sukshma, Prana) with start/end dates, replacing the two-level Maha + Antar display.
+- **Pratyantar shift pill** — shift alert appears within 4 weeks of pratyantar transition (in addition to the existing 8-week antardasha pill).
+- **`lib/engines/today-reading.ts`** — new engine that builds a grounded prompt from chart summary + dasha pair + ascendant content, then calls Gemini in JSON mode returning `{ dasha_reading, chart_reading }`.
+- **`app/api/readings/today-reading/route.ts`** — GET route with two-part cache invalidation (birth data changed OR pratyantar_end changed).
+- **Today Reading LLM settings** — `getTodayReadingLlm` / `setTodayReadingLlm` added to `lib/db/settings.ts`; exposed in admin LLM Settings panel with temperature, max tokens, and custom instructions.
+
+### Changed
+- **Today tab insight cards** — removed Jupiter transit and major yogas from `generateInsights()` (now covered by AI reading). Added Pratyantar shift detection (within 4 weeks).
+- **`DashboardClient`** — fetches `today-reading` after chart loads; threads result through `ProfileView` → `TodayTab` with loading and error states.
+
+---
+
 ## [2026-05-19] — Admin profile navigation, AskPanel API wiring, consultation settings
 
 ### Added
