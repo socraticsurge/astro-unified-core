@@ -271,7 +271,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
         )}
 
         {error && (
-          <p className="mb-4 text-sm text-red-300 bg-red-950/30 border border-red-900/40 rounded-xl px-4 py-2.5">
+          <p className="mb-4 text-sm text-[var(--color-danger)] bg-[var(--color-danger-faint)] border border-[var(--color-danger-border)] rounded-xl px-4 py-2.5">
             {error}
           </p>
         )}
@@ -346,7 +346,7 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
       boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
     }}>
       <div className="flex items-center gap-2 mb-4">
-        <Clock className="h-4 w-4 text-amber-400" />
+        <Clock className="h-4 w-4 text-[var(--color-warning)]" />
         <span style={{ ...fonts.display, fontSize: "1rem", color: isPaid ? "var(--color-success)" : "var(--color-accent)" }}>
           {isPaid ? "Payment confirmed — in the queue" : "Awaiting payment"}
         </span>
@@ -388,7 +388,7 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
 
       {isPaid && (
         <div className="space-y-3">
-          <div className="rounded-xl border border-emerald-700/30 bg-emerald-950/15 px-4 py-3 flex items-center gap-2 text-emerald-400 text-sm">
+          <div className="rounded-xl border border-[var(--color-success-border)] bg-[var(--color-success-faint)] px-4 py-3 flex items-center gap-2 text-[var(--color-success)] text-sm">
             <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
             <span style={fonts.display}>
               {pending.delivery_mode === "appointment"
@@ -488,7 +488,7 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
   };
 
   return (
-    <div className="rounded-xl border border-amber-700/35 bg-amber-950/20 p-4 space-y-4">
+    <div className="rounded-xl border border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] p-4 space-y-4">
       <div className="flex items-center justify-between">
         <p style={{ ...fonts.display, fontSize: "1.1rem", color: "var(--color-accent)" }}>Pay to confirm</p>
         <span style={{ ...fonts.display, fontSize: "1.5rem", fontWeight: 700, color: "#fbbf24" }}>
@@ -505,7 +505,7 @@ function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
             <p className="text-xs text-muted-foreground mb-1.5">UPI ID</p>
             <div className="flex items-center gap-2">
               <code className="text-sm font-mono text-foreground/85 bg-[var(--color-surface-1)] px-2.5 py-1 rounded-lg border border-[var(--color-border)]">{UPI_ID}</code>
-              <button onClick={copyUpi} className="text-xs text-amber-400 hover:text-amber-300 transition-colors px-2 py-1 border border-amber-400/20 rounded-lg">
+              <button onClick={copyUpi} className="text-xs text-[var(--color-warning)] hover:text-[var(--color-accent)] transition-colors px-2 py-1 border border-[var(--color-accent-dim)] rounded-lg">
                 {copied ? "Copied!" : "Copy"}
               </button>
             </div>
@@ -582,7 +582,7 @@ function HistorySection({ answered, resolveProfileNames }: {
                 onClick={() => setExpandedId(isOpen ? null : req.id)}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-[var(--color-success)] flex-shrink-0" />
                   <div className="min-w-0">
                     <span style={{ ...fonts.display, fontSize: "1rem", color: "var(--color-ink-1)" }} className="truncate block">
                       {resolveProfileNames(req.profile_ids)}
@@ -593,8 +593,8 @@ function HistorySection({ answered, resolveProfileNames }: {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {currentRating === "helpful" && <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />}
-                  {currentRating === "not_helpful" && <ThumbsDown className="h-3.5 w-3.5 text-red-400" />}
+                  {currentRating === "helpful" && <ThumbsUp className="h-3.5 w-3.5 text-[var(--color-success)]" />}
+                  {currentRating === "not_helpful" && <ThumbsDown className="h-3.5 w-3.5 text-[var(--color-danger)]" />}
                   {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 </div>
               </button>
@@ -609,8 +609,8 @@ function HistorySection({ answered, resolveProfileNames }: {
                   </div>
 
                   {req.admin_note ? (
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-1">
-                      <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+                    <div className="rounded-xl border border-[var(--color-success-border)] bg-[var(--color-success-faint)] p-4 space-y-1">
+                      <div className="flex items-center gap-1.5 text-[var(--color-success)] text-xs font-semibold uppercase tracking-wider">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Answer
                       </div>
                       <p style={{ ...fonts.display, fontSize: "1.02rem", color: "var(--color-ink-1)", lineHeight: 1.7 }}>{req.admin_note}</p>
@@ -632,7 +632,7 @@ function HistorySection({ answered, resolveProfileNames }: {
                         <button disabled={!!submittingFeedback}
                           onClick={() => setShowNoteFor(showNoteFor === req.id ? null : req.id)}
                           className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                            showNoteFor === req.id ? "border-emerald-600/50 bg-emerald-900/20 text-emerald-400" : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-muted-foreground hover:text-foreground"
+                            showNoteFor === req.id ? "border-[var(--color-success-border)] bg-[var(--color-success-faint)] text-[var(--color-success)]" : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-muted-foreground hover:text-foreground"
                           }`}>
                           <ThumbsUp className="h-3.5 w-3.5" /> Yes
                         </button>
@@ -647,11 +647,11 @@ function HistorySection({ answered, resolveProfileNames }: {
                           <textarea rows={2} placeholder="Optional: what was most useful?"
                             value={ratingNote[req.id] ?? ""}
                             onChange={e => setRatingNote(prev => ({ ...prev, [req.id]: e.target.value }))}
-                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-emerald-400/40 resize-none"
+                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[var(--color-success)]/40 resize-none"
                           />
                           <button disabled={submittingFeedback === req.id}
                             onClick={() => submitFeedback(req.id, "helpful")}
-                            className="text-xs bg-emerald-700/20 hover:bg-emerald-700/30 border border-emerald-700/40 text-emerald-400 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                            className="text-xs bg-[var(--color-success-faint)] hover:bg-[var(--color-success-faint)] border border-[var(--color-success-border)] text-[var(--color-success)] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                             {submittingFeedback === req.id ? "Submitting…" : "Submit"}
                           </button>
                         </div>

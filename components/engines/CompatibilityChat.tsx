@@ -109,7 +109,7 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2.5 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "assistant" && (
-              <div className="h-6 w-6 rounded-full bg-violet-900/60 border border-violet-700/40 flex items-center justify-center text-[10px] font-bold text-violet-300 shrink-0 mt-0.5">AI</div>
+              <div className="h-6 w-6 rounded-full bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] flex items-center justify-center text-[10px] font-bold text-[var(--color-accent)] shrink-0 mt-0.5">AI</div>
             )}
             <div className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm ${m.role === "user" ? "bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-[var(--color-ink-1)]" : "bg-[var(--color-surface-1)] border border-[var(--color-border)] text-foreground/90"}`}>
               {m.role === "assistant" ? <MessageContent text={m.content} /> : <p>{m.content}</p>}
@@ -120,7 +120,7 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
                     className="flex items-center gap-1 text-[10px] text-[var(--color-ink-4)] hover:text-[var(--color-ink-3)] transition-colors"
                     title="Copy response"
                   >
-                    {copiedIdx === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                    {copiedIdx === i ? <Check className="h-3 w-3 text-[var(--color-success)]" /> : <Copy className="h-3 w-3" />}
                   </button>
                 </div>
               )}
@@ -129,17 +129,17 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
         ))}
         {loading && (
           <div className="flex gap-2.5 justify-start">
-            <div className="h-6 w-6 rounded-full bg-violet-900/60 border border-violet-700/40 flex items-center justify-center text-[10px] font-bold text-violet-300 shrink-0 mt-0.5">AI</div>
+            <div className="h-6 w-6 rounded-full bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] flex items-center justify-center text-[10px] font-bold text-[var(--color-accent)] shrink-0 mt-0.5">AI</div>
             <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl px-3.5 py-2.5">
               <div className="flex gap-1.5 items-center h-4">
                 {[0, 1, 2].map(i => (
-                  <span key={i} className="h-1.5 w-1.5 rounded-full bg-violet-400/60 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                  <span key={i} className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]/60 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
             </div>
           </div>
         )}
-        {error && <p className="text-xs text-red-400 text-center">{error}</p>}
+        {error && <p className="text-xs text-[var(--color-danger)] text-center">{error}</p>}
         <div ref={bottomRef} />
       </div>
 
@@ -152,12 +152,12 @@ export function CompatibilityChat({ checkId, name1, name2 }: Props) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about compatibility, timing, dynamics… (Enter to send)"
-            className="flex-1 resize-none rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-violet-400/50"
+            className="flex-1 resize-none rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
           />
           <button
             onClick={send}
             disabled={loading || !input.trim()}
-            className="h-9 w-9 rounded-lg bg-violet-700/40 hover:bg-violet-700/60 border border-violet-600/40 flex items-center justify-center text-violet-300 transition-colors disabled:opacity-40"
+            className="h-9 w-9 rounded-lg bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-dim)] border border-[var(--color-accent-dim)] flex items-center justify-center text-[var(--color-accent)] transition-colors disabled:opacity-40"
           >
             <Send className="h-3.5 w-3.5" />
           </button>

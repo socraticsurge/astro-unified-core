@@ -8,6 +8,27 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Perf & theme polish (D1 + D2 + C1 + C2)
+
+PR A from the post-#52/#53 follow-up plan. User-visible perf + theme parity.
+
+### Changed
+- **`app/page.tsx` is now fully static / CDN-cacheable** (D1). The `getServerSession` call and `force-dynamic` directive moved to `proxy.ts` (NextAuth middleware), which now redirects authed users from `/` → `/dashboard` before the page renders. The page itself is a pure `return <CosmicLanding />`. Anonymous landing-page hits no longer pay a per-request server render.
+- **DashboardClient caches engine output by profile id** (D2). New `profileCacheRef` (Map) holds `{ chart, transit, career, todayReading }` per profile. Both the new-profile (parallel prefetch) and returning-user (chart + transit) paths populate the cache, and the returning-user effect now checks it first — toggling between profile pills no longer refetches the chart/transit/career/today-reading endpoints. Force-refresh paths (`fetchTransit(true)`, `fetchCareer(true)`) still bypass cache.
+
+### Fixed
+- **Hardcoded Tailwind colors replaced with design tokens in 9 files** (C1) — Vellum-light theme parity. Replacements: `text-red-*` / `bg-red-*` → `--color-danger` + `-faint` + `-border`; `text-emerald-*` / `text-green-*` → `--color-success` + faint/border; `text-amber-*` / `text-yellow-*` → `--color-warning` (or `--color-accent` for action contexts); `text-violet-*` / `text-purple-*` → `--color-accent` + faint/dim; `bg-zinc-*` → `--color-surface-1` / `-2`. Files: `app/consultation/ConsultationForm.tsx`, `components/engines/ExplainerModal.tsx`, `components/engines/CompatibilityChat.tsx`, `components/FeedbackWidget.tsx`, `components/engines/TarabalamView.tsx`, `components/engines/AIInsightCard.tsx`, `components/unified/UnifiedView.tsx`, `components/profiles/ProfileView.tsx`, `components/ui/ModelPicker.tsx`.
+
+### Documented
+- **`lib/typography.ts` boundary clarified** (C2). Audit flagged 79 references across 3 files (`ConsultationForm`, `CompatibilityClient`, `ProfileSelectorCard`) as a half-finished migration. On inspection, these inline-style tokens (`fonts`, `textStyles`, `glass`, `clamp`, `radii`, `motion`, `spacing`, `shadows`, `interactive`) are not legacy — they complement the `.ac-*` classes for cases where runtime-computed styles or unwieldy Tailwind arbitrary values are awkward. Added a usage-policy comment at the top of `lib/typography.ts`. Existing inline-style usage does NOT need to be migrated; the two paths resolve to the same CSS variables and switch with the theme.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 195/195 pass
+- `npm run build` → success
+
+---
+
 ## [2026-05-19] — P0 + B1 + B3: security/correctness + repo lean
 
 Carryover items from the dev → main audit (#52). After this lands, `development`

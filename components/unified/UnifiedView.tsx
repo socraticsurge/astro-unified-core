@@ -36,7 +36,7 @@ export function UnifiedView({
     <div>
       {/* Experimental badge */}
       <div className="mb-3 flex items-center gap-2">
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-500/15 text-purple-300 border border-purple-500/30">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[var(--color-accent-faint)] text-[var(--color-accent)] border border-[var(--color-accent-dim)]">
           Experimental
         </span>
         <span className="text-xs text-muted-foreground">Unified view · feedback welcome</span>

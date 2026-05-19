@@ -33,6 +33,17 @@ function initState<T>(): EngineState<T> {
   return { data: null, loading: false, error: null }
 }
 
+// In-memory cache of fetched engine output, keyed by profile id. Avoids
+// refetching chart/transit/career/today-reading every time the user toggles
+// between profile pills in the NavBar. Refresh via the existing
+// fetchTransit/fetchCareer(force=true) paths still bypasses this.
+type ProfileCache = {
+  chart: Record<string, unknown> | null
+  transit: Record<string, unknown> | null
+  career: Record<string, unknown> | null
+  todayReading: { dasha_reading: string; chart_reading: string } | null
+}
+
 export function DashboardClient({
   profiles,
   initialProfileId,
@@ -57,6 +68,15 @@ export function DashboardClient({
   const [showLoadingScreen, setShowLoadingScreen] = useState(isNewProfile)
   const minTimeReachedRef = useRef(!isNewProfile)
   const fetchesDoneRef    = useRef(!isNewProfile)
+
+  const profileCacheRef = useRef<Map<string, ProfileCache>>(new Map())
+
+  function updateCache(profileId: string, patch: Partial<ProfileCache>) {
+    const prev = profileCacheRef.current.get(profileId) ?? {
+      chart: null, transit: null, career: null, todayReading: null,
+    }
+    profileCacheRef.current.set(profileId, { ...prev, ...patch })
+  }
 
   function tryDismissLoading() {
     if (minTimeReachedRef.current && fetchesDoneRef.current) {
@@ -99,13 +119,19 @@ export function DashboardClient({
     fetch(`/api/readings/dashaflow?profile_id=${activeProfileId}`)
       .then(r => r.json())
       .then(data => {
-        setChart({ data: data.output ?? null, loading: false, error: data.error ?? null })
+        const output = data.output ?? null
+        setChart({ data: output, loading: false, error: data.error ?? null })
+        if (output) updateCache(activeProfileId, { chart: output })
         onSettled()
 
         // today-reading needs chart cached first
         fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
           .then(r => r.json())
-          .then(d => setTodayReading({ data: d.output ?? null, loading: false, error: d.error ?? null }))
+          .then(d => {
+            const tr = d.output ?? null
+            setTodayReading({ data: tr, loading: false, error: d.error ?? null })
+            if (tr) updateCache(activeProfileId, { todayReading: tr })
+          })
           .catch(() => setTodayReading(initState()))
           .finally(onSettled)
       })
@@ -120,14 +146,22 @@ export function DashboardClient({
     // Transit — independent of chart
     fetch(`/api/readings/transit?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setTransit({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .then(data => {
+        const output = data.output ?? null
+        setTransit({ data: output, loading: false, error: data.error ?? null })
+        if (output) updateCache(activeProfileId, { transit: output })
+      })
       .catch(() => setTransit(initState()))
       .finally(onSettled)
 
     // Career — independent of chart
     fetch(`/api/readings/career?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setCareer({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .then(data => {
+        const output = data.output ?? null
+        setCareer({ data: output, loading: false, error: data.error ?? null })
+        if (output) updateCache(activeProfileId, { career: output })
+      })
       .catch(() => setCareer(initState()))
       .finally(onSettled)
 
@@ -135,33 +169,57 @@ export function DashboardClient({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNewProfile, activeProfileId])
 
-  // Returning user: chart + transit in parallel; career loads on tab open
+  // Returning user: chart + transit in parallel; career loads on tab open.
+  // Hits the in-memory cache first so toggling profile pills doesn't refetch.
   useEffect(() => {
     if (isNewProfile || !activeProfileId) return
 
-    setChart({ data: null, loading: true, error: null })
-    setTransit({ data: null, loading: true, error: null })
-    setCareer(initState())
-    setTodayReading(initState())
     setAiOpen(false)
 
-    fetch(`/api/readings/dashaflow?profile_id=${activeProfileId}`)
-      .then(r => r.json())
-      .then(data => {
-        setChart({ data: data.output ?? null, loading: false, error: data.error ?? null })
-        if (data.output) {
-          setTodayReading(s => ({ ...s, loading: true }))
-          fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
-            .then(r => r.json())
-            .then(d => setTodayReading({ data: d.output ?? null, loading: false, error: d.error ?? null }))
-            .catch(() => setTodayReading(initState()))
-        }
-      })
-      .catch(e => setChart({ data: null, loading: false, error: String(e) }))
+    const cached = profileCacheRef.current.get(activeProfileId)
+    if (cached) {
+      setChart({ data: cached.chart, loading: false, error: null })
+      setTransit({ data: cached.transit, loading: cached.transit === null, error: null })
+      setCareer({ data: cached.career, loading: false, error: null })
+      setTodayReading({ data: cached.todayReading, loading: false, error: null })
+      // If transit was never fetched for this profile, fall through to fetch it.
+      if (cached.transit !== null) return
+    } else {
+      setChart({ data: null, loading: true, error: null })
+      setTransit({ data: null, loading: true, error: null })
+      setCareer(initState())
+      setTodayReading(initState())
+    }
+
+    if (!cached) {
+      fetch(`/api/readings/dashaflow?profile_id=${activeProfileId}`)
+        .then(r => r.json())
+        .then(data => {
+          const output = data.output ?? null
+          setChart({ data: output, loading: false, error: data.error ?? null })
+          if (output) {
+            updateCache(activeProfileId, { chart: output })
+            setTodayReading(s => ({ ...s, loading: true }))
+            fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
+              .then(r => r.json())
+              .then(d => {
+                const tr = d.output ?? null
+                setTodayReading({ data: tr, loading: false, error: d.error ?? null })
+                if (tr) updateCache(activeProfileId, { todayReading: tr })
+              })
+              .catch(() => setTodayReading(initState()))
+          }
+        })
+        .catch(e => setChart({ data: null, loading: false, error: String(e) }))
+    }
 
     fetch(`/api/readings/transit?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setTransit({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .then(data => {
+        const output = data.output ?? null
+        setTransit({ data: output, loading: false, error: data.error ?? null })
+        if (output) updateCache(activeProfileId, { transit: output })
+      })
       .catch(() => setTransit(initState()))
   }, [isNewProfile, activeProfileId])
 
@@ -172,7 +230,11 @@ export function DashboardClient({
 
     fetch(`/api/readings/transit?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setTransit({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .then(data => {
+        const output = data.output ?? null
+        setTransit({ data: output, loading: false, error: data.error ?? null })
+        if (output) updateCache(activeProfileId, { transit: output })
+      })
       .catch(e => setTransit({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId, transit.data])
 
@@ -183,7 +245,11 @@ export function DashboardClient({
 
     fetch(`/api/readings/career?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setCareer({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .then(data => {
+        const output = data.output ?? null
+        setCareer({ data: output, loading: false, error: data.error ?? null })
+        if (output) updateCache(activeProfileId, { career: output })
+      })
       .catch(e => setCareer({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId, career.data])
 
@@ -193,7 +259,11 @@ export function DashboardClient({
 
     fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
       .then(r => r.json())
-      .then(data => setTodayReading({ data: data.output ?? null, loading: false, error: data.error ?? null }))
+      .then(data => {
+        const output = data.output ?? null
+        setTodayReading({ data: output, loading: false, error: data.error ?? null })
+        if (output) updateCache(activeProfileId, { todayReading: output })
+      })
       .catch(() => setTodayReading(initState()))
   }, [activeProfileId])
 
