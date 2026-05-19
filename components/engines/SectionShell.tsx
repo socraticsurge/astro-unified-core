@@ -43,7 +43,7 @@ export const SectionShell = memo(function SectionShell({
   sectionInView,
   explainer,
   chartEntries,
-  accent = "text-green-400",
+  accent = "text-[var(--color-ink-1)]",
   defaultOpen = true,
   children,
 }: Props) {
