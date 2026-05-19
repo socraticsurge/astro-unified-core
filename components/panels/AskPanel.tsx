@@ -8,6 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 export interface AskContext {
   profileName: string
@@ -25,6 +26,7 @@ interface AskPanelProps {
   writtenEnabled: boolean
   liveEnabled: boolean
   writtenFeePaise: number
+  liveFeePaise: number
   onSubmit: (question: string) => Promise<void>
 }
 
@@ -42,8 +44,15 @@ export function AskPanel({
   writtenEnabled,
   liveEnabled,
   writtenFeePaise,
+  liveFeePaise,
   onSubmit,
 }: AskPanelProps) {
+  const isFree = !writtenEnabled && !liveEnabled
+  const hasWritten = writtenEnabled || isFree
+  const hasLive = liveEnabled
+  const showToggle = hasWritten && hasLive
+
+  const [mode, setMode] = React.useState<"written" | "live">(hasWritten ? "written" : "live")
   const [question, setQuestion] = React.useState("")
   const [submitting, setSubmitting] = React.useState(false)
   const [sent, setSent] = React.useState(false)
@@ -55,15 +64,14 @@ export function AskPanel({
       setSent(false)
       setError(null)
       setSubmitting(false)
+      setMode(hasWritten ? "written" : "live")
     }
-  }, [open])
+  }, [open, hasWritten])
 
   const placeholder = context.insightTitle
     ? `Ask about: ${context.insightTitle}`
     : `e.g. What does this ${context.mahadasha} mahadasha mean for my career?`
 
-  const isFree = !writtenEnabled && !liveEnabled
-  const canSubmitWritten = writtenEnabled || isFree
   const charCount = question.trim().length
   const canSubmit = charCount >= MIN_LENGTH && charCount <= MAX_LENGTH && !submitting
 
@@ -78,12 +86,6 @@ export function AskPanel({
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const buttonLabel = () => {
-    if (submitting) return "Submitting…"
-    if (isFree) return "Submit question"
-    return `Request written response · ${fmtRupees(writtenFeePaise)}`
   }
 
   return (
@@ -124,9 +126,39 @@ export function AskPanel({
               )}
             </div>
 
-            {canSubmitWritten ? (
+            {/* Delivery mode toggle — only when both options are available */}
+            {showToggle && (
+              <div className="grid grid-cols-2 gap-2">
+                {(["written", "live"] as const).map(m => {
+                  const label = m === "written" ? "Written Response" : "Live Session"
+                  const fee = m === "written"
+                    ? (isFree ? "Free" : fmtRupees(writtenFeePaise))
+                    : fmtRupees(liveFeePaise)
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setMode(m)}
+                      className={cn(
+                        "flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                        mode === m
+                          ? "border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] text-[var(--color-ink-1)]"
+                          : "border-[var(--color-border)] bg-transparent text-muted-foreground hover:border-[var(--color-border-subtle)] hover:text-[var(--color-ink-2)]"
+                      )}
+                    >
+                      <span className="text-xs font-medium">{label}</span>
+                      <span className={cn("text-[11px]", mode === m ? "text-[var(--color-accent)]" : "text-muted-foreground/60")}>
+                        {fee}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Written mode */}
+            {(mode === "written" || !hasLive) && hasWritten && (
               <>
-                {/* Question textarea */}
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="ask-question" className="text-xs font-medium uppercase tracking-wide opacity-60">
                     Your question
@@ -156,32 +188,29 @@ export function AskPanel({
                   disabled={!canSubmit}
                   onClick={handleSubmit}
                 >
-                  {buttonLabel()}
+                  {submitting
+                    ? "Submitting…"
+                    : isFree
+                      ? "Submit question"
+                      : `Submit · ${fmtRupees(writtenFeePaise)}`}
                 </Button>
-
-                {liveEnabled && (
-                  <p className="text-center text-xs text-muted-foreground">
-                    Looking for a live session?{" "}
-                    <a href="/consultation" className="text-[var(--color-accent)] hover:underline">
-                      Book here →
-                    </a>
-                  </p>
-                )}
               </>
-            ) : liveEnabled ? (
-              /* Only live is enabled — redirect to full consultation page */
-              <div className="flex flex-col gap-3 pt-2">
+            )}
+
+            {/* Live mode */}
+            {(mode === "live" || !hasWritten) && hasLive && (
+              <div className="flex flex-col gap-3">
                 <p className="text-sm text-[var(--color-ink-2)] leading-relaxed">
-                  Written responses are currently unavailable. You can book a live consultation session instead.
+                  Book a 25-minute live consultation with our astrologer. You&apos;ll pick a slot on the next page.
                 </p>
                 <a
                   href="/consultation"
                   className="inline-flex items-center justify-center w-full rounded-md bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-[var(--color-accent)] text-sm font-medium px-4 py-2.5 hover:bg-[var(--color-accent-faint)]/80 transition-colors"
                 >
-                  Book a live session →
+                  Book a live session · {fmtRupees(liveFeePaise)} →
                 </a>
               </div>
-            ) : null}
+            )}
           </>
         )}
       </SheetContent>

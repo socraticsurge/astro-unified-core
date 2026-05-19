@@ -212,6 +212,7 @@ export function DashboardClient({
         writtenEnabled={appSettings.writtenEnabled}
         liveEnabled={appSettings.liveEnabled}
         writtenFeePaise={appSettings.writtenFeePaise}
+        liveFeePaise={appSettings.liveFeePaise}
         onSubmit={handleAskSubmit}
       />
 
