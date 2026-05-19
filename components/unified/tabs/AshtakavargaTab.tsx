@@ -1,10 +1,8 @@
 "use client";
-import { SIGNS_ORDER, TABLE_STYLES } from "@/components/unified/types";
+import { SIGNS_ORDER } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import { SectionHeading } from "@/components/unified/SectionHeading";
-
-const { th } = TABLE_STYLES;
 
 export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, unknown> }) {
   const data         = chartOutput?.data as Record<string, unknown> | undefined;
@@ -18,7 +16,7 @@ export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, u
   const lagnaSign = lagna?.sign as SignName | undefined;
 
   if (!sav && !bav) {
-    return <p className="text-xs text-muted-foreground italic">Ashtakavarga data not available.</p>;
+    return <p style={{ fontSize: 12, fontStyle: "italic", color: "var(--color-ink-3)" }}>Ashtakavarga data not available.</p>;
   }
 
   return (
@@ -35,7 +33,7 @@ export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, u
             label="D1 — Rasi"
             savScores={sav}
           />
-          <p className="mt-2 text-[10px] text-muted-foreground/50">
+          <p style={{ marginTop: 6, fontSize: 10, color: "var(--color-ink-4)" }}>
             SAV Bindus per sign: ≥28 favorable · &lt;22 challenging
           </p>
         </section>
@@ -45,39 +43,31 @@ export function AshtakavargaTab({ chartOutput }: { chartOutput: Record<string, u
       {bav && (
         <section>
           <SectionHeading>Bhinnashtakavarga (BAV) — per planet</SectionHeading>
-          <div className="overflow-x-auto">
-            <table className="text-xs border-collapse">
+          <div className="ac-card overflow-x-auto">
+            <table className="ac-table">
               <thead>
-                <tr className="border-b border-[var(--color-border)]">
-                  <th className={th}>Planet</th>
+                <tr>
+                  <th>Planet</th>
                   {SIGNS_ORDER.map(s => (
-                    <th key={s} className={`${th} text-center px-1.5`}>
-                      {s.slice(0, 3)}
-                    </th>
+                    <th key={s} className="right" style={{ minWidth: 26 }}>{s.slice(0, 3)}</th>
                   ))}
-                  <th className={`${th} text-center`}>Σ</th>
+                  <th className="right">Σ</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(bav).map(([planet, scores]) => {
                   const total = SIGNS_ORDER.reduce((acc, sign) => acc + (scores[sign] ?? 0), 0);
                   return (
-                    <tr key={planet} className={TABLE_STYLES.row}>
-                      <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-2)]">{planet}</td>
+                    <tr key={planet}>
+                      <td className="planet">{planet}</td>
                       {SIGNS_ORDER.map(sign => {
                         const val = scores[sign] ?? 0;
+                        const cls = val >= 6 ? "ac-cell-good" : val <= 2 ? "ac-cell-bad" : "";
                         return (
-                          <td
-                            key={sign}
-                            className={`py-1.5 px-1.5 text-center font-mono ${
-                              val >= 6 ? "text-success font-bold" : val <= 2 ? "text-danger" : "text-muted-foreground"
-                            }`}
-                          >
-                            {val}
-                          </td>
+                          <td key={sign} className={`num right ${cls}`}>{val}</td>
                         );
                       })}
-                      <td className="py-1.5 px-2 text-center font-bold text-[var(--color-ink-2)]">{total}</td>
+                      <td className="num right" style={{ fontWeight: 700 }}>{total}</td>
                     </tr>
                   );
                 })}

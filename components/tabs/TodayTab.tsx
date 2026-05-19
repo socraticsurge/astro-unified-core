@@ -47,13 +47,12 @@ export function TodayTab({
 
   if (!chartOutput) {
     return (
-      <div className="flex items-center justify-center h-40">
-        <p className="text-sm text-muted-foreground">Loading your chart…</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 160 }}>
+        <p style={{ fontSize: 13, color: "var(--color-ink-3)" }}>Loading your chart…</p>
       </div>
     )
   }
 
-  // Shift pills — antardasha within 8w, pratyantar within 4w
   const shiftPills: string[] = []
   if (dashas?.antar?.end) {
     const w = Math.round(weeksUntil(dashas.antar.end))
@@ -68,33 +67,28 @@ export function TodayTab({
 
   return (
     <div className="space-y-5 max-w-xl">
-      {/* Hero card — all 5 dasha levels */}
-      <div className="p-4 rounded-xl border border-[var(--color-border-subtle)] bg-gradient-to-br from-[var(--color-surface-1)] to-[var(--color-surface-2)]">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Current dasha period</p>
-        <div className="space-y-1">
+      {/* Current dasha hero */}
+      <div className="ac-card ac-card-pad">
+        <div className="ac-eyebrow" style={{ marginBottom: 10 }}>Current dasha period</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {DASHA_LEVELS.map(({ key, label }) => {
             const d = dashas?.[key]
             if (!d?.planet) return null
             return (
-              <div key={key} className="flex items-baseline gap-2">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 w-20 shrink-0">{label}</span>
-                <span className="text-sm font-medium text-[var(--color-ink-1)]">{d.planet}</span>
+              <div key={key} style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <span className="ac-eyebrow" style={{ width: 80, flexShrink: 0 }}>{label}</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--color-ink-1)" }}>{d.planet}</span>
                 {d.start && (
-                  <span className="text-[11px] text-muted-foreground/70 ml-auto">{d.start} – {d.end ?? '…'}</span>
+                  <span style={{ fontSize: 11, color: "var(--color-ink-3)", marginLeft: "auto" }}>{d.start} – {d.end ?? '…'}</span>
                 )}
               </div>
             )
           })}
         </div>
         {shiftPills.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="ac-pills" style={{ marginTop: 12, gap: 6 }}>
             {shiftPills.map(pill => (
-              <span
-                key={pill}
-                className="px-2.5 py-1 rounded-full border border-[var(--color-nav-alert)] text-[var(--color-nav-alert)] text-xs"
-              >
-                ● {pill}
-              </span>
+              <span key={pill} className="ac-tag warn">● {pill}</span>
             ))}
           </div>
         )}
@@ -102,8 +96,8 @@ export function TodayTab({
 
       {/* Insight cards */}
       {insights.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">What&apos;s active now</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="ac-eyebrow">What&apos;s active now</div>
           {insights.map(insight => (
             <TodayInsightCard
               key={insight.id}
@@ -114,43 +108,41 @@ export function TodayTab({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground italic">No significant patterns active right now.</p>
+        <p style={{ fontSize: 13, fontStyle: "italic", color: "var(--color-ink-3)" }}>No significant patterns active right now.</p>
       )}
 
-      {/* AI-generated reading — only rendered when data is available */}
+      {/* Loading reading */}
       {isTodayReadingLoading && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--color-ink-3)", padding: "8px 0" }}>
           <span className="animate-pulse">●</span>
           <span>Generating your reading…</span>
         </div>
       )}
 
+      {/* AI reading */}
       {!isTodayReadingLoading && todayReadingOutput && (
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Your reading</p>
-          <div className="space-y-4">
-            {todayReadingOutput.dasha_reading && (
-              <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-4 space-y-1.5">
-                <p className="text-[10px] uppercase tracking-wider text-[color:var(--color-ink-3,var(--color-muted))] font-medium">
-                  Current period — {dashas?.maha?.planet} / {dashas?.antar?.planet}{dashas?.pratyantar?.planet ? ` / ${dashas.pratyantar.planet}` : ''}
-                </p>
-                <p className="text-sm text-[var(--color-ink-2)] leading-relaxed">
-                  {todayReadingOutput.dasha_reading}
-                </p>
-              </div>
-            )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="ac-eyebrow">Your reading</div>
 
-            {todayReadingOutput.chart_reading && (
-              <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-4 space-y-1.5">
-                <p className="text-[10px] uppercase tracking-wider text-[color:var(--color-ink-3,var(--color-muted))] font-medium">
-                  Your natal chart
-                </p>
-                <p className="text-sm text-[var(--color-ink-2)] leading-relaxed">
-                  {todayReadingOutput.chart_reading}
-                </p>
+          {todayReadingOutput.dasha_reading && (
+            <div className="ac-card ac-card-pad">
+              <div className="ac-eyebrow" style={{ marginBottom: 6 }}>
+                Current period — {dashas?.maha?.planet} / {dashas?.antar?.planet}{dashas?.pratyantar?.planet ? ` / ${dashas.pratyantar.planet}` : ''}
               </div>
-            )}
-          </div>
+              <p style={{ fontSize: 13, color: "var(--color-ink-2)", lineHeight: 1.6 }}>
+                {todayReadingOutput.dasha_reading}
+              </p>
+            </div>
+          )}
+
+          {todayReadingOutput.chart_reading && (
+            <div className="ac-card ac-card-pad">
+              <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Your natal chart</div>
+              <p style={{ fontSize: 13, color: "var(--color-ink-2)", lineHeight: 1.6 }}>
+                {todayReadingOutput.chart_reading}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

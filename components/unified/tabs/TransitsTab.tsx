@@ -1,8 +1,7 @@
 "use client";
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { PLANET_ORDER, TABLE_STYLES } from "@/components/unified/types";
+import { PLANET_ORDER } from "@/components/unified/types";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 
 export function TransitsTab({
@@ -33,44 +32,49 @@ export function TransitsTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <SectionHeading>Today&apos;s Transits</SectionHeading>
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
+          type="button"
           onClick={() => onFetchTransit(true)}
           disabled={isTransitLoading}
-          className="h-6 text-xs gap-1"
+          style={{
+            display: "flex", alignItems: "center", gap: 4,
+            fontSize: 11, color: "var(--color-ink-3)",
+            background: "none", border: "none", cursor: "pointer", padding: "4px 8px",
+          }}
         >
-          <RefreshCw className={`h-3 w-3 ${isTransitLoading ? "animate-spin" : ""}`} />
+          <RefreshCw style={{ width: 11, height: 11, animation: isTransitLoading ? "spin 1s linear infinite" : "none" }} />
           Refresh
-        </Button>
+        </button>
       </div>
 
-      {isTransitLoading && <p className="text-xs text-muted-foreground">Loading transits…</p>}
+      {isTransitLoading && (
+        <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>Loading transits…</p>
+      )}
 
       {!isTransitLoading && transitError && (
-        <div className="flex items-center gap-2 text-xs text-[var(--color-danger)]">
+        <div style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-danger)" }}>
           <span>Couldn&apos;t load transits — {transitError}</span>
-          <button type="button" onClick={() => onFetchTransit(true)} className="underline underline-offset-2">Retry</button>
+          <button type="button" onClick={() => onFetchTransit(true)} style={{ textDecoration: "underline", background: "none", border: "none", cursor: "pointer", color: "inherit" }}>Retry</button>
         </div>
       )}
 
       {transit && (
         <>
           {sadeSati?.active && (
-            <div className="px-3 py-2 rounded-lg bg-warning/10 border border-warning/30 text-warning text-xs">
+            <div className="ac-banner warn">
               Sade Sati active · {sadeSati.phase} phase
             </div>
           )}
 
           {transitPlanets && (
-            <div className="overflow-x-auto">
-              <table className="text-xs border-collapse w-full">
+            <div className="ac-card overflow-x-auto">
+              <table className="ac-table">
                 <thead>
-                  <tr className="border-b border-[var(--color-border)]">
-                    {["Planet", "Transit Sign", "From Lagna", "From Moon", "SAV"].map(h => (
-                      <th key={h} className={TABLE_STYLES.th}>{h}</th>
+                  <tr>
+                    {["Planet", "Transit Sign", "H / Lagna", "H / Moon", "SAV"].map(h => (
+                      <th key={h}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -79,18 +83,17 @@ export function TransitsTab({
                     const p = transitPlanets[name];
                     if (!p) return null;
                     const savVal = p.sav_points ?? 0;
+                    const savCls = savVal >= 30 ? "ac-cell-good" : savVal <= 22 ? "ac-cell-bad" : "";
                     return (
-                      <tr key={name} className={TABLE_STYLES.row}>
-                        <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-1)]">
+                      <tr key={name}>
+                        <td className="planet">
                           {name}
-                          {p.is_retrograde && <span className="ml-1 text-planet-retrograde">℞</span>}
+                          {p.is_retrograde && <span className="ac-retro" style={{ marginLeft: 4 }}>℞</span>}
                         </td>
-                        <td className="py-1.5 px-2 text-[var(--color-ink-2)]">{p.sign}</td>
-                        <td className="py-1.5 px-2 text-center text-muted-foreground">{p.house_from_lagna}</td>
-                        <td className="py-1.5 px-2 text-center text-muted-foreground">{p.house_from_moon}</td>
-                        <td className={`py-1.5 px-2 text-center font-bold font-mono ${savVal >= 30 ? "text-success" : savVal <= 22 ? "text-danger" : "text-muted-foreground"}`}>
-                          {savVal}
-                        </td>
+                        <td>{p.sign ?? "—"}</td>
+                        <td className="num right">{p.house_from_lagna ?? "—"}</td>
+                        <td className="num right">{p.house_from_moon ?? "—"}</td>
+                        <td className={`num right ${savCls}`}>{savVal}</td>
                       </tr>
                     );
                   })}

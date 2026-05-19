@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import {
-  Philosopher,
-  Mulish,
   Libre_Baskerville,
   Inter,
   JetBrains_Mono,
-  Cormorant_Garamond,
 } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
@@ -21,52 +18,24 @@ import { authOptions } from "@/lib/auth";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-// ── Dark theme fonts ───────────────────────────────────────────────────────────
-const philosopher = Philosopher({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-display-dark",
-});
-
-const mulish = Mulish({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-ui-dark",
-});
-
-// ── Light theme fonts ──────────────────────────────────────────────────────────
+// Both themes share the same font stack (Libre Baskerville display, Inter UI)
 const libreBaskerville = Libre_Baskerville({
   subsets: ["latin"],
   weight: ["400", "700"],
   style: ["normal", "italic"],
-  variable: "--font-display-light",
+  variable: "--font-display",
 });
 
 const inter = Inter({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-ui-light",
+  variable: "--font-ui",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "600"],
-  variable: "--font-mono-light",
-});
-
-const jetbrainsMonoDark = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "600"],
-  variable: "--font-mono-dark",
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  style: ["normal", "italic"],
-  variable: "--font-cormorant",
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -82,13 +51,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" suppressHydrationWarning>
       <body
         className={[
-          philosopher.variable,
-          mulish.variable,
           libreBaskerville.variable,
           inter.variable,
           jetbrainsMono.variable,
-          jetbrainsMonoDark.variable,
-          cormorant.variable,
           "font-sans antialiased",
         ].join(" ")}
       >

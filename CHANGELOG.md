@@ -8,6 +8,23 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Apply `.ac-*` design language consistently across all tabs and components
+
+### Changed
+- **All unified tabs** (`JaiminiTab`, `AshtakavargaTab`, `YogasTab`, `HousesVargasTab`, `DashaTab`, `TransitsTab`, `CareerTab`, `TimeTab`, `PatternsTab`) — replaced `TABLE_STYLES`, `DIGNITY_COLORS`, hardcoded Tailwind color utilities with `.ac-card`, `.ac-table`, `.ac-tag`, `.ac-kv`, `.ac-dasha-row`, `.ac-banner`, `.ac-eyebrow`, `.ac-cell-good`/`.ac-cell-bad`, `.ac-pills`/`.ac-pill` classes.
+- **Engine views** (`CareerView`, `MuhurthaView`, `TarabalamView`) — same conversion; removed all `PLANET_COLORS`, hardcoded hex/rgba values.
+- **CompatibilityDetailClient** — replaced `glass`, `fonts`, `textStyles`, `clamp`, `radii`, `motion` imports from `lib/typography` with `.ac-card`, `.ac-eyebrow`, `.ac-tag`, CSS variable colors throughout.
+- **CompareTab** — removed `TABLE_STYLES`; converted guna table, natal moon table, dosha cards, kuja table to `.ac-*` classes.
+- **TodayTab / TodayInsightCard** — dasha hero, insight cards, AI reading cards all use `.ac-card`, `.ac-eyebrow`, `.ac-tag`, `.ac-btn-ask`.
+- **ProfileSidebar** — birth info and panchang sections use `.ac-kv` grid and `.ac-eyebrow` labels.
+
+### Removed
+- All remaining `TABLE_STYLES` import/usage across codebase.
+- All hardcoded hex colors (`#fca5a5`, `#6ee7b7`, `rgba(...)`) — replaced with `var(--color-*)` tokens.
+- Stray `.claire/` directory created during development.
+
+---
+
 ## [2026-05-19] — Theme system: simplify tokens, fix all hardcoded colors, full light/dark parity
 
 ### Added

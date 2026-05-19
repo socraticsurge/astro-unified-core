@@ -25,37 +25,33 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
       <section>
         <SectionHeading>Yogas ({yogas.length})</SectionHeading>
         {yogas.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic">No yoga data available.</p>
+          <p style={{ fontSize: 12, fontStyle: "italic", color: "var(--color-ink-3)" }}>No yoga data available.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: 8 }}>
             {yogas.map((y, i) => (
               <div
                 key={`${y.name}-${i}`}
-                className={`p-3 rounded-lg border ${
-                  MAJOR_YOGAS.has(y.name)
-                    ? "border-[var(--color-accent)]/40 bg-[var(--color-accent)]/5"
-                    : "border-[var(--color-border)] bg-[var(--color-surface-1)]"
-                }`}
+                className="ac-card ac-card-pad-sm"
+                style={MAJOR_YOGAS.has(y.name) ? { borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" } : {}}
               >
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className={`font-semibold text-sm ${MAJOR_YOGAS.has(y.name) ? "text-[var(--color-accent)]" : "text-[var(--color-ink-1)]"}`}>
+                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: y.description ? 6 : 0 }}>
+                  <span style={{
+                    fontWeight: 600, fontSize: 13,
+                    color: MAJOR_YOGAS.has(y.name) ? "var(--color-accent)" : "var(--color-ink-1)",
+                  }}>
                     {y.name}
-                    {MAJOR_YOGAS.has(y.name) && (
-                      <span className="ml-1.5 text-xs bg-[var(--color-accent)]/20 text-[var(--color-accent)] px-1.5 py-0.5 rounded-full uppercase font-bold tracking-wide">
-                        Major
-                      </span>
-                    )}
                   </span>
-                  <div className="flex gap-1 flex-wrap">
+                  {MAJOR_YOGAS.has(y.name) && (
+                    <span className="ac-tag solid" style={{ fontSize: 9, padding: "1px 6px", letterSpacing: "0.07em" }}>Major</span>
+                  )}
+                  <div className="ac-pills" style={{ gap: 4 }}>
                     {y.formed_by?.map(p => (
-                      <span key={p} className="px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-xs text-[var(--color-ink-3)] font-medium">
-                        {p}
-                      </span>
+                      <span key={p} className="ac-pill cool" style={{ fontSize: 10 }}>{p}</span>
                     ))}
                   </div>
                 </div>
                 {y.description && (
-                  <p className="text-xs text-muted-foreground leading-relaxed">{y.description}</p>
+                  <p style={{ fontSize: 12, color: "var(--color-ink-3)", lineHeight: 1.5 }}>{y.description}</p>
                 )}
               </div>
             ))}
@@ -65,55 +61,57 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
 
       {/* Doshas */}
       {(kaalSarpa || grahaYuddha.length > 0 || gandanta.length > 0) && (
-      <section>
-        <SectionHeading>Doshas</SectionHeading>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {kaalSarpa && (
-            <div className="p-3 rounded-lg border border-danger/40 bg-danger/5">
-              <p className="font-semibold text-sm text-[var(--color-ink-1)]">Kaal Sarpa</p>
-              <p className="text-xs text-danger mt-0.5">{kaalSarpa.type} · {kaalSarpa.direction}</p>
-              {kaalSarpa.description && (
-                <p className="text-xs text-muted-foreground mt-1">{kaalSarpa.description}</p>
-              )}
-            </div>
-          )}
-
-          {grahaYuddha.length > 0 && (
-            <div className="p-3 rounded-lg border border-warning/30 bg-warning/5">
-              <p className="font-semibold text-sm text-[var(--color-ink-1)] mb-2">
-                Graha Yuddha — Planetary Wars ({grahaYuddha.length})
-              </p>
-              {grahaYuddha.map((gw, i) => (
-                <div key={i} className="text-xs text-muted-foreground mb-1">
-                  <span className="text-warning font-semibold">{gw.winner}</span>
-                  <span className="mx-1">defeats</span>
-                  <span className="text-danger">{gw.loser}</span>
-                  {gw.description && (
-                    <span className="ml-2 text-muted-foreground/60">({gw.description})</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {gandanta.length > 0 && (
-            <div className="p-3 rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5">
-              <p className="font-semibold text-sm text-[var(--color-ink-1)] mb-2">
-                Gandanta — Karmic Junctions ({gandanta.length})
-              </p>
-              {gandanta.map((g, i) => (
-                <p key={i} className="text-xs text-muted-foreground">
-                  <span className="text-[var(--color-accent)] font-semibold">{g.planet}</span>
-                  {" "}{g.sign} {g.degree?.toFixed(2)}° · {g.nakshatra}
-                  {g.description && (
-                    <span className="ml-2 text-muted-foreground/60">({g.description})</span>
-                  )}
+        <section>
+          <SectionHeading>Doshas</SectionHeading>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: 10 }}>
+            {kaalSarpa && (
+              <div className="ac-card ac-card-pad-sm" style={{ borderColor: "var(--color-danger-border)", background: "var(--color-danger-faint)" }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--color-ink-1)", marginBottom: 4 }}>Kaal Sarpa</div>
+                <p style={{ fontSize: 12, color: "var(--color-danger)", marginBottom: kaalSarpa.description ? 4 : 0 }}>
+                  {kaalSarpa.type} · {kaalSarpa.direction}
                 </p>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+                {kaalSarpa.description && (
+                  <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>{kaalSarpa.description}</p>
+                )}
+              </div>
+            )}
+
+            {grahaYuddha.length > 0 && (
+              <div className="ac-card ac-card-pad-sm" style={{ borderColor: "var(--color-warning-border)", background: "var(--color-warning-faint)" }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--color-ink-1)", marginBottom: 6 }}>
+                  Graha Yuddha — Planetary Wars ({grahaYuddha.length})
+                </div>
+                {grahaYuddha.map((gw, i) => (
+                  <div key={i} style={{ fontSize: 12, color: "var(--color-ink-3)", marginBottom: 3 }}>
+                    <span style={{ color: "var(--color-warning)", fontWeight: 600 }}>{gw.winner}</span>
+                    <span style={{ margin: "0 4px" }}>defeats</span>
+                    <span style={{ color: "var(--color-danger)" }}>{gw.loser}</span>
+                    {gw.description && (
+                      <span style={{ marginLeft: 6, opacity: 0.6 }}>({gw.description})</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {gandanta.length > 0 && (
+              <div className="ac-card ac-card-pad-sm" style={{ borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--color-ink-1)", marginBottom: 6 }}>
+                  Gandanta — Karmic Junctions ({gandanta.length})
+                </div>
+                {gandanta.map((g, i) => (
+                  <p key={i} style={{ fontSize: 12, color: "var(--color-ink-3)", marginBottom: 2 }}>
+                    <span style={{ color: "var(--color-accent)", fontWeight: 600 }}>{g.planet}</span>
+                    {" "}{g.sign} {g.degree?.toFixed(2)}° · {g.nakshatra}
+                    {g.description && (
+                      <span style={{ marginLeft: 6, opacity: 0.6 }}>({g.description})</span>
+                    )}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       )}
     </div>
   );

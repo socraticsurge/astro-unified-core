@@ -190,19 +190,19 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
         ) : (
           <>
             {/* Birth info */}
-            <div className="space-y-1 text-xs">
-              <div className="flex gap-2">
-                <span className="text-muted-foreground w-14 shrink-0">DOB</span>
-                <span className="text-[var(--color-ink-2)]">{profile.date_of_birth} · {profile.time_of_birth}</span>
+            <div className="ac-kv">
+              <div>
+                <span className="k">DOB</span>
+                <span className="v">{profile.date_of_birth} · {profile.time_of_birth}</span>
               </div>
-              <div className="flex gap-2">
-                <span className="text-muted-foreground w-14 shrink-0">Born</span>
-                <span className="text-[var(--color-ink-2)] leading-tight">{profile.place_of_birth}</span>
+              <div>
+                <span className="k">Born</span>
+                <span className="v" style={{ textAlign: "right" }}>{profile.place_of_birth}</span>
               </div>
               {profile.current_location && (
-                <div className="flex gap-2">
-                  <span className="text-muted-foreground w-14 shrink-0">Lives</span>
-                  <span className="text-[var(--color-ink-2)] leading-tight">{profile.current_location}</span>
+                <div>
+                  <span className="k">Lives</span>
+                  <span className="v" style={{ textAlign: "right" }}>{profile.current_location}</span>
                 </div>
               )}
             </div>
@@ -210,14 +210,12 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
             {/* Panchang at birth */}
             {panchangRows.length > 0 && (
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                  Panchang at Birth
-                </p>
-                <div className="space-y-1">
+                <div className="ac-eyebrow" style={{ marginBottom: 8 }}>Panchang at Birth</div>
+                <div className="ac-kv">
                   {panchangRows.map(({ label, value }) => (
-                    <div key={label} className="flex gap-2 text-xs">
-                      <span className="text-muted-foreground w-20 shrink-0">{label}</span>
-                      <span className="text-[var(--color-ink-2)] leading-tight">{value || "—"}</span>
+                    <div key={label}>
+                      <span className="k">{label}</span>
+                      <span className="v">{value || "—"}</span>
                     </div>
                   ))}
                 </div>

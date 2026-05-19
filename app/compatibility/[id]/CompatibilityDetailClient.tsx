@@ -9,36 +9,15 @@ import { KOOTA_MAX } from "@/lib/compatibility";
 import { Button } from "@/components/ui/button";
 import { CompatibilityInsightShell } from "@/components/engines/CompatibilityInsightShell";
 import { CompatibilityChat } from "@/components/engines/CompatibilityChat";
-import { fonts, textStyles, colors, clamp, glass, radii, motion } from "@/lib/typography";
 import { scoreColor, scoreLabel } from "@/lib/compatibility";
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar";
 import { PageHeader } from "@/components/PageHeader";
 
-function initials(name: string) {
-  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-}
-
 function ResultPill({ result }: { result?: string }) {
-  if (result === "good") return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400">
-      <CheckCircle2 className="h-3.5 w-3.5" /> Auspicious
-    </span>
-  );
-  if (result === "bad") return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-400">
-      <XCircle className="h-3.5 w-3.5" /> Inauspicious
-    </span>
-  );
-  if (result === "acceptable") return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400">
-      <MinusCircle className="h-3.5 w-3.5" /> Moderate
-    </span>
-  );
-  return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-      <MinusCircle className="h-3.5 w-3.5" /> Neutral
-    </span>
-  );
+  if (result === "good")       return <span className="ac-tag fav">Auspicious</span>;
+  if (result === "bad")        return <span className="ac-tag unf">Inauspicious</span>;
+  if (result === "acceptable") return <span className="ac-tag warn">Moderate</span>;
+  return <span className="ac-tag neu">Neutral</span>;
 }
 
 function ScoreArc({ score }: { score: number }) {
@@ -48,18 +27,18 @@ function ScoreArc({ score }: { score: number }) {
   const strokeColor = scoreColor(score);
   const label = scoreLabel(score);
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
       <svg width="128" height="128" viewBox="0 0 128 128" aria-hidden="true">
-        <circle cx="64" cy="64" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="8" />
+        <circle cx="64" cy="64" r={r} fill="none" stroke="var(--color-border)" strokeWidth="8" />
         <circle cx="64" cy="64" r={r} fill="none" stroke={strokeColor} strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={`${pct * circ} ${circ}`}
           transform="rotate(-90 64 64)"
         />
         <text x="64" y="58" textAnchor="middle" fill={strokeColor} fontSize="26" fontWeight="700" fontFamily="system-ui">{score}</text>
-        <text x="64" y="74" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="11" fontFamily="system-ui">/36 gunas</text>
+        <text x="64" y="74" textAnchor="middle" fill="var(--color-ink-4)" fontSize="11" fontFamily="system-ui">/36 gunas</text>
       </svg>
-      <span style={{ ...fonts.display, fontSize: "0.9rem", color: strokeColor, letterSpacing: "0.06em" }}>{label}</span>
+      <span style={{ fontFamily: "var(--font-display)", fontSize: "0.9rem", color: strokeColor, letterSpacing: "0.06em" }}>{label}</span>
     </div>
   );
 }
@@ -92,13 +71,9 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
   const brideName = profile2?.name ?? "Bride";
 
   const KUTA_LABELS: Record<string, string> = {
-    Mahendra: "Mahendra",
-    StreeDeergha: "Stree Deergha",
-    Vedha: "Vedha",
-    Rajju: "Rajju",
-    BadConstellations: "Bad Constellations",
-    LagnaHouse7: "Lagna / 7th House",
-    SexEnergy: "Sex Energy",
+    Mahendra: "Mahendra", StreeDeergha: "Stree Deergha", Vedha: "Vedha",
+    Rajju: "Rajju", BadConstellations: "Bad Constellations",
+    LagnaHouse7: "Lagna / 7th House", SexEnergy: "Sex Energy",
   };
 
   return (
@@ -111,54 +86,37 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
       />
 
       {/* Hero card */}
-      <div style={{ ...glass, borderRadius: radii.lg, padding: "28px 20px", boxShadow: "0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)" }}>
-        <div className="flex flex-col items-center gap-6">
-          {/* Couple row */}
-          <div className="flex items-center justify-between w-full gap-4">
+      <div className="ac-card ac-card-pad">
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 16 }}>
             {/* Groom */}
-            <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-              <ProfileAvatar
-                name={groomName}
-                size="lg"
-                color="rgba(139,92,246,0.18)"
-                textColor="rgba(196,180,255,0.9)"
-              />
-              <div className="text-center w-full">
-                <div style={{ ...fonts.display, ...clamp.one, fontSize: "1.05rem", color: "rgba(196,180,255,0.95)" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+              <ProfileAvatar name={groomName} size="lg" />
+              <div style={{ textAlign: "center", width: "100%" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.05rem", color: "var(--color-ink-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {groomName}
                 </div>
-                <div style={{ ...textStyles.meta, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  Groom
-                </div>
+                <div className="ac-eyebrow">Groom</div>
               </div>
             </div>
 
-            {/* Score arc */}
-            <div className="shrink-0">
+            <div style={{ flexShrink: 0 }}>
               <ScoreArc score={score} />
             </div>
 
             {/* Bride */}
-            <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-              <ProfileAvatar
-                name={brideName}
-                size="lg"
-                color="rgba(244,114,182,0.16)"
-                textColor="rgba(251,191,200,0.9)"
-              />
-              <div className="text-center w-full">
-                <div style={{ ...fonts.display, ...clamp.one, fontSize: "1.05rem", color: "rgba(251,191,200,0.95)" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+              <ProfileAvatar name={brideName} size="lg" />
+              <div style={{ textAlign: "center", width: "100%" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.05rem", color: "var(--color-ink-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {brideName}
                 </div>
-                <div style={{ ...textStyles.meta, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  Bride
-                </div>
+                <div className="ac-eyebrow">Bride</div>
               </div>
             </div>
           </div>
 
-          {/* Date */}
-          <div style={{ fontSize: "11px", color: "var(--color-ink-4)", letterSpacing: "0.08em" }}>
+          <div style={{ fontSize: 11, color: "var(--color-ink-4)", letterSpacing: "0.08em" }}>
             {new Date(check.created_at).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </div>
         </div>
@@ -166,16 +124,16 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
       {/* Admin view toggle */}
       {showAdminTools && (
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-[var(--color-surface-1)] rounded-lg p-0.5 border border-[var(--color-border)]">
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="ac-card" style={{ display: "flex", padding: 2 }}>
             <Button variant={isProfessional ? "ghost" : "secondary"} size="sm"
               onClick={() => setIsProfessional(false)}
-              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${!isProfessional ? "bg-[var(--color-surface-hover)] text-[var(--color-ink-1)]" : "text-muted-foreground"}`}>
+              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${!isProfessional ? "bg-[var(--color-surface-hover)] text-[var(--color-ink-1)]" : "text-[var(--color-ink-3)]"}`}>
               <User className="h-3 w-3" /> Summary
             </Button>
             <Button variant={isProfessional ? "secondary" : "ghost"} size="sm"
               onClick={() => setIsProfessional(true)}
-              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${isProfessional ? "bg-[var(--color-surface-2)] text-[var(--color-ink-2)] border border-[var(--color-border)]" : "text-muted-foreground"}`}>
+              className={`h-7 text-[10px] px-3 gap-1.5 uppercase font-bold tracking-wider ${isProfessional ? "bg-[var(--color-surface-2)] text-[var(--color-ink-2)] border border-[var(--color-border)]" : "text-[var(--color-ink-3)]"}`}>
               <LayoutDashboard className="h-3 w-3" /> Detailed
             </Button>
           </div>
@@ -187,47 +145,45 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
         <div className="space-y-4">
 
           {/* Verdict banner */}
-          <div style={{
-            ...glass, borderRadius: radii.lg,
-            padding: "18px 20px",
-            borderColor: score >= 18 ? "rgba(52,211,153,0.25)" : "var(--color-accent-dim)",
-            background: score >= 18 ? "rgba(4,120,87,0.12)" : "rgba(120,53,15,0.15)",
-          }}>
-            <p style={{ ...fonts.display, fontSize: "1.35rem", color: score >= 18 ? "rgba(167,243,208,0.95)" : "var(--color-accent)", lineHeight: 1.4 }}>
-              {score >= 26
-                ? "An excellent match — highly auspicious for marriage."
-                : score >= 18
-                ? "A good match — above the auspicious threshold of 18 gunas."
-                : score >= 12
-                ? "A moderate match — below 18 gunas, worth careful deliberation."
+          <div
+            className="ac-card ac-card-pad"
+            style={{
+              borderColor: score >= 18 ? "var(--color-success-border)" : "var(--color-danger-border)",
+              background:  score >= 18 ? "var(--color-success-faint)"  : "var(--color-danger-faint)",
+            }}
+          >
+            <p style={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", color: score >= 18 ? "var(--color-success)" : "var(--color-danger)", lineHeight: 1.4 }}>
+              {score >= 26 ? "An excellent match — highly auspicious for marriage."
+                : score >= 18 ? "A good match — above the auspicious threshold of 18 gunas."
+                : score >= 12 ? "A moderate match — below 18 gunas, worth careful deliberation."
                 : "A challenging match — significant incompatibilities identified."}
             </p>
           </div>
 
           {/* Koota breakdown */}
-          <div style={{ ...glass, borderRadius: radii.lg }}>
-            <div className="px-5 py-3 border-b border-white/[0.08]">
-              <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "var(--color-ink-2)" }}>
+          <div className="ac-card">
+            <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--color-border)" }}>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "var(--color-ink-2)" }}>
                 Guna Breakdown
               </h2>
             </div>
-            <div className="divide-y divide-white/[0.06]">
+            <div style={{ padding: "0 0 4px" }}>
               {Object.entries(scores).map(([name, pts]) => {
                 const max = KOOTA_MAX[name];
                 const full = typeof max === "number" && pts >= max;
                 const partial = typeof max === "number" && pts > 0 && pts < max;
                 const zero = pts === 0;
                 return (
-                  <div key={name} className="flex items-center justify-between px-5 py-3">
-                    <span style={{ ...fonts.display, fontSize: "1rem", color: "var(--color-ink-2)" }}>{name}</span>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
+                  <div key={name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 20px", borderBottom: "1px solid var(--color-border)" }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", color: "var(--color-ink-2)" }}>{name}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ textAlign: "right" }}>
                         <span style={{ fontWeight: 600, color: full ? "var(--color-success)" : partial ? "var(--color-warning)" : "var(--color-danger)", fontSize: "1rem" }}>{pts}</span>
                         <span style={{ color: "var(--color-ink-4)", fontSize: "0.8rem" }}>/{max ?? "—"}</span>
                       </div>
-                      {full && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />}
-                      {zero && <XCircle className="h-3.5 w-3.5 text-red-400" />}
-                      {partial && <MinusCircle className="h-3.5 w-3.5 text-amber-400" />}
+                      {full    && <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "var(--color-success)" }} />}
+                      {zero    && <XCircle      className="h-3.5 w-3.5" style={{ color: "var(--color-danger)" }} />}
+                      {partial && <MinusCircle  className="h-3.5 w-3.5" style={{ color: "var(--color-warning)" }} />}
                     </div>
                   </div>
                 );
@@ -236,47 +192,37 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           </div>
 
           {/* Dosha cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div style={{
-              ...glass, borderRadius: radii.lg,
-              padding: "16px",
-              borderColor: hasManglik ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.25)",
-              background: hasManglik ? "var(--color-accent-faint)" : "rgba(4,120,87,0.10)",
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="ac-card ac-card-pad" style={{
+              borderColor: hasManglik ? "var(--color-danger-border)" : "var(--color-success-border)",
+              background:  hasManglik ? "var(--color-danger-faint)"  : "var(--color-success-faint)",
             }}>
-              <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-ink-4)", marginBottom: "6px" }}>
-                Mangal Dosha
-              </div>
-              <div style={{ ...fonts.display, fontSize: "1.3rem", color: hasManglik ? "#fca5a5" : "#6ee7b7" }}>
+              <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Mangal Dosha</div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", color: hasManglik ? "var(--color-danger)" : "var(--color-success)" }}>
                 {hasManglik ? "Present" : "Not Present"}
               </div>
-              {kujaDosha?.male?.is_manglik && <div className="text-xs text-muted-foreground mt-1">{groomName} is Manglik</div>}
-              {kujaDosha?.female?.is_manglik && <div className="text-xs text-muted-foreground mt-0.5">{brideName} is Manglik</div>}
-              <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
+              {kujaDosha?.male?.is_manglik && <div style={{ fontSize: 12, color: "var(--color-ink-3)", marginTop: 4 }}>{groomName} is Manglik</div>}
+              {kujaDosha?.female?.is_manglik && <div style={{ fontSize: 12, color: "var(--color-ink-3)", marginTop: 2 }}>{brideName} is Manglik</div>}
+              <div style={{ fontSize: 12, color: "var(--color-ink-3)", marginTop: 8, lineHeight: 1.5 }}>
                 {kujaDosha?.compatibility?.description ?? (hasManglik ? "Mangal Dosha present — seek guidance on remedies." : "No Mangal Dosha detected.")}
               </div>
             </div>
 
-            <div style={{
-              ...glass, borderRadius: radii.lg,
-              padding: "16px",
-              borderColor: hasBhakoot ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.25)",
-              background: hasBhakoot ? "rgba(127,29,29,0.15)" : "rgba(4,120,87,0.10)",
+            <div className="ac-card ac-card-pad" style={{
+              borderColor: hasBhakoot ? "var(--color-danger-border)" : "var(--color-success-border)",
+              background:  hasBhakoot ? "var(--color-danger-faint)"  : "var(--color-success-faint)",
             }}>
-              <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-ink-4)", marginBottom: "6px" }}>
-                Bhakoot Dosha
-              </div>
-              <div style={{ ...fonts.display, fontSize: "1.3rem", color: hasBhakoot ? "#fca5a5" : "#6ee7b7" }}>
+              <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Bhakoot Dosha</div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", color: hasBhakoot ? "var(--color-danger)" : "var(--color-success)" }}>
                 {hasBhakoot ? "Present" : "Not Present"}
               </div>
-              <div className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                {hasBhakoot
-                  ? "An unfavourable lunar sign alignment — seek guidance on remedies."
-                  : "Bhakoot compatibility is auspicious."}
+              <div style={{ fontSize: 12, color: "var(--color-ink-3)", marginTop: 8, lineHeight: 1.5 }}>
+                {hasBhakoot ? "An unfavourable lunar sign alignment — seek guidance on remedies." : "Bhakoot compatibility is auspicious."}
               </div>
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground/40 text-center pb-2">
+          <p style={{ fontSize: 11, color: "var(--color-ink-4)", textAlign: "center", paddingBottom: 8 }}>
             Classical Ashtakoota Milan · JHora standards · 18+ gunas is the traditional threshold
           </p>
         </div>
@@ -289,14 +235,14 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           {showAdminTools && (
             <>
               <CompatibilityInsightShell checkId={check.id} name1={groomName} name2={brideName} />
-              <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
-                <button onClick={() => setShowChat(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
-                  <MessageSquare className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-amber-300 flex-1">Compatibility Chat</span>
-                  <ChevronDown className={`h-4 w-4 text-[var(--color-ink-3)] transition-transform ${showChat ? "rotate-180" : ""}`} />
+              <div className="ac-card overflow-hidden">
+                <button onClick={() => setShowChat(o => !o)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", textAlign: "left", background: "none", border: "none", cursor: "pointer" }}>
+                  <MessageSquare style={{ width: 14, height: 14, color: "var(--color-accent)", flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-accent)", flex: 1 }}>Compatibility Chat</span>
+                  <ChevronDown style={{ width: 16, height: 16, color: "var(--color-ink-3)", transform: showChat ? "rotate(180deg)" : "none", transition: "transform 150ms" }} />
                 </button>
                 {showChat && (
-                  <div className="border-t border-white/[0.07]">
+                  <div style={{ borderTop: "1px solid var(--color-border)" }}>
                     <CompatibilityChat checkId={check.id} name1={groomName} name2={brideName} />
                   </div>
                 )}
@@ -305,47 +251,44 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
           )}
 
           {/* Overall verdict */}
-          <div style={{
-            ...glass, borderRadius: radii.lg, padding: "20px",
-            borderColor: isApproved ? "rgba(52,211,153,0.3)" : "rgba(239,68,68,0.3)",
-            background: isApproved ? "rgba(4,120,87,0.12)" : "var(--color-accent-faint)",
+          <div className="ac-card ac-card-pad" style={{
+            borderColor: isApproved ? "var(--color-success-border)" : "var(--color-danger-border)",
+            background:  isApproved ? "var(--color-success-faint)"  : "var(--color-danger-faint)",
           }}>
-            <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "6px" }}>
-              Match Verdict
-            </div>
-            <div style={{ ...fonts.display, fontSize: "1.6rem", color: isApproved ? "#6ee7b7" : "#fca5a5" }}>
+            <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Match Verdict</div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "1.6rem", color: isApproved ? "var(--color-success)" : "var(--color-danger)" }}>
               {isApproved ? "Match Approved" : "Match Not Approved"}
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
+            <div style={{ fontSize: 12, color: "var(--color-ink-3)", marginTop: 4 }}>
               {score}/36 gunas · {score >= 18 ? "Above" : "Below"} the auspicious threshold of 18
             </div>
           </div>
 
           {/* Natal Moon Profiles */}
           {(result.male_details || result.female_details) && (
-            <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
-              <div className="px-5 py-3 border-b border-white/[0.08]">
-                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "var(--color-ink-2)" }}>Natal Moon Profiles</h2>
+            <div className="ac-card overflow-hidden">
+              <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--color-border)" }}>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "var(--color-ink-2)" }}>Natal Moon Profiles</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
                 {[
-                  { label: groomName, details: result.male_details, color: "rgba(196,180,255,0.9)" },
-                  { label: brideName, details: result.female_details, color: "rgba(251,191,200,0.9)" },
-                ].map(({ label, details, color }) => (
-                  <div key={label} className="p-4 space-y-2.5">
-                    <div style={{ ...fonts.display, fontSize: "0.95rem", color }}>
+                  { label: groomName, details: result.male_details },
+                  { label: brideName, details: result.female_details },
+                ].map(({ label, details }, i) => (
+                  <div key={label} style={{ padding: 16, borderLeft: i === 1 ? "1px solid var(--color-border)" : "none" }}>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: "0.95rem", color: "var(--color-cool)", marginBottom: 10 }}>
                       {label}
                     </div>
                     {[
                       ["Moon Sign", details?.moon_sign],
-                      ["Nakshatra", details?.nakshatra],
-                      ["Gana", details?.gana],
-                      ["Nadi", details?.nadi],
-                      ["Yoni", details?.yoni],
+                      ["Nakshatra",  details?.nakshatra],
+                      ["Gana",       details?.gana],
+                      ["Nadi",       details?.nadi],
+                      ["Yoni",       details?.yoni],
                     ].map(([k, v]) => v && (
-                      <div key={k} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{k}</span>
-                        <span className="font-medium capitalize" style={{ color: "var(--color-ink-1)" }}>{v}</span>
+                      <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
+                        <span style={{ color: "var(--color-ink-3)" }}>{k}</span>
+                        <span style={{ fontWeight: 500, textTransform: "capitalize", color: "var(--color-ink-1)" }}>{v}</span>
                       </div>
                     ))}
                   </div>
@@ -356,38 +299,40 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Kuja Dosha */}
           {kujaDosha && (
-            <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
-              <div className="px-5 py-3 border-b border-white/[0.08]">
-                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "var(--color-ink-2)" }}>Kuja Dosha Analysis</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Mars, Saturn, Rahu, Ketu, Sun in houses 2 · 4 · 7 · 8 · 12</p>
+            <div className="ac-card overflow-hidden">
+              <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--color-border)" }}>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "var(--color-ink-2)" }}>Kuja Dosha Analysis</h2>
+                <p style={{ fontSize: 11, color: "var(--color-ink-3)", marginTop: 2 }}>Mars, Saturn, Rahu, Ketu, Sun in houses 2 · 4 · 7 · 8 · 12</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.07]">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
                 {[
-                  { label: groomName, dosha: kujaDosha.male, color: "rgba(196,180,255,0.9)" },
-                  { label: brideName, dosha: kujaDosha.female, color: "rgba(251,191,200,0.9)" },
-                ].map(({ label, dosha, color }) => (
-                  <div key={label} className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span style={{ ...fonts.display, fontSize: "0.95rem", color }}>{label}</span>
-                      <span className={`text-xs font-semibold ${dosha?.is_manglik ? "text-red-400" : "text-emerald-400"}`}>
+                  { label: groomName, dosha: kujaDosha.male },
+                  { label: brideName, dosha: kujaDosha.female },
+                ].map(({ label, dosha }, i) => (
+                  <div key={label} style={{ padding: 16, borderLeft: i === 1 ? "1px solid var(--color-border)" : "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                      <span style={{ fontFamily: "var(--font-display)", fontSize: "0.95rem", color: "var(--color-cool)" }}>{label}</span>
+                      <span className={dosha?.is_manglik ? "ac-tag unf" : "ac-tag fav"}>
                         {dosha?.is_manglik ? "Manglik" : "Not Manglik"}
                       </span>
                     </div>
                     {dosha?.total_score !== undefined && (
-                      <div className="text-xs text-muted-foreground mb-2">Dosha score: <span className="font-medium text-foreground">{dosha.total_score}</span></div>
+                      <div style={{ fontSize: 12, color: "var(--color-ink-3)", marginBottom: 8 }}>
+                        Dosha score: <span style={{ fontWeight: 500, color: "var(--color-ink-1)" }}>{dosha.total_score}</span>
+                      </div>
                     )}
                     {dosha?.breakdown && Object.keys(dosha.breakdown).length > 0 ? (
-                      <div className="space-y-1.5">
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                         {Object.entries(dosha.breakdown).map(([planet, entry]) => (
-                          <div key={planet} className="flex items-center justify-between text-xs bg-red-950/20 rounded-lg px-2.5 py-1.5 border border-red-900/30">
-                            <span className="font-medium text-red-300">{planet}</span>
-                            <span className="text-muted-foreground">House {entry.house} · {entry.sign}</span>
-                            <span className="text-red-400 font-semibold">+{entry.score}</span>
+                          <div key={planet} className="ac-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", borderColor: "var(--color-danger-border)", background: "var(--color-danger-faint)" }}>
+                            <span style={{ fontWeight: 500, color: "var(--color-danger)", fontSize: 12 }}>{planet}</span>
+                            <span style={{ fontSize: 12, color: "var(--color-ink-3)" }}>H{entry.house} · {entry.sign}</span>
+                            <span style={{ color: "var(--color-danger)", fontWeight: 600, fontSize: 12 }}>+{entry.score}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-xs text-muted-foreground/50 italic">No contributing planets</div>
+                      <div style={{ fontSize: 12, fontStyle: "italic", color: "var(--color-ink-4)" }}>No contributing planets</div>
                     )}
                   </div>
                 ))}
@@ -397,39 +342,39 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Additional Kutas */}
           {Object.keys(additionalKutas).length > 0 && (
-            <div style={{ ...glass, borderRadius: radii.lg }} className="overflow-hidden">
-              <div className="px-5 py-3 border-b border-white/[0.08]">
-                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "var(--color-ink-2)" }}>Additional Kutas</h2>
+            <div className="ac-card overflow-hidden">
+              <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--color-border)" }}>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "var(--color-ink-2)" }}>Additional Kutas</h2>
               </div>
-              <div className="divide-y divide-white/[0.06]">
+              <div>
                 {Object.entries(additionalKutas).map(([key, val]) => {
                   const label = KUTA_LABELS[key] ?? key;
                   const kuta: AdditionalKuta = typeof val === "string" ? { result: val } : val;
                   return (
-                    <div key={key} className="px-5 py-3 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                      <div className="sm:w-36 shrink-0">
-                        <div style={{ ...fonts.display, fontSize: "1rem", color: "var(--color-ink-2)" }}>{label}</div>
+                    <div key={key} style={{ padding: "12px 20px", borderBottom: "1px solid var(--color-border)", display: "flex", gap: 16, flexWrap: "wrap" }}>
+                      <div style={{ minWidth: 140, flexShrink: 0 }}>
+                        <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", color: "var(--color-ink-2)" }}>{label}</span>
                       </div>
-                      <div className="flex-1 space-y-1">
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
                         <ResultPill result={kuta.result} />
                         {kuta.group && (
-                          <div className="text-xs text-muted-foreground">
-                            Group: <span className="text-foreground font-medium">{kuta.group}</span>
-                            {kuta.effect && <span className="ml-1 text-amber-400/80"> — {kuta.effect}</span>}
+                          <div style={{ fontSize: 12, color: "var(--color-ink-3)" }}>
+                            Group: <span style={{ color: "var(--color-ink-1)", fontWeight: 500 }}>{kuta.group}</span>
+                            {kuta.effect && <span style={{ marginLeft: 4, color: "var(--color-warning)" }}> — {kuta.effect}</span>}
                           </div>
                         )}
-                        {kuta.description && <div className="text-xs text-muted-foreground">{kuta.description}</div>}
+                        {kuta.description && <div style={{ fontSize: 12, color: "var(--color-ink-3)" }}>{kuta.description}</div>}
                         {kuta.male && kuta.female && (
-                          <div className="text-xs text-muted-foreground">
-                            <span style={{ color: "rgba(196,180,255,0.85)" }} className="font-medium capitalize">{groomName}: {kuta.male}</span>
-                            <span className="mx-2 text-[var(--color-ink-4)]">·</span>
-                            <span style={{ color: "rgba(251,191,200,0.85)" }} className="font-medium capitalize">{brideName}: {kuta.female}</span>
+                          <div style={{ fontSize: 12, color: "var(--color-ink-3)" }}>
+                            <span style={{ color: "var(--color-cool)", fontWeight: 500, textTransform: "capitalize" }}>{groomName}: {kuta.male}</span>
+                            <span style={{ margin: "0 6px", color: "var(--color-ink-4)" }}>·</span>
+                            <span style={{ color: "var(--color-cool)", fontWeight: 500, textTransform: "capitalize" }}>{brideName}: {kuta.female}</span>
                           </div>
                         )}
                         {kuta.issues && kuta.issues.length > 0 && (
-                          <ul className="space-y-0.5">
+                          <ul>
                             {kuta.issues.map((issue, i) => (
-                              <li key={i} className="text-xs text-red-400">· {issue}</li>
+                              <li key={i} style={{ fontSize: 12, color: "var(--color-danger)" }}>· {issue}</li>
                             ))}
                           </ul>
                         )}
@@ -443,46 +388,46 @@ export function CompatibilityDetailClient({ check, profile1, profile2 }: Props) 
 
           {/* Dosha exceptions */}
           {exceptions.length > 0 && (
-            <div style={{ ...glass, borderRadius: radii.lg, borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" }} className="overflow-hidden">
-              <div className="px-5 py-3 border-b border-amber-800/20">
-                <h2 style={{ ...fonts.display, fontSize: "1.15rem", color: "rgba(253,230,138,0.85)" }}>Dosha Mitigations</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Classical exceptions that neutralise doshas</p>
+            <div className="ac-card overflow-hidden" style={{ borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" }}>
+              <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--color-accent-dim)" }}>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "var(--color-accent)" }}>Dosha Mitigations</h2>
+                <p style={{ fontSize: 11, color: "var(--color-ink-3)", marginTop: 2 }}>Classical exceptions that neutralise doshas</p>
               </div>
-              <ul className="divide-y divide-amber-900/20">
+              <ul>
                 {exceptions.map((ex, i) => (
-                  <li key={i} className="px-5 py-3 flex items-start gap-3 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                    <span className="text-amber-200/80">{ex}</span>
+                  <li key={i} style={{ padding: "10px 20px", borderBottom: "1px solid var(--color-accent-dim)", display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13 }}>
+                    <CheckCircle2 style={{ width: 14, height: 14, color: "var(--color-accent)", flexShrink: 0, marginTop: 2 }} />
+                    <span style={{ color: "var(--color-ink-2)" }}>{ex}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground/30 text-center pb-2">
+          <p style={{ fontSize: 11, color: "var(--color-ink-4)", textAlign: "center", paddingBottom: 8 }}>
             Classical Ashtakoota Milan · JHora standards · Additional kutas per BPHS / VedAstro conventions
           </p>
         </div>
       )}
 
       {!result && (
-        <div style={{ ...glass, borderRadius: radii.lg }} className="p-10 text-center text-muted-foreground text-sm">
+        <div className="ac-card ac-card-pad" style={{ textAlign: "center", color: "var(--color-ink-3)", fontSize: 13 }}>
           Result data unavailable for this reading.
         </div>
       )}
 
       {/* Consultation CTA */}
       {result && (
-        <div className="mt-2 flex items-center justify-between gap-4 p-4 rounded-xl bg-[var(--color-surface-1)] border border-[var(--color-border)]">
-          <div className="flex items-center gap-3">
-            <MessageCircle className="h-4 w-4 text-amber-400/70 shrink-0" />
+        <div className="ac-card ac-card-pad" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginTop: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <MessageCircle style={{ width: 16, height: 16, color: "var(--color-accent)", flexShrink: 0 }} />
             <div>
-              <p className="text-sm text-[var(--color-ink-2)]">Have questions about this result?</p>
-              <p className="text-xs text-[var(--color-ink-3)] mt-0.5">A personal consultation can provide deeper context.</p>
+              <p style={{ fontSize: 13, color: "var(--color-ink-2)" }}>Have questions about this result?</p>
+              <p style={{ fontSize: 11, color: "var(--color-ink-3)", marginTop: 2 }}>A personal consultation can provide deeper context.</p>
             </div>
           </div>
           <Link href="/consultation">
-            <Button variant="outline" size="sm" className="shrink-0 border-amber-700/40 text-amber-400 hover:bg-amber-950/30 text-xs">
+            <Button variant="outline" size="sm" className="shrink-0 text-xs" style={{ borderColor: "var(--color-accent-dim)", color: "var(--color-accent)" }}>
               Ask a question
             </Button>
           </Link>

@@ -1,7 +1,14 @@
-export function SectionHeading({ children }: { children: React.ReactNode }) {
+export function SectionHeading({
+  children,
+  action,
+}: {
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
   return (
-    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-      {children}
-    </h3>
+    <div className="ac-section-head">
+      <div className="ac-section-title">{children}</div>
+      {action}
+    </div>
   );
 }

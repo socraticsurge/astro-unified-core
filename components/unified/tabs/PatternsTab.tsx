@@ -3,6 +3,7 @@ import { useState } from "react";
 import { SIGNS_ORDER } from "@/components/unified/types";
 import type { SignName } from "@/components/unified/types";
 import { SavChartGrid } from "@/components/unified/SavChartGrid";
+import { SectionHeading } from "@/components/unified/SectionHeading";
 import { cn } from "@/lib/utils";
 
 const MAJOR_YOGAS = new Set([
@@ -15,26 +16,23 @@ const KARAKA_ORDER = [
   "Putrakaraka", "Gnatikaraka", "Darakaraka",
 ];
 
-const th = "text-left py-1.5 px-2 text-xs font-medium text-muted-foreground uppercase tracking-wide";
-const td = "py-1.5 px-2 text-xs text-[var(--color-ink-2)]";
+type Yoga         = { name: string; formed_by?: string[]; description?: string };
+type GrahaYuddha  = { winner?: string; loser?: string; description?: string };
+type Gandanta     = { planet?: string; sign?: string; degree?: number; nakshatra?: string; description?: string };
+type KarakaEntry  = { planet?: string; description?: string };
+type ArudhaPada   = { name?: string; sign?: string };
 
-type Yoga = { name: string; formed_by?: string[]; description?: string };
-type GrahaYuddha = { winner?: string; loser?: string; description?: string };
-type Gandanta = { planet?: string; sign?: string; degree?: number; nakshatra?: string; description?: string };
-type KarakaEntry = { planet?: string; description?: string };
-type ArudhaPada = { name?: string; sign?: string };
-
-type PatternsSubTab = 'yogas' | 'doshas' | 'jaimini' | 'ashtakavarga';
+type PatternsSubTab = "yogas" | "doshas" | "jaimini" | "ashtakavarga";
 
 const PATTERNS_TABS: { id: PatternsSubTab; label: string }[] = [
-  { id: 'yogas',        label: 'Yogas' },
-  { id: 'doshas',       label: 'Doshas' },
-  { id: 'jaimini',      label: 'Jaimini' },
-  { id: 'ashtakavarga', label: 'Ashtakavarga' },
+  { id: "yogas",        label: "Yogas"        },
+  { id: "doshas",       label: "Doshas"       },
+  { id: "jaimini",      label: "Jaimini"      },
+  { id: "ashtakavarga", label: "Ashtakavarga" },
 ];
 
 export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unknown> }) {
-  const [activeTab, setActiveTab] = useState<PatternsSubTab>('yogas');
+  const [activeTab, setActiveTab] = useState<PatternsSubTab>("yogas");
   const data = chartOutput?.data as Record<string, unknown> | undefined;
 
   const yogas        = (data?.yogas        as Yoga[]                           | undefined) ?? [];
@@ -50,8 +48,8 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
   const upapada      = data?.upapada      as { sign?: string; lord?: string; second_from_ul?: string; description?: string } | undefined;
   const ashtakavarga = data?.ashtakavarga as Record<string, unknown>           | undefined;
 
-  const sav = ashtakavarga?.sarvashtakavarga as Record<string, number> | undefined;
-  const bav = ashtakavarga?.bhinnashtakavarga as Record<string, Record<string, number>> | undefined;
+  const sav = ashtakavarga?.sarvashtakavarga   as Record<string, number>                   | undefined;
+  const bav = ashtakavarga?.bhinnashtakavarga  as Record<string, Record<string, number>>   | undefined;
 
   return (
     <div className="space-y-0">
@@ -65,10 +63,10 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
             aria-selected={activeTab === t.id}
             onClick={() => setActiveTab(t.id)}
             className={cn(
-              'px-3 py-1.5 rounded text-xs border transition-colors',
+              "px-3 py-1.5 rounded text-xs border transition-colors",
               activeTab === t.id
-                ? 'text-[var(--color-ink-1)] border-[var(--color-border-strong,#2a2a3e)] bg-[var(--color-surface-2)]'
-                : 'text-muted-foreground border-[var(--color-border)] bg-transparent hover:border-[var(--color-border-strong,#2a2a3e)]'
+                ? "text-[var(--color-ink-1)] border-[var(--color-border-strong,var(--color-border))] bg-[var(--color-surface-2)]"
+                : "text-[var(--color-ink-3)] border-[var(--color-border)] bg-transparent hover:border-[var(--color-border-strong,var(--color-border))]"
             )}
           >
             {t.label}
@@ -76,43 +74,38 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
         ))}
       </div>
 
-      {activeTab === 'yogas' && (
+      {/* Yogas */}
+      {activeTab === "yogas" && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Yogas ({yogas.length})
-          </h3>
+          <SectionHeading>Yogas ({yogas.length})</SectionHeading>
           {yogas.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">No yoga data available.</p>
+            <p style={{ fontSize: 12, fontStyle: "italic", color: "var(--color-ink-3)" }}>No yoga data available.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: 8 }}>
               {yogas.map((y, i) => (
                 <div
                   key={`${y.name}-${i}`}
-                  className={`p-3 rounded-lg border ${
-                    MAJOR_YOGAS.has(y.name)
-                      ? "border-amber-500/40 bg-amber-500/5"
-                      : "border-[var(--color-border)] bg-[var(--color-surface-1)]"
-                  }`}
+                  className="ac-card ac-card-pad-sm"
+                  style={MAJOR_YOGAS.has(y.name) ? { borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" } : {}}
                 >
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className={`font-semibold text-sm ${MAJOR_YOGAS.has(y.name) ? "text-amber-300" : "text-[var(--color-ink-1)]"}`}>
+                  <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, marginBottom: y.description ? 6 : 0 }}>
+                    <span style={{
+                      fontWeight: 600, fontSize: 13,
+                      color: MAJOR_YOGAS.has(y.name) ? "var(--color-accent)" : "var(--color-ink-1)",
+                    }}>
                       {y.name}
-                      {MAJOR_YOGAS.has(y.name) && (
-                        <span className="ml-1.5 text-xs bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full uppercase font-bold tracking-wide">
-                          Major
-                        </span>
-                      )}
                     </span>
-                    <div className="flex gap-1 flex-wrap">
+                    {MAJOR_YOGAS.has(y.name) && (
+                      <span className="ac-tag solid" style={{ fontSize: 9, padding: "1px 6px", letterSpacing: "0.07em" }}>Major</span>
+                    )}
+                    <div className="ac-pills" style={{ gap: 4 }}>
                       {y.formed_by?.map(p => (
-                        <span key={p} className="px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-xs text-[var(--color-ink-3)] font-medium">
-                          {p}
-                        </span>
+                        <span key={p} className="ac-pill cool" style={{ fontSize: 10 }}>{p}</span>
                       ))}
                     </div>
                   </div>
                   {y.description && (
-                    <p className="text-xs text-muted-foreground leading-relaxed">{y.description}</p>
+                    <p style={{ fontSize: 12, color: "var(--color-ink-3)", lineHeight: 1.5 }}>{y.description}</p>
                   )}
                 </div>
               ))}
@@ -121,54 +114,56 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
         </section>
       )}
 
-      {activeTab === 'doshas' && (
+      {/* Doshas */}
+      {activeTab === "doshas" && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Doshas</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className={`p-3 rounded-lg border ${kaalSarpa ? "border-danger/40 bg-danger/5" : "border-[var(--color-border)] bg-[var(--color-surface-1)]"}`}>
-              <p className="font-semibold text-sm text-[var(--color-ink-1)]">Kaal Sarpa</p>
+          <SectionHeading>Doshas</SectionHeading>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px,1fr))", gap: 10 }}>
+            <div
+              className="ac-card ac-card-pad-sm"
+              style={kaalSarpa ? { borderColor: "var(--color-danger-border)", background: "var(--color-danger-faint)" } : {}}
+            >
+              <div style={{ fontWeight: 600, fontSize: 13, color: "var(--color-ink-1)", marginBottom: 4 }}>Kaal Sarpa</div>
               {kaalSarpa ? (
                 <>
-                  <p className="text-xs text-danger mt-0.5">{kaalSarpa.type} · {kaalSarpa.direction}</p>
+                  <p style={{ fontSize: 12, color: "var(--color-danger)", marginBottom: kaalSarpa.description ? 4 : 0 }}>
+                    {kaalSarpa.type} · {kaalSarpa.direction}
+                  </p>
                   {kaalSarpa.description && (
-                    <p className="text-xs text-muted-foreground mt-1">{kaalSarpa.description}</p>
+                    <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>{kaalSarpa.description}</p>
                   )}
                 </>
               ) : (
-                <p className="text-xs text-success mt-0.5">Not detected</p>
+                <p style={{ fontSize: 12, color: "var(--color-success)" }}>Not detected</p>
               )}
             </div>
 
             {grahaYuddha.length > 0 && (
-              <div className="p-3 rounded-lg border border-warning/30 bg-warning/5">
-                <p className="font-semibold text-sm text-[var(--color-ink-1)] mb-2">
+              <div className="ac-card ac-card-pad-sm" style={{ borderColor: "var(--color-warning-border)", background: "var(--color-warning-faint)" }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--color-ink-1)", marginBottom: 6 }}>
                   Graha Yuddha — Planetary Wars ({grahaYuddha.length})
-                </p>
+                </div>
                 {grahaYuddha.map((gw, i) => (
-                  <div key={i} className="text-xs text-muted-foreground mb-1">
-                    <span className="text-warning font-semibold">{gw.winner}</span>
-                    <span className="mx-1">defeats</span>
-                    <span className="text-danger">{gw.loser}</span>
-                    {gw.description && (
-                      <span className="ml-2 text-muted-foreground/60">({gw.description})</span>
-                    )}
+                  <div key={i} style={{ fontSize: 12, color: "var(--color-ink-3)", marginBottom: 3 }}>
+                    <span style={{ color: "var(--color-warning)", fontWeight: 600 }}>{gw.winner}</span>
+                    <span style={{ margin: "0 4px" }}>defeats</span>
+                    <span style={{ color: "var(--color-danger)" }}>{gw.loser}</span>
+                    {gw.description && <span style={{ marginLeft: 6, opacity: 0.6 }}>({gw.description})</span>}
                   </div>
                 ))}
               </div>
             )}
 
             {gandanta.length > 0 && (
-              <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/5">
-                <p className="font-semibold text-sm text-[var(--color-ink-1)] mb-2">
+              <div className="ac-card ac-card-pad-sm" style={{ borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)" }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--color-ink-1)", marginBottom: 6 }}>
                   Gandanta — Karmic Junctions ({gandanta.length})
-                </p>
+                </div>
                 {gandanta.map((g, i) => (
-                  <p key={i} className="text-xs text-muted-foreground">
-                    <span className="text-purple-300 font-semibold">{g.planet}</span>
+                  <p key={i} style={{ fontSize: 12, color: "var(--color-ink-3)", marginBottom: 2 }}>
+                    <span style={{ color: "var(--color-accent)", fontWeight: 600 }}>{g.planet}</span>
                     {" "}{g.sign} {g.degree?.toFixed(2)}° · {g.nakshatra}
-                    {g.description && (
-                      <span className="ml-2 text-muted-foreground/60">({g.description})</span>
-                    )}
+                    {g.description && <span style={{ marginLeft: 6, opacity: 0.6 }}>({g.description})</span>}
                   </p>
                 ))}
               </div>
@@ -177,31 +172,26 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
         </section>
       )}
 
-      {activeTab === 'jaimini' && (
+      {/* Jaimini */}
+      {activeTab === "jaimini" && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Jaimini — Soul Indicators
-          </h3>
+          <SectionHeading>Jaimini — Soul Indicators</SectionHeading>
 
           {jaiminiKarakas && (
-            <div className="overflow-x-auto mb-4">
-              <table className="text-xs border-collapse">
+            <div className="ac-card overflow-x-auto" style={{ marginBottom: 16 }}>
+              <table className="ac-table">
                 <thead>
-                  <tr className="border-b border-[var(--color-border)]">
-                    {["Karaka", "Planet", "Description"].map(h => (
-                      <th key={h} className={th}>{h}</th>
-                    ))}
-                  </tr>
+                  <tr>{["Karaka","Planet","Description"].map(h => <th key={h}>{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {KARAKA_ORDER.map(k => {
                     const entry = jaiminiKarakas[k];
                     if (!entry) return null;
                     return (
-                      <tr key={k} className="border-b border-[var(--color-border)]/40">
-                        <td className="py-1.5 px-2 text-xs font-semibold text-[var(--color-ink-2)]">{k}</td>
-                        <td className={`${td} text-planet-name font-semibold`}>{entry.planet}</td>
-                        <td className={`${td} text-muted-foreground`}>{entry.description ?? "—"}</td>
+                      <tr key={k}>
+                        <td>{k}</td>
+                        <td className="planet">{entry.planet ?? "—"}</td>
+                        <td className="muted">{entry.description ?? "—"}</td>
                       </tr>
                     );
                   })}
@@ -211,49 +201,36 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
           )}
 
           {karakamsha && (
-            <div className="p-4 rounded-xl border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 mb-4">
-              <p className="text-xs uppercase tracking-wider text-[var(--color-accent-dim)] font-bold mb-2">
-                Karakamsha — Soul&apos;s Direction
-              </p>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">Atmakaraka</p>
-                  <p className="font-semibold text-[var(--color-ink-1)]">{karakamsha.atmakaraka}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Karakamsha sign</p>
-                  <p className="font-semibold text-[var(--color-ink-1)]">{karakamsha.karakamsha_sign}</p>
-                </div>
+            <div className="ac-card ac-card-pad" style={{ borderColor: "var(--color-accent-dim)", background: "var(--color-accent-faint)", marginBottom: 16 }}>
+              <div className="ac-eyebrow" style={{ marginBottom: 10 }}>Karakamsha — Soul&apos;s Direction</div>
+              <div className="ac-kv">
+                <div><span className="k">Atmakaraka</span><span className="v">{karakamsha.atmakaraka ?? "—"}</span></div>
+                <div><span className="k">Karakamsha sign</span><span className="v">{karakamsha.karakamsha_sign ?? "—"}</span></div>
                 {karakamsha.ishta_devata && (
-                  <div className="col-span-2">
-                    <p className="text-xs text-muted-foreground">Ishta Devata</p>
-                    <p className="font-semibold text-amber-300 text-base">{karakamsha.ishta_devata}</p>
-                  </div>
-                )}
-                {karakamsha.planets_in_karakamsha && karakamsha.planets_in_karakamsha.length > 0 && (
-                  <div className="col-span-2">
-                    <p className="text-xs text-muted-foreground mb-1">Planets in Karakamsha</p>
-                    <div className="flex gap-1 flex-wrap">
-                      {karakamsha.planets_in_karakamsha.map(p => (
-                        <span key={p} className="px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] text-xs font-medium text-[var(--color-ink-2)]">
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  <div><span className="k">Ishta Devata</span><span className="v accent" style={{ fontSize: 15 }}>{karakamsha.ishta_devata}</span></div>
                 )}
               </div>
+              {karakamsha.planets_in_karakamsha && karakamsha.planets_in_karakamsha.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Planets in Karakamsha</div>
+                  <div className="ac-pills">
+                    {karakamsha.planets_in_karakamsha.map(p => (
+                      <span key={p} className="ac-pill cool">{p}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {arudhaPadas && (
-            <div className="mb-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2">Arudha Padas</p>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+            <div style={{ marginBottom: 16 }}>
+              <div className="ac-eyebrow" style={{ marginBottom: 8 }}>Arudha Padas</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px,1fr))", gap: 6 }}>
                 {Object.entries(arudhaPadas).map(([num, v]) => (
-                  <div key={num} className="p-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)] text-center">
-                    <p className="text-xs text-muted-foreground">{v.name ?? `A${num}`}</p>
-                    <p className="text-xs font-semibold text-[var(--color-ink-1)]">{v.sign}</p>
+                  <div key={num} className="ac-card" style={{ padding: "8px 10px", textAlign: "center" }}>
+                    <div className="ac-eyebrow" style={{ marginBottom: 2 }}>{v.name ?? `A${num}`}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "var(--color-ink-1)" }}>{v.sign ?? "—"}</div>
                   </div>
                 ))}
               </div>
@@ -261,40 +238,28 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
           )}
 
           {upapada && (
-            <div className="p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)]">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-1">
-                Upapada (A12) — Spouse Indicator
-              </p>
-              <div className="flex gap-6 text-sm">
-                <div>
-                  <p className="text-xs text-muted-foreground">UL sign</p>
-                  <p className="font-semibold text-[var(--color-ink-1)]">{upapada.sign}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Lord</p>
-                  <p className="font-semibold text-planet-name">{upapada.lord}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">2nd from UL</p>
-                  <p className="font-semibold text-[var(--color-ink-2)]">{upapada.second_from_ul}</p>
-                </div>
+            <div className="ac-card ac-card-pad">
+              <div className="ac-eyebrow" style={{ marginBottom: 8 }}>Upapada (A12) — Spouse Indicator</div>
+              <div className="ac-kv">
+                <div><span className="k">UL sign</span><span className="v">{upapada.sign ?? "—"}</span></div>
+                <div><span className="k">Lord</span><span className="v cool">{upapada.lord ?? "—"}</span></div>
+                <div><span className="k">2nd from UL</span><span className="v">{upapada.second_from_ul ?? "—"}</span></div>
               </div>
               {upapada.description && (
-                <p className="text-xs text-muted-foreground mt-2">{upapada.description}</p>
+                <p style={{ marginTop: 8, fontSize: 12, color: "var(--color-ink-3)", lineHeight: 1.5 }}>{upapada.description}</p>
               )}
             </div>
           )}
         </section>
       )}
 
-      {activeTab === 'ashtakavarga' && (
+      {/* Ashtakavarga */}
+      {activeTab === "ashtakavarga" && (
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-            Ashtakavarga
-          </h3>
+          <SectionHeading>Ashtakavarga</SectionHeading>
 
           {sav && (
-            <div className="mb-6">
+            <div style={{ marginBottom: 20 }}>
               <SavChartGrid
                 sav={sav}
                 lagnaSign={
@@ -308,42 +273,28 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
 
           {bav && (
             <div>
-              <p className="text-xs uppercase text-muted-foreground mb-2">
-                Bhinnashtakavarga (BAV) — per planet
-              </p>
-              <div className="overflow-x-auto">
-                <table className="text-xs border-collapse">
+              <div className="ac-eyebrow" style={{ marginBottom: 8 }}>Bhinnashtakavarga (BAV) — per planet</div>
+              <div className="ac-card overflow-x-auto">
+                <table className="ac-table">
                   <thead>
-                    <tr className="border-b border-[var(--color-border)]">
-                      <th className={th}>Planet</th>
-                      {SIGNS_ORDER.map(s => (
-                        <th key={s} className="py-1.5 px-1.5 text-center text-xs font-medium text-muted-foreground">
-                          {s.slice(0, 3)}
-                        </th>
-                      ))}
-                      <th className="py-1.5 px-2 text-center text-xs font-medium text-muted-foreground">Σ</th>
+                    <tr>
+                      <th>Planet</th>
+                      {SIGNS_ORDER.map(s => <th key={s} className="right" style={{ minWidth: 26 }}>{s.slice(0, 3)}</th>)}
+                      <th className="right">Σ</th>
                     </tr>
                   </thead>
                   <tbody>
                     {Object.entries(bav).map(([planet, scores]) => {
                       const total = SIGNS_ORDER.reduce((acc, sign) => acc + (scores[sign] ?? 0), 0);
                       return (
-                        <tr key={planet} className="border-b border-[var(--color-border)]/40">
-                          <td className="py-1.5 px-2 font-semibold text-[var(--color-ink-2)]">{planet}</td>
+                        <tr key={planet}>
+                          <td className="planet">{planet}</td>
                           {SIGNS_ORDER.map(sign => {
                             const val = scores[sign] ?? 0;
-                            return (
-                              <td
-                                key={sign}
-                                className={`py-1.5 px-1.5 text-center font-mono ${
-                                  val >= 6 ? "text-success font-bold" : val <= 2 ? "text-danger" : "text-muted-foreground"
-                                }`}
-                              >
-                                {val}
-                              </td>
-                            );
+                            const cls = val >= 6 ? "ac-cell-good" : val <= 2 ? "ac-cell-bad" : "";
+                            return <td key={sign} className={`num right ${cls}`}>{val}</td>;
                           })}
-                          <td className="py-1.5 px-2 text-center font-bold text-[var(--color-ink-2)]">{total}</td>
+                          <td className="num right" style={{ fontWeight: 700 }}>{total}</td>
                         </tr>
                       );
                     })}
@@ -354,11 +305,10 @@ export function PatternsTab({ chartOutput }: { chartOutput: Record<string, unkno
           )}
 
           {!sav && !bav && (
-            <p className="text-xs text-muted-foreground italic">Ashtakavarga data not available.</p>
+            <p style={{ fontSize: 12, fontStyle: "italic", color: "var(--color-ink-3)" }}>Ashtakavarga data not available.</p>
           )}
         </section>
       )}
-
     </div>
   );
 }
