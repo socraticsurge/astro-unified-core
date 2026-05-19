@@ -80,10 +80,20 @@ app/
 
 components/
 ├── NavBar.tsx                          # Top nav + auth state
+├── CosmicLanding.tsx                   # Public landing (replaces LandingPage.tsx)
 ├── ProfileForm.tsx                     # New-profile form (geocodes on submit)
+├── ThemeProvider.tsx, ThemeToggle.tsx  # Umbra dark / Vellum light theme system
 ├── auth/NextAuthProvider.tsx           # Session provider
+├── unified/
+│   ├── UnifiedView.tsx                 # 10-tab dashboard shell
+│   └── tabs/                           # TodayTab, ChartTab, PlanetsTab,
+│                                       # HousesVargasTab, DashaTab, YogasTab,
+│                                       # JaiminiTab, AshtakavargaTab,
+│                                       # TransitsTab, CareerTab
+├── tabs/CompareTab.tsx, TodayTab.tsx   # Top-level compare + today views
 ├── engines/
-│   ├── DashaflowView.tsx               # Renders the 17-section chart
+│   ├── MuhurthaView.tsx                # Event picker
+│   ├── TarabalamView.tsx               # Date-range + multi-profile star compatibility
 │   ├── SectionShell.tsx                # Section container with collapse + ⓘ trigger
 │   └── ExplainerModal.tsx              # Tabbed modal: "For your chart" + "About"
 └── ui/                                 # shadcn primitives
@@ -433,13 +443,14 @@ fetch `GET /v13/deployments/{id}` from the Vercel API, read `readyState`,
    → INSERT into profiles
    → redirect to /profiles/{id}
 
-3. Profile detail page loads at /profiles/{id}
+3. Dashboard loads at /dashboard?profile={id}
    → GET /api/profiles/{id} → load profile (admin can fetch any)
    → GET /api/readings/dashaflow?profile_id={id}
        → check readings cache (engine="dashaflow")
        → if miss: POST to ${DASHAFLOW_SIDECAR_URL}/calculate
        → save reading row, return chart
-   → DashaflowView renders the 17 sections
+   → DashboardClient renders the 10-tab unified view (Today, Chart, Planets,
+     Houses, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career, Compare)
 ```
 
 ---

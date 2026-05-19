@@ -8,6 +8,37 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — Pre-merge cleanup for development → main
+
+### Fixed
+- **Auth order in 3 reading POST routes** (`app/api/readings/transit`, `dashaflow`, `career`) — rate-limit was running before the session check, so unauthenticated requests could consume rate-limit slots and receive 429 instead of 401. Now returns 401 first if `!session?.user`. Also resolves the `returns 401 if unauthorized` test failure on the transit route.
+- **5 stale UI tests** (theme/nav rebuild leftovers) — `AskPanel` (button label `submit` not `request consultation`), `ProfileChip` (relationship rendered as `You` not `· You`), `ProfileNav` (removed assertions for Add/Ask buttons that moved to `NavBar`), `PlanetsTab` (`℞` now appears in multiple cells, use `getAllByText`). All 195 tests now pass.
+- **Missing viewport meta** — added `export const viewport` to `app/layout.tsx`. Mobile browsers were rendering at desktop width, defeating every `sm:`/`md:` breakpoint introduced by the theme rebuild.
+
+### Changed
+- **`next.config.ts` CSP** — dropped `'unsafe-eval'` from `script-src`. `next build` verified green; production bundle does not need eval. `'unsafe-inline'` stays until nonce wiring lands.
+- **`docs/ARCHITECTURE.md`** — added stale-section banner near top listing the 12 components removed in the 2026-05-19 cleanup. Replaced the client-components table with the current unified-dashboard set (`DashboardClient`, `UnifiedView`, `tabs/*`, `panels/AskPanel`, `profiles/*`, etc.). Deeper sections (legacy "Basic vs Professional" narrative around lines 355, 573-666, 773-781) still need a fuller rewrite — banner flags them.
+- **`docs/PROJECT.md`** — updated the user-flow walkthrough and the component tree to reflect the dashboard + 10-tab unified view + theme system.
+- **`docs/TESTING.md`** — replaced the dead `DashaflowView` test row with `components/unified/tabs/*` coverage notes.
+
+### Removed
+- **`design/landing-mockup/`** — 24MB of unused landing-page exploration (including a 23MB `earth.mp4`). Nothing in the app imported from `design/`. Removed via `git rm -r --cached design/`; added `design/` to `.gitignore`.
+- **Jest devdependencies** — `jest`, `ts-jest`, `@jest/globals`, `@types/jest` were installed but unused (project uses Vitest per `AGENTS.md`). `npm test` script changed from `jest` to `vitest run` (was previously broken). `@testing-library/jest-dom` kept — it's loaded by `vitest.setup.ts`.
+- **Other dead deps**: `dompurify`, `isomorphic-dompurify`, `@types/dompurify` (sanitizer is custom in `lib/sanitize.ts`), `tsx` (no consumer). 225 packages dropped from the lockfile.
+
+### Added
+- **`.vercelignore`** — excludes `design/`, `docs/`, `CHANGELOG.md`, `AGENTS.md`, tests, AI agent scratch dirs (`.claude/`, `.jules/`, `.cursor/`, `.aider/`), and `public/data/ephemeris/*.pickle` from Vercel deployments. Trims the deployed bundle significantly.
+
+### Known follow-ups (not in this PR)
+- `public/data/` carries ~52MB (Hipparcos catalog + pickle cache). Referenced as static assets in `docs/ARCHITECTURE.md` but no app code reads it. Confirm whether these are needed at runtime and either move out of `public/` or remove from git.
+- `app/api/readings/muhurtha/route.ts` has no rate limit.
+- `app/api/feedback/route.ts` is unauthenticated and trusts spoofable `X-Forwarded-For`.
+- `today-reading` cache key omits prompt version + `custom_instructions` hash — admin prompt edits silently serve stale cached readings.
+- Hardcoded Tailwind colors remain in 9 files (worst: `ConsultationForm.tsx`, `LandingPage.tsx`, `FeedbackWidget.tsx`).
+- 3 orphan components (~684 lines): `components/LandingPage.tsx`, `components/dashboard/ProfileList.tsx`, `components/profile-ui.tsx`.
+
+---
+
 ## [2026-05-19] — Remove dead basic/professional views and all orphaned engine components
 
 ### Removed

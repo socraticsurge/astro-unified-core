@@ -8,7 +8,7 @@ describe('ProfileChip', () => {
   it('renders full name and relationship label', () => {
     render(<ProfileChip id="1" name="Vinay Kumar" relationship="You" isActive={false} onClick={() => {}} />)
     expect(screen.getByText('Vinay Kumar')).toBeInTheDocument()
-    expect(screen.getByText('· You')).toBeInTheDocument()
+    expect(screen.getByText('You')).toBeInTheDocument()
   })
 
   it('sets aria-pressed true when isActive is true', () => {

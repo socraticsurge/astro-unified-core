@@ -23,6 +23,9 @@
 # vercel
 .vercel
 
+# local design mockups (not part of the app)
+/design/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

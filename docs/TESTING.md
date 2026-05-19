@@ -62,7 +62,7 @@ Last assessed: **2026-05-14**
 | `app/api/feedback/route.ts` | — | None | Integration |
 | `app/api/consultation-requests/route.ts` | — | None | Integration |
 | `components/NavBar.tsx` | — | None | UI; manual only |
-| `components/engines/DashaflowView.tsx` | — | None | UI; manual only |
+| `components/unified/tabs/*` | — | `ChartTab`, `PlanetsTab`, `TimeTab`, `IdentityStrip`, `HouseGrid` have render tests | Add coverage for `DashaTab`, `YogasTab`, `JaiminiTab` |
 
 **Priority for first test sprint:**
 

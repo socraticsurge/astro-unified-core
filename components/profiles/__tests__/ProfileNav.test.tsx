@@ -15,40 +15,10 @@ describe('ProfileNav', () => {
         profiles={profiles}
         activeProfileId="1"
         onProfileChange={() => {}}
-        onAskOpen={() => {}}
       />
     )
     expect(screen.getByText('Vinay Kumar')).toBeInTheDocument()
     expect(screen.getByText('Priya Kumar')).toBeInTheDocument()
-  })
-
-  it('renders the add profile link', () => {
-    render(
-      <ProfileNav
-        profiles={profiles}
-        activeProfileId="1"
-        onProfileChange={() => {}}
-        onAskOpen={() => {}}
-      />
-    )
-    expect(screen.getByRole('link', { name: /add profile/i })).toHaveAttribute(
-      'href',
-      '/profiles/new'
-    )
-  })
-
-  it('calls onAskOpen when Ask button is clicked', async () => {
-    const onAskOpen = vi.fn()
-    render(
-      <ProfileNav
-        profiles={profiles}
-        activeProfileId="1"
-        onProfileChange={() => {}}
-        onAskOpen={onAskOpen}
-      />
-    )
-    await userEvent.click(screen.getByRole('button', { name: /ask an expert/i }))
-    expect(onAskOpen).toHaveBeenCalled()
   })
 
   it('calls onProfileChange when a chip is clicked', async () => {
@@ -58,7 +28,6 @@ describe('ProfileNav', () => {
         profiles={profiles}
         activeProfileId="1"
         onProfileChange={onProfileChange}
-        onAskOpen={() => {}}
       />
     )
     await userEvent.click(screen.getByText('Priya Kumar'))

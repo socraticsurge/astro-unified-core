@@ -1,6 +1,18 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-05-19 -->
+
+> **Notice (2026-05-19):** The "Basic / Professional" two-mode chart view was
+> replaced with a unified 10-tab dashboard. The following components are
+> **deleted** and any sections below that reference them are stale pending a
+> rewrite: `ProfileDetailClient`, `ProfessionalView`, `DashaflowView`,
+> `VargaDashboard`, `AntardashaTimeline`, `TransitView`, `CareerView`,
+> `AIInsightShell`, `ProfileChat`, `LandingPage`, `ChartSkeleton`,
+> `dashboard/ProfileList`. The current chart view is the dashboard:
+> [`app/dashboard/DashboardClient.tsx`](../app/dashboard/DashboardClient.tsx)
+> rendering `components/unified/UnifiedView.tsx` + `components/unified/tabs/*`
+> (Today, Chart, Planets, HousesVargas, Dasha, Yogas, Jaimini, Ashtakavarga,
+> Transits, Career, Compare).
 
 > **Companion to [`PROJECT.md`](./PROJECT.md)** — that file covers env vars,
 > deployment gotchas, and the auth model. This file covers the code itself:
@@ -103,23 +115,24 @@ Must receive data via props, `useSession()`, or fetch calls to API routes.
 
 | File | Why client | What it cannot do |
 |---|---|---|
-| `app/profiles/[id]/ProfileDetailClient.tsx` | Interactive chart, fetch on demand, Basic/Pro toggle | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
+| `app/dashboard/DashboardClient.tsx` | Active profile state, tab orchestration, parallel prefetch | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
 | `app/compatibility/[id]/CompatibilityDetailClient.tsx` | Interactive detail tabs | Same — reads `session.user.isAdmin` |
 | `app/admin/AdminTables.tsx` | Tabs, sort, inline actions | Cannot call `isAdmin()` — admin gate is on the server page |
 | `app/consultation/ConsultationForm.tsx` | Multi-step form with live preview | Receives settings as props from server |
-| `components/NavBar.tsx` | `useSession`, `signOut` | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
+| `components/NavBar.tsx` | `useSession`, `signOut`, profile chips, Ask button | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
+| `components/CosmicLanding.tsx` | Earth-globe video, theme-aware star canvas | Public landing |
+| `components/AppShell.tsx`, `AppStarCanvas.tsx` | Persistent background canvas | |
 | `components/compatibility/CompatibilityClient.tsx` | Profile selection, check submission | Receives profiles + checks as props |
-| `components/engines/DashaflowView.tsx` | Collapsible sections, explainer modals | Receives chart output as props |
-| `components/engines/ProfessionalView.tsx` | Tab container, fetch-on-tab | Fetch triggered by user action |
-| `components/engines/TransitView.tsx` | Date picker, transit fetch | |
-| `components/engines/CareerView.tsx` | Lazy load on tab | |
+| `components/unified/UnifiedView.tsx` + `tabs/*` | 10-tab dashboard: Today, Chart, Planets, HousesVargas, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career | Receives chart/transit/career output as props |
+| `components/tabs/CompareTab.tsx`, `TodayTab.tsx` | Multi-profile compare + Today highlights | |
 | `components/engines/MuhurthaView.tsx` | Event picker | |
 | `components/engines/TarabalamView.tsx` | Date range + multi-profile picker | |
-| `components/engines/VargaDashboard.tsx` | D-chart tabs | |
-| `components/engines/AntardashaTimeline.tsx` | Visual timeline | |
+| `components/panels/AskPanel.tsx`, `AIAdminPanel.tsx` | Slide-out Ask + admin LLM panels | |
+| `components/profiles/ProfileNav.tsx`, `ProfileChip.tsx`, `ProfileSidebar.tsx`, `ProfileView.tsx` | Profile chip nav + sidebar info | |
+| `components/ProfileLoadingScreen.tsx` | Celestial loading screen after profile creation | |
+| `components/ThemeProvider.tsx`, `ThemeToggle.tsx` | next-themes provider + toggle (Umbra / Vellum) | |
 | `components/FeedbackWidget.tsx` | Floating overlay, form submit | |
 | `components/ProfileForm.tsx` | Geocode-on-submit, controlled form | |
-| `components/dashboard/ProfileList.tsx` | Interactive profile cards | |
 | `components/auth/NextAuthProvider.tsx` | `SessionProvider` mount | |
 
 ### API routes (all server-side, all in `app/api/`)

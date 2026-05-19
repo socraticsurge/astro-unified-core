@@ -57,8 +57,7 @@ describe("PlanetsTab", () => {
 
   it("shows retrograde marker for Mercury", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    // ℞ appears in the Retro column — no click needed in flat table
-    expect(screen.getByText("℞")).toBeDefined();
+    expect(screen.getAllByText("℞").length).toBeGreaterThan(0);
   });
 
   it("shows shadbala total for Sun without any click", () => {
