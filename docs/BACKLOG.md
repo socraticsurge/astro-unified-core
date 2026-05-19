@@ -1,6 +1,6 @@
 # Backlog
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-05-19 -->
 
 Tracks known bugs, deferred features, tech debt, and session decisions.
 
@@ -49,6 +49,13 @@ Things that work but are suboptimal. Prioritise when there is slack.
 | T3 | `db.users.list()` and `db.feedback.list()` cast rows via `as unknown as T[]`. A Zod schema parse would catch DB/schema drift at runtime. | `lib/db/users.ts`, `lib/db/feedback.ts` | Medium |
 | T4 | Admin panel `AdminTables.tsx` sort uses string-indexed sort with `Record<string, unknown>` cast. | `app/admin/AdminTables.tsx` | Small |
 | T5 | `lib/content/loader.ts` caches markdown in memory per Lambda instance. Cold starts re-parse all 538 files. Pre-building a static JSON bundle at build time would eliminate this. | `lib/content/loader.ts` | Medium |
+| T6 | Five reading routes (`dashaflow`, `transit`, `career`, `muhurtha`, `tarabalam`) each independently implement session→profile→cache→engine→save→error. Extract to a shared `invokeReadingEngine()` utility to avoid fixing the same bug in 5 places. | `app/api/readings/*/route.ts` | Medium |
+| T7 | All DB row casts use `as unknown as T[]` with no runtime validation. If the sidecar schema drifts, these silently return undefined fields. Add typed row-mapper functions per table. | `lib/db/*.ts` | Medium |
+| T8 | Schema migrations use `try { ALTER TABLE } catch {}` — no record of which columns are applied on which DB. Add a `schema_migrations` table to track applied versions. | `lib/db/client.ts` | Medium |
+| T9 | Magic numbers scattered across routes (max profiles = 10, max field length = 2000, rate limit windows). Consolidate into `/lib/constants.ts`. | Various | Small |
+| T10 | No error states in TransitsTab and CareerTab when the API fetch fails — user sees a blank panel. Add a simple "Couldn't load — try again" fallback. | `components/unified/tabs/TransitsTab.tsx`, `CareerTab.tsx` | Small |
+| T11 | No API documentation. 20+ routes exist with no OpenAPI spec or markdown reference. Add `/docs/api.md`. | `app/api/` | Medium |
+| T12 | Batch-fetch profiles in compatibility route — currently two sequential `db.profiles.get()` calls where one joined query would do. | `app/api/compatibility/route.ts` | Small |
 
 ---
 

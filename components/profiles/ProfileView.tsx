@@ -14,14 +14,17 @@ import { AshtakavargaTab }   from '@/components/unified/tabs/AshtakavargaTab'
 import { DashaTab }          from '@/components/unified/tabs/DashaTab'
 import { TransitsTab }       from '@/components/unified/tabs/TransitsTab'
 import { CareerTab }         from '@/components/unified/tabs/CareerTab'
+import { MuhurthaView }      from '@/components/engines/MuhurthaView'
+import { TarabalamView }     from '@/components/engines/TarabalamView'
 import type { AskContext }   from '@/components/panels/AskPanel'
 
 export type ChartTabId =
   | 'today' | 'planets' | 'divisional'
   | 'yogas' | 'jaimini' | 'ashtakavarga'
   | 'dasha' | 'transits' | 'career' | 'compare'
+  | 'muhurtha' | 'tarabalam'
 
-const CHART_TABS: { id: ChartTabId; label: string }[] = [
+const CHART_TABS: { id: ChartTabId; label: string; adminOnly?: boolean }[] = [
   { id: 'today',        label: 'Today'        },
   { id: 'planets',      label: 'Planets'      },
   { id: 'divisional',   label: 'Divisional'   },
@@ -32,6 +35,8 @@ const CHART_TABS: { id: ChartTabId; label: string }[] = [
   { id: 'transits',     label: 'Transits'     },
   { id: 'career',       label: 'Career'       },
   { id: 'compare',      label: 'Marriage Compatibility' },
+  { id: 'muhurtha',     label: 'Muhurtha',    adminOnly: true },
+  { id: 'tarabalam',    label: 'Tarabalam',   adminOnly: true },
 ]
 
 export interface AIOpenPayload {
@@ -110,7 +115,7 @@ export function ProfileView({
     })
   }
 
-  const needsChart = activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare'
+  const needsChart = activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare' && activeTab !== 'muhurtha' && activeTab !== 'tarabalam'
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -121,7 +126,7 @@ export function ProfileView({
           className="flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <div className="flex min-w-max">
-            {CHART_TABS.map(t => (
+            {CHART_TABS.filter(t => !t.adminOnly || isAdmin).map(t => (
               <button
                 key={t.id}
                 id={`profileview-tab-${t.id}`}
@@ -214,6 +219,16 @@ export function ProfileView({
               isCareerLoading={isCareerLoading}
               onFetchCareer={onFetchCareer}
             />
+          </div>
+        )}
+        {activeTab === 'muhurtha' && isAdmin && (
+          <div id="profileview-panel-muhurtha" role="tabpanel" aria-labelledby="profileview-tab-muhurtha">
+            <MuhurthaView profileId={profile.id} />
+          </div>
+        )}
+        {activeTab === 'tarabalam' && isAdmin && (
+          <div id="profileview-panel-tarabalam" role="tabpanel" aria-labelledby="profileview-tab-tarabalam">
+            <TarabalamView profileId={profile.id} profiles={allProfiles} />
           </div>
         )}
         {activeTab === 'compare' && (

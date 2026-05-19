@@ -92,6 +92,9 @@ export async function POST(request: Request) {
 
   // Validate profile_ids belong to the requesting user
   const profileIdsArray: string[] = Array.isArray(profile_ids) ? profile_ids : [profile_ids];
+  if (profileIdsArray.length > 10) {
+    return NextResponse.json({ error: "Too many profiles" }, { status: 400 });
+  }
   const admin = isAdmin(session);
   for (const pid of profileIdsArray) {
     const profile = admin ? await db.profiles.getAny(pid) : await db.profiles.get(pid, userId);
