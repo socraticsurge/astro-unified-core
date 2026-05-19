@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { geocodePlace } from "@/lib/geocode";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { MAX_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
@@ -10,7 +10,7 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
   const profiles = await db.profiles.list(userId);
   return NextResponse.json(profiles);
 }

@@ -19,6 +19,7 @@
 
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
+import { getUserId } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import type { Profile } from "@/lib/db";
@@ -46,7 +47,7 @@ export async function resolveProfile(
     return { ok: false, response: NextResponse.json({ error: "profile_id is required" }, { status: 400 }) };
   }
 
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
   const profile = isAdmin(session)
     ? await db.profiles.getAny(profile_id)
     : await db.profiles.get(profile_id, userId);

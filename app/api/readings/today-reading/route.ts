@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveProfile } from "@/lib/engines/reading-handler";
-import { buildTodayReading } from "@/lib/engines/today-reading";
+import { buildTodayReading, PROMPT_VERSION } from "@/lib/engines/today-reading";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,20 @@ function extractPratyantarEnd(chartOutput: Record<string, unknown>): string | nu
   return dashas?.pratyantar?.end ?? dashas?.antar?.end ?? null;
 }
 
+// Fingerprints the inputs that influence the LLM output beyond the natal chart:
+// the prompt template version and the admin-tunable model settings. Bumping
+// PROMPT_VERSION or editing custom_instructions in the admin settings will
+// invalidate cached readings on next request.
+function llmFingerprint(cfg: { temperature: number; max_tokens: number; custom_instructions: string }): string {
+  const payload = `v${PROMPT_VERSION}|t${cfg.temperature}|m${cfg.max_tokens}|${cfg.custom_instructions}`;
+  return createHash("sha1").update(payload).digest("hex").slice(0, 12);
+}
+
 function isStale(
   cachedSnapshotJson: string,
   current: { date_of_birth: string; time_of_birth: string; latitude: number; longitude: number; timezone: string },
   currentPratyantarEnd: string | null,
+  currentLlmFingerprint: string,
 ): boolean {
   try {
     const snap = JSON.parse(cachedSnapshotJson) as Record<string, unknown>;
@@ -28,7 +39,8 @@ function isStale(
       snap.latitude !== current.latitude ||
       snap.longitude !== current.longitude ||
       snap.timezone !== current.timezone ||
-      snap.pratyantar_end !== currentPratyantarEnd
+      snap.pratyantar_end !== currentPratyantarEnd ||
+      snap.llm_fingerprint !== currentLlmFingerprint
     );
   } catch {
     return true;
@@ -54,9 +66,11 @@ export async function GET(req: NextRequest) {
   }
 
   const pratyantarEnd = extractPratyantarEnd(chartOutput);
+  const llmConfig = await db.settings.getTodayReadingLlm();
+  const fingerprint = llmFingerprint(llmConfig);
 
   const cached = await db.readings.latestByEngine(profile_id, ENGINE);
-  if (cached && !isStale(cached.input_snapshot as string, input, pratyantarEnd)) {
+  if (cached && !isStale(cached.input_snapshot as string, input, pratyantarEnd, fingerprint)) {
     try {
       return NextResponse.json({
         output: JSON.parse(cached.output_data as string),
@@ -66,8 +80,6 @@ export async function GET(req: NextRequest) {
       // Corrupted cache — fall through to regenerate
     }
   }
-
-  const llmConfig = await db.settings.getTodayReadingLlm();
 
   let output;
   try {
@@ -79,7 +91,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const inputSnapshot = { ...input, pratyantar_end: pratyantarEnd };
+  const inputSnapshot = { ...input, pratyantar_end: pratyantarEnd, llm_fingerprint: fingerprint };
   await db.readings.save({
     profile_id,
     engine: ENGINE,

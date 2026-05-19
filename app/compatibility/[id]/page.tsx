@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 import { redirect, notFound } from "next/navigation";
@@ -16,7 +16,7 @@ export default async function CompatibilityDetailPage({
   if (!session?.user) redirect("/auth/signin");
 
   const { id } = await params;
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
   const admin = isAdmin(session);
 
   const check = admin

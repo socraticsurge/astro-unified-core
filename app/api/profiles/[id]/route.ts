@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 import { geocodePlace } from "@/lib/geocode";
@@ -12,7 +12,7 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = (session.user as { id: string }).id;
+    const userId = getUserId(session);
     const { id } = await params;
 
     const existingProfile = await db.profiles.get(id, userId);
@@ -122,7 +122,7 @@ export async function GET(
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
 
   const { id } = await params;
   const profile = isAdmin(session)
@@ -140,7 +140,7 @@ export async function DELETE(
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
 
   const { id } = await params;
   const profile = await db.profiles.get(id, userId);

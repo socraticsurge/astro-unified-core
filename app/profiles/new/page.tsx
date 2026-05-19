@@ -1,6 +1,6 @@
 import { ProfileForm } from "@/components/ProfileForm";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ export default async function NewProfilePage() {
     redirect("/auth/signin");
   }
 
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
   const profiles = await db.profiles.list(userId);
 
   if (profiles.length >= 10) {

@@ -8,6 +8,30 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-19] — P0 + B1 + B3: security/correctness + repo lean
+
+Carryover items from the dev → main audit (#52). After this lands, `development`
+is in shape to merge to `main`.
+
+### Fixed
+- **`today-reading` cache key now includes a prompt fingerprint** (`app/api/readings/today-reading/route.ts`, `lib/engines/today-reading.ts`) — added a `PROMPT_VERSION` constant and an `llm_fingerprint` (sha1 over version + temperature + max_tokens + custom_instructions) into the cached `input_snapshot`. Admin edits to LLM settings or bumps to `PROMPT_VERSION` now invalidate cached readings on the next request. Previously, an admin editing `custom_instructions` would silently serve stale cached output until the user's pratyantar period shifted.
+- **`POST /api/readings/muhurtha` is now rate-limited** (`app/api/readings/muhurtha/route.ts`) — was the only reading route without a limit. Now uses `RATE_LIMIT_DEFAULT_COUNT` per user per minute, matching career/transit/dashaflow.
+- **`POST /api/feedback` hardening** (`app/api/feedback/route.ts`) — was an unauthenticated POST that trusted the first value of `X-Forwarded-For` (client-spoofable) and accepted any string as `rating`. Now: rate-limits by user-email when authed and by the *last* X-Forwarded-For segment (Vercel's trusted observation) when anonymous, validates rating against the widget's emoji enum, caps `message` to 2000 chars and `page_url` to 500 chars.
+
+### Changed
+- **Extracted `getUserId(session)` helper** (`lib/auth.ts`) — replaces the 15 repeated `(session.user as { id: string }).id` casts across `app/api/**`, `app/**/page.tsx`, and `lib/engines/reading-handler.ts`. The cast now exists only inside the helper. Test mocks for `@/lib/auth` updated in 5 files.
+
+### Removed
+- **`public/data/` (52MB) untracked from git** — 11 Hipparcos catalog chunks + 236 sidecar pickle cache files. No app code references them; they were committed as a workaround for GitHub's 50MB limit ("add star catalog in small 5mb chunks for github", 2026-05-06) under an earlier deployment model. The Python sidecar runs as a separate service and cannot access this folder anyway. Added `/public/data/` to `.gitignore` and `.vercelignore`. Repo and every Vercel deployment now ~52MB lighter.
+- **3 orphan components, ~684 lines** — `components/LandingPage.tsx` (superseded by `CosmicLanding.tsx`), `components/dashboard/ProfileList.tsx`, and `components/profile-ui.tsx` (only imported by `ProfileList`). Verified zero importers across the codebase.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 195/195 pass
+- `npm run build` → success
+
+---
+
 ## [2026-05-19] — Pre-merge cleanup for development → main
 
 ### Fixed

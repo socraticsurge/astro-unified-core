@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ProfileForm } from "@/components/ProfileForm";
@@ -15,7 +15,7 @@ export default async function EditProfilePage({
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/auth/signin");
 
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
   const { id } = await params;
   
   const profile = await db.profiles.get(id, userId);
