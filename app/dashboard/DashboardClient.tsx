@@ -144,7 +144,7 @@ export function DashboardClient({
           </p>
           <a
             href="/profiles/new"
-            className="px-6 py-2.5 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-colors"
+            className="px-6 py-2.5 rounded-lg bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover,var(--color-accent))] transition-colors"
           >
             Create your first profile
           </a>

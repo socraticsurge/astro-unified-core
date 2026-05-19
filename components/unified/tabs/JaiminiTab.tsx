@@ -76,7 +76,7 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
             {karakamsha.ishta_devata && (
               <div className="col-span-2">
                 <p className="text-xs text-muted-foreground">Ishta Devata</p>
-                <p className="font-semibold text-amber-300 text-base">{karakamsha.ishta_devata}</p>
+                <p className="font-semibold text-[var(--color-accent)] text-base">{karakamsha.ishta_devata}</p>
               </div>
             )}
             {karakamsha.planets_in_karakamsha && karakamsha.planets_in_karakamsha.length > 0 && (

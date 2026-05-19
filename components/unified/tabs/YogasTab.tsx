@@ -103,7 +103,7 @@ export function YogasTab({ chartOutput }: { chartOutput: Record<string, unknown>
               </p>
               {gandanta.map((g, i) => (
                 <p key={i} className="text-xs text-muted-foreground">
-                  <span className="text-purple-300 font-semibold">{g.planet}</span>
+                  <span className="text-[var(--color-accent)] font-semibold">{g.planet}</span>
                   {" "}{g.sign} {g.degree?.toFixed(2)}° · {g.nakshatra}
                   {g.description && (
                     <span className="ml-2 text-muted-foreground/60">({g.description})</span>
