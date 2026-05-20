@@ -142,7 +142,7 @@ export function ProfileView({
   return (
     <div className="h-full flex flex-col min-h-0">
       {/* Mobile-only profile header — edit/delete without the sidebar */}
-      <div className="md:hidden flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)]">
+      <div className="flex-shrink-0 md:hidden flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)]">
         <div className="min-w-0">
           <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{formatName(profile.name)}</p>
           {(profile.relationship || profile.gender) && (
@@ -170,8 +170,10 @@ export function ProfileView({
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex-shrink-0 flex items-stretch border-b border-[var(--color-border)]">
+      {/* Tab bar — kept visible while scrolling the active tab's content.
+          `flex-shrink-0` pins it in the flex column; the background ensures
+          tab content scrolling beneath doesn't bleed through. */}
+      <div className="flex-shrink-0 flex items-stretch border-b border-[var(--color-border)] bg-[var(--color-background)] z-10">
         <div
           role="tablist"
           className="flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

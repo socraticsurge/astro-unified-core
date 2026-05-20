@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import { PLANET_ORDER } from "@/components/unified/types";
 import { SectionHeading } from "@/components/unified/SectionHeading";
+import { TabLoadingSkeleton } from "@/components/unified/TabLoadingSkeleton";
 
 export function TransitsTab({
   transitOutput,
@@ -49,9 +50,7 @@ export function TransitsTab({
         </button>
       </div>
 
-      {isTransitLoading && (
-        <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>Loading transits…</p>
-      )}
+      {isTransitLoading && <TabLoadingSkeleton lines={4} cards={2} />}
 
       {!isTransitLoading && transitError && (
         <div style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-danger)" }}>

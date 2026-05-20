@@ -8,6 +8,53 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — PR-5: polish (Toast + sticky tabs + loading skeleton)
+
+Polish layer over the user-visible changes from PR-1 → PR-4. Adds positive
+feedback for actions that previously had none, ensures the tab nav stays
+visible during scroll, and unifies the loading state across tabs.
+
+### Added
+- **`components/ui/Toast.tsx`** — global toast notification system.
+  - `<ToastProvider>` mounted once in `app/layout.tsx` (inside `ThemeProvider`).
+  - `toast(message, kind?, opts?)` imperative helper callable from any client
+    component. `kind` is `"success" | "error" | "info"`. `opts.duration: 0`
+    keeps the toast open until dismissed; default auto-dismiss is 3.5s.
+  - `useToast()` hook for reactive use.
+  - Visual: bottom-right slide-in stack, semantic icon + colour per kind,
+    inline dismiss button. 6 unit tests.
+- **`components/unified/TabLoadingSkeleton.tsx`** — shared pulsing skeleton.
+  Replaces the prior mix of "Loading…" text labels and bare paragraphs across
+  tabs. Configurable `lines` / `cards` / `framed`. Applied to `TransitsTab`
+  and `CareerTab` (both previously rendered a single italic line).
+
+### Changed
+- **ProfileSidebar save / create / delete + AskPanel submit** now fire toasts.
+  - Profile saved → "Profile saved" (success)
+  - Profile created → "Created &lt;Name&gt;" (success)
+  - Profile deleted → "&lt;Name&gt; deleted" (success)
+  - Ask submitted → "Your question is on its way — we'll respond within 2 days." (success)
+  - Any of the above failing → red error toast with the message
+- **ProfileView tab bar is now pinned visibly during content scroll**
+  (observation N4). Added `flex-shrink-0 bg-[var(--color-background)] z-10`
+  to the tab bar, and `flex-shrink-0` to the mobile header. Both were
+  implicit-shrink flex items in some layout regimes; making them explicit
+  ensures they stay visible no matter how tall the inner Dasha / Patterns
+  table grows.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 275/275 pass (+6 toast tests)
+- `npm run build` → success
+
+### Out of scope (queued)
+- **PR-6** — Compare responsive, Yogas / Ashtakavarga / Patterns 2-col audit,
+  Compatibility Basic/Pro decision
+- **PR-7** — AdminTables split (880 lines), ExplainerModal mobile,
+  sidebar dead space, smaller items
+
+---
+
 ## [2026-05-20] — PR-4: tab refits (Jaimini, Dasha, Transits, Career)
 
 Closes PDF observations **#4–#7**. Each refit composes the PR-2 primitives

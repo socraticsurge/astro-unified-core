@@ -13,6 +13,7 @@ import { NavBar } from "@/components/NavBar";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppShell } from "@/components/AppShell";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
@@ -63,8 +64,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ].join(" ")}
       >
         <ThemeProvider>
-          <NextAuthProvider session={session}>
-            <AppShell
+          <ToastProvider>
+            <NextAuthProvider session={session}>
+              <AppShell
               navBar={<NavBar />}
               footer={
                 <footer className="pb-24 sm:pb-6 pt-2 flex items-center justify-end px-4 sm:px-6 opacity-20 hover:opacity-50 transition-opacity duration-300">
@@ -78,9 +80,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               }
               feedback={<FeedbackWidget />}
             >
-              {children}
-            </AppShell>
-          </NextAuthProvider>
+                {children}
+              </AppShell>
+            </NextAuthProvider>
+          </ToastProvider>
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />
