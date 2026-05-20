@@ -8,6 +8,62 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — PR-6: Compare responsive + orphan cleanup
+
+Audits the remaining untouched tabs from the UI/UX review, removes orphaned
+components discovered during the audit, and tightens the Compare tab.
+
+### Changed
+- **`components/tabs/CompareTab.tsx`** — removed the prior `max-w-2xl` clamp
+  on the result body. The compare result now fills the dashboard content
+  area, so the dense kuta / dosha tables get breathing room on wide screens.
+  Replaced inline `display: flex` constructs with Tailwind classes for the
+  score row and dosha card chrome, so the existing `flex-wrap` actually
+  kicks in at narrow widths. `formatName` applied to all profile names
+  in the result body (Natal Moon Profiles header, Kuja Dosha rows,
+  Additional Kutas detail lines, Mangal Dosha sentences).
+- **"+ Add partner profile" CTA** in CompareTab now links to
+  `/dashboard?create=1` (matches the rest of the app).
+- **`components/unified/tabs/YogasTab.tsx`** — both sections now use
+  `TabSection` for the empty-state policy. When both yogas and doshas are
+  absent, a single short "data not available" message renders instead of
+  two empty headings.
+
+### Removed
+- **Orphaned `components/unified/UnifiedView.tsx`** (had no callers — the
+  dashboard shell is `ProfileView`, not `UnifiedView`).
+- **Orphaned `components/unified/tabs/PatternsTab.tsx`** (only imported by
+  `UnifiedView`; the dashboard's Yogas + Jaimini + Ashtakavarga + Doshas
+  content lives in the dedicated top-level tabs).
+- **Orphaned `UnifiedViewProps` type** in `components/unified/types.ts`.
+- Net: 326 + 106 + 9 = ~441 lines of dead component code gone.
+
+### Fixed (docs)
+- **`docs/ARCHITECTURE.md`** Chart Engine Components table — replaced
+  `UnifiedView.tsx` row with `TabGrid.tsx` + `TabLoadingSkeleton.tsx`
+  (the actual primitives in use). Removed `PatternsTab.tsx` row.
+  Updated `Transits` and `Career` row descriptions to reflect the
+  PR-4 refits. Server/Client Boundary Map now describes
+  `ProfileView + components/unified/tabs/*` as the dashboard shell.
+
+### Decision deferred
+- **Compatibility Basic / Pro toggle** (`CompatibilityDetailClient`) —
+  the unified dashboard removed the parallel toggle on profile pages,
+  but `CompatibilityDetailClient` still has it. Keeping it as-is until
+  you decide whether to merge Basic + Pro into one view or remove the
+  toggle for non-admins.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 275/275 pass
+- `npm run build` → success
+
+### Queued
+- **PR-7** — AdminTables split (880 lines), ExplainerModal mobile, sidebar
+  dead space, smaller items
+
+---
+
 ## [2026-05-20] — PR-5: polish (Toast + sticky tabs + loading skeleton)
 
 Polish layer over the user-visible changes from PR-1 → PR-4. Adds positive

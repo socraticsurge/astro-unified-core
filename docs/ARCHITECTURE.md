@@ -120,7 +120,7 @@ Must receive data via props, `useSession()`, or fetch calls to API routes.
 | `components/CosmicLanding.tsx` | Earth-globe video, theme-aware star canvas | Public landing |
 | `components/AppShell.tsx`, `AppStarCanvas.tsx` | Persistent background canvas | |
 | `components/compatibility/CompatibilityClient.tsx` | Profile selection, check submission | Receives profiles + checks as props |
-| `components/unified/UnifiedView.tsx` + `tabs/*` | 10-tab dashboard: Today, Chart, Planets, HousesVargas, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career | Receives chart/transit/career output as props |
+| `components/profiles/ProfileView.tsx` + `components/unified/tabs/*` | 10-tab dashboard shell: Today, Chart, Planets, HousesVargas, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career, Compare. `ProfileView` owns the active-tab state and renders the relevant tab component. | Receives chart/transit/career output as props |
 | `components/tabs/CompareTab.tsx`, `TodayTab.tsx` | Multi-profile compare + Today highlights | |
 | `components/engines/MuhurthaView.tsx` | Event picker | |
 | `components/engines/TarabalamView.tsx` | Date range + multi-profile picker | |
@@ -705,7 +705,8 @@ The chart UI is split across two directories:
 
 | Component | What it renders |
 |---|---|
-| [`UnifiedView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/UnifiedView.tsx) | Tab shell + experimental badge |
+| [`TabGrid.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/TabGrid.tsx) | Shared `TwoColumnTabGrid` / `TabColumn` / `TabSection` primitives — composed by every dense tab |
+| [`TabLoadingSkeleton.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/TabLoadingSkeleton.tsx) | Shared pulsing loader (transit, career, etc.) |
 | [`IdentityStrip.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/IdentityStrip.tsx) | Ascendant / Moon sign / Nakshatra strip |
 | [`HouseGrid.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/HouseGrid.tsx) | 12-house diamond/grid |
 | [`NatalChartGrid.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/NatalChartGrid.tsx) | Square North-Indian style chart |
@@ -718,10 +719,9 @@ The chart UI is split across two directories:
 | [`tabs/YogasTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/YogasTab.tsx) | Active yogas |
 | [`tabs/JaiminiTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/JaiminiTab.tsx) | Jaimini karakas + Karakamsha |
 | [`tabs/AshtakavargaTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/AshtakavargaTab.tsx) | BAV + SAV bindu tables |
-| [`tabs/PatternsTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/PatternsTab.tsx) | Yoga / Dosha / Combust / Retrograde patterns |
 | [`tabs/TimeTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/TimeTab.tsx) | Panchang + birth time details |
-| [`tabs/TransitsTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/TransitsTab.tsx) | Current planetary positions; calls `POST /api/readings/transit` |
-| [`tabs/CareerTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/CareerTab.tsx) | D10 themes + significators; calls `POST /api/readings/career` |
+| [`tabs/TransitsTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/TransitsTab.tsx) | Compact card grid; calls `POST /api/readings/transit` |
+| [`tabs/CareerTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/CareerTab.tsx) | Two-column layout (D10 + themes + indicators \| 10th house + significators); calls `POST /api/readings/career` |
 
 **[`components/tabs/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/)** — top-level tabs that compose multiple data sources:
 
