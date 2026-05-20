@@ -1,20 +1,21 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Pencil, Trash2, X } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
+import { formatName, formatPlace } from "@/lib/display";
+import {
+  ProfileFormFields,
+  emptyProfileFormState,
+  type ProfileFormState,
+} from "@/components/profile/ProfileFormFields";
 
-// ── Inline edit form ────────────────────────────────────────────────────────
-
-const SELECT_CLASS =
-  "flex h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-2.5 py-1.5 text-xs text-[var(--color-ink-1)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
-const INPUT_CLASS =
-  "flex h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-2.5 py-1.5 text-xs text-[var(--color-ink-1)] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]";
-const LABEL_CLASS = "text-[10px] uppercase tracking-wider text-muted-foreground";
+// ── Inline forms (edit + create share the same fields) ─────────────────────
 
 function InlineEditForm({ profile, onCancel }: { profile: Profile; onCancel: () => void }) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ProfileFormState>({
     name:             profile.name,
     date_of_birth:    profile.date_of_birth,
     time_of_birth:    profile.time_of_birth,
@@ -49,47 +50,8 @@ function InlineEditForm({ profile, onCancel }: { profile: Profile; onCancel: () 
 
   return (
     <div className="space-y-3 text-xs">
-      <div className="space-y-1">
-        <label className={LABEL_CLASS}>Full name</label>
-        <input name="name" value={form.name} onChange={handleChange} className={INPUT_CLASS} />
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <label className={LABEL_CLASS}>Relationship</label>
-          <select name="relationship" value={form.relationship} onChange={handleChange} className={SELECT_CLASS}>
-            <option value="">—</option>
-            {["Self","Spouse","Child","Father","Mother","Sibling","Friend","Other"].map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <label className={LABEL_CLASS}>Gender</label>
-          <select name="gender" value={form.gender} onChange={handleChange} className={SELECT_CLASS}>
-            <option value="">—</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-      </div>
-      <div className="space-y-1">
-        <label className={LABEL_CLASS}>Date of birth</label>
-        <input type="date" name="date_of_birth" value={form.date_of_birth} onChange={handleChange} className={INPUT_CLASS} />
-      </div>
-      <div className="space-y-1">
-        <label className={LABEL_CLASS}>Time of birth</label>
-        <input type="time" name="time_of_birth" value={form.time_of_birth} onChange={handleChange} className={INPUT_CLASS} />
-      </div>
-      <div className="space-y-1">
-        <label className={LABEL_CLASS}>Place of birth</label>
-        <input name="place_of_birth" value={form.place_of_birth} onChange={handleChange} className={INPUT_CLASS} />
-      </div>
-      <div className="space-y-1">
-        <label className={LABEL_CLASS}>Current location</label>
-        <input name="current_location" value={form.current_location} onChange={handleChange} className={INPUT_CLASS} placeholder="City, Country" />
-      </div>
-      {error && <p className="text-danger text-xs">{error}</p>}
+      <ProfileFormFields form={form} onChange={handleChange} />
+      {error && <p className="text-xs" style={{ color: "var(--color-danger)" }}>{error}</p>}
       <div className="flex gap-2">
         <button
           onClick={handleSave}
@@ -109,6 +71,62 @@ function InlineEditForm({ profile, onCancel }: { profile: Profile; onCancel: () 
   );
 }
 
+export function InlineCreateForm({ onCancel }: { onCancel?: () => void }) {
+  const router = useRouter();
+  const [form, setForm] = useState<ProfileFormState>(emptyProfileFormState());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) throw new Error((data as { error?: string })?.error ?? `Error ${res.status}`);
+      // ?new=1 triggers the celestial loading screen + parallel prefetch.
+      router.push(`/dashboard?profile=${data.id}&new=1`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSave} className="space-y-3 text-xs">
+      <ProfileFormFields form={form} onChange={handleChange} />
+      {error && <p className="text-xs" style={{ color: "var(--color-danger)" }}>{error}</p>}
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="flex-1 h-8 rounded-md bg-[var(--color-accent)] text-[var(--color-button-fg)] text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+        >
+          {saving ? "Creating…" : "Create profile"}
+        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 h-8 rounded-md border border-[var(--color-border)] text-xs text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
 // ── Main sidebar ─────────────────────────────────────────────────────────────
 
 interface ProfileSidebarProps {
@@ -120,7 +138,7 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete ${profile.name}? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete ${formatName(profile.name)}? This cannot be undone.`)) return;
     await fetch(`/api/profiles/${profile.id}`, { method: "DELETE" });
     window.location.href = "/dashboard";
   };
@@ -155,7 +173,7 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
 
         {/* Name + edit toggle */}
         <div className="ac-person-name">
-          <span>{profile.name}</span>
+          <span>{formatName(profile.name)}</span>
           <span className="ac-person-name-icons">
             <button onClick={() => setIsEditing(v => !v)} title={isEditing ? "Cancel" : "Edit profile"}>
               {isEditing ? <X style={{ width: 13, height: 13 }} /> : <Pencil style={{ width: 13, height: 13 }} />}
@@ -181,8 +199,8 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
             <div className="ac-bio">
               <dl>
                 <dt>DOB</dt><dd>{profile.date_of_birth} · {profile.time_of_birth}</dd>
-                <dt>Born</dt><dd>{profile.place_of_birth}</dd>
-                {profile.current_location && (<><dt>Lives</dt><dd>{profile.current_location}</dd></>)}
+                <dt>Born</dt><dd>{formatPlace(profile.place_of_birth)}</dd>
+                {profile.current_location && (<><dt>Lives</dt><dd>{formatPlace(profile.current_location)}</dd></>)}
               </dl>
             </div>
 
@@ -230,6 +248,27 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
         <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
           Astrological readings are for self-reflection and guidance only. They do not predict fixed outcomes. Please consult qualified experts before making important decisions.
         </p>
+      </div>
+    </aside>
+  );
+}
+
+// ── Create-mode sidebar shell ────────────────────────────────────────────────
+// Mirrors the main sidebar's chrome but renders the create form in place of
+// the chart/panchang/disclaimer sections. Used when the user clicks
+// "Add profile" — no active profile is required.
+
+export function ProfileSidebarCreate({ onCancel }: { onCancel?: () => void }) {
+  return (
+    <aside className="w-80 flex-shrink-0 border-r border-[var(--color-border)] overflow-y-auto hidden md:flex flex-col">
+      <div className="p-4 space-y-4">
+        <div className="ac-person-name">
+          <span>New profile</span>
+        </div>
+        <p className="text-xs text-muted-foreground -mt-2">
+          Enter the birth details. Everything else flows from these.
+        </p>
+        <InlineCreateForm onCancel={onCancel} />
       </div>
     </aside>
   );

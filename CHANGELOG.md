@@ -8,6 +8,46 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — PR-1: display rules + profile create in sidebar + brand
+
+First batch from the user UI/UX review pass. The aim is "cognitive consistency"
+— users see what they typed, in a predictable form, with fewer screens.
+
+### Fixed
+- **Server no longer overwrites `place_of_birth` / `current_location` with
+  the geocoder's `display_name`** (`app/api/profiles/route.ts` POST, `app/api/profiles/[id]/route.ts` PUT). The user's typed string is now stored verbatim. Geocoding still runs for `latitude` / `longitude` / `timezone`, which are stored in their own columns. Resolves observation #1 — "Born" and "Lives" now show the user's input.
+
+### Added
+- **`lib/display.ts`** with `toTitleCase`, `formatName`, `formatPlace`. Policy: never mutate user input on save; normalize for display at the read site. Preserves all-caps acronyms (≤4 chars: USA, MIT, NASA), lowercases small connector words (of, the, and). 11 tests in `lib/__tests__/display.test.ts`.
+- **`components/profile/ProfileFormFields.tsx`** — shared field set powering the sidebar's create + edit forms. One place to add/change/validate inputs.
+- **`ProfileSidebarCreate`** in `components/profiles/ProfileSidebar.tsx` — inline create form rendered in the sidebar when `?create=1` is set on the dashboard URL. Mirrors the existing `InlineEditForm` flow.
+- **Empty-profile users land on `/dashboard?create=1` directly** — the sidebar shows the create form. No more separate "Your cosmic story starts here" screen.
+
+### Changed
+- **NavBar wordmark larger; orbital-globe logo removed** (observation #7). `Astro Chaganti` now renders at 1.35rem (up from 1.1) with tighter letter-spacing.
+- **NavBar "Add profile" link** now routes to `/dashboard?create=1` instead of `/profiles/new`.
+- **`/profiles/new`** is a server redirect to `/dashboard?create=1` — bookmarks and external links still work.
+- **`formatName` / `formatPlace` applied at display sites**: `ProfileSidebar` (header name + Born + Lives), `ProfileChip` (NavBar pills), `ProfileView` (mobile header + delete confirm), `CompareTab` (profile pills + dropdown options), `DashboardClient` (Ask + AI panel context). Users who type "VINAY KUMAR" or "vinay kumar" now see "Vinay Kumar".
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 258/258 pass (was 247; +11 display tests)
+- `npm run build` → success
+
+### Not in this PR (queued)
+- PR-2: `<TwoColumnTabGrid>` + `<TabSection>` primitives applied to Today tab
+- PR-3: today-reading split into `today-current` + `today-natal` cache engines
+- PR-4: Jaimini / Dasha / Transits / Career tab refits
+- PR-5: sticky tab nav, toast system, loading skeleton consistency, Ask submission confirmation
+- PR-6: Compare responsive, untouched-tab audit, Compatibility Basic/Pro decision
+- PR-7: AdminTables split, ExplainerModal mobile, smaller fish
+
+### Notes
+- `components/ProfileForm.tsx` is still used by `app/profiles/[id]/edit/page.tsx` (the mobile edit fallback — the sidebar is `hidden md:flex`). When mobile edit moves to a sheet drawer in a later PR, `ProfileForm` can be deleted in favor of `ProfileFormFields`.
+- **Existing profiles with geocoded `place_of_birth` strings** in the database continue to display as-is until the user edits them — at which point the user's new typed value becomes canonical.
+
+---
+
 ## [2026-05-20] — Docs rewrite + LLM/insight test coverage (B2 + E1)
 
 PR B from the post-#52/#53 follow-up plan. Closes out the audit backlog.

@@ -6,6 +6,7 @@ import type { CompatResult, AdditionalKuta } from "@/lib/compatibility"
 import { KOOTA_MAX, scoreLabel } from "@/lib/compatibility"
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar"
 import { SectionHeading } from "@/components/unified/SectionHeading"
+import { formatName } from "@/lib/display"
 
 // ── Gender helpers ────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ function ProfilePill({ profile, role }: { profile: Profile; role: Role }) {
     <div className="flex items-center gap-2 shrink-0">
       <ProfileAvatar name={profile.name ?? "?"} size="sm" />
       <div>
-        <p className="text-sm font-medium text-[var(--color-ink-1)] leading-tight">{profile.name}</p>
+        <p className="text-sm font-medium text-[var(--color-ink-1)] leading-tight">{formatName(profile.name ?? "")}</p>
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabel(role)}</p>
       </div>
     </div>
@@ -369,7 +370,7 @@ export function CompareTab({ activeProfile, allProfiles, selectedId, onSelectedI
             >
               <option value="">Select {roleLabel(partnerRole).toLowerCase()}…</option>
               {candidates.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>{formatName(p.name)}</option>
               ))}
             </select>
           )}

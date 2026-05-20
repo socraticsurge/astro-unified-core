@@ -67,16 +67,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Preserve the user's typed strings as the canonical display values for
+    // `place_of_birth` and `current_location`. The geocoder's display_name is
+    // discarded — we only keep its lat/lon/timezone in the dedicated columns.
+    // (See "cognitive consistency" rule in observations.)
     const profile = await db.profiles.create(userId, {
       name,
       date_of_birth,
       time_of_birth,
-      place_of_birth: geo.display_name,
+      place_of_birth,
       latitude: geo.latitude,
       longitude: geo.longitude,
       timezone: geo.timezone,
       timezone_offset: geo.timezone_offset,
-      current_location: currentGeo?.display_name || null,
+      current_location: current_location || null,
       current_latitude: currentGeo?.latitude || null,
       current_longitude: currentGeo?.longitude || null,
       current_timezone: currentGeo?.timezone || null,

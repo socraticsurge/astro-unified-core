@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Sparkles, Pencil, Trash2, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatName } from '@/lib/display'
 import type { Profile, CompatibilityCheck } from '@/lib/db'
 import { TodayTab }          from '@/components/tabs/TodayTab'
 import type { TodayInsight } from '@/components/tabs/TodayInsightCard'
@@ -133,7 +134,7 @@ export function ProfileView({
   const needsChart = activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare' && activeTab !== 'muhurtha' && activeTab !== 'tarabalam'
 
   const handleMobileDelete = async () => {
-    if (!window.confirm(`Delete ${profile.name}? This cannot be undone.`)) return
+    if (!window.confirm(`Delete ${formatName(profile.name)}? This cannot be undone.`)) return
     await fetch(`/api/profiles/${profile.id}`, { method: 'DELETE' })
     window.location.href = '/dashboard'
   }
@@ -143,7 +144,7 @@ export function ProfileView({
       {/* Mobile-only profile header — edit/delete without the sidebar */}
       <div className="md:hidden flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)]">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{profile.name}</p>
+          <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{formatName(profile.name)}</p>
           {(profile.relationship || profile.gender) && (
             <p className="text-xs text-muted-foreground">
               {[profile.relationship, profile.gender].filter(Boolean).join(' · ')}

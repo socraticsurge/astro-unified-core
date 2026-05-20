@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { formatName } from '@/lib/display'
 
 export interface ProfileChipProps {
   id: string
@@ -32,7 +33,7 @@ export function ProfileChip({
           : 'border-transparent text-muted-foreground hover:text-[var(--color-ink-2)]'
       )}
     >
-      <span className="text-xs font-medium leading-tight">{name}</span>
+      <span className="text-xs font-medium leading-tight">{formatName(name)}</span>
       {relationship && (
         <span className="text-[9px] uppercase tracking-wider leading-none mt-0.5 opacity-50">
           {relationship}

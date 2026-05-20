@@ -14,20 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type { NavProfile } from "@/components/profiles/ProfileNav"
 
-function TwoOrbits({ size = 36 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)"
-        stroke="var(--color-accent-dim)" strokeWidth="1.4" fill="none"/>
-      <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)"
-        stroke="var(--color-accent-dim)" strokeWidth="1.2" fill="none"/>
-      <circle cx="13.5" cy="16" r="1.5" fill="var(--color-accent-dim)"/>
-      <circle cx="34.5" cy="32" r="1.5" fill="var(--color-accent-dim)"/>
-      <circle cx="24"   cy="24" r="2.6" fill="var(--color-accent)"/>
-    </svg>
-  )
-}
-
 const navGlassStyle: React.CSSProperties = {
   background:           "var(--surface-blend)",
   backdropFilter:       "var(--backdrop-blur)",
@@ -37,8 +23,8 @@ const navGlassStyle: React.CSSProperties = {
 
 const wordmarkStyle: React.CSSProperties = {
   ...fonts.display,
-  fontSize: "1.1rem",
-  letterSpacing: "0.02em",
+  fontSize: "1.35rem",
+  letterSpacing: "0.015em",
   lineHeight: 1,
 }
 
@@ -61,15 +47,14 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
     >
       <div className="flex items-stretch h-12">
 
-        {/* Logo — same width as the profile sidebar so profile tabs align below */}
+        {/* Wordmark — same width as the profile sidebar so profile tabs align below */}
         <div className="w-auto md:w-80 shrink-0 flex items-center gap-2 px-4 border-r border-[var(--color-border)]">
           <Link
             href={isLoggedIn ? "/dashboard" : "/"}
-            className="flex items-center gap-2 flex-1 min-w-0"
+            className="flex items-center flex-1 min-w-0"
             aria-label="Home"
           >
-            <TwoOrbits size={28} />
-            <span style={wordmarkStyle} className="hidden sm:block">
+            <span style={wordmarkStyle}>
               <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
               <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
             </span>
@@ -93,7 +78,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
           {isLoggedIn && (
             <>
               <Link
-                href="/profiles/new"
+                href="/dashboard?create=1"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
                 <UserPlus className="h-3.5 w-3.5" />
