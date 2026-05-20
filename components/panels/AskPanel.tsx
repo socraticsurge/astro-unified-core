@@ -60,13 +60,18 @@ export function AskPanel({
   const [sent, setSent] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
+  // Reset the form whenever the panel closes so the next open shows a clean
+  // state. setState-in-effect is intentional here — these aren't derived
+  // values, they're persistent user input that should be cleared on close.
   React.useEffect(() => {
     if (!open) {
+      /* eslint-disable react-hooks/set-state-in-effect */
       setQuestion("")
       setSent(false)
       setError(null)
       setSubmitting(false)
       setMode(hasWritten ? "written" : "live")
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [open, hasWritten])
 

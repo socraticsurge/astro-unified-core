@@ -79,6 +79,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
 
   // Auto-fetch on mount for the default selection
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTaras([profileId], startDate, endDate);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

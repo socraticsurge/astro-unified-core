@@ -116,10 +116,15 @@ export function DashboardClient({
       }
     }
 
+    // Reset engine states to loading before fetches begin. setState-in-effect
+    // is the right shape here — the rule is meant to flag derivable state,
+    // but these are fetch-driven and have no synchronous derivation.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setChart({ data: null, loading: true, error: null })
     setTransit({ data: null, loading: true, error: null })
     setCareer({ data: null, loading: true, error: null })
     setTodayReading({ data: null, loading: true, error: null })
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     // Chart — then chain today-reading since it needs chart in DB first
     fetch(`/api/readings/dashaflow?profile_id=${activeProfileId}`)
@@ -180,6 +185,10 @@ export function DashboardClient({
   useEffect(() => {
     if (isNewProfile || !activeProfileId) return
 
+    // Close the AI panel and restore engine states from cache (hit) or
+    // reset to loading (miss) when the active profile changes. Fetch-driven
+    // state; no synchronous derivation possible.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setAiOpen(false)
 
     const cached = profileCacheRef.current.get(activeProfileId)
@@ -196,6 +205,7 @@ export function DashboardClient({
       setCareer(initState())
       setTodayReading(initState())
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     if (!cached) {
       fetch(`/api/readings/dashaflow?profile_id=${activeProfileId}`)

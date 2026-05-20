@@ -145,7 +145,7 @@ export function CosmicLanding() {
 
     let t = 0
     let stars: Star[] = []
-    let meteors: Meteor[] = []
+    const meteors: Meteor[] = []
     let nextMeteor = 0
     let rafId: number | null = null
     let paused = false

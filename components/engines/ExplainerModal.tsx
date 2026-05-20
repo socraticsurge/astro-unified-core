@@ -182,8 +182,12 @@ export function ExplainerModal({
     };
   }, [open, hasChartEntries, chartEntries]);
 
+  // Snap to the most-relevant tab whenever the modal opens. Derived state
+  // would lose the user's manual tab switches while open, so an effect is
+  // the right shape here.
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTab(hasChartEntries ? "chart" : "about");
   }, [open, hasChartEntries]);
 

@@ -8,6 +8,36 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Clear all ESLint errors
+
+### Fixed
+- **12 ESLint errors → 0** across 9 files. CI's lint step was previously
+  configured with `continue-on-error: true` because of these pre-existing
+  errors from Next.js 16's stricter React 19.2 rules; with the slate clean,
+  CI can be tightened in a follow-up. Categories:
+  - `react-hooks/purity` (Date.now() in render) — `app/consultation/page.tsx`,
+    `components/engines/MuhurthaView.tsx`. Replaced with
+    `new Date().getTime()` (lazy-initialized in MuhurthaView's `useState`).
+  - `react-hooks/set-state-in-effect` (×6) — `app/dashboard/DashboardClient.tsx`
+    (×2 fetch-driven effects), `components/ThemeToggle.tsx` (SSR mount
+    canon), `components/engines/ExplainerModal.tsx` (open-driven tab snap),
+    `components/engines/TarabalamView.tsx` (auto-fetch on mount),
+    `components/panels/AskPanel.tsx` (form reset on close). Each call is a
+    legitimate fetch / mount / reset pattern with no synchronous
+    derivation; suppressed with tightly scoped
+    `eslint-disable-next-line` / block disables and a comment explaining why.
+  - `@typescript-eslint/no-explicit-any` (×3) — `components/unified/HouseGrid.tsx`
+    cast as `SignName`; `components/engines/MuhurthaView.tsx` typed via a new
+    `MuhurthaResult` shape (`start_time`, `end_time`, `date`, `points?`).
+  - `prefer-const` — `components/CosmicLanding.tsx`: `let meteors` →
+    `const meteors` (array is mutated via push, never reassigned).
+
+### Not touched
+- 17 ESLint warnings remain (unused vars, unused eslint-disable directives).
+  Out of scope for this commit, which focused on errors only.
+
+---
+
 ## [2026-05-20] — Make content-loader caching tests hermetic
 
 ### Fixed
