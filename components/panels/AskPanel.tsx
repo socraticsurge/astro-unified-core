@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { toast } from "@/components/ui/Toast"
 
 export interface AskContext {
   profileName: string
@@ -81,8 +82,11 @@ export function AskPanel({
     try {
       await onSubmit(question.trim())
       setSent(true)
+      toast("Your question is on its way — we'll respond within 2 days.", "success")
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to submit. Please try again.")
+      const msg = e instanceof Error ? e.message : "Failed to submit. Please try again."
+      setError(msg)
+      toast(msg, "error")
     } finally {
       setSubmitting(false)
     }

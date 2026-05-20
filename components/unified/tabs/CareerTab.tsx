@@ -6,6 +6,7 @@ import type { Planet, SignName } from "@/components/unified/types";
 import { PLANET_ORDER, dignityTone } from "@/components/unified/types";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 import { TwoColumnTabGrid, TabColumn, TabSection } from "@/components/unified/TabGrid";
+import { TabLoadingSkeleton } from "@/components/unified/TabLoadingSkeleton";
 
 type TenthHouse = {
   sign?: string;
@@ -79,9 +80,7 @@ export function CareerTab({
         </button>
       </div>
 
-      {isCareerLoading && (
-        <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>Loading career analysis…</p>
-      )}
+      {isCareerLoading && <TabLoadingSkeleton lines={5} cards={2} />}
 
       {!isCareerLoading && careerError && (
         <div style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-danger)" }}>

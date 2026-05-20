@@ -6,6 +6,7 @@ import type { Profile } from "@/lib/db";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
 import { formatName, formatPlace } from "@/lib/display";
+import { toast } from "@/components/ui/Toast";
 import {
   ProfileFormFields,
   emptyProfileFormState,
@@ -41,9 +42,13 @@ function InlineEditForm({ profile, onCancel }: { profile: Profile; onCancel: () 
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error((data as { error?: string })?.error ?? `Error ${res.status}`);
+      toast("Profile saved", "success");
+      // Full reload so the chart re-fetches against the new birth data.
       window.location.href = `/dashboard?profile=${profile.id}`;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Save failed");
+      const msg = e instanceof Error ? e.message : "Save failed";
+      setError(msg);
+      toast(msg, "error");
       setSaving(false);
     }
   };
@@ -93,10 +98,13 @@ export function InlineCreateForm({ onCancel }: { onCancel?: () => void }) {
       const text = await res.text();
       const data = text ? JSON.parse(text) : null;
       if (!res.ok) throw new Error((data as { error?: string })?.error ?? `Error ${res.status}`);
+      toast(`Created ${data?.name ? formatName(data.name) : "profile"}`, "success");
       // ?new=1 triggers the celestial loading screen + parallel prefetch.
       router.push(`/dashboard?profile=${data.id}&new=1`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      const msg = err instanceof Error ? err.message : "Save failed";
+      setError(msg);
+      toast(msg, "error");
       setSaving(false);
     }
   };
@@ -139,8 +147,13 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete ${formatName(profile.name)}? This cannot be undone.`)) return;
-    await fetch(`/api/profiles/${profile.id}`, { method: "DELETE" });
-    window.location.href = "/dashboard";
+    const res = await fetch(`/api/profiles/${profile.id}`, { method: "DELETE" });
+    if (res.ok) {
+      toast(`${formatName(profile.name)} deleted`, "success");
+      window.location.href = "/dashboard";
+    } else {
+      toast("Couldn't delete profile", "error");
+    }
   };
 
   const data     = chartOutput?.data as Record<string, unknown> | undefined;
