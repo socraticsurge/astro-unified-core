@@ -55,12 +55,27 @@ function readStoredSign(): number | null {
   return null
 }
 
-function formatSkyLabel(d: LandingData): string {
-  const retro = d.sky.retrogrades.length > 0
-    ? d.sky.retrogrades.map(p => `${p} retrograde`).join(' · ')
-    : 'No major retrogrades'
-  const prefix = d.is_stale ? `Yesterday's sky — ` : `Today — `
-  return `${prefix}Moon in ${d.sky.moon_nakshatra} · Sun in ${d.sky.sun_sign} · ${retro}`
+// Three-tile transit row above "The cosmos speaks" — Moon nakshatra, Sun
+// sign, and (only when present) the list of retrograding planets. When data
+// hasn't resolved yet we render the layout with em-dash placeholders so the
+// panel doesn't shift on data arrival.
+type SkyTile = { label: string; value: string }
+
+function buildSkyTiles(d: LandingData | null): SkyTile[] {
+  if (!d) {
+    return [
+      { label: 'Moon', value: '—' },
+      { label: 'Sun', value: '—' },
+    ]
+  }
+  const tiles: SkyTile[] = [
+    { label: 'Moon', value: d.sky.moon_nakshatra },
+    { label: 'Sun', value: d.sky.sun_sign },
+  ]
+  if (d.sky.retrogrades.length > 0) {
+    tiles.push({ label: 'Retrograde', value: d.sky.retrogrades.join(', ') })
+  }
+  return tiles
 }
 
 export function CosmicLanding() {
@@ -351,7 +366,8 @@ export function CosmicLanding() {
   const targetSnippet = truncateSnippet(
     data?.ascendants?.[activeSign.key] || LANDING_FALLBACK_ASCENDANTS[activeSign.key],
   )
-  const skyLabel = data ? formatSkyLabel(data) : null
+  const skyTiles = buildSkyTiles(data)
+  const skyDayLabel = data?.is_stale ? 'Yesterday' : 'Today'
 
   // Cross-fade state: hold the currently-rendered text separately from the
   // target. When activeSign changes, fade the displayed snippet out, then
@@ -415,12 +431,17 @@ export function CosmicLanding() {
       {/* Glass panel */}
       <div className={styles.panel}>
         <div className={styles.todaySection}>
-          {skyLabel && (
-            <div className={styles.skyBadge}>
-              <span className={styles.skyDot} aria-hidden>✦</span>
-              <span>{skyLabel}</span>
+          <div className={styles.skyRow} aria-label={`${skyDayLabel}'s transits`}>
+            <span className={styles.skyDayLabel}>{skyDayLabel}</span>
+            <div className={styles.skyTiles}>
+              {skyTiles.map((t) => (
+                <div key={t.label} className={styles.skyTile}>
+                  <span className={styles.skyTileLabel}>{t.label}</span>
+                  <span className={styles.skyTileValue}>{t.value}</span>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
 
           <div className={styles.snippetText}>
             <span className={styles.cosmosEyebrow}>The cosmos speaks</span>

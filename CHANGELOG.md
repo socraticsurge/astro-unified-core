@@ -37,6 +37,14 @@ All notable changes to Astro Chaganti are recorded here.
 - The "Free · Up to 10 Natal Charts and 6 Kundali Matches" footnote
   under the sign-in button.
 
+### Changed (follow-up — make today's transits actually visible)
+- Replaced the small low-contrast `.skyBadge` pill with a proper three-
+  tile row above "The cosmos speaks": **Moon · Sun · Retrograde** with
+  a `Today` / `Yesterday` eyebrow above them. The third (Retrograde)
+  tile only appears when at least one planet is retrograde. Em-dash
+  placeholders before `/api/landing` resolves so the layout never
+  shifts on data arrival.
+
 ---
 
 ## [2026-05-20] — Audit round 2: mobile layout fixes + Transits cleanup
