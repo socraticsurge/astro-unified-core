@@ -6,6 +6,7 @@ import { MIN_FIELD_LENGTH } from "@/lib/consultation";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAdmin } from "@/lib/admin";
 import { MAX_FIELD_LENGTH, MAX_CONSULTATION_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS, PAYMENT_FLOW_ENABLED } from "@/lib/constants";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -152,6 +153,16 @@ export async function POST(request: Request) {
       amount_paise,
       slot_starts_at,
       initial_status: PAYMENT_FLOW_ENABLED ? "pending_payment" : "pending",
+    });
+    getPostHogClient().capture({
+      distinctId: userId,
+      event: "consultation_request_created",
+      properties: {
+        delivery_mode,
+        profile_count: profileIdsArray.length,
+        payment_flow_enabled: PAYMENT_FLOW_ENABLED,
+        amount_paise,
+      },
     });
     return NextResponse.json(created, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {

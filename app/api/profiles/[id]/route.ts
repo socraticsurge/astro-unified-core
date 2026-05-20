@@ -4,6 +4,7 @@ import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 import { geocodePlace } from "@/lib/geocode";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function PUT(
   req: NextRequest,
@@ -142,5 +143,10 @@ export async function DELETE(
   const profile = await db.profiles.get(id, userId);
   if (!profile) return NextResponse.json({ error: "Not found" }, { status: 404 });
   await db.profiles.delete(id, userId);
+  getPostHogClient().capture({
+    distinctId: userId,
+    event: "profile_deleted",
+    properties: { relationship: profile.relationship ?? null },
+  });
   return new NextResponse(null, { status: 204 });
 }

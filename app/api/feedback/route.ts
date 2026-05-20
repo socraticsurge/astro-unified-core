@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 // FeedbackWidget renders on every page including the public landing, so anon
 // submissions are intentionally allowed. The hardening below prevents the
@@ -50,6 +51,17 @@ export async function POST(request: NextRequest) {
     rating,
     message: (message as string | null) || null,
     page_url: (page_url as string | null) || null,
+  });
+
+  const distinctId = session?.user?.email ?? `ip:${clientIp(request)}`;
+  getPostHogClient().capture({
+    distinctId,
+    event: "feedback_submitted",
+    properties: {
+      rating,
+      has_message: !!(message as string | null),
+      authenticated: !!session?.user?.email,
+    },
   });
 
   return NextResponse.json({ success: true });

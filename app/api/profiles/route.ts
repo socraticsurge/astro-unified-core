@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions, getUserId } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { MAX_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -87,6 +88,15 @@ export async function POST(req: NextRequest) {
       current_timezone_offset: currentGeo?.timezone_offset || null,
       gender,
       relationship,
+    });
+
+    getPostHogClient().capture({
+      distinctId: userId,
+      event: "profile_created",
+      properties: {
+        relationship: relationship ?? null,
+        has_current_location: !!current_location,
+      },
     });
 
     return NextResponse.json(profile, { status: 201, headers: { "Cache-Control": "private, no-store" } });

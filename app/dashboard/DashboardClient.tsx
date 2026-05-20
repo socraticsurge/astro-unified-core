@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
+import posthog from "posthog-js"
 import { useRouter } from "next/navigation"
 import { NavBar } from "@/components/NavBar"
 import { ProfileView } from "@/components/profiles/ProfileView"
@@ -274,6 +275,10 @@ export function DashboardClient({
 
   const handleAIOpen = useCallback((payload: AIOpenPayload) => {
     if (!activeProfile) return
+    posthog.capture("ai_insight_panel_opened", {
+      tab: payload.activeTab,
+      tab_label: payload.tabLabel,
+    })
     setAiCtx({
       profileId:      activeProfile.id,
       profileName:    formatName(activeProfile.name),
@@ -288,6 +293,9 @@ export function DashboardClient({
   const handleAskOpen = useCallback((ctx?: Partial<AskContext>) => {
     const data = chart.data?.data as Record<string, unknown> | undefined
     const dashas = data?.dashas as { maha?: { planet?: string }; antar?: { planet?: string } } | undefined
+    posthog.capture("ask_panel_opened", {
+      tab: ctx?.tab ?? 'Today',
+    })
     setAskCtx({
       profileName:  formatName(activeProfile?.name ?? ''),
       relationship: activeProfile?.relationship ?? 'Other',

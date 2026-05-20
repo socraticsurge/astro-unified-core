@@ -8,6 +8,52 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — PostHog product analytics
+
+### Added
+- `posthog-js` + `posthog-node` integration via PostHog wizard. EU
+  region. Browser inits in `instrumentation-client.ts` (alongside
+  Sentry). Server singleton in `lib/posthog-server.ts`. Server-side
+  identify on Google sign-in (`lib/auth.ts`); client-side identify on
+  session change (`components/PostHogIdentifier.tsx`).
+- `/ingest/*` rewrite proxy in `next.config.ts` for ad-blocker
+  resilience.
+- Events captured:
+  - `user_signed_in` (server, NextAuth signIn callback)
+  - `profile_created`, `profile_deleted` (server, REST)
+  - `consultation_request_created` (server, REST — authoritative for
+    funnel)
+  - `consultation_feedback_submitted` (client, rating thumbs)
+  - `feedback_submitted` (server, FeedbackWidget)
+  - `ask_panel_opened`, `ai_insight_panel_opened` (client, UI)
+
+### Tuned
+- `capture_exceptions: false` in PostHog — Sentry already handles
+  exception tracking; do not double-capture.
+- Removed wizard-added client-side `consultation_submitted` and
+  `ask_submitted` events — both POST to `/api/consultation-requests`
+  which fires the authoritative server-side `consultation_request_created`,
+  so the client events were duplicates that would double-count in
+  funnels.
+
+### Documented
+- `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` in
+  `docs/PROJECT.md`.
+
+### Removed
+- Wizard scaffolding: `posthog-setup-report.md`, `.claude/skills/`
+  (PostHog agent skill folder). `.claude/` added to `.gitignore`.
+
+### Known caveat
+- `posthog-node` on Vercel serverless is fire-and-forget with
+  `flushAt: 1, flushInterval: 0`. Most events land, but a fraction
+  may be lost when a Lambda freezes before flush completes. For
+  better fidelity later, await `posthog.shutdown()` or use Next.js
+  `after()` from `next/server`. Acceptable for analytics; not OK if
+  we ever use it for auditing.
+
+---
+
 ## [2026-05-20] — Sentry error tracking
 
 ### Added

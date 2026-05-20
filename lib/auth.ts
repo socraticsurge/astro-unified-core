@@ -2,6 +2,7 @@ import type { NextAuthOptions, Session } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { db } from "@/lib/db";
 import { ADMIN_EMAILS } from "@/lib/admin";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 // The session callback below stamps `id` and `isAdmin` onto `session.user`.
 // NextAuth's default Session type doesn't know about them, so use this helper
@@ -26,6 +27,19 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           image: user.image,
+        });
+        const posthog = getPostHogClient();
+        posthog.identify({
+          distinctId: user.id,
+          properties: {
+            email: user.email,
+            name: user.name ?? undefined,
+          },
+        });
+        posthog.capture({
+          distinctId: user.id,
+          event: "user_signed_in",
+          properties: { provider: "google" },
         });
       }
       return true;
