@@ -8,6 +8,37 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — PR-3: today-reading LLM split (two-tier cache)
+
+Closes the cost-saving half of PDF observation 3b. Splits the today-reading
+into two independently cached engines so a Pratyantar shift no longer triggers
+a full regeneration of the natal portion.
+
+### Added
+- **`buildCurrentReading(profile, chartOutput, llmConfig)`** in `lib/engines/today-reading.ts` — Tier 1. Returns the dasha reading. Prompted for ~2× the previous length (6–8 sentences / 120–180 words).
+- **`buildNatalReading(profile, chartOutput, llmConfig)`** — Tier 2. Returns the chart reading. Prompted for ~5× the previous length (15–20 sentences across 3–4 paragraphs / 350–500 words).
+- **`PROMPT_VERSION_CURRENT`** and **`PROMPT_VERSION_NATAL`** — independent bumpable constants. Bumping one does not invalidate the other tier's cache.
+- **`LlmConfig`** type re-exported for the route.
+
+### Changed
+- **`GET /api/readings/today-reading` now uses two cache rows**: `engine="today-current"` and `engine="today-natal"`. Each has its own `input_snapshot` + `llm_fingerprint`. The route checks both caches in parallel, generates only the stale tiers, and saves them independently.
+- **Response shape extended** — `{ output: { dasha_reading, chart_reading }, cached: boolean, cached_tiers: { current, natal } }`. `cached` is true only when both tiers came from cache; `cached_tiers` exposes the per-tier state for debugging. Client (TodayTab) still reads `output.dasha_reading` / `output.chart_reading` unchanged.
+- **`buildTodayReading` removed** — superseded by the two-function API. The legacy `today-reading` cache rows from the single-engine era become orphaned but harmless; they simply stop being read.
+
+### Cost characteristic
+For an existing profile, the natal-tier reading effectively never regenerates (only on birth-data change or admin prompt edits / `PROMPT_VERSION_NATAL` bump). On every Pratyantar shift, only the current tier regenerates — roughly **−50% of LLM tokens per Today-tab visit on a returning user** versus the prior single-tier flow, despite emitting ~3.5× more total content per fresh generation.
+
+### Tests
+- **`lib/engines/__tests__/today-reading.test.ts`** rewritten — 12 tests covering both build functions: empty-content short-circuit, LLM config plumbing, tier-identifying system prompts, antar alert window, HTML stripping, non-string output coercion, and the ~5× length target for the natal tier.
+- **`app/api/readings/today-reading/route.test.ts`** rewritten — 10 tests covering: 401 / 400 / 500 / 502 paths, cold-start (both tiers regenerate), per-engine save shape, full cache hit (`cached_tiers: {current: true, natal: true}`), surgical re-generation of *only* current when Pratyantar shifts (natal stays cached), surgical re-generation of *only* natal when fingerprint mismatches (current stays cached), and corrupt-cache fall-through.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 269/269 pass (+5 net new since PR-2: refactored 10 existing today-reading tests, added 2 new tier-routing tests, expanded engine tests from 10 → 12)
+- `npm run build` → success
+
+---
+
 ## [2026-05-20] — PR-2: tab primitives + Today refit
 
 Second batch from the UI/UX review. Establishes the global standards
