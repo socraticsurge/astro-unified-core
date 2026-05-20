@@ -372,7 +372,22 @@ export function DashboardClient({
           )
         )}
         <div className="flex-1 overflow-hidden">
-          {activeProfile ? (
+          {/* isCreating takes precedence: even if an activeProfile is set
+              (e.g. user navigated from /dashboard?profile=A to
+              /dashboard?create=1), we must NOT render the previous
+              profile's chart underneath the create form. */}
+          {isCreating ? (
+            <div className="flex items-center justify-center h-full px-4 text-center">
+              <div className="space-y-2 max-w-sm">
+                <p className="text-sm text-[var(--color-ink-2)]">
+                  {profiles.length === 0 ? "Your cosmic story starts here." : "Add another profile"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Enter the birth details in the sidebar. Everything else flows from there.
+                </p>
+              </div>
+            </div>
+          ) : activeProfile ? (
             <div key={activeProfileId} className="animate-profile-enter h-full">
               <ProfileView
                 profile={activeProfile}
@@ -394,17 +409,6 @@ export function DashboardClient({
                 defaultTab={defaultTab}
                 initialCompareCheck={initialCompareCheck}
               />
-            </div>
-          ) : isCreating ? (
-            <div className="flex items-center justify-center h-full px-4 text-center">
-              <div className="space-y-2 max-w-sm">
-                <p className="text-sm text-[var(--color-ink-2)]">
-                  {profiles.length === 0 ? "Your cosmic story starts here." : "Add another profile"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Enter the birth details in the sidebar. Everything else flows from there.
-                </p>
-              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">

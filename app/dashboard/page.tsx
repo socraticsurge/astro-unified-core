@@ -59,13 +59,23 @@ export default async function DashboardPage({
   }
 
   const isCreating = params?.create === "1" || (!adminUser && ownProfiles.length === 0);
+  const isNewProfile = params?.new === "1";
+
+  // `key` forces DashboardClient to remount whenever the URL meaningfully
+  // changes — new profile selection (e.g. post-create redirect), entering or
+  // leaving the create flow, or the `new=1` loading-screen flag. Without
+  // this, React keeps the same useState values across navigation and the
+  // user sees the previously-active profile's chart instead of the freshly
+  // created profile + its loading screen.
+  const dashboardKey = `${initialProfileId ?? "none"}|${isCreating ? "create" : "view"}|${isNewProfile ? "new" : ""}`;
 
   return (
     <DashboardClient
+      key={dashboardKey}
       profiles={profiles}
       initialProfileId={initialProfileId}
       isAdmin={adminUser}
-      isNewProfile={params?.new === "1"}
+      isNewProfile={isNewProfile}
       isCreating={isCreating}
       initialCompareCheck={initialCompareCheck}
       appSettings={{

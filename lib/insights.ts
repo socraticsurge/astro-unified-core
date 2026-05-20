@@ -88,5 +88,35 @@ export function generateInsights(
   // Jupiter transit and major yogas are surfaced via the AI reading on the Today tab.
   // Keeping the data available here for future re-enablement if needed.
 
+  // Fallback — when none of the urgent checks above fired, surface the
+  // upcoming pratyantar shift regardless of distance, so the "What's
+  // active now" section is never empty. Lower urgency than the imminent
+  // shift above (still uses the dasha category color).
+  if (results.length === 0 && dashas?.pratyantar?.end) {
+    const weeksLeft = weeksUntil(dashas.pratyantar.end, today)
+    if (weeksLeft > 4 && weeksLeft !== Infinity) {
+      const label = formatLeadTime(weeksLeft)
+      results.push({
+        id: 'pratyantar-upcoming',
+        category: 'dasha',
+        categoryColor: CATEGORY_COLORS.dasha,
+        title: `Next: ${dashas.pratyantar.planet} pratyantar in ~${label}`,
+        body: `Your current ${dashas.pratyantar.planet} sub-period within the ${dashas.maha.planet} mahadasha. The next sub-period shift is roughly ${label} away — plenty of room to settle into this energy.`,
+        cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
+      })
+    }
+  }
+
   return results.slice(0, 5)
+}
+
+// Picks a clean unit (weeks vs. months) for medium-distance windows.
+function formatLeadTime(weeks: number): string {
+  if (weeks < 1) return 'less than a week'
+  if (weeks < 8) {
+    const w = Math.round(weeks)
+    return `${w} week${w === 1 ? '' : 's'}`
+  }
+  const months = Math.round(weeks / 4.345)
+  return `${months} month${months === 1 ? '' : 's'}`
 }

@@ -62,17 +62,30 @@ export function TodayTab({
     <TwoColumnTabGrid>
       {/* Left column — current period, what's active now, current reading */}
       <TabColumn>
-        <TabSection when={insights.length > 0} title="What's active now">
-          <div className="space-y-2">
-            {insights.map((insight) => (
-              <TodayInsightCard
-                key={insight.id}
-                insight={insight}
-                onAsk={(i) => onAsk(i)}
-                onExplore={onExplore}
-              />
-            ))}
-          </div>
+        {/* Always render the "What's active now" section. `generateInsights`
+            guarantees at least one entry when dasha data is present (falls
+            back to the upcoming pratyantar shift). The empty-state below
+            only fires for the rare case where even dasha data is missing
+            (e.g. a chart still loading). */}
+        <TabSection title="What's active now">
+          {insights.length > 0 ? (
+            <div className="space-y-2">
+              {insights.map((insight) => (
+                <TodayInsightCard
+                  key={insight.id}
+                  insight={insight}
+                  onAsk={(i) => onAsk(i)}
+                  onExplore={onExplore}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="ac-card ac-card-pad">
+              <p style={{ fontSize: 13, color: "var(--color-ink-3)", fontStyle: "italic" }}>
+                A quiet stretch in your chart — no imminent transits or sub-period shifts.
+              </p>
+            </div>
+          )}
         </TabSection>
 
         <TabSection title="Current dasha period">
