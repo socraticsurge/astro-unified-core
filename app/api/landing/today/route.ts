@@ -35,8 +35,17 @@ type ResponseShape = {
 export async function GET() {
   const istDate = istDateString();
 
-  // 1. Try today's row
-  const today = await db.dailyLanding.getByDate(istDate);
+  // 1. Try today's row. Wrap in try/catch so a DB hiccup (table missing,
+  // connection blip, etc.) doesn't 500 the whole handler — we'd rather try
+  // to regenerate from scratch.
+  let today: Awaited<ReturnType<typeof db.dailyLanding.getByDate>> = null;
+  try {
+    today = await db.dailyLanding.getByDate(istDate);
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { feature: "daily-landing", phase: "getByDate", ist_date: istDate },
+    });
+  }
   if (today?.payload) {
     const parsed = parsePayload(today.payload);
     if (parsed) {
@@ -52,22 +61,29 @@ export async function GET() {
   const canRetry = attempts < MAX_ATTEMPTS_PER_DAY && gapMet;
 
   if (canRetry) {
-    await db.dailyLanding.recordAttempt(istDate);
     try {
+      await db.dailyLanding.recordAttempt(istDate);
       const facts = await fetchTodayCelestialFacts();
       const payload = await buildDailyLandingContent(facts);
       await db.dailyLanding.storeSuccess(istDate, payload);
       return respond({ ist_date: istDate, sky: payload.sky, ascendants: payload.ascendants, is_stale: false }, 200, false);
     } catch (err) {
       Sentry.captureException(err, {
-        tags: { feature: "daily-landing", ist_date: istDate },
+        tags: { feature: "daily-landing", phase: "generate", ist_date: istDate },
       });
       // fall through to stale fallback
     }
   }
 
   // 3. Fall back to most recent successful prior day
-  const prior = await db.dailyLanding.getMostRecentSuccess();
+  let prior: Awaited<ReturnType<typeof db.dailyLanding.getMostRecentSuccess>> = null;
+  try {
+    prior = await db.dailyLanding.getMostRecentSuccess();
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { feature: "daily-landing", phase: "getMostRecentSuccess", ist_date: istDate },
+    });
+  }
   if (prior?.payload) {
     const parsed = parsePayload(prior.payload);
     if (parsed) {

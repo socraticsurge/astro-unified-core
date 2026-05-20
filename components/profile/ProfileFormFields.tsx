@@ -13,7 +13,7 @@ const INPUT_CLASS =
 const LABEL_CLASS = "text-[10px] uppercase tracking-wider text-muted-foreground";
 
 export const RELATIONSHIPS = ["Self", "Spouse", "Child", "Father", "Mother", "Sibling", "Friend", "Other"] as const;
-export const GENDERS = ["Male", "Female", "Other"] as const;
+export const GENDERS = ["Male", "Female"] as const;
 
 export type ProfileFormState = {
   name: string;

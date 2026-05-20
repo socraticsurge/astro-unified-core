@@ -91,10 +91,10 @@
 .snippetText {
   display: flex; flex-direction: column; gap: 14px;
   /* Fixed visual area so the eyebrow doesn't jump when snippet lengths
-     change. Sized to hold ~7 lines at the new smaller font; combined with
-     the upstream Zod cap (≤320 chars) this comfortably fits a full
-     snippet without the brutal mid-sentence truncate we had before. */
-  height: 11.5em;
+     change. Sized to hold ~7 lines at the new smaller font plus
+     breathing room for descenders so line-clamp doesn't visually clip
+     the last line. */
+  height: 13em;
 }
 .cosmosEyebrow {
   font-family: var(--font-ui), system-ui, sans-serif;
@@ -110,11 +110,11 @@
   font-size: clamp(17px, 1.9vw, 22px);
   font-weight: 400; font-style: italic;
   color: rgba(255,255,255,0.92);
-  line-height: 1.55;
+  line-height: 1.6;
   margin: 0;
-  /* Safety net only — upstream Zod schema rejects snippets > 320 chars,
-     and the prompt asks for ≤50 words / ≤300 chars. With 7 lines at this
-     font size we comfortably hold 300+ chars without ever clipping. */
+  /* Extra bottom padding so the line-clamp + overflow:hidden combo
+     doesn't visually shear the descenders (g, y, p) of the last line. */
+  padding-bottom: 0.35em;
   flex: 1; min-height: 0;
   overflow: hidden;
   display: -webkit-box;
@@ -231,9 +231,9 @@
   .cosmosEyebrow { font-size: 9px; letter-spacing: 0.28em; }
   .snippetText {
     /* Mobile fits ~5 lines at the new smaller font, plenty for ≤300 chars. */
-    height: 9em;
+    height: 10em;
   }
-  .snippetText p { font-size: 15px; line-height: 1.55; -webkit-line-clamp: 5; }
+  .snippetText p { font-size: 15px; line-height: 1.6; -webkit-line-clamp: 5; padding-bottom: 0.3em; }
   .skyRow { gap: 6px; padding-bottom: 10px; }
   .skyDayLabel { font-size: 9px; letter-spacing: 0.28em; }
   .skyTiles { gap: 12px; }

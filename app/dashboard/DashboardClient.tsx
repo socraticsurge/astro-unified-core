@@ -111,21 +111,22 @@ export function DashboardClient({
     minTimeReachedRef.current = false
     fetchesDoneRef.current    = false
 
-    // Minimum 2s for the animation — feels intentional rather than rushed
+    // Minimum 1.4s for the animation — long enough to feel deliberate,
+    // short enough not to feel like waiting. (Was 2s; dropped because the
+    // loader was the slowest part of the flow.)
     const timer = setTimeout(() => {
       minTimeReachedRef.current = true
       tryDismissLoading()
-    }, 2000)
+    }, 1400)
 
-    // Track how many of the 4 fetches have settled
-    let pending = 4
-
-    function onSettled() {
-      pending--
-      if (pending <= 0) {
-        fetchesDoneRef.current = true
-        tryDismissLoading()
-      }
+    // Dismiss the loader as soon as the CHART is ready. Transit, career and
+    // today-reading load in the background; ProfileView shows their own
+    // per-engine loading states. Gating on today-reading (an LLM call) was
+    // the main culprit — it could keep the loader up for 5-10s on cold
+    // starts.
+    function onChartSettled() {
+      fetchesDoneRef.current = true
+      tryDismissLoading()
     }
 
     // Reset engine states to loading before fetches begin. setState-in-effect
@@ -145,9 +146,10 @@ export function DashboardClient({
         const output = data.output ?? null
         setChart({ data: output, loading: false, error: data.error ?? null })
         if (output) updateCache(activeProfileId, { chart: output })
-        onSettled()
+        // Chart is ready — dismiss the loader. The rest fills in behind it.
+        onChartSettled()
 
-        // today-reading needs chart cached first
+        // today-reading needs chart cached first; loader doesn't wait
         fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
           .then(r => r.json())
           .then(d => {
@@ -158,17 +160,16 @@ export function DashboardClient({
             if (tr) updateCache(activeProfileId, { todayReading: tr })
           })
           .catch(() => setTodayReading(initState()))
-          .finally(onSettled)
       })
       .catch(e => {
         setChart({ data: null, loading: false, error: String(e) })
-        onSettled()
-        // today-reading can't run without chart — count it as done
+        // Chart failed — still dismiss the loader so the user sees the
+        // error state on the dashboard rather than spinning forever.
+        onChartSettled()
         setTodayReading(initState())
-        onSettled()
       })
 
-    // Transit — independent of chart
+    // Transit — independent of chart, loader doesn't wait
     fetch(`/api/readings/transit?profile_id=${activeProfileId}`)
       .then(r => r.json())
       .then(data => {
@@ -177,9 +178,8 @@ export function DashboardClient({
         if (output) updateCache(activeProfileId, { transit: output })
       })
       .catch(() => setTransit(initState()))
-      .finally(onSettled)
 
-    // Career — independent of chart
+    // Career — independent of chart, loader doesn't wait
     fetch(`/api/readings/career?profile_id=${activeProfileId}`)
       .then(r => r.json())
       .then(data => {
@@ -188,7 +188,6 @@ export function DashboardClient({
         if (output) updateCache(activeProfileId, { career: output })
       })
       .catch(() => setCareer(initState()))
-      .finally(onSettled)
 
     return () => clearTimeout(timer)
   }, [isNewProfile, activeProfileId])
