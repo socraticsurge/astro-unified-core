@@ -1,11 +1,14 @@
 import { randomUUID } from "crypto";
+import { z } from "zod";
 import { getClient, ensureSchema } from "./client";
 
-export type ConsultationSlot = {
-  id: string;
-  starts_at: string;  // ISO string, represents IST time
-  is_booked: number;  // 0 = available, 1 = booked
-};
+const ConsultationSlotSchema = z.object({
+  id: z.string(),
+  starts_at: z.string(),
+  is_booked: z.coerce.number(),
+});
+
+export type ConsultationSlot = z.infer<typeof ConsultationSlotSchema>;
 
 export const consultationSlots = {
   async listUpcoming(): Promise<ConsultationSlot[]> {
@@ -14,7 +17,7 @@ export const consultationSlots = {
       sql: "SELECT * FROM consultation_slots WHERE starts_at > ? ORDER BY starts_at ASC",
       args: [new Date().toISOString()],
     });
-    return rs.rows as unknown as ConsultationSlot[];
+    return rs.rows.map((r) => ConsultationSlotSchema.parse(r));
   },
 
   async listAll(): Promise<ConsultationSlot[]> {
@@ -22,7 +25,7 @@ export const consultationSlots = {
     const rs = await getClient().execute(
       "SELECT * FROM consultation_slots ORDER BY starts_at ASC"
     );
-    return rs.rows as unknown as ConsultationSlot[];
+    return rs.rows.map((r) => ConsultationSlotSchema.parse(r));
   },
 
   async create(startsAt: string): Promise<ConsultationSlot> {
@@ -50,7 +53,7 @@ export const consultationSlots = {
       sql: "SELECT * FROM consultation_slots WHERE id = ?",
       args: [id],
     });
-    return rs.rows[0] as unknown as ConsultationSlot | undefined;
+    return rs.rows[0] ? ConsultationSlotSchema.parse(rs.rows[0]) : undefined;
   },
 
   async unbook(id: string): Promise<void> {

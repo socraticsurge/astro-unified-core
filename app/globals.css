@@ -3,14 +3,20 @@
 @import "shadcn/tailwind.css";
 @plugin "@tailwindcss/typography";
 
-@custom-variant dark (&:is(.dark *));
+/* Enable smooth cross-fade between page navigations.
+   Supported in Chrome/Safari; ignored (no-op) in Firefox. */
+@view-transition { navigation: auto; }
+
+/* Update dark variant to use data-theme attribute instead of .dark class */
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 @theme inline {
+  /* ── shadcn variables (kept for shadcn component compatibility) ── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-cormorant);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,39 +46,61 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ── Radius — now theme-aware ── */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-3xl: var(--radius-3xl);
+  --radius-4xl: var(--radius-4xl);
+
+  /* ── Semantic ink tokens → Tailwind: text-ink-1, bg-ink-2, etc. ── */
+  --color-ink-1: var(--color-ink-1);
+  --color-ink-2: var(--color-ink-2);
+  --color-ink-3: var(--color-ink-3);
+  --color-ink-4: var(--color-ink-4);
+
+  /* ── Semantic surface tokens → Tailwind: bg-surface-1, etc. ── */
+  --color-surface-1: var(--color-surface-1);
+  --color-surface-2: var(--color-surface-2);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-surface-active: var(--color-surface-active);
+  --color-border-subtle: var(--color-border-subtle);
+
+  /* ── Status tokens → Tailwind: text-success, bg-danger, etc. ── */
+  --color-success:        var(--color-success);
+  --color-warning:        var(--color-warning);
+  --color-danger:         var(--color-danger);
+  --color-success-faint:  var(--color-success-faint);
+  --color-success-border: var(--color-success-border);
+  --color-danger-faint:   var(--color-danger-faint);
+  --color-danger-border:  var(--color-danger-border);
+
+  /* ── Compatibility persona tokens ── */
+  --color-compat-groom: var(--color-compat-groom);
+  --color-compat-bride: var(--color-compat-bride);
+
+  /* ── Dignity scale ── */
+  --color-dignity-exalted:     var(--color-dignity-exalted);
+  --color-dignity-mooltrikona: var(--color-dignity-mooltrikona);
+  --color-dignity-own:         var(--color-dignity-own);
+  --color-dignity-friend:      var(--color-dignity-friend);
+  --color-dignity-neutral:     var(--color-dignity-neutral);
+  --color-dignity-enemy:       var(--color-dignity-enemy);
+  --color-dignity-debilitated: var(--color-dignity-debilitated);
+
+  /* ── Planet state indicators ── */
+  --color-planet-retrograde:   var(--color-planet-retrograde);
+  --color-planet-combust:      var(--color-planet-combust);
+
+  /* ── Planet name highlight ── */
+  --color-planet-name:         var(--color-planet-name);
 }
 
+/* ── Fallback root (shadcn needs a base :root) ── */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -82,50 +110,839 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   DARK THEME — Umbra (warm near-black, amber gold)
+   To change the dark personality: edit values in this block only.
+   ══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  /* Color — backgrounds & surfaces */
+  --color-bg:              #15110C;
+  --color-surface-1:       #1D1812;
+  --color-surface-2:       #251F18;
+  --color-surface-hover:   rgba(232,217,188,0.06);
+  --color-surface-active:  rgba(232,217,188,0.12);
+
+  /* Color — borders */
+  --color-border:          rgba(232,217,188,0.10);
+  --color-border-subtle:   rgba(232,217,188,0.06);
+
+  /* Color — ink (text hierarchy) */
+  --color-ink-1:           #EFE6D2;
+  --color-ink-2:           #C6BAA1;
+  --color-ink-3:           #8A7E69;
+  --color-ink-4:           #5A5142;
+
+  /* Color — accent (brand: amber gold) */
+  --color-accent:          #D4A24A;
+  --color-accent-dim:      rgba(212,162,74,0.35);
+  --color-accent-faint:    rgba(212,162,74,0.12);
+  --color-accent-hover:    #E6BD6E;
+
+  /* Color — status */
+  --color-success:         #9CB55E;
+  --color-warning:         #D4A24A;
+  --color-danger:          #D27676;
+  --color-success-faint:   rgba(156,181,94,0.10);
+  --color-success-border:  rgba(156,181,94,0.30);
+  --color-danger-faint:    rgba(210,118,118,0.10);
+  --color-danger-border:   rgba(210,118,118,0.30);
+
+  /* Color — compatibility personas */
+  --color-compat-groom:    #6FA3B5;
+  --color-compat-bride:    #D4A24A;
+
+  /* ── Dignity scale (favorable / neutral / unfavorable) ── */
+  --color-dignity-exalted:     #9CB55E;
+  --color-dignity-mooltrikona: #9CB55E;
+  --color-dignity-own:         #9CB55E;
+  --color-dignity-friend:      #9CB55E;
+  --color-dignity-neutral:     #8A7E69;
+  --color-dignity-enemy:       #D27676;
+  --color-dignity-debilitated: #D27676;
+
+  /* ── Planet state indicators ── */
+  --color-planet-retrograde:   #D4A24A;
+  --color-planet-combust:      #D27676;
+  --color-planet-name:         #6FA3B5;
+
+  /* Shape */
+  --radius-sm:             4px;
+  --radius-md:             6px;
+  --radius-lg:             8px;
+  --radius-xl:             12px;
+  --radius-2xl:            16px;
+  --radius-3xl:            20px;
+  --radius-4xl:            24px;
+  --radius-full:           999px;
+
+  /* Motion */
+  --duration-fast:         150ms;
+  --duration-normal:       300ms;
+  --duration-slow:         600ms;
+  --easing-standard:       cubic-bezier(0.2, 0, 0, 1);
+  --easing-exit:           ease-in;
+
+  /* Depth */
+  --shadow-card:           0 4px 12px rgba(0,0,0,0.45), 0 0 0 1px rgba(232,217,188,0.07);
+  --shadow-elevated:       0 18px 44px rgba(0,0,0,0.6), 0 0 0 1px rgba(232,217,188,0.09);
+  --backdrop-blur:         blur(20px) saturate(1.6);
+  --surface-blend:         rgba(232,217,188,0.04);
+  --border-width:          1px;
+
+  /* Type scale */
+  --fs-page-title:         2.2rem;
+  --fs-section-head:       1.4rem;
+  --fs-subhead:            1.15rem;
+  --fs-body:               1rem;
+  --fs-label:              0.95rem;
+  --fs-small:              0.875rem;
+  --fs-xs:                 0.75rem;
+
+  /* Spacing */
+  --space-1:               4px;
+  --space-2:               8px;
+  --space-3:               12px;
+  --space-4:               16px;
+  --space-5:               20px;
+  --space-6:               24px;
+  --space-8:               32px;
+  --space-10:              40px;
+  --space-12:              48px;
+  --space-16:              64px;
+
+  /* Typography character */
+  --tracking-label:        0.04em;
+  --label-transform:       none;
+
+  /* shadcn variable remapping — keeps shadcn components themed */
+  --background:            var(--color-bg);
+  --foreground:            var(--color-ink-1);
+  --card:                  var(--color-surface-1);
+  --card-foreground:       var(--color-ink-1);
+  --popover:               var(--color-surface-2);
+  --popover-foreground:    var(--color-ink-1);
+  --primary:               var(--color-accent);
+  --primary-foreground:    #15110C;
+  --secondary:             var(--color-surface-2);
+  --secondary-foreground:  var(--color-ink-1);
+  --muted:                 var(--color-surface-1);
+  --muted-foreground:      var(--color-ink-3);
+  --accent:                var(--color-surface-2);
+  --accent-foreground:     var(--color-ink-1);
+  --destructive:           var(--color-danger);
+  --border:                var(--color-border);
+  --input:                 var(--color-border);
+  --ring:                  var(--color-accent-dim);
+
+  /* ── Overlay ── */
+  --color-overlay:                  rgba(0,0,0,0.60);
+  --color-overlay-dim:              rgba(0,0,0,0.35);
+
+  /* ── Button foreground (text on accent-background buttons) ── */
+  --color-button-fg:                #15110C;
+
+  /* ── Navigation — profile chips & Ask button ── */
+  --color-nav-chip-active-bg:       rgba(212,162,74,0.12);
+  --color-nav-chip-active-border:   rgba(212,162,74,0.35);
+  --color-nav-chip-active-text:     #E6BD6E;
+  --color-nav-alert:                #D4A24A;
+
+  /* ── Insight card category colours ── */
+  --color-insight-dasha:            #D4A24A;
+  --color-insight-transit:          #6FA3B5;
+  --color-insight-dosha:            #D27676;
+  --color-insight-yoga:             #9CB55E;
+  --color-insight-dasha-bg:    rgba(212,162,74,0.12);
+  --color-insight-transit-bg:  rgba(111,163,181,0.08);
+  --color-insight-dosha-bg:    rgba(210,118,118,0.10);
+  --color-insight-yoga-bg:     rgba(156,181,94,0.10);
+
+  /* ── Ask panel ── */
+  --color-ask-ctx-bg:               rgba(212,162,74,0.10);
+  --color-ask-ctx-border:           rgba(212,162,74,0.25);
+  --color-ask-ctx-name:             #E6BD6E;
+
+  /* ── Cool secondary (teal — planet names, links, transit category) ── */
+  --color-cool:                     #6FA3B5;
+  --color-cool-bg:                  rgba(111,163,181,0.08);
+
+  /* ── Warning faint/line (mirrors success/danger pattern) ── */
+  --color-warning-faint:            rgba(212,162,74,0.10);
+  --color-warning-border:           rgba(212,162,74,0.30);
+
+  /* ── Recessed surface (alternating table rows, code blocks) ── */
+  --color-surface-sunk:             #100C08;
+
+  /* ── Short-form aliases — match design system token names ── */
+  --bg:           var(--color-bg);
+  --surface:      var(--color-surface-1);
+  --surface-2:    var(--color-surface-2);
+  --surface-sunk: var(--color-surface-sunk);
+  --line:         var(--color-border);
+  --line-soft:    var(--color-border-subtle);
+  --line-strong:  rgba(232,217,188,0.30);
+  --accent-bg:    var(--color-accent-faint);
+  --accent-line:  var(--color-accent-dim);
+  --accent-soft:  var(--color-accent-hover);
+  --cool:         var(--color-cool);
+  --cool-bg:      var(--color-cool-bg);
+  --good:         var(--color-dignity-exalted);
+  --good-bg:      var(--color-success-faint);
+  --good-line:    var(--color-success-border);
+  --bad:          var(--color-danger);
+  --bad-bg:       var(--color-danger-faint);
+  --bad-line:     var(--color-danger-border);
+  --warn:         var(--color-warning);
+  --warn-bg:      var(--color-warning-faint);
+  --warn-line:    var(--color-warning-border);
+  --dignity-fav:  var(--color-dignity-exalted);
+  --dignity-neu:  var(--color-dignity-neutral);
+  --dignity-unf:  var(--color-dignity-debilitated);
+  --ink-1:        var(--color-ink-1);
+  --ink-2:        var(--color-ink-2);
+  --ink-3:        var(--color-ink-3);
+  --ink-4:        var(--color-ink-4);
+  --on-accent:    var(--color-button-fg);
+  --bw:           var(--border-width);
+  --r-sm:         var(--radius-sm);
+  --r-md:         var(--radius-md);
+  --r-lg:         var(--radius-lg);
+  --r-pill:       var(--radius-full);
+}
+
+[data-theme="dark"]  ::selection { background: var(--color-accent-faint); color: var(--color-ink-1); }
+[data-theme="light"] ::selection { background: var(--color-accent-faint); color: var(--color-ink-1); }
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHT THEME — Vellum (warm parchment, sindoor brick)
+   To change the light personality: edit values in this block only.
+   ══════════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  /* Color — backgrounds & surfaces */
+  --color-bg:              #F2ECDF;
+  --color-surface-1:       #FBF6EB;
+  --color-surface-2:       #FFFFFF;
+  --color-surface-hover:   rgba(31,26,23,0.05);
+  --color-surface-active:  rgba(31,26,23,0.10);
+
+  /* Color — borders */
+  --color-border:          #DDD2BC;
+  --color-border-subtle:   #E7DECC;
+
+  /* Color — ink (text hierarchy) */
+  --color-ink-1:           #1F1A17;
+  --color-ink-2:           #58504A;
+  --color-ink-3:           #8B8377;
+  --color-ink-4:           #B5AC9C;
+
+  /* Color — accent (brand: sindoor brick) */
+  --color-accent:          #8E2A1F;
+  --color-accent-dim:      rgba(142,42,31,0.22);
+  --color-accent-faint:    rgba(142,42,31,0.07);
+  --color-accent-hover:    #7A2419;
+
+  /* Color — status */
+  --color-success:         #4F6B2C;
+  --color-warning:         #A56B1E;
+  --color-danger:          #8E2A1F;
+  --color-success-faint:   rgba(79,107,44,0.09);
+  --color-success-border:  rgba(79,107,44,0.30);
+  --color-danger-faint:    rgba(142,42,31,0.07);
+  --color-danger-border:   rgba(142,42,31,0.30);
+
+  /* Color — compatibility personas */
+  --color-compat-groom:    #2F5F73;
+  --color-compat-bride:    #8E2A1F;
+
+  /* ── Dignity scale (favorable / neutral / unfavorable) ── */
+  --color-dignity-exalted:     #4F6B2C;
+  --color-dignity-mooltrikona: #4F6B2C;
+  --color-dignity-own:         #4F6B2C;
+  --color-dignity-friend:      #4F6B2C;
+  --color-dignity-neutral:     #8B8377;
+  --color-dignity-enemy:       #8E2A1F;
+  --color-dignity-debilitated: #8E2A1F;
+
+  /* ── Planet state indicators ── */
+  --color-planet-retrograde:   #A56B1E;
+  --color-planet-combust:      #8E2A1F;
+  --color-planet-name:         #2F5F73;
+
+  /* Shape */
+  --radius-sm:             2px;
+  --radius-md:             4px;
+  --radius-lg:             6px;
+  --radius-xl:             8px;
+  --radius-2xl:            10px;
+  --radius-3xl:            12px;
+  --radius-4xl:            16px;
+  --radius-full:           999px;
+
+  /* Motion */
+  --duration-fast:         100ms;
+  --duration-normal:       180ms;
+  --duration-slow:         350ms;
+  --easing-standard:       cubic-bezier(0.2, 0, 0, 1);
+  --easing-exit:           ease-in;
+
+  /* Depth */
+  --shadow-card:           0 1px 2px rgba(31,26,23,0.05), 0 0 0 1px rgba(31,26,23,0.04);
+  --shadow-elevated:       0 12px 28px -10px rgba(31,26,23,0.18), 0 0 0 1px rgba(31,26,23,0.05);
+  --backdrop-blur:         none;
+  --surface-blend:         #FBF6EB;
+  --border-width:          1px;
+
+  /* Type scale */
+  --fs-page-title:         2.2rem;
+  --fs-section-head:       1.4rem;
+  --fs-subhead:            1.15rem;
+  --fs-body:               1rem;
+  --fs-label:              0.95rem;
+  --fs-small:              0.875rem;
+  --fs-xs:                 0.75rem;
+
+  /* Spacing */
+  --space-1:               4px;
+  --space-2:               8px;
+  --space-3:               12px;
+  --space-4:               16px;
+  --space-5:               20px;
+  --space-6:               24px;
+  --space-8:               32px;
+  --space-10:              40px;
+  --space-12:              48px;
+  --space-16:              64px;
+
+  /* Typography character */
+  --tracking-label:        0.12em;
+  --label-transform:       uppercase;
+
+  /* shadcn variable remapping */
+  --background:            var(--color-bg);
+  --foreground:            var(--color-ink-1);
+  --card:                  var(--color-surface-1);
+  --card-foreground:       var(--color-ink-1);
+  --popover:               var(--color-surface-1);
+  --popover-foreground:    var(--color-ink-1);
+  --primary:               var(--color-accent);
+  --primary-foreground:    #FBF6EB;
+  --secondary:             var(--color-surface-hover);
+  --secondary-foreground:  var(--color-ink-1);
+  --muted:                 var(--color-surface-hover);
+  --muted-foreground:      var(--color-ink-3);
+  --accent:                var(--color-surface-hover);
+  --accent-foreground:     var(--color-ink-1);
+  --destructive:           var(--color-danger);
+  --border:                var(--color-border);
+  --input:                 var(--color-border-subtle);
+  --ring:                  var(--color-accent);
+
+  /* ── Overlay ── */
+  --color-overlay:                  rgba(31,26,23,0.55);
+  --color-overlay-dim:              rgba(31,26,23,0.30);
+
+  /* ── Button foreground (text on accent-background buttons) ── */
+  --color-button-fg:                #FBF6EB;
+
+  /* ── Navigation — profile chips & Ask button ── */
+  --color-nav-chip-active-bg:       rgba(142,42,31,0.07);
+  --color-nav-chip-active-border:   rgba(142,42,31,0.22);
+  --color-nav-chip-active-text:     #8E2A1F;
+  --color-nav-alert:                #A56B1E;
+
+  /* ── Insight card category colours ── */
+  --color-insight-dasha:            #8E2A1F;
+  --color-insight-transit:          #2F5F73;
+  --color-insight-dosha:            #A56B1E;
+  --color-insight-yoga:             #4F6B2C;
+  --color-insight-dasha-bg:    rgba(142,42,31,0.07);
+  --color-insight-transit-bg:  rgba(47,95,115,0.08);
+  --color-insight-dosha-bg:    rgba(165,107,30,0.09);
+  --color-insight-yoga-bg:     rgba(79,107,44,0.09);
+
+  /* ── Ask panel ── */
+  --color-ask-ctx-bg:               rgba(142,42,31,0.05);
+  --color-ask-ctx-border:           rgba(142,42,31,0.18);
+  --color-ask-ctx-name:             #8E2A1F;
+
+  /* ── Cool secondary (teal — planet names, links, transit category) ── */
+  --color-cool:                     #2F5F73;
+  --color-cool-bg:                  rgba(47,95,115,0.08);
+
+  /* ── Warning faint/line ── */
+  --color-warning-faint:            rgba(165,107,30,0.09);
+  --color-warning-border:           rgba(165,107,30,0.30);
+
+  /* ── Recessed surface ── */
+  --color-surface-sunk:             #EAE2D0;
+
+  /* ── Short-form aliases — match design system token names ── */
+  --bg:           var(--color-bg);
+  --surface:      var(--color-surface-1);
+  --surface-2:    var(--color-surface-2);
+  --surface-sunk: var(--color-surface-sunk);
+  --line:         var(--color-border);
+  --line-soft:    var(--color-border-subtle);
+  --line-strong:  #2A2522;
+  --accent-bg:    var(--color-accent-faint);
+  --accent-line:  var(--color-accent-dim);
+  --accent-soft:  var(--color-accent-hover);
+  --cool:         var(--color-cool);
+  --cool-bg:      var(--color-cool-bg);
+  --good:         var(--color-dignity-exalted);
+  --good-bg:      var(--color-success-faint);
+  --good-line:    var(--color-success-border);
+  --bad:          var(--color-danger);
+  --bad-bg:       var(--color-danger-faint);
+  --bad-line:     var(--color-danger-border);
+  --warn:         var(--color-warning);
+  --warn-bg:      var(--color-warning-faint);
+  --warn-line:    var(--color-warning-border);
+  --dignity-fav:  var(--color-dignity-exalted);
+  --dignity-neu:  var(--color-dignity-neutral);
+  --dignity-unf:  var(--color-dignity-debilitated);
+  --ink-1:        var(--color-ink-1);
+  --ink-2:        var(--color-ink-2);
+  --ink-3:        var(--color-ink-3);
+  --ink-4:        var(--color-ink-4);
+  --on-accent:    var(--color-button-fg);
+  --bw:           var(--border-width);
+  --r-sm:         var(--radius-sm);
+  --r-md:         var(--radius-md);
+  --r-lg:         var(--radius-lg);
+  --r-pill:       var(--radius-full);
+}
+
+/* ── Shared spacing aliases (theme-agnostic, matches design tokens.css) ── */
+:root {
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COMPONENT CLASSES — shared design language
+   Token mapping: --color-* names used throughout the app.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Eyebrow label ── */
+.ac-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+/* ── Section heading row ── */
+.ac-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ac-section-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+.ac-section-title.accent { color: var(--color-accent); }
+
+/* ── Card ── */
+.ac-card {
+  background: var(--color-surface-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.ac-card-pad     { padding: 20px; }
+.ac-card-pad-sm  { padding: 16px; }
+
+/* ── Table ── */
+.ac-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.ac-table thead th {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-1);
+  white-space: nowrap;
+}
+.ac-table tbody td {
+  padding: 10px 14px;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  color: var(--color-ink-1);
+  font-variant-numeric: tabular-nums;
+}
+.ac-table tbody tr:last-child td { border-bottom: 0; }
+.ac-table tbody tr:nth-child(2n) td { background: var(--color-surface-sunk); }
+.ac-table tbody tr:hover td { background: var(--color-accent-faint); transition: background 120ms; }
+.ac-table .num   { font-family: var(--font-mono); font-size: 12px; }
+.ac-table .planet { font-weight: 600; color: var(--color-cool); }
+.ac-table .muted { color: var(--color-ink-3); }
+.ac-table .right { text-align: right; }
+.ac-table th.right { text-align: right; }
+
+/* ── Dignity / status tags ── */
+.ac-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  background: var(--color-surface-sunk);
+  color: var(--color-ink-2);
+  border: var(--border-width) solid var(--color-border);
+  white-space: nowrap;
+}
+.ac-tag.fav  { background: var(--color-success-faint);  color: var(--color-dignity-exalted); border-color: var(--color-success-border); }
+.ac-tag.neu  { background: var(--color-surface-sunk);   color: var(--color-dignity-neutral); border-color: var(--color-border); }
+.ac-tag.unf  { background: var(--color-danger-faint);   color: var(--color-dignity-enemy);   border-color: var(--color-danger-border); }
+.ac-tag.warn { background: var(--color-warning-faint);  color: var(--color-warning);         border-color: var(--color-warning-border); }
+.ac-tag.cool { background: var(--color-cool-bg);        color: var(--color-cool);            border-color: transparent; }
+.ac-tag.solid { background: var(--color-accent); color: var(--color-button-fg); border-color: var(--color-accent); }
+
+/* ── Retrograde / combust / dash markers ── */
+.ac-retro   { color: var(--color-warning); font-family: var(--font-display); font-style: italic; font-weight: 700; }
+.ac-combust { width: 7px; height: 7px; border-radius: 50%; background: var(--color-danger); display: inline-block; vertical-align: middle; }
+.ac-dash    { color: var(--color-ink-4); }
+
+/* ── Key / value grid ── */
+.ac-kv {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+.ac-kv > div {
+  padding: 10px 16px;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  font-size: 13.5px;
+}
+.ac-kv .k { color: var(--color-ink-3); }
+.ac-kv .v { color: var(--color-ink-1); text-align: right; font-weight: 500; }
+.ac-kv .v.accent { color: var(--color-accent); }
+.ac-kv .v.cool   { color: var(--color-cool); }
+
+/* ── Pills ── */
+.ac-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.ac-pill {
+  padding: 4px 11px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-ink-2);
+  white-space: nowrap;
+}
+.ac-pill.cool   { color: var(--color-cool);   border-color: var(--color-cool-bg);    background: var(--color-cool-bg); }
+.ac-pill.accent { color: var(--color-accent); border-color: var(--color-accent-dim); background: var(--color-accent-faint); }
+
+/* ── Table cell tinting (BAV scores, SAV scores) ── */
+.ac-cell-good { color: var(--color-success); background: var(--color-success-faint); font-weight: 600; }
+.ac-cell-bad  { color: var(--color-danger);  background: var(--color-danger-faint);  font-weight: 600; }
+
+/* ── Display typography ── */
+.ac-h1 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--color-ink-1);
+  line-height: 1.18;
+}
+.ac-h1 em { color: var(--color-accent); font-style: italic; }
+
+/* ── Sidebar bio — dl/dt/dd label-value grid ── */
+.ac-bio dl {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  row-gap: 6px;
+  column-gap: 8px;
+  font-size: 12px;
+}
+.ac-bio dt { color: var(--color-ink-3); padding-top: 1px; }
+.ac-bio dd { color: var(--color-ink-1); margin: 0; line-height: 1.45; }
+
+/* ── Sidebar person header ── */
+.ac-person-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--color-ink-1);
+  letter-spacing: 0.005em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.ac-person-name-icons { display: flex; gap: 12px; color: var(--color-ink-3); font-size: 11px; }
+.ac-person-meta { font-size: 12px; color: var(--color-ink-3); }
+
+/* ── Eyebrow with horizontal rule ── */
+.ac-eyebrow.with-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ac-eyebrow.with-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-subtle);
+}
+
+/* ── Planet name + dignity colour utilities ── */
+.text-planet-name       { color: var(--color-planet-name); }
+.text-planet-retrograde { color: var(--color-planet-retrograde); }
+.text-planet-combust    { color: var(--color-planet-combust); }
+.text-dignity-exalted     { color: var(--color-dignity-exalted); }
+.text-dignity-mooltrikona { color: var(--color-dignity-mooltrikona); }
+.text-dignity-own         { color: var(--color-dignity-own); }
+.text-dignity-friend      { color: var(--color-dignity-friend); }
+.text-dignity-neutral     { color: var(--color-dignity-neutral); }
+.text-dignity-enemy       { color: var(--color-dignity-enemy); }
+.text-dignity-debilitated { color: var(--color-dignity-debilitated); }
+
+/* ── Compatibility score ── */
+.ac-score {
+  font-family: var(--font-display);
+  font-size: 52px;
+  color: var(--color-accent);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.ac-score-bar {
+  height: 6px;
+  background: var(--color-surface-sunk);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+.ac-score-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+}
+
+/* ── Banner / notice strips ── */
+.ac-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid;
+  font-size: 13.5px;
+}
+.ac-banner.accent { background: var(--color-accent-faint); border-color: var(--color-accent-dim); color: var(--color-accent); }
+.ac-banner.warn   { background: var(--color-warning-faint); border-color: var(--color-warning-border); color: var(--color-warning); }
+.ac-banner.danger { background: var(--color-danger-faint);  border-color: var(--color-danger-border);  color: var(--color-danger);  }
+
+/* ── Dasha row ── */
+.ac-dasha-row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+}
+.ac-dasha-row:last-child { border-bottom: 0; }
+.ac-dasha-row .level {
+  font-size: 10.5px;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  font-weight: 600;
+}
+.ac-dasha-row .planet-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--color-ink-1);
+  font-weight: 700;
+}
+.ac-dasha-row .range {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--color-ink-3);
+}
+.ac-dasha-row.current { background: var(--color-accent-faint); }
+.ac-dasha-row.current .planet-name { color: var(--color-accent); }
+
+/* ── Long-form reading text ── */
+.ac-reading {
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--color-ink-1);
+  letter-spacing: 0.003em;
+}
+.ac-reading p + p { margin-top: 0.9em; }
+
+/* ── Ask CTA button (inline) ── */
+.ac-btn-ask {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  background: var(--color-accent-faint);
+  color: var(--color-accent);
+  border: var(--border-width) solid var(--color-accent-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 120ms;
+}
+.ac-btn-ask:hover { opacity: 0.8; }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Remove mobile tap flash — theme accent shows on focus-visible instead */
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
+    background-color: var(--color-bg);
+    color: var(--color-ink-1);
   }
   html {
     @apply font-sans;
   }
+
+  /* ── Placeholder text ── */
+  ::placeholder {
+    color: var(--color-ink-4);
+    opacity: 1; /* Firefox reduces opacity by default */
+  }
+
+  /* ── Focus ring — keyboard only, not mouse/touch ── */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* ── Scrollbar — thin, theme-aware (Webkit/Blink) ── */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-4);
+  }
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE OVERRIDES — mobile (< 640px)
+   Override token values for smaller screens. Zero component
+   changes needed — components already consume these via var(--*).
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 639px) {
+  [data-theme="dark"] {
+    /* Shape — slightly tighter on small screens */
+    --radius-sm:             8px;
+    --radius-md:             12px;
+    --radius-lg:             14px;
+    --radius-xl:             18px;
+    --radius-2xl:            20px;
+    --radius-3xl:            24px;
+    --radius-4xl:            28px;
+
+    /* Motion — snappier on mobile (faster = more responsive feel) */
+    --duration-fast:         120ms;
+    --duration-normal:       220ms;
+    --duration-slow:         450ms;
+
+    /* Depth — lighter effects on mobile (GPU budget) */
+    --backdrop-blur:         blur(10px) saturate(1.3);
+    --shadow-card:           0 2px 8px rgba(0,0,0,0.35), 0 0 0 1px rgba(232,217,188,0.06);
+    --shadow-elevated:       0 4px 16px rgba(0,0,0,0.3);
+
+    /* Type — slightly smaller headings on mobile */
+    --fs-page-title:         1.75rem;
+    --fs-section-head:       1.2rem;
+    --fs-subhead:            1.05rem;
+
+    /* Spacing — tighter on mobile */
+    --space-6:               20px;
+    --space-8:               24px;
+    --space-10:              32px;
+    --space-12:              36px;
+    --space-16:              48px;
+  }
+
+  [data-theme="light"] {
+    /* Motion — already snappy, nudge faster on mobile */
+    --duration-fast:         80ms;
+    --duration-normal:       140ms;
+    --duration-slow:         280ms;
+
+    /* Depth */
+    --shadow-card:           0 1px 1px rgba(31,26,23,0.06);
+    --shadow-elevated:       0 6px 16px -6px rgba(31,26,23,0.14), 0 0 0 1px rgba(31,26,23,0.04);
+
+    /* Type */
+    --fs-page-title:         1.75rem;
+    --fs-section-head:       1.2rem;
+    --fs-subhead:            1.05rem;
+
+    /* Spacing */
+    --space-6:               20px;
+    --space-8:               24px;
+    --space-10:              32px;
+    --space-12:              36px;
+    --space-16:              48px;
+  }
+}
+
+/* ── Keyframes ── */
+@keyframes spinZodiac { to { transform: rotate(360deg); } }
+@keyframes shimmerBtn {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes profileEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-profile-enter {
+  animation: profileEnter 200ms ease-out both;
 }

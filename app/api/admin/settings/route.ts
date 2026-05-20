@@ -14,6 +14,7 @@ export async function GET() {
 }
 
 const ALLOWED_SETTINGS: Set<keyof AppSettings> = new Set([
+  "written_consultation_enabled",
   "live_consultation_enabled",
   "written_fee_paise",
   "live_fee_paise",

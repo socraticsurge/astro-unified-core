@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("next-auth/next", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/auth", () => ({ authOptions: {}, getUserId: (s: { user?: { id?: string } } | null) => s?.user?.id ?? "" }));
 vi.mock("@/lib/admin", () => ({ isAdmin: vi.fn() }));
 
 vi.mock("@/lib/db", () => ({

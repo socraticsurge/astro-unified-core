@@ -4,13 +4,21 @@ import { SectionShell } from "./SectionShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Calendar, Clock } from "lucide-react";
+import { Loader2, Calendar } from "lucide-react";
+import { toast } from "@/components/ui/Toast";
 
 type SectionExplainer = {
   title: string;
   gist?: string | null;
   bodyHtml: string;
   sources?: { text: string; chapter?: number | string; sloka?: number | string }[];
+};
+
+type MuhurthaResult = {
+  start_time: string;
+  end_time: string;
+  date: string;
+  points?: string[];
 };
 
 type Props = {
@@ -20,11 +28,15 @@ type Props = {
 
 export function MuhurthaView({ profileId, explainer }: Props) {
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    event_type: "marriage",
-    start_date: new Date().toISOString().split("T")[0],
-    end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+  const [results, setResults] = useState<MuhurthaResult[]>([]);
+  const [form, setForm] = useState(() => {
+    const now = new Date();
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return {
+      event_type: "marriage",
+      start_date: now.toISOString().split("T")[0],
+      end_date: weekFromNow.toISOString().split("T")[0],
+    };
   });
 
   const handleSearch = async () => {
@@ -39,7 +51,7 @@ export function MuhurthaView({ profileId, explainer }: Props) {
       if (!res.ok) throw new Error(data.error || "Search failed");
       setResults(data.timings || []);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Search failed");
+      toast(e instanceof Error ? e.message : "Search failed", "error");
     } finally {
       setLoading(false);
     }
@@ -47,66 +59,94 @@ export function MuhurthaView({ profileId, explainer }: Props) {
 
   return (
     <SectionShell sectionInView="Muhurtha (Auspicious Timings)" explainer={explainer ?? null}>
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Search Form */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-          <div className="space-y-1.5">
-            <Label>Event Type</Label>
-            <select 
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-md p-2 text-sm"
-              value={form.event_type}
-              onChange={(e) => setForm({ ...form, event_type: e.target.value })}
-            >
-              <option value="marriage">Marriage</option>
-              <option value="house_entry">House Warming / Griha Pravesh</option>
-              <option value="business">Business / New Venture</option>
-              <option value="travel">Travel</option>
-              <option value="education">Education</option>
-              <option value="medical">Medical</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Start Date</Label>
-            <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className="bg-zinc-900 border-zinc-800" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>End Date</Label>
-            <div className="flex gap-2">
-              <Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} className="bg-zinc-900 border-zinc-800" />
-              <Button onClick={handleSearch} disabled={loading} size="icon" className="shrink-0 bg-violet-600 hover:bg-violet-700">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
-              </Button>
+        <div className="ac-card ac-card-pad">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12, alignItems: "end" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <Label style={{ fontSize: 12 }}>Event Type</Label>
+              <select
+                className="ac-card"
+                style={{ padding: "6px 10px", fontSize: 13, color: "var(--color-ink-1)", cursor: "pointer" }}
+                value={form.event_type}
+                onChange={(e) => setForm({ ...form, event_type: e.target.value })}
+              >
+                <option value="marriage">Marriage</option>
+                <option value="house_entry">House Warming / Griha Pravesh</option>
+                <option value="business">Business / New Venture</option>
+                <option value="travel">Travel</option>
+                <option value="education">Education</option>
+                <option value="medical">Medical</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <Label style={{ fontSize: 12 }}>Start Date</Label>
+              <Input
+                type="date"
+                value={form.start_date}
+                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                className="bg-[var(--color-surface-1)] border-[var(--color-border)] h-9 text-sm"
+              />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <Label style={{ fontSize: 12 }}>End Date</Label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Input
+                  type="date"
+                  value={form.end_date}
+                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                  className="bg-[var(--color-surface-1)] border-[var(--color-border)] h-9 text-sm"
+                />
+                <Button
+                  onClick={handleSearch}
+                  disabled={loading}
+                  size="icon"
+                  className="shrink-0 bg-[var(--color-accent)] hover:opacity-90 text-[var(--color-button-fg)]"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Results */}
-        <div className="space-y-4">
-          {results.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3">
-              {results.map((r, i) => (
-                <div key={i} className="p-4 rounded-lg bg-green-950/20 border border-green-800/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="text-sm font-bold text-green-300 flex items-center gap-2">
-                      <Clock className="h-3.5 w-3.5" />
-                      {r.start_time} to {r.end_time}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{r.date}</div>
+        {results.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {results.map((r, i) => (
+              <div
+                key={i}
+                className="ac-card ac-card-pad"
+                style={{
+                  borderColor: "var(--color-success-border)",
+                  background: "var(--color-success-faint)",
+                  display: "flex", flexDirection: "row", alignItems: "flex-start",
+                  justifyContent: "space-between", gap: 12, flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--color-success)", marginBottom: 2 }}>
+                    {r.start_time} → {r.end_time}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {r.points?.map((p: string, j: number) => (
-                      <span key={j} className="text-[10px] bg-green-900/40 text-green-400 px-2 py-0.5 rounded-full border border-green-800/50">{p}</span>
-                    ))}
-                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-ink-3)" }}>{r.date}</div>
                 </div>
-              ))}
-            </div>
-          ) : !loading && (
-            <div className="py-12 text-center text-sm text-muted-foreground italic border border-dashed border-white/10 rounded-lg">
-              {"No highly auspicious timings found in this date range. Try widening the window."}
-            </div>
-          )}
-        </div>
+                <div className="ac-pills" style={{ gap: 4 }}>
+                  {r.points?.map((p: string, j: number) => (
+                    <span key={j} className="ac-tag fav" style={{ fontSize: 10 }}>{p}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : !loading && (
+          <div style={{
+            padding: "40px 16px", textAlign: "center",
+            fontSize: 13, fontStyle: "italic", color: "var(--color-ink-3)",
+            border: "1px dashed var(--color-border)", borderRadius: 10,
+          }}>
+            No highly auspicious timings found in this date range. Try widening the window.
+          </div>
+        )}
       </div>
     </SectionShell>
   );

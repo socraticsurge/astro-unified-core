@@ -6,6 +6,7 @@ vi.mock("next-auth/next", () => ({
 
 vi.mock("@/lib/auth", () => ({
   authOptions: {},
+  getUserId: (s: { user?: { id?: string } } | null) => s?.user?.id ?? "",
 }));
 
 vi.mock("@/lib/admin", () => ({

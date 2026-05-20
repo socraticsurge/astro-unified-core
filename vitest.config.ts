@@ -3,8 +3,24 @@ import path from 'path'
 
 export default defineConfig({
   test: {
-    environment: 'node',
     globals: true,
+    setupFiles: ['./vitest.setup.ts'],
+    exclude: ['**/node_modules/**', '**/.worktrees/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      thresholds: {
+        statements: 60,
+        branches: 60,
+      },
+      exclude: [
+        'node_modules/**',
+        '.next/**',
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        'docs/**',
+      ],
+    },
   },
   resolve: {
     alias: {

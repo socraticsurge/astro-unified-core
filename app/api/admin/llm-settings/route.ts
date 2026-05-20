@@ -10,13 +10,14 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const [ai_insights, chat, draft] = await Promise.all([
+  const [ai_insights, chat, draft, today_reading] = await Promise.all([
     db.settings.getAiInsightsLlm(),
     db.settings.getChatLlm(),
     db.settings.getDraftLlm(),
+    db.settings.getTodayReadingLlm(),
   ]);
 
-  return NextResponse.json({ ai_insights, chat, draft });
+  return NextResponse.json({ ai_insights, chat, draft, today_reading });
 }
 
 export async function POST(req: NextRequest) {
@@ -43,6 +44,11 @@ export async function POST(req: NextRequest) {
   if (type === "draft") {
     const saved = await db.settings.setDraftLlm(config as never);
     return NextResponse.json({ draft: saved });
+  }
+
+  if (type === "today_reading") {
+    const saved = await db.settings.setTodayReadingLlm(config as never);
+    return NextResponse.json({ today_reading: saved });
   }
 
   return NextResponse.json({ error: `Unknown type: ${type}` }, { status: 400 });

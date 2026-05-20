@@ -1,31 +1,34 @@
 import { randomUUID } from "crypto";
+import { z } from "zod";
 import { getClient, ensureSchema } from "./client";
 
-export type ConsultationRequest = {
-  id: string;
-  user_id: string;
-  profile_ids: string;          // JSON array of profile id strings
-  life_area: string;
-  observation: string;
-  constraint_text: string;
-  objective: string;
-  options: string | null;       // nullable for legacy rows pre-v5
-  delivery_mode: "written" | "appointment";
-  // "pending" = legacy pre-v6 rows; treat same as "pending_payment"
-  status: "pending_payment" | "paid" | "pending" | "answered";
-  amount_paise: number | null;  // nullable for legacy rows pre-v6
-  slot_starts_at: string | null; // ISO string (IST); only set for appointment mode
-  admin_note: string | null;
-  user_rating: "helpful" | "not_helpful" | null;
-  user_feedback_note: string | null;
-  created_at: string;
-  answered_at: string | null;
-};
+const ConsultationRequestSchema = z.object({
+  id: z.string(),
+  user_id: z.string(),
+  profile_ids: z.string(),
+  life_area: z.string(),
+  observation: z.string(),
+  constraint_text: z.string(),
+  objective: z.string(),
+  options: z.string().nullable(),
+  delivery_mode: z.enum(["written", "appointment"]),
+  status: z.enum(["pending_payment", "paid", "pending", "answered"]),
+  amount_paise: z.coerce.number().nullable(),
+  slot_starts_at: z.string().nullable(),
+  admin_note: z.string().nullable(),
+  user_rating: z.enum(["helpful", "not_helpful"]).nullable(),
+  user_feedback_note: z.string().nullable(),
+  created_at: z.string(),
+  answered_at: z.string().nullable(),
+});
 
-export type ConsultationRequestWithUser = ConsultationRequest & {
-  user_email: string | null;
-  user_name: string | null;
-};
+const ConsultationRequestWithUserSchema = ConsultationRequestSchema.extend({
+  user_email: z.string().nullable(),
+  user_name: z.string().nullable(),
+});
+
+export type ConsultationRequest = z.infer<typeof ConsultationRequestSchema>;
+export type ConsultationRequestWithUser = z.infer<typeof ConsultationRequestWithUserSchema>;
 
 export const consultationRequests = {
   // Returns any active (non-answered) request — covers pending_payment, paid, and legacy pending.
@@ -35,7 +38,7 @@ export const consultationRequests = {
       sql: "SELECT * FROM consultation_requests WHERE user_id = ? AND status != 'answered' LIMIT 1",
       args: [userId],
     });
-    return rs.rows[0] as unknown as ConsultationRequest | undefined;
+    return rs.rows[0] ? ConsultationRequestSchema.parse(rs.rows[0]) : undefined;
   },
 
   async listByUser(userId: string): Promise<ConsultationRequest[]> {
@@ -44,18 +47,19 @@ export const consultationRequests = {
       sql: "SELECT * FROM consultation_requests WHERE user_id = ? ORDER BY created_at DESC",
       args: [userId],
     });
-    return rs.rows as unknown as ConsultationRequest[];
+    return rs.rows.map((r) => ConsultationRequestSchema.parse(r));
   },
 
-  async listAllWithUser(): Promise<ConsultationRequestWithUser[]> {
+  async listAllWithUser(limit = 200): Promise<ConsultationRequestWithUser[]> {
     await ensureSchema();
-    const rs = await getClient().execute(`
-      SELECT cr.*, u.email AS user_email, u.name AS user_name
-      FROM consultation_requests cr
-      LEFT JOIN users u ON u.id = cr.user_id
-      ORDER BY cr.created_at DESC
-    `);
-    return rs.rows as unknown as ConsultationRequestWithUser[];
+    const rs = await getClient().execute({
+      sql: `SELECT cr.*, u.email AS user_email, u.name AS user_name
+            FROM consultation_requests cr
+            LEFT JOIN users u ON u.id = cr.user_id
+            ORDER BY cr.created_at DESC LIMIT ?`,
+      args: [limit],
+    });
+    return rs.rows.map((r) => ConsultationRequestWithUserSchema.parse(r));
   },
 
   async getById(id: string): Promise<ConsultationRequest | undefined> {
@@ -64,24 +68,31 @@ export const consultationRequests = {
       sql: "SELECT * FROM consultation_requests WHERE id = ? LIMIT 1",
       args: [id],
     });
-    return rs.rows[0] as unknown as ConsultationRequest | undefined;
+    return rs.rows[0] ? ConsultationRequestSchema.parse(rs.rows[0]) : undefined;
   },
 
   async create(
     userId: string,
-    data: Pick<ConsultationRequest, "profile_ids" | "life_area" | "observation" | "constraint_text" | "objective" | "options" | "delivery_mode"> & { amount_paise: number; slot_starts_at?: string | null }
+    data: Pick<ConsultationRequest, "profile_ids" | "life_area" | "observation" | "constraint_text" | "objective" | "options" | "delivery_mode"> & {
+      amount_paise: number;
+      slot_starts_at?: string | null;
+      /** Initial status. Routes pass `pending` when PAYMENT_FLOW_ENABLED is false; defaults to legacy `pending_payment` otherwise. */
+      initial_status?: "pending_payment" | "pending";
+    }
   ): Promise<ConsultationRequest> {
     await ensureSchema();
     const id = randomUUID();
     const created_at = new Date().toISOString();
+    const status: "pending_payment" | "pending" = data.initial_status ?? "pending_payment";
     await getClient().execute({
       sql: `INSERT INTO consultation_requests
             (id, user_id, profile_ids, life_area, observation, constraint_text, objective, options, delivery_mode, status, amount_paise, slot_starts_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment', ?, ?, ?)`,
-      args: [id, userId, data.profile_ids, data.life_area, data.observation, data.constraint_text, data.objective, data.options ?? null, data.delivery_mode, data.amount_paise, data.slot_starts_at ?? null, created_at],
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [id, userId, data.profile_ids, data.life_area, data.observation, data.constraint_text, data.objective, data.options ?? null, data.delivery_mode, status, data.amount_paise, data.slot_starts_at ?? null, created_at],
     });
-    const { amount_paise, slot_starts_at, ...rest } = data;
-    return { id, user_id: userId, status: "pending_payment", amount_paise, slot_starts_at: slot_starts_at ?? null, admin_note: null, user_rating: null, user_feedback_note: null, answered_at: null, created_at, ...rest };
+    const { amount_paise, slot_starts_at, initial_status: _ignored, ...rest } = data;
+    void _ignored;
+    return { id, user_id: userId, status, amount_paise, slot_starts_at: slot_starts_at ?? null, admin_note: null, user_rating: null, user_feedback_note: null, answered_at: null, created_at, ...rest };
   },
 
   async markPaid(id: string): Promise<void> {

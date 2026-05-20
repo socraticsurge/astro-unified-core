@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { fetchWithRetry } from "@/lib/engines/fetch-with-retry";
 
 const SIDECAR_URL =
   process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
@@ -10,12 +13,21 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = (session.user as { id: string }).id;
+    const userId = getUserId(session);
 
     const body = await req.json();
     const { profile_id, event_type, start_date, end_date } = body ?? {};
 
     if (!profile_id) return NextResponse.json({ error: "Profile ID required" }, { status: 400 });
+
+    if (!rateLimit(`muhurtha_${userId}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS).success) {
+      return NextResponse.json({ error: "Too many requests. Please wait a minute." }, { status: 429 });
+    }
+
+    const VALID_EVENT_TYPES = ["marriage", "house_entry", "business", "travel", "education", "medical"] as const;
+    if (event_type && !VALID_EVENT_TYPES.includes(event_type)) {
+      return NextResponse.json({ error: "Invalid event_type" }, { status: 400 });
+    }
 
     const p = await db.profiles.get(profile_id, userId);
     if (!p) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
@@ -25,7 +37,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Call Python Sidecar
-    const res = await fetch(`${SIDECAR_URL}/muhurtha`, {
+    const res = await fetchWithRetry(`${SIDECAR_URL}/muhurtha`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

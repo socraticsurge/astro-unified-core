@@ -18,6 +18,7 @@
 
 # env files
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -31,10 +32,27 @@ next-env.d.ts
 *.db-shm
 *.db-wal
 
+# manual Turso dumps — see docs/RUNBOOK.md
+/backups/
+
 # python
 **/venv/
 **/__pycache__/
 *.pyc
-public/data/hip_main.dat
+/public/data/
 .env*.local
 coverage/
+.worktrees/
+
+# generated at prebuild time
+lib/content/content-index.json
+.jules/
+.cursor/
+.aider/
+.claude/
+
+# Sentry Config File
+.env.sentry-build-plugin
+
+# PostHog wizard scaffolding
+posthog-setup-report.md

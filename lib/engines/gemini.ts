@@ -17,9 +17,9 @@ export async function callGemini(
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_GEMINI_API_KEY is not set");
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+  const response = await fetch(GEMINI_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
@@ -29,6 +29,7 @@ export async function callGemini(
         maxOutputTokens: opts?.maxOutputTokens ?? 4096,
       },
     }),
+    signal: AbortSignal.timeout(60_000),
   });
 
   if (!response.ok) {
@@ -56,9 +57,9 @@ export async function callGeminiText(
     parts: [{ text: m.content }],
   }));
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+  const response = await fetch(GEMINI_API_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents,
@@ -67,6 +68,7 @@ export async function callGeminiText(
         maxOutputTokens: opts?.maxOutputTokens ?? 8192,
       },
     }),
+    signal: AbortSignal.timeout(60_000),
   });
 
   if (!response.ok) {

@@ -1,6 +1,8 @@
 // Transit engine client — calls the /transit endpoint on our Python sidecar.
 // Returns cast_transit() output: planetary transits, Sade Sati, Rahu-Ketu axis.
 
+import { fetchWithRetry } from "./fetch-with-retry";
+
 const SIDECAR =
   process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
 
@@ -21,7 +23,7 @@ export type TransitOutput = {
 
 export async function fetchTransit(input: TransitInput): Promise<TransitOutput> {
   try {
-    const res = await fetch(`${SIDECAR}/transit`, {
+    const res = await fetchWithRetry(`${SIDECAR}/transit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -37,9 +39,10 @@ export async function fetchTransit(input: TransitInput): Promise<TransitOutput> 
     const json = (await res.json()) as { status?: string; data?: unknown; transit_date?: string };
     return { data: json.data ?? null, transit_date: json.transit_date };
   } catch (e) {
+    const isTimeout = e instanceof Error && e.name === "TimeoutError";
     return {
       data: null,
-      error: e instanceof Error ? e.message : String(e),
+      error: isTimeout ? "Sidecar request timed out. Please try again." : (e instanceof Error ? e.message : String(e)),
     };
   }
 }

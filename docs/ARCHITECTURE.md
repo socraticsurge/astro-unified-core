@@ -1,6 +1,15 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-05-20 -->
+
+> **Note:** The legacy "Basic / Professional" two-mode chart view was replaced
+> with the unified 10-tab dashboard on 2026-05-19. The components below
+> describe the current architecture; legacy components (`ProfileDetailClient`,
+> `ProfessionalView`, `DashaflowView`, `VargaDashboard`, `AntardashaTimeline`,
+> `TransitView`, `CareerView`, `AIInsightShell`, `ProfileChat`, `LandingPage`,
+> `ChartSkeleton`, `dashboard/ProfileList`) are deleted. If you see any of
+> them referenced in code, check `git log` — they're gone from `main` after
+> commit `297c665` (#52).
 
 > **Companion to [`PROJECT.md`](./PROJECT.md)** — that file covers env vars,
 > deployment gotchas, and the auth model. This file covers the code itself:
@@ -103,23 +112,24 @@ Must receive data via props, `useSession()`, or fetch calls to API routes.
 
 | File | Why client | What it cannot do |
 |---|---|---|
-| `app/profiles/[id]/ProfileDetailClient.tsx` | Interactive chart, fetch on demand, Basic/Pro toggle | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
+| `app/dashboard/DashboardClient.tsx` | Active profile state, tab orchestration, parallel prefetch | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
 | `app/compatibility/[id]/CompatibilityDetailClient.tsx` | Interactive detail tabs | Same — reads `session.user.isAdmin` |
 | `app/admin/AdminTables.tsx` | Tabs, sort, inline actions | Cannot call `isAdmin()` — admin gate is on the server page |
 | `app/consultation/ConsultationForm.tsx` | Multi-step form with live preview | Receives settings as props from server |
-| `components/NavBar.tsx` | `useSession`, `signOut` | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
+| `components/NavBar.tsx` | `useSession`, `signOut`, profile chips, Ask button | Cannot call `isAdmin()` — reads `session.user.isAdmin` |
+| `components/CosmicLanding.tsx` | Earth-globe video, theme-aware star canvas | Public landing |
+| `components/AppShell.tsx`, `AppStarCanvas.tsx` | Persistent background canvas | |
 | `components/compatibility/CompatibilityClient.tsx` | Profile selection, check submission | Receives profiles + checks as props |
-| `components/engines/DashaflowView.tsx` | Collapsible sections, explainer modals | Receives chart output as props |
-| `components/engines/ProfessionalView.tsx` | Tab container, fetch-on-tab | Fetch triggered by user action |
-| `components/engines/TransitView.tsx` | Date picker, transit fetch | |
-| `components/engines/CareerView.tsx` | Lazy load on tab | |
+| `components/profiles/ProfileView.tsx` + `components/unified/tabs/*` | 10-tab dashboard shell: Today, Chart, Planets, HousesVargas, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career, Compare. `ProfileView` owns the active-tab state and renders the relevant tab component. | Receives chart/transit/career output as props |
+| `components/tabs/CompareTab.tsx`, `TodayTab.tsx` | Multi-profile compare + Today highlights | |
 | `components/engines/MuhurthaView.tsx` | Event picker | |
 | `components/engines/TarabalamView.tsx` | Date range + multi-profile picker | |
-| `components/engines/VargaDashboard.tsx` | D-chart tabs | |
-| `components/engines/AntardashaTimeline.tsx` | Visual timeline | |
+| `components/panels/AskPanel.tsx`, `AIAdminPanel.tsx` | Slide-out Ask + admin LLM panels | |
+| `components/profiles/ProfileNav.tsx`, `ProfileChip.tsx`, `ProfileSidebar.tsx`, `ProfileView.tsx` | Profile chip nav + sidebar info | |
+| `components/ProfileLoadingScreen.tsx` | Celestial loading screen after profile creation | |
+| `components/ThemeProvider.tsx`, `ThemeToggle.tsx` | next-themes provider + toggle (Umbra / Vellum) | |
 | `components/FeedbackWidget.tsx` | Floating overlay, form submit | |
 | `components/ProfileForm.tsx` | Geocode-on-submit, controlled form | |
-| `components/dashboard/ProfileList.tsx` | Interactive profile cards | |
 | `components/auth/NextAuthProvider.tsx` | `SessionProvider` mount | |
 
 ### API routes (all server-side, all in `app/api/`)
@@ -193,7 +203,7 @@ astrounified/
 │   ├── engines/            # HTTP clients for the Python sidecar
 │   ├── content/            # Markdown loader & renderer
 │   └── *.ts                # Auth, DB, geocoding, astro helpers
-├── public/                 # Static assets (ephemeris data, icons)
+├── public/                 # Static assets (icons, landing globe video)
 ├── docs/                   # Developer documentation (this file)
 ├── next.config.ts          # Next.js config
 ├── proxy.ts                # NextAuth middleware (route protection)
@@ -352,7 +362,9 @@ The TypeScript layer is purely HTTP client + cache + TypeScript-native calculati
 
 Calls `POST ${DASHAFLOW_SIDECAR_URL}/calculate` with birth coordinates.
 Returns 17 chart sections (planets, dashas, yogas, ashtakavarga, etc.).
-Used by the main chart view (`DashaflowView`).
+Consumed by `DashboardClient` and rendered across `components/unified/tabs/*`
+(Chart, Planets, Houses, Dasha, Yogas, Jaimini, Ashtakavarga). Sidebar
+panchang + birth info comes from the same payload via `ProfileSidebar`.
 
 ### Transit
 [`lib/engines/transit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/transit.ts)
@@ -555,24 +567,58 @@ Reusable form for both create and edit flows. Fields: name, DOB, time of birth,
 place of birth (geocoded on submit), current location (optional), gender,
 relationship label.
 
-### Profile Detail
+### Dashboard / Profile View
 
 **[`app/profiles/[id]/page.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/profiles/%5Bid%5D/page.tsx)**
 
-Server component. Fetches:
-- The profile (using `profile.user_id` for subsequent queries — crucial for
-  the admin-viewing-another-user case)
-- All profiles belonging to the profile's *owner* (for Tarabalam family selector)
-- All section explainer markdown (pre-loaded to avoid per-section round trips)
+Server component. Auth-gated. Redirects to `/dashboard?profile={id}` — the
+unified dashboard is now the single entry point for viewing any profile.
+The legacy `ProfileDetailClient` (and its Basic / Professional toggle) was
+removed in the 2026-05-19 cleanup.
 
-Renders `ProfileDetailClient`.
+**[`app/dashboard/page.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/dashboard/page.tsx)**
 
-**[`app/profiles/[id]/ProfileDetailClient.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/profiles/%5Bid%5D/ProfileDetailClient.tsx)**
+Server component. Auth-gated. Resolves the active profile from the
+`?profile={id}` query param (defaulting to the user's first profile),
+loads all of the user's profiles for the NavBar pill switcher, and renders
+`DashboardClient`.
 
-Client component. Owns the Basic / Professional toggle for the profile view.
-- **Basic**: renders `DashaflowView` with the full 17-section chart
-- **Professional** (admin only): renders `ProfessionalView` with tabs for
-  Varga Dashboard, Transit, Career, Muhurtha, and Tarabalam
+**[`app/dashboard/DashboardClient.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/dashboard/DashboardClient.tsx)**
+
+Client component. Owns the active-profile state and orchestrates engine
+fetches for the entire dashboard. Renders `NavBar` + `ProfileSidebar` +
+`ProfileView`.
+
+- **New profile flow** (`?new=1`): shows `ProfileLoadingScreen` while
+  chart, transit, career, and today-reading load in parallel. Minimum 2s
+  animation; lifts when all four settle.
+- **Returning user flow**: chart + transit prefetched immediately;
+  today-reading chains after chart resolves; career loads lazily on tab
+  open. Toggling between profile pills is served from the in-memory
+  per-profile cache (no refetch unless the user explicitly triggers refresh).
+
+**[`components/profiles/ProfileView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/profiles/ProfileView.tsx)**
+
+Hosts the 10-tab dashboard:
+
+| Tab | Renders | Data source |
+|---|---|---|
+| Today | `TodayTab` + `TodayInsightCard` | chart (dashas) + today-reading (LLM) |
+| Chart | `components/unified/tabs/ChartTab` | chart |
+| Planets | `PlanetsTab` (positions, dignity, shadbala) | chart |
+| Houses | `HousesVargasTab` (D1 + D-charts) | chart |
+| Dasha | `DashaTab` (5-level Vimshottari) | chart |
+| Yogas | `YogasTab` | chart |
+| Jaimini | `JaiminiTab` | chart |
+| Ashtakavarga | `AshtakavargaTab` | chart |
+| Transits | `TransitsTab` | transit |
+| Career | `CareerTab` | career |
+| Compare | `components/tabs/CompareTab` | sibling profiles + Ashtakoota engine |
+
+Admin users also see an **AI Admin panel** (`components/panels/AIAdminPanel`)
+for inspecting / chatting with the LLM output, and an **Ask panel**
+(`components/panels/AskPanel`) for triggering a consultation request from
+any tab.
 
 ### Compatibility
 
@@ -652,18 +698,48 @@ When a pending question exists, renders `PendingCard` instead of the form — sh
 ## 9. Shared UI Components
 
 ### Chart Engine Components
-[`components/engines/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/)
+
+The chart UI is split across two directories:
+
+**[`components/unified/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/)** — the 10-tab dashboard rendered inside `ProfileView`:
 
 | Component | What it renders |
 |---|---|
-| [`DashaflowView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/DashaflowView.tsx) | Full 17-section birth chart |
-| [`VargaDashboard.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/VargaDashboard.tsx) | D1–D30 divisional chart tabs |
-| [`AntardashaTimeline.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/AntardashaTimeline.tsx) | Visual Vimshottari dasha timeline |
-| [`TransitView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/TransitView.tsx) | Current planetary positions |
-| [`CareerView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/CareerView.tsx) | D10 career themes + planet domains |
-| [`MuhurthaView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/MuhurthaView.tsx) | Auspicious timing results |
+| [`TabGrid.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/TabGrid.tsx) | Shared `TwoColumnTabGrid` / `TabColumn` / `TabSection` primitives — composed by every dense tab |
+| [`TabLoadingSkeleton.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/TabLoadingSkeleton.tsx) | Shared pulsing loader (transit, career, etc.) |
+| [`IdentityStrip.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/IdentityStrip.tsx) | Ascendant / Moon sign / Nakshatra strip |
+| [`HouseGrid.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/HouseGrid.tsx) | 12-house diamond/grid |
+| [`NatalChartGrid.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/NatalChartGrid.tsx) | Square North-Indian style chart |
+| [`SavChartGrid.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/SavChartGrid.tsx) | SAV (sarvashtakavarga) chart |
+| [`tabs/ChartTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/ChartTab.tsx) | Main chart visualization |
+| [`tabs/PlanetsTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/PlanetsTab.tsx) | Planet table — sign, house, retro, dignity, shadbala |
+| [`tabs/HousesVargasTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/HousesVargasTab.tsx) | D1 + D-chart switcher |
+| [`tabs/DashaTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/DashaTab.tsx) | 5-level Vimshottari with timeline visualization |
+| [`tabs/timeline/DashaTimeline.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/timeline/DashaTimeline.tsx) + [`DashaRow.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/timeline/DashaRow.tsx) | Visual dasha row |
+| [`tabs/YogasTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/YogasTab.tsx) | Active yogas |
+| [`tabs/JaiminiTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/JaiminiTab.tsx) | Jaimini karakas + Karakamsha |
+| [`tabs/AshtakavargaTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/AshtakavargaTab.tsx) | BAV + SAV bindu tables |
+| [`tabs/TimeTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/TimeTab.tsx) | Panchang + birth time details |
+| [`tabs/TransitsTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/TransitsTab.tsx) | Compact card grid; calls `POST /api/readings/transit` |
+| [`tabs/CareerTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/CareerTab.tsx) | Two-column layout (D10 + themes + indicators \| 10th house + significators); calls `POST /api/readings/career` |
+
+**[`components/tabs/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/)** — top-level tabs that compose multiple data sources:
+
+| Component | What it renders |
+|---|---|
+| [`TodayTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/TodayTab.tsx) + [`TodayInsightCard.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/TodayInsightCard.tsx) | 5-level dasha hero, pratyantar shifts, LLM-generated today-reading |
+| [`CompareTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/CompareTab.tsx) | Inline Ashtakoota compatibility for sibling profiles |
+
+**[`components/engines/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/)** — standalone engine views (not part of the unified dashboard):
+
+| Component | What it renders |
+|---|---|
+| [`MuhurthaView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/MuhurthaView.tsx) | Auspicious timing for event types (marriage, travel, etc.) |
 | [`TarabalamView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/TarabalamView.tsx) | Tara + Tithi calendar table, multi-profile |
-| [`ProfessionalView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/ProfessionalView.tsx) | Tab container for all Professional-view tabs |
+| [`SectionShell.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/SectionShell.tsx) | Collapsible section container with ⓘ trigger |
+| [`ExplainerModal.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/ExplainerModal.tsx) | Tabbed modal: "For your chart" + "About" |
+| [`AIInsightCard.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/AIInsightCard.tsx) | LLM compatibility / chart insights card |
+| [`CompatibilityChat.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/CompatibilityChat.tsx) | Chat overlay on compatibility detail |
 | [`SectionShell.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/SectionShell.tsx) | Collapsible section wrapper with ⓘ explainer trigger |
 | [`ExplainerModal.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/ExplainerModal.tsx) | "For your chart" + "About" tabbed modal |
 
@@ -757,31 +833,62 @@ User visits https://astro-unified-core-pfni.vercel.app/
 ### Journey 3: Viewing a Birth Chart
 
 ```
-/profiles/{id} →
-  app/profiles/[id]/page.tsx (server)
-    → db.profiles.getAny(id) or db.profiles.get(id, userId)
-    → db.profiles.list(profile.user_id)     ← uses profile owner's id, not caller's
-    → loadAllSections()                      ← markdown explainers, server-side
-    → renders ProfileDetailClient
+/profiles/{id}                  ← legacy URL; redirects to /dashboard?profile={id}
+/dashboard?profile={id} →
+  app/dashboard/page.tsx (server)
+    → db.profiles.list(userId)              ← user's own profiles for NavBar pills
+    → resolve active profile from ?profile= or default to first
+    → renders DashboardClient(profiles, initialProfileId, isNewProfile, isAdmin)
 
-  ProfileDetailClient (client)
-    → Basic view by default:
-      → GET /api/readings/dashaflow?profile_id={id}
-          → db.readings.latestByEngine(id, "dashaflow")
-          → cache hit → return stored chart JSON
-          → cache miss → fetchDashaflow(profile) → sidecar /calculate → save → return
-      → DashaflowView renders 17 collapsible sections
-      → SectionShell wraps each section; ⓘ opens ExplainerModal
-      → ExplainerModal lazy-fetches /api/content/{type}/{key} if needed
+  DashboardClient (client)
+    → Returning-user flow (default):
+      ╠ Check profileCacheRef.get(activeProfileId)
+      ║   cache hit → hydrate from { chart, transit, career, todayReading }
+      ║   cache miss → run the fetches below
+      ║
+      ╠ Chart (parallel):
+      ║   GET /api/readings/dashaflow?profile_id={id}
+      ║     → db.readings.latestByEngine(id, "dashaflow")
+      ║     → cache hit → return stored chart JSON
+      ║     → cache miss → fetchDashaflow(profile) → sidecar /calculate → save → return
+      ║   (after chart resolves) GET /api/readings/today-reading
+      ║     → checks input_snapshot { birth_data, pratyantar_end, llm_fingerprint }
+      ║     → fingerprint mismatch (admin edited prompt / temperature) → regenerate
+      ║
+      ╠ Transit (parallel):
+      ║   GET /api/readings/transit?profile_id={id} → sidecar /transit
+      ║
+      ╚ Career: lazy — fired only when the user opens the Career tab
+        GET /api/readings/career?profile_id={id} → sidecar /career
 
-    → Professional view (admin toggle):
-      → ProfessionalView renders tabs:
-          Varga     → VargaDashboard (uses cached chart)
-          Transit   → TransitView → POST /api/readings/transit
-          Career    → CareerView   → POST /api/readings/career
-          Muhurtha  → MuhurthaView → POST /api/readings/muhurtha
-          Tarabalam → TarabalamView → POST /api/readings/tarabalam
+    → New-profile flow (?new=1):
+      → ProfileLoadingScreen mounted (orbital animation, min 2s)
+      → All four fetches (chart, transit, career, today-reading) fire in parallel
+      → Loading screen dismisses when min-time AND all-settled both true
+
+  ProfileView (client, inside DashboardClient)
+    → Renders 10-tab dashboard:
+        Today        → TodayTab + TodayInsightCard
+        Chart        → unified/tabs/ChartTab
+        Planets      → unified/tabs/PlanetsTab
+        Houses       → unified/tabs/HousesVargasTab
+        Dasha        → unified/tabs/DashaTab + timeline/DashaTimeline
+        Yogas        → unified/tabs/YogasTab
+        Jaimini      → unified/tabs/JaiminiTab
+        Ashtakavarga → unified/tabs/AshtakavargaTab
+        Transits     → unified/tabs/TransitsTab
+        Career       → unified/tabs/CareerTab (triggers fetchCareer on open)
+        Compare      → components/tabs/CompareTab
+
+    → Admin only:
+      → AIAdminPanel slide-out for inspecting/chatting with LLM output
+      → AI button on each tab triggers handleAIOpen with tab context
+
+    → Per-tab Ask button → AskPanel → POST /api/consultation-requests
 ```
+
+Muhurtha and Tarabalam are no longer surfaced through the chart view — they
+live on dedicated pages outside the dashboard.
 
 ### Journey 4: Running a Compatibility Check
 
