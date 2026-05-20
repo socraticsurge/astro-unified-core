@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs before every git push. Blocks the push if types or tests fail.
+# Runs before every git push. Blocks the push if types, tests, or lint fail.
 set -e
 
 echo "Running type check..."
@@ -7,5 +7,8 @@ echo "Running type check..."
 
 echo "Running tests..."
 npx vitest run
+
+echo "Running lint..."
+npm run lint
 
 echo "All checks passed."
