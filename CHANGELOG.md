@@ -8,6 +8,31 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Remove dead dependencies and boilerplate assets
+
+### Removed
+- **6 unused npm packages**, verified by grepping for imports across all
+  `.ts`/`.tsx`/`.mjs`/`.js` files:
+  - `@fusionstrings/panchangam` — engine was removed long ago; the
+    package and its stale `serverExternalPackages` entry in
+    `next.config.ts` both deleted.
+  - `uuid` + `@types/uuid` — `lib/db/profiles.ts` uses `randomUUID`
+    from `node:crypto` instead. No imports anywhere.
+  - `dompurify` + `@types/dompurify` — only `isomorphic-dompurify` is
+    actually imported (`lib/sanitize.ts`). The raw package ships its
+    own types via `dist/index.d.ts`.
+  - `tsconfig-paths` — vitest has its own `resolve.alias`, `tsx` uses
+    tsconfig directly. No references.
+- **5 unused boilerplate SVGs** from `public/`: `file.svg`, `globe.svg`,
+  `next.svg`, `vercel.svg`, `window.svg`. Zero references across the
+  source tree.
+
+### Why
+Smaller install, smaller lockfile, smaller supply-chain surface, and a
+cleaner deploy artifact. No behavior change.
+
+---
+
 ## [2026-05-20] — Enforce ESLint as a gate
 
 ### Changed
