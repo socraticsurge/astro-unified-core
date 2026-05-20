@@ -34,3 +34,20 @@ export const RATE_LIMIT_WINDOW_MS = 60_000;
  * the feature can be revived without a migration.
  */
 export const PAYMENT_FLOW_ENABLED = false;
+
+/**
+ * Feature flag: send Resend email to admin when a new consultation request is
+ * submitted. Flip to `false` if the inbox starts getting too noisy or Resend
+ * misbehaves — no deploy needed if you just clear `RESEND_API_KEY` in Vercel
+ * (the helper short-circuits when the key is missing), but the flag exists
+ * for an in-code toggle that survives env-var churn.
+ */
+export const ADMIN_EMAIL_NOTIFICATIONS_ENABLED = true;
+
+/** Recipient for admin email notifications (new consultation requests). */
+export const ADMIN_NOTIFY_EMAIL = "astrochaganti@gmail.com";
+
+/** Resend shared sender — works without domain verification. Switch to a
+ * verified domain (e.g. `notify@astrochaganti.com`) once the custom domain
+ * is live. */
+export const EMAIL_FROM = "Astro Chaganti <onboarding@resend.dev>";

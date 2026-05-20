@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -7,6 +7,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { isAdmin } from "@/lib/admin";
 import { MAX_FIELD_LENGTH, MAX_CONSULTATION_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS, PAYMENT_FLOW_ENABLED } from "@/lib/constants";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { notifyAdminOfConsultationRequest } from "@/lib/email/admin-notify";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -164,6 +165,33 @@ export async function POST(request: Request) {
         amount_paise,
       },
     });
+
+    // Fire admin email after response. `after()` runs post-response so the
+    // user-facing submission isn't delayed by Resend latency or hiccups.
+    // When called outside a Next.js request scope (tests, etc.) `after()`
+    // throws — swallow that so tests don't break on a side effect.
+    const sendNotification = async () => {
+      const profileNames: string[] = [];
+      for (const pid of profileIdsArray) {
+        const p = await db.profiles.getAny(pid).catch(() => null);
+        if (p) profileNames.push(p.name);
+      }
+      await notifyAdminOfConsultationRequest({
+        requestId: created.id,
+        userName: session?.user?.name ?? null,
+        userEmail: session?.user?.email ?? null,
+        profileNames,
+        deliveryMode: delivery_mode,
+        slotStartsAt: slot_starts_at,
+        question: observation,
+      });
+    };
+    try {
+      after(sendNotification);
+    } catch {
+      // Not inside a Next.js request scope; skip notification entirely.
+    }
+
     return NextResponse.json(created, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     // If create fails after a slot was booked, release the slot to prevent orphaning
