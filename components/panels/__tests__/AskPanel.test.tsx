@@ -14,7 +14,7 @@ const ctx = {
 describe('AskPanel', () => {
   it('does not render panel content when closed', () => {
     render(<AskPanel open={false} onClose={() => {}} context={ctx} />)
-    expect(screen.queryByText('Ask an expert')).not.toBeInTheDocument()
+    expect(screen.queryByText('Ask Dr Chaganti')).not.toBeInTheDocument()
   })
 
   it('shows profile name and dasha context when open', () => {

@@ -9,7 +9,7 @@ const insight = {
   categoryColor: '#c084fc',
   title: 'Jupiter in 10th — career expansion',
   body: 'Strong transit through 2025.',
-  cta: { label: 'Ask an expert about this →', action: 'ask' as const },
+  cta: { label: 'Ask Dr Chaganti →', action: 'ask' as const },
 }
 
 describe('TodayInsightCard', () => {
@@ -21,13 +21,13 @@ describe('TodayInsightCard', () => {
 
   it('renders the CTA when present', () => {
     render(<TodayInsightCard insight={insight} onAsk={() => {}} onExplore={() => {}} />)
-    expect(screen.getByText('Ask an expert about this →')).toBeInTheDocument()
+    expect(screen.getByText('Ask Dr Chaganti →')).toBeInTheDocument()
   })
 
   it('calls onAsk when ask CTA is clicked', async () => {
     const onAsk = vi.fn()
     render(<TodayInsightCard insight={insight} onAsk={onAsk} onExplore={() => {}} />)
-    await userEvent.click(screen.getByText('Ask an expert about this →'))
+    await userEvent.click(screen.getByText('Ask Dr Chaganti →'))
     expect(onAsk).toHaveBeenCalledWith(insight)
   })
 

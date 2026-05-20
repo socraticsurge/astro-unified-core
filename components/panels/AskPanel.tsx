@@ -97,7 +97,7 @@ export function AskPanel({
     <Sheet open={open} onOpenChange={(isOpen: boolean) => { if (!isOpen) onClose() }}>
       <SheetContent side="right" className="sm:max-w-sm w-full flex flex-col gap-4 overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>✦ Ask an expert</SheetTitle>
+          <SheetTitle>✦ Ask Dr Chaganti</SheetTitle>
         </SheetHeader>
 
         {sent ? (
@@ -106,7 +106,7 @@ export function AskPanel({
             <div>
               <p className="text-sm font-semibold text-[var(--color-ink-1)] mb-1">Question submitted</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                An astrologer will review your question and respond within 2 days.
+                Dr. Chaganti will review your question and respond within 2 days.
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="mt-2">

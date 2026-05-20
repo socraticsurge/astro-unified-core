@@ -39,7 +39,7 @@ export function generateInsights(
         categoryColor: CATEGORY_COLORS.dasha,
         title: `${dashas.antar.planet} antardasha shift in ~${weeksDisplay} week${weeksDisplay === 1 ? '' : 's'}`,
         body: `A new antardasha period begins within the ${dashas.maha.planet} mahadasha. Transitions are important moments for reflection and intention.`,
-        cta: { label: 'Ask an expert about this →', action: 'ask' },
+        cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
       })
     }
   }
@@ -55,7 +55,7 @@ export function generateInsights(
         categoryColor: CATEGORY_COLORS.dasha,
         title: `${dashas.pratyantar.planet} pratyantar shift in ~${weeksDisplay} week${weeksDisplay === 1 ? '' : 's'}`,
         body: `A short sub-period transition is approaching within your current dasha. A good time to notice subtle shifts in energy and focus.`,
-        cta: { label: 'Ask an expert about this →', action: 'ask' },
+        cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
       })
     }
   }
@@ -69,7 +69,7 @@ export function generateInsights(
       categoryColor: CATEGORY_COLORS.dosha,
       title: `Sade Sati active — ${sadeSati.phase ?? ''} phase`.trim(),
       body: 'Saturn transits the sign before, on, or after your natal Moon. A 7.5-year period of lessons, restructuring, and spiritual growth.',
-      cta: { label: 'Ask an expert about this →', action: 'ask' },
+      cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
     })
   }
 

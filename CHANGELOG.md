@@ -8,6 +8,26 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Health endpoint, runbook, Ask Dr Chaganti rename
+
+### Added
+- `/api/health` endpoint that checks DB (`SELECT 1`) and sidecar
+  reachability; returns 503 if either is down. Public, no auth, no
+  cache. Point an uptime monitor at this.
+- `docs/RUNBOOK.md` — health monitoring, Turso backup/restore (manual
+  `.dump` workflow + PITR), sidecar incident playbook, common
+  incidents. RPO 24h / RTO under 1h while we're under 100 DAUs.
+- `.gitignore`: `/backups/` so manual Turso dumps stay local.
+
+### Changed
+- "Ask an expert" → "Ask Dr Chaganti" everywhere user-facing
+  (NavBar button, AskPanel title, AskPanel success copy, today
+  insight CTAs in `lib/insights.ts`, and the corresponding test
+  fixtures).
+- `CLAUDE.md` doc map now lists `docs/RUNBOOK.md`.
+
+---
+
 ## [2026-05-20] — Merge of PR #66 (audit fixes, Sessions 1-4)
 
 Picked up the substantive backend hardening from PR #66: Cache-Control on

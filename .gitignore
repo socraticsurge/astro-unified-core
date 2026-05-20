@@ -35,6 +35,9 @@ next-env.d.ts
 *.db-shm
 *.db-wal
 
+# manual Turso dumps — see docs/RUNBOOK.md
+/backups/
+
 # python
 **/venv/
 **/__pycache__/
