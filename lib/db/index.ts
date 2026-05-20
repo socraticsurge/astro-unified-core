@@ -7,6 +7,7 @@ export type { Feedback } from "./feedback";
 export type { AppSettings, AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig, TodayReadingLlmConfig } from "./settings";
 export type { ConsultationRequest, ConsultationRequestWithUser } from "./consultation-requests";
 export type { ConsultationSlot } from "./consultation-slots";
+export type { DailyLandingRow } from "./daily-landing";
 
 import { users } from "./users";
 import { profiles } from "./profiles";
@@ -16,5 +17,6 @@ import { feedback } from "./feedback";
 import { settings } from "./settings";
 import { consultationRequests } from "./consultation-requests";
 import { consultationSlots } from "./consultation-slots";
+import { dailyLanding } from "./daily-landing";
 
-export const db = { users, profiles, readings, compatibility, feedback, settings, consultationRequests, consultationSlots };
+export const db = { users, profiles, readings, compatibility, feedback, settings, consultationRequests, consultationSlots, dailyLanding };

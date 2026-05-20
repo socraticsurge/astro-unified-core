@@ -8,6 +8,49 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Living landing: 12 daily ascendant snippets
+
+### Added
+- `/api/landing/today` public endpoint: returns today's 12 ascendant
+  snippets + the "today's sky" badge data (Moon nakshatra, Sun sign,
+  active retrogrades). Lazy-generated on first visit of the IST day
+  via a single Gemini Flash Lite call. Cost ~$0.0001/day.
+- `lib/engines/today-landing.ts` — sidecar synthetic call for today's
+  celestial facts; LLM prompt grounded in the authored ascendant
+  content blocks (`lookupAscendant`) for stable per-sign lens; Zod-
+  validated output.
+- `lib/db/daily-landing.ts` + new `daily_landing` table
+  (`SCHEMA_VERSION` 8 → 9). Tracks `attempts`, `last_attempt_at`,
+  `generated_at` for retry budget.
+- Failure handling: max 3 attempts per IST day with ≥10-minute gap.
+  Until today succeeds, the endpoint serves the most recent prior
+  successfully-generated day with `is_stale: true` (badge phrasing
+  switches to "Yesterday's sky — …"). All failures captured to
+  Sentry. The hardcoded quote rotator is **removed** — no canned-
+  text fallback.
+- `CosmicLanding.tsx` rewrite:
+  - Spinning zodiac wheel is now the desktop picker. Each sign is a
+    click target; clicking pins the active sign and rotates the
+    wheel to put it under the new stationary 12-o'clock indicator.
+  - Mobile gets a horizontal pill strip with auto-cycle (6.5s) and
+    tap-to-pin.
+  - localStorage `astrochaganti.ascendant` restores the pinned sign
+    on return.
+- PostHog event `landing_ascendant_pinned` with
+  `{ sign, source: "click"|"tap"|"restored", is_stale }`.
+
+### Removed
+- `QUOTES_DESKTOP` / `QUOTES_MOBILE` hardcoded arrays and the quote
+  rotator `useEffect` block in `CosmicLanding.tsx` — landing is now
+  fully LLM-driven (or shows yesterday's content during failure).
+
+### Verified
+- `tsc --noEmit` clean
+- 387 tests pass (10 new)
+- ESLint clean
+
+---
+
 ## [2026-05-20] — Cleanup + remove pending-request submission limit
 
 ### Removed
