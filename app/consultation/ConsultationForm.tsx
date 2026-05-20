@@ -12,7 +12,7 @@ import {
 } from "@/lib/consultation";
 import type { ConsultationRequest, Profile, ConsultationSlot } from "@/lib/db";
 import type { DeliveryMode } from "@/lib/consultation";
-import { fonts, textStyles, colors, scale, interactive, glass, radii, motion } from "@/lib/typography";
+import { fonts, textStyles, colors, interactive, glass, radii, motion } from "@/lib/typography";
 import { PAYMENT_FLOW_ENABLED } from "@/lib/constants";
 import { ProfileSelectorCard } from "@/components/profile/ProfileSelectorCard";
 

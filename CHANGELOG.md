@@ -8,6 +8,44 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Clear all ESLint warnings
+
+### Fixed
+- **17 ESLint warnings → 0** across 13 files. All were truly unused
+  imports, unused locals, or stale `eslint-disable` directives — no
+  behavior change.
+  - Unused imports removed:
+    - `app/admin/page.tsx` — `Link` from `next/link`
+    - `app/api/admin/backfill/route.ts` — `db` from `@/lib/db`
+    - `app/consultation/ConsultationForm.tsx` — `scale` from typography
+    - `components/profile/ProfileSelectorCard.tsx` — `motion`
+    - `components/tabs/CompareTab.tsx` — `CheckCircle2`, `XCircle`,
+      `MinusCircle`
+    - `components/unified/NatalChartGrid.tsx` — `SIGNS_ORDER`
+    - `lib/__tests__/insights.test.ts` — `TodayInsight` type
+    - `lib/db/profiles.ts` — `User` type
+    - `components/panels/__tests__/AskPanel.test.tsx` — `userEvent`
+  - Unused locals removed:
+    - `app/dashboard/DashboardClient.tsx` — `fetchTodayReading` (dead
+      `useCallback`; grepped repo confirms no references)
+    - `components/engines/TarabalamView.tsx` — `currentProfile`
+  - Stale `eslint-disable` directives removed:
+    - `app/dashboard/DashboardClient.tsx:175` — `exhaustive-deps`
+      directive that no longer matched a fired rule
+    - `components/ui/Toast.tsx:45,139` — two `no-console` directives
+      around `console.warn` calls; `no-console` isn't currently
+      configured to fire on `console.warn`, so the directives were noise
+- **`components/engines/AIInsightCard.tsx:31`** — replaced
+  `next.has(id) ? next.delete(id) : next.add(id)` (ternary used as a
+  statement, flagged by `no-unused-expressions`) with an `if/else`.
+
+### Why
+With the 12 errors handled separately (PR #74), this brings ESLint
+output to a fully clean slate. Easier to spot future regressions when
+the baseline is `0 errors, 0 warnings`.
+
+---
+
 ## [2026-05-20] — Clear all ESLint errors
 
 ### Fixed

@@ -42,7 +42,6 @@ export function toast(message: string, kind: ToastKind = "info", opts?: { durati
   if (publish) {
     publish(message, kind, opts);
   } else if (typeof window !== "undefined") {
-    // eslint-disable-next-line no-console
     console.warn("[toast] called before <ToastProvider> mounted:", message);
   }
 }
@@ -136,7 +135,6 @@ export function useToast() {
     return {
       toast: (message: string) => {
         if (typeof window !== "undefined") {
-          // eslint-disable-next-line no-console
           console.warn("[useToast] no provider; falling back:", message);
         }
       },

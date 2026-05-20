@@ -177,7 +177,6 @@ export function DashboardClient({
       .finally(onSettled)
 
     return () => clearTimeout(timer)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNewProfile, activeProfileId])
 
   // Returning user: chart + transit in parallel; career loads on tab open.
@@ -268,20 +267,6 @@ export function DashboardClient({
       })
       .catch(e => setCareer({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId, career.data])
-
-  const fetchTodayReading = useCallback(() => {
-    if (!activeProfileId) return
-    setTodayReading(s => ({ ...s, loading: true }))
-
-    fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
-      .then(r => r.json())
-      .then(data => {
-        const output = data.output ?? null
-        setTodayReading({ data: output, loading: false, error: data.error ?? null })
-        if (output) updateCache(activeProfileId, { todayReading: output })
-      })
-      .catch(() => setTodayReading(initState()))
-  }, [activeProfileId])
 
   const handleAIOpen = useCallback((payload: AIOpenPayload) => {
     if (!activeProfile) return

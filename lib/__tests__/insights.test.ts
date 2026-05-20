@@ -1,5 +1,4 @@
 import { generateInsights } from '../insights'
-import type { TodayInsight } from '@/components/tabs/TodayInsightCard'
 
 const baseDashas = {
   maha:       { planet: 'Sun',  start: '2020-04-15', end: '2026-04-15' },

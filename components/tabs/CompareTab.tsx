@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { CheckCircle2, XCircle, MinusCircle, Loader2, RotateCcw } from "lucide-react"
+import { Loader2, RotateCcw } from "lucide-react"
 import type { Profile, CompatibilityCheck } from "@/lib/db"
 import type { CompatResult, AdditionalKuta } from "@/lib/compatibility"
 import { KOOTA_MAX, scoreLabel } from "@/lib/compatibility"
