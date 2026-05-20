@@ -5,6 +5,7 @@ import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
 import { PLANET_ORDER, dignityTone } from "@/components/unified/types";
 import { SectionHeading } from "@/components/unified/SectionHeading";
+import { TwoColumnTabGrid, TabColumn, TabSection } from "@/components/unified/TabGrid";
 
 type TenthHouse = {
   sign?: string;
@@ -57,11 +58,10 @@ export function CareerTab({
   const tenth      = career?.tenth_house;
   const indicators = career?.d10_indicators ?? {};
   const primary    = new Set(career?.primary_planets ?? []);
-  const significators = PLANET_ORDER.filter(p => primary.has(p) || indicators[p]?.d10_strong);
+  const significators = PLANET_ORDER.filter((p) => primary.has(p) || indicators[p]?.d10_strong);
 
   return (
-    <div className="space-y-8 max-w-2xl">
-
+    <div className="space-y-4">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <SectionHeading>Career Analysis</SectionHeading>
         <button
@@ -91,11 +91,71 @@ export function CareerTab({
       )}
 
       {career && (
-        <>
-          {/* Key Professional Significators */}
-          {significators.length > 0 && (
-            <section>
-              <SectionHeading>Key Professional Significators</SectionHeading>
+        <TwoColumnTabGrid>
+          {/* Column 1 — D10 chart, themes, indicators */}
+          <TabColumn>
+            <TabSection when={!!planets} title="D10 — Dashamsha">
+              {planets && (
+                <NatalChartGrid planets={planets} lagnaSign={lagnaD10} signKey="d10_sign" label="" />
+              )}
+            </TabSection>
+
+            <TabSection
+              when={!!career.career_themes && career.career_themes.length > 0}
+              title="Career themes"
+            >
+              <div className="ac-pills">
+                {career.career_themes?.map((t) => (
+                  <span key={t} className="ac-pill cool">{t.replace(/_/g, " ")}</span>
+                ))}
+              </div>
+            </TabSection>
+
+            <TabSection
+              when={!!career.strength_factors && career.strength_factors.length > 0}
+              title="Astrological indicators"
+            >
+              <ul style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {career.strength_factors?.map((f) => (
+                  <li key={f} style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-ink-3)" }}>
+                    <span style={{ color: "var(--color-ink-4)", flexShrink: 0 }}>·</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </TabSection>
+          </TabColumn>
+
+          {/* Column 2 — 10th house, significators */}
+          <TabColumn>
+            <TabSection when={!!tenth} title="10th house — Karma Bhava">
+              <div className="ac-card ac-card-pad">
+                <div className="ac-kv">
+                  <div className="k">Sign</div><div className="v">{tenth?.sign ?? "—"}</div>
+                  {tenth?.occupants && tenth.occupants.length > 0 && (
+                    <>
+                      <div className="k">Occupants</div><div className="v cool">{tenth.occupants.join(", ")}</div>
+                    </>
+                  )}
+                  <div className="k">Lord</div><div className="v cool">{tenth?.lord ?? "—"}</div>
+                  <div className="k">Lord placed in</div>
+                  <div className="v">H{tenth?.lord_house ?? "—"}{tenth?.lord_sign ? ` · ${tenth.lord_sign}` : ""}</div>
+                  {tenth?.lord_dignity && (
+                    <>
+                      <div className="k">Lord dignity</div>
+                      <div className="v">
+                        <span className={`ac-tag ${dignityTone(tenth.lord_dignity)}`}>
+                          {tenth.lord_dignity.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  <div className="k">Lord in D10</div><div className="v">{tenth?.lord_d10 ?? "—"}</div>
+                </div>
+              </div>
+            </TabSection>
+
+            <TabSection when={significators.length > 0} title="Key professional significators">
               <div className="ac-card overflow-x-auto">
                 <table className="ac-table">
                   <thead>
@@ -108,7 +168,7 @@ export function CareerTab({
                     </tr>
                   </thead>
                   <tbody>
-                    {significators.map(p => {
+                    {significators.map((p) => {
                       const ind = indicators[p];
                       const isPrimary = primary.has(p);
                       return (
@@ -132,66 +192,9 @@ export function CareerTab({
                   </tbody>
                 </table>
               </div>
-            </section>
-          )}
-
-          {/* Career Themes */}
-          {career.career_themes && career.career_themes.length > 0 && (
-            <section>
-              <SectionHeading>Career Themes</SectionHeading>
-              <div className="ac-pills">
-                {career.career_themes.map(t => (
-                  <span key={t} className="ac-pill cool">{t.replace(/_/g, " ")}</span>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* 10th House */}
-          {tenth && (
-            <section>
-              <SectionHeading>10th House — Karma Bhava</SectionHeading>
-              <div className="ac-card ac-card-pad">
-                <div className="ac-kv">
-                  <div className="k">Sign</div><div className="v">{tenth.sign ?? "—"}</div>
-                  {tenth.occupants && tenth.occupants.length > 0 && (<>
-                    <div className="k">Occupants</div><div className="v cool">{tenth.occupants.join(", ")}</div>
-                  </>)}
-                  <div className="k">Lord</div><div className="v cool">{tenth.lord ?? "—"}</div>
-                  <div className="k">Lord placed in</div>
-                  <div className="v">H{tenth.lord_house ?? "—"}{tenth.lord_sign ? ` · ${tenth.lord_sign}` : ""}</div>
-                  {tenth.lord_dignity && (<>
-                    <div className="k">Lord dignity</div>
-                    <div className="v"><span className={`ac-tag ${dignityTone(tenth.lord_dignity)}`}>{tenth.lord_dignity.replace(/_/g, " ")}</span></div>
-                  </>)}
-                  <div className="k">Lord in D10</div><div className="v">{tenth.lord_d10 ?? "—"}</div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* D10 Chart */}
-          {planets && (
-            <section>
-              <SectionHeading>D10 — Dashamsha</SectionHeading>
-              <NatalChartGrid planets={planets} lagnaSign={lagnaD10} signKey="d10_sign" label="" />
-            </section>
-          )}
-
-          {/* Indicators */}
-          {career.strength_factors && career.strength_factors.length > 0 && (
-            <section>
-              <SectionHeading>Astrological Indicators</SectionHeading>
-              <ul style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {career.strength_factors.map(f => (
-                  <li key={f} style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-ink-3)" }}>
-                    <span style={{ color: "var(--color-ink-4)", flexShrink: 0 }}>·</span>{f}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </>
+            </TabSection>
+          </TabColumn>
+        </TwoColumnTabGrid>
       )}
     </div>
   );

@@ -8,6 +8,61 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — PR-4: tab refits (Jaimini, Dasha, Transits, Career)
+
+Closes PDF observations **#4–#7**. Each refit composes the PR-2 primitives
+(`TwoColumnTabGrid` + `TabSection`) instead of being styled in isolation.
+
+### Changed
+- **Jaimini tab** (#4) — section order reflows from "reference-first" to
+  "data-first":
+  1. Karakamsha — soul's direction (the personal data)
+  2. Arudha Padas (personal data)
+  3. Upapada (personal data)
+  4. Jaimini Soul Indicators karaka table (reference / definitions — moved to
+     the bottom)
+  - Arudha Padas grid tiles loosened: minimum tile width 80→120px, padding
+    8/10→12/14px, gap 6→10px. The cramped look in the screenshot is gone.
+  - Every section now uses `TabSection` so missing data hides the heading
+    along with the body.
+
+- **Dasha tab — Vimshottari Maha Dasha Timeline** (#5) — text overlap fixed.
+  The row was using a flexbox with fixed-width `60px` label and `80px`
+  planet columns; "Pratyantar" (10 chars at 10.5px + tracking) overflowed
+  into the planet name, producing the "PRATYANTARRahu" rendering.
+  Switched to CSS grid `grid-cols-[16px_104px_1fr_96px_96px_auto]` with
+  `truncate` on both label and planet cells — each column has its own track
+  and content can't bleed.
+
+- **Transits tab** (#6) — wide 5-column table replaced with a **compact card
+  grid**. 2 cards/row on small screens, 3 at `sm`, 4 at `lg`. Each card has
+  the planet name + retro marker + transit sign on top, and a tight 3-column
+  footer for H/Lagna · H/Moon · SAV. The numeric grid uses `font-mono` for
+  alignment. Visual density now matches the rest of the unified dashboard.
+
+- **Career tab** (#7) — single-column `max-w-2xl` layout replaced with the
+  shared `TwoColumnTabGrid`:
+  - **Column 1**: D10 — Dashamsha → Career themes → Astrological indicators
+  - **Column 2**: 10th house — Karma Bhava → Key professional significators
+  - Every section uses `TabSection` so a missing block doesn't print a stray
+    heading.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 269/269 pass
+- `npm run build` → success
+
+### What this concludes
+With PR-4 in, the PDF observations are addressed (the LLM cost half of #3b
+landed in PR-3). The remaining queued work is:
+- **PR-5** — sticky tab nav, Toast provider, loading-skeleton consistency,
+  Ask submission confirmation
+- **PR-6** — Compare responsive, Yogas / Ashtakavarga / Patterns audit,
+  Compatibility Basic/Pro decision
+- **PR-7** — AdminTables split, ExplainerModal mobile, smaller items
+
+---
+
 ## [2026-05-20] — PR-3: today-reading LLM split (two-tier cache)
 
 Closes the cost-saving half of PDF observation 3b. Splits the today-reading
