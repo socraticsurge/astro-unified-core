@@ -119,4 +119,27 @@ describe("GET /api/landing/today", () => {
     expect(res.status).toBe(503);
     expect(fetchTodayCelestialFacts).not.toHaveBeenCalled();
   });
+
+  // Negative-case coverage for the bug class that caused the recent prod
+  // 500 incident: an unwrapped DB call could throw and bubble out as 500.
+  // The handler now wraps both getByDate and getMostRecentSuccess so
+  // libsql errors degrade to the cold-start 503 instead of crashing.
+  it("does not 500 when getByDate throws (degrades to regeneration path)", async () => {
+    vi.mocked(db.dailyLanding.getByDate).mockRejectedValue(new Error("LibsqlError: SQLITE_..."));
+    vi.mocked(fetchTodayCelestialFacts).mockResolvedValue(validPayload.sky as never);
+    vi.mocked(buildDailyLandingContent).mockResolvedValue(validPayload as never);
+    const res = await GET();
+    expect(res.status).toBe(200);
+    expect(res.status).not.toBe(500);
+  });
+
+  it("does not 500 when both getByDate and getMostRecentSuccess throw", async () => {
+    vi.mocked(db.dailyLanding.getByDate).mockRejectedValue(new Error("DB blip"));
+    vi.mocked(db.dailyLanding.getMostRecentSuccess).mockRejectedValue(new Error("DB blip"));
+    vi.mocked(fetchTodayCelestialFacts).mockRejectedValue(new Error("sidecar down"));
+    const res = await GET();
+    // No prior day available, generation failed — should land at 503, not 500
+    expect(res.status).toBe(503);
+    expect(res.status).not.toBe(500);
+  });
 });

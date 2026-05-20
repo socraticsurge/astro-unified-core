@@ -81,4 +81,12 @@ describe("PATCH /api/readings/[id]/rating", () => {
     expect(db.profiles.get).not.toHaveBeenCalled();
     expect(db.readings.rate).toHaveBeenCalledWith("r1", null);
   });
+
+  // Negative-case: DB error → not a 500 to the user.
+  it("does not 500 when db.readings.getById throws", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session as never);
+    vi.mocked(db.readings.getById).mockRejectedValue(new Error("libsql blip"));
+    const res = await PATCH(makeReq({ rating: 1 }), { params });
+    expect(res.status).not.toBe(500);
+  });
 });

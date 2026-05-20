@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
@@ -27,14 +28,20 @@ export async function PATCH(
     return NextResponse.json({ error: "rating must be 1, -1, or null" }, { status: 400 });
   }
 
-  const reading = await db.readings.getById(id);
-  if (!reading) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // Wrap DB work so a libsql blip degrades to a 503 instead of a 500.
+  try {
+    const reading = await db.readings.getById(id);
+    if (!reading) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (!isAdmin(session)) {
-    const profile = await db.profiles.get(reading.profile_id, userId);
-    if (!profile) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!isAdmin(session)) {
+      const profile = await db.profiles.get(reading.profile_id, userId);
+      if (!profile) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    await db.readings.rate(id, rating);
+    return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { route: "PATCH /api/readings/[id]/rating" } });
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
   }
-
-  await db.readings.rate(id, rating);
-  return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "private, no-store" } });
 }

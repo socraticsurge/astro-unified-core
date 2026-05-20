@@ -268,4 +268,13 @@ describe("GET /api/readings/today-reading", () => {
     expect(res.status).toBe(200);
     expect(buildCurrentReading).toHaveBeenCalled();
   });
+
+  // Negative-case coverage: even if a DB read throws (libsql blip, transient
+  // connection error), the handler should not respond with HTTP 500.
+  it("does not 500 when db.readings.latestByEngine throws", async () => {
+    mockSession();
+    vi.mocked(db.readings.latestByEngine).mockRejectedValue(new Error("libsql connection lost"));
+    const res = await GET(makeRequest());
+    expect(res.status).not.toBe(500);
+  });
 });

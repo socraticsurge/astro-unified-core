@@ -41,13 +41,31 @@ export function houseNumberToName(h: string): string {
   return `${n}${suffix} House`;
 }
 
+// Theme-aware dignity badge colors. Mapping (semantic, not literal palette):
+//   Exalted     → success      (best dignity, fortunate)
+//   OwnSign     → accent        (strong/confident, our gold brand color)
+//   Debilitated → danger        (weakest dignity, challenged)
+//   Friend      → cool          (favorable / supportive)
+//   Enemy       → warning       (caution, contested)
+//   default     → ink-4 muted   (no dignity / unknown)
+//
+// Previously used raw Tailwind palette utilities (emerald / blue / red /
+// teal / orange / gray with numeric weight suffixes), which didn't adapt
+// to the Vellum light theme. Same class of bug as the recent Tarabalam
+// regression. See scripts/check-no-raw-palette.sh for the CI guard.
 export function dignityBadgeColor(dignity: string): string {
   switch (dignity) {
-    case "Exalted": return "text-emerald-400 bg-emerald-950/40 border-emerald-700/50";
-    case "OwnSign": return "text-blue-400 bg-blue-950/40 border-blue-700/50";
-    case "Debilitated": return "text-red-400 bg-red-950/40 border-red-700/50";
-    case "Friend": return "text-teal-400 bg-teal-950/40 border-teal-700/50";
-    case "Enemy": return "text-orange-400 bg-orange-950/40 border-orange-700/50";
-    default: return "text-gray-400 bg-gray-800/40 border-gray-600/50";
+    case "Exalted":
+      return "text-[var(--color-success)] bg-[var(--color-success-faint)] border-[var(--color-success-border)]";
+    case "OwnSign":
+      return "text-[var(--color-accent)] bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)]";
+    case "Debilitated":
+      return "text-[var(--color-danger)] bg-[var(--color-danger-faint)] border-[var(--color-danger-border)]";
+    case "Friend":
+      return "text-[var(--color-cool)] bg-[var(--color-cool-bg)] border-[var(--color-border)]";
+    case "Enemy":
+      return "text-[var(--color-warning)] bg-[var(--color-warning-faint)] border-[var(--color-warning-border)]";
+    default:
+      return "text-[var(--color-ink-4)] bg-[var(--color-surface-1)] border-[var(--color-border)]";
   }
 }

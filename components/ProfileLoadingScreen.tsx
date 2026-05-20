@@ -40,13 +40,14 @@ export function ProfileLoadingScreen({ profileName }: { profileName: string }) {
         />
         {/* Central glow */}
         <div className="w-3 h-3 rounded-full bg-[var(--color-accent)] shadow-[0_0_16px_4px_var(--color-accent)] opacity-80" />
-        {/* Orbiting planet 1 */}
+        {/* Orbiting planet 1 — accent-dim for a warm-cool contrast against
+            the central glow. Theme tokens, not raw palette. */}
         <div className="absolute inset-0 flex items-center justify-center" style={{ animation: "pl-orbit1 2.4s linear infinite" }}>
-          <div className="w-2 h-2 rounded-full bg-violet-400 shadow-[0_0_6px_2px_theme(colors.violet.400)]" style={{ transform: "translateY(-46px)" }} />
+          <div className="w-2 h-2 rounded-full bg-[var(--color-accent-dim)] shadow-[0_0_6px_2px_var(--color-accent-dim)]" style={{ transform: "translateY(-46px)" }} />
         </div>
-        {/* Orbiting planet 2 — slower, wider */}
+        {/* Orbiting planet 2 — cooler tone */}
         <div className="absolute inset-0 flex items-center justify-center" style={{ animation: "pl-orbit2 3.8s linear infinite", animationDelay: "-1.4s" }}>
-          <div className="w-1.5 h-1.5 rounded-full bg-sky-300/70" style={{ transform: "translateY(-56px)" }} />
+          <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-cool)] opacity-70" style={{ transform: "translateY(-56px)" }} />
         </div>
       </div>
 

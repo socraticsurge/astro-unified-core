@@ -42,3 +42,9 @@ jobs:
 
       - name: ESLint
         run: npm run lint
+
+      # Block raw Tailwind palette utilities (bg-emerald-900, text-amber-300,
+      # etc.) — they don't theme-adapt. See scripts/check-no-raw-palette.sh
+      # for the rationale (recent Tarabalam regression).
+      - name: Theme-token gate (no raw Tailwind palette)
+        run: npm run check:palette

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 // ── EngineError ────────────────────────────────────────────────────────────
 //
 // Shared error state for engine views. Replaces the mix of `.ac-banner.warn`
-// banners, inline `text-red-400` paragraphs, and `alert()` calls across the
+// banners, raw-palette danger text, and `alert()` calls across the
 // engine components with one consistent presentation.
 //
 //   <EngineError error={error} />                            // danger banner

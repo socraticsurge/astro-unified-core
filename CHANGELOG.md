@@ -8,6 +8,43 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Test/lint guards + Sentry runbook
+
+### Added (catch entire bug classes going forward)
+- **Negative-case route tests.** Three routes now assert "DB throws →
+  handler doesn't 500" (the exact bug class that caused the recent
+  `/api/landing/today` outage). The tests caught two real prod risks
+  during this session:
+  - `PATCH /api/readings/[id]/rating` was unwrapped — wrapped in
+    try/catch with Sentry capture, returns 503 on DB failure.
+  - `GET /api/readings/today-reading` was unwrapped — same fix.
+- **CI palette gate.** `scripts/check-no-raw-palette.sh` (new) +
+  `npm run check:palette` blocks raw Tailwind palette classes
+  (`bg-emerald-900`, `text-amber-300`, etc.) in `app/`, `components/`,
+  `lib/`. Same class of bug as the recent Tarabalam regression. Wired
+  into the GitHub Actions workflow + `AGENTS.md` pre-flight checklist.
+
+### Migrated to theme tokens
+- `lib/astro-utils.ts` `dignityBadgeColor()` — was raw palette per
+  dignity state (Exalted/OwnSign/Debilitated/Friend/Enemy/default).
+  Now maps to `--color-success`, `--color-accent`, `--color-danger`,
+  `--color-cool`, `--color-warning`, `--color-ink-4` respectively. Test
+  rewritten to assert tokens, not raw colour names.
+- `components/ProfileLoadingScreen.tsx` — orbiting planet dots
+  (`bg-violet-400`, `bg-sky-300/70`) → `--color-accent-dim` and
+  `--color-cool`.
+- `app/credits/page.tsx` — link colour `prose-a:text-blue-300` →
+  `prose-a:text-[var(--color-cool)]`.
+
+### Documentation
+- **`docs/RUNBOOK.md`** — new "Weekly Sentry review" section. ~15
+  min cadence; lists what to look at (new issues, frequency-sorted top
+  5, Web Vitals, releases), what to ignore (AbortError noise, bot
+  crawlers, single-event Safari flukes), what to act on (500s from any
+  route, repeated client-component errors, release-time spikes).
+
+---
+
 ## [2026-05-21] — Landing API hotfix + UX polish (gender, loader, snippet box)
 
 ### Fixed
