@@ -1,37 +1,112 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import posthog from 'posthog-js'
 import { signIn } from 'next-auth/react'
 import styles from './CosmicLanding.module.css'
 
-const QUOTES_DESKTOP = [
-  "The moon in your seventh house pulls at every bond you hold dear.",
-  "Saturn's return brings the lessons you were born to learn.",
-  "Your rising sign shapes every first impression you'll ever make.",
-  "Jupiter's light in your tenth house opens doors you've only dreamed of.",
-  "The stars do not compel — they illuminate the path already within you.",
-]
-
-const QUOTES_MOBILE = [
-  "The moon pulls at every bond you hold dear.",
-  "Saturn's return brings lessons you were born to learn.",
-  "Your rising sign shapes every first impression.",
-  "Jupiter opens doors you've only dreamed of.",
-  "The stars illuminate the path within you.",
-]
-
 const ZODIAC = [
-  { symbol: '♈', name: 'Aries' }, { symbol: '♉', name: 'Taurus' },
-  { symbol: '♊', name: 'Gemini' }, { symbol: '♋', name: 'Cancer' },
-  { symbol: '♌', name: 'Leo' }, { symbol: '♍', name: 'Virgo' },
-  { symbol: '♎', name: 'Libra' }, { symbol: '♏', name: 'Scorpio' },
-  { symbol: '♐', name: 'Sagittarius' }, { symbol: '♑', name: 'Capricorn' },
-  { symbol: '♒', name: 'Aquarius' }, { symbol: '♓', name: 'Pisces' },
+  { symbol: '♈', name: 'Aries', key: 'aries' as const },
+  { symbol: '♉', name: 'Taurus', key: 'taurus' as const },
+  { symbol: '♊', name: 'Gemini', key: 'gemini' as const },
+  { symbol: '♋', name: 'Cancer', key: 'cancer' as const },
+  { symbol: '♌', name: 'Leo', key: 'leo' as const },
+  { symbol: '♍', name: 'Virgo', key: 'virgo' as const },
+  { symbol: '♎', name: 'Libra', key: 'libra' as const },
+  { symbol: '♏', name: 'Scorpio', key: 'scorpio' as const },
+  { symbol: '♐', name: 'Sagittarius', key: 'sagittarius' as const },
+  { symbol: '♑', name: 'Capricorn', key: 'capricorn' as const },
+  { symbol: '♒', name: 'Aquarius', key: 'aquarius' as const },
+  { symbol: '♓', name: 'Pisces', key: 'pisces' as const },
 ]
+
+type SignKey = (typeof ZODIAC)[number]['key']
+
+type LandingData = {
+  ist_date: string
+  sky: { moon_nakshatra: string; sun_sign: string; retrogrades: string[] }
+  ascendants: Record<SignKey, string>
+  is_stale: boolean
+}
+
+const STORAGE_KEY = 'astrochaganti.ascendant'
+const AUTO_CYCLE_MS = 6500
+const SIGN_INDEX_BY_KEY: Record<SignKey, number> = ZODIAC.reduce(
+  (acc, z, i) => { acc[z.key] = i; return acc },
+  {} as Record<SignKey, number>,
+)
+
+function readStoredSign(): number | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY) as SignKey | null
+    if (stored && stored in SIGN_INDEX_BY_KEY) return SIGN_INDEX_BY_KEY[stored]
+  } catch { /* ignore */ }
+  return null
+}
+
+function formatSkyLabel(d: LandingData): string {
+  const retro = d.sky.retrogrades.length > 0
+    ? d.sky.retrogrades.map(p => `${p} retrograde`).join(' · ')
+    : 'No major retrogrades'
+  const prefix = d.is_stale ? `Yesterday's sky — ` : `Today — `
+  return `${prefix}Moon in ${d.sky.moon_nakshatra} · Sun in ${d.sky.sun_sign} · ${retro}`
+}
 
 export function CosmicLanding() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const zodiacGRef = useRef<SVGGElement>(null)
-  const quoteRef = useRef<HTMLDivElement>(null)
+
+  const [data, setData] = useState<LandingData | null>(null)
+  const [errored, setErrored] = useState(false)
+
+  // Read the restored ascendant from localStorage exactly once during initial
+  // render (useState lazy initializer). Avoids the "setState in effect"
+  // anti-pattern and the brief flash of the default sign before restore.
+  const initialRestored = readStoredSign()
+  const [activeIndex, setActiveIndex] = useState(initialRestored ?? 0)
+  const [isPinned, setIsPinned] = useState(initialRestored != null)
+
+  // The click handler closure captured during the imperative SVG build needs
+  // an up-to-date reference to pinSign — keep one in a ref. Updated inside an
+  // effect (Next.js 16's stricter React rules disallow ref writes in render).
+  const pinSignRef = useRef<(idx: number, source: 'click' | 'tap' | 'restored') => void>(() => {})
+
+  const isStale = data?.is_stale ?? false
+  function pinSign(idx: number, source: 'click' | 'tap' | 'restored') {
+    if (idx < 0 || idx >= ZODIAC.length) return
+    setActiveIndex(idx)
+    setIsPinned(true)
+    const sign = ZODIAC[idx].key
+    try { window.localStorage.setItem(STORAGE_KEY, sign) } catch { /* private mode etc. */ }
+    try {
+      posthog.capture('landing_ascendant_pinned', { sign, source, is_stale: isStale })
+    } catch { /* posthog may not be initialized in dev without keys */ }
+  }
+
+  // pinSign captures fresh state every render; refresh the ref accordingly.
+  useEffect(() => { pinSignRef.current = pinSign })
+
+  // Fetch today's landing data once on mount.
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/landing/today', { cache: 'no-store' })
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return (await r.json()) as LandingData
+      })
+      .then(d => { if (!cancelled) setData(d) })
+      .catch(() => { if (!cancelled) setErrored(true) })
+    return () => { cancelled = true }
+  }, [])
+
+  // Auto-cycle through signs when not pinned and data is loaded.
+  useEffect(() => {
+    if (isPinned || !data) return
+    const handle = setInterval(() => {
+      setActiveIndex(prev => (prev + 1) % ZODIAC.length)
+    }, AUTO_CYCLE_MS)
+    return () => clearInterval(handle)
+  }, [isPinned, data])
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -92,6 +167,11 @@ export function CosmicLanding() {
       outerPath.setAttribute('fill', i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(140,100,255,0.05)')
       outerPath.setAttribute('stroke', 'rgba(180,160,255,0.22)')
       outerPath.setAttribute('stroke-width', '0.8')
+      // Make the wedge a click target. Parent .zodiacWrap has pointer-events:
+      // none; re-enable here. Use setAttribute since SVGElement.style is
+      // typed loosely.
+      outerPath.setAttribute('style', 'pointer-events: auto; cursor: pointer;')
+      outerPath.addEventListener('click', () => pinSignRef.current(i, 'click'))
       g.appendChild(outerPath)
 
       const innerPath = document.createElementNS(ns, 'path')
@@ -250,47 +330,10 @@ export function CosmicLanding() {
     }
   }, [])
 
-  useEffect(() => {
-    const el = quoteRef.current
-    if (!el) return
-    // Explicit typed alias so TypeScript preserves the non-null type inside closures
-    const qel: HTMLDivElement = el
-    const FADE_MS = 1200, HOLD_MS = 5000
-    let qi = 0
-    const timers: ReturnType<typeof setTimeout>[] = []
-
-    const getQuotes = () => window.innerWidth <= 700 ? QUOTES_MOBILE : QUOTES_DESKTOP
-
-    function showQuote(idx: number) {
-      qel.style.opacity = '0'
-      qel.style.transform = 'translate(12px, 8px)'
-      const t1 = setTimeout(() => {
-        qel.textContent = getQuotes()[idx]
-        qel.style.transition = 'none'
-        qel.style.opacity = '0'
-        qel.style.transform = 'translate(-12px, -8px)'
-        void qel.offsetHeight
-        qel.style.transition = `opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`
-        qel.style.opacity = '1'
-        qel.style.transform = 'translate(0, 0)'
-        const t2 = setTimeout(() => { qi = (qi + 1) % getQuotes().length; showQuote(qi) }, HOLD_MS + FADE_MS)
-        timers.push(t2)
-      }, FADE_MS)
-      timers.push(t1)
-    }
-
-    qel.textContent = getQuotes()[0]
-    qel.style.opacity = '0'
-    qel.style.transform = 'translate(-12px, -8px)'
-    void qel.offsetHeight
-    qel.style.transition = `opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease`
-    qel.style.opacity = '1'
-    qel.style.transform = 'translate(0, 0)'
-    const t0 = setTimeout(() => { qi = 1; showQuote(1) }, HOLD_MS + FADE_MS)
-    timers.push(t0)
-
-    return () => { timers.forEach(clearTimeout) }
-  }, [])
+  const activeSign = ZODIAC[activeIndex]
+  const snippet = data?.ascendants?.[activeSign.key] ?? ''
+  const showFallback = errored || !data
+  const skyLabel = data ? formatSkyLabel(data) : null
 
   return (
     <div style={{
@@ -320,15 +363,62 @@ export function CosmicLanding() {
             </radialGradient>
           </defs>
           <circle r={320} fill="url(#rimGlow)" />
-          <g ref={zodiacGRef} style={{ transformOrigin: '0px 0px', animation: 'spinZodiac 160s linear infinite' }} />
+          <g
+            ref={zodiacGRef}
+            className={styles.zodiacRotor}
+            style={{
+              transformOrigin: '0px 0px',
+              transform: `rotate(${-((activeIndex + 0.5) * 30)}deg)`,
+            }}
+          />
+          {/* Stationary indicator at 12 o'clock (outside the rotor) */}
+          <g className={styles.signIndicator}>
+            <polygon points="0,-310 -7,-298 7,-298" fill="rgba(251,191,36,0.95)" />
+          </g>
         </svg>
       </div>
 
       {/* Glass panel */}
       <div className={styles.panel}>
-        <div className={styles.quoteSection}>
-          <div className={styles.quoteEyebrow}>The cosmos speaks</div>
-          <div ref={quoteRef} className={styles.quoteText} />
+        <div className={styles.todaySection}>
+          {skyLabel && (
+            <div className={styles.skyBadge}>
+              <span className={styles.skyDot} aria-hidden>✦</span>
+              <span>{skyLabel}</span>
+            </div>
+          )}
+
+          {showFallback ? (
+            <div className={styles.snippetText}>
+              <span className={styles.activeSignLabel}>Astro Chaganti</span>
+              <p>Sign in to begin.</p>
+            </div>
+          ) : (
+            <div className={styles.snippetText}>
+              <span className={styles.activeSignLabel}>{activeSign.name.toUpperCase()} — RISING</span>
+              <p>{snippet || '…'}</p>
+            </div>
+          )}
+
+          {/* Mobile pill strip (hidden on desktop via CSS) */}
+          {!showFallback && (
+            <div className={styles.pillStrip} role="tablist" aria-label="Choose your ascendant">
+              {ZODIAC.map((z, i) => (
+                <button
+                  key={z.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === activeIndex}
+                  className={i === activeIndex ? `${styles.pill} ${styles.pillActive}` : styles.pill}
+                  onClick={() => pinSign(i, 'tap')}
+                  title={z.name}
+                >
+                  <span aria-hidden>{z.symbol}</span>
+                  <span className={styles.srOnly}>{z.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={styles.panelDivider} />

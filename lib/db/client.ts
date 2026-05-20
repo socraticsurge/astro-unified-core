@@ -20,7 +20,7 @@ let schemaInitialized = false;
 // (not PRAGMA user_version — Turso's HTTP API rejects PRAGMA writes). Warm
 // Lambda instances skip all DDL via the in-memory flag; cold instances do one
 // SELECT to check the version.
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 
 export async function ensureSchema() {
   if (schemaInitialized) return;
@@ -182,6 +182,21 @@ export async function ensureSchema() {
     `);
     await client.execute("CREATE INDEX IF NOT EXISTS idx_slots_starts_at ON consultation_slots (starts_at);");
     try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN slot_starts_at TEXT;"); } catch {}
+
+    // v9: daily-landing cache (one row per IST date; payload NULL until first
+    // successful generation; attempts tracks retry budget per day).
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS daily_landing (
+        id TEXT PRIMARY KEY,
+        ist_date TEXT UNIQUE NOT NULL,
+        payload TEXT,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        last_attempt_at TEXT,
+        generated_at TEXT,
+        created_at TEXT NOT NULL
+      );
+    `);
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_daily_landing_generated ON daily_landing (generated_at);");
 
     await client.execute(
       `INSERT OR REPLACE INTO schema_version (id, version) VALUES (1, ${SCHEMA_VERSION})`
