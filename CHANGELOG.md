@@ -8,6 +8,46 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Landing page polish: auto-resume cycling, em-dash safety, no-clip snippets, faster first paint
+
+### Changed
+- **Cycle auto-resumes 25s after pin.** `CosmicLanding.tsx`: when the user
+  clicks/taps a sign, we hold on it for 25s then quietly flip
+  `isPinned` back to false so the cycle picks back up. Page stays
+  lively even after interaction. localStorage-restored pins are not
+  auto-cleared (visitor presumably still wants their sign).
+- **Defensive em-dash fallback in transit tiles.** `buildSkyTiles` now
+  treats empty/whitespace-only values the same as missing data, so
+  partial API responses can't render invisible empty spans (the
+  reported "tiles aren't showing" bug).
+- **No more brutal mid-snippet truncation.** Three coordinated changes:
+  1. `lib/engines/today-landing.ts`: snippet Zod schema now has
+     `.max(320)`. Over-long Gemini responses fail validation, the route
+     retries (3/day budget), and the next attempt is asked to be shorter.
+  2. Prompt tightened: "STRICT MAX 45 words AND 300 chars (aim 35-42 /
+     ~250 chars). Over-length snippets cause the whole response to be
+     rejected." `PROMPT_VERSION_LANDING` bumped 2 → 3.
+  3. `CosmicLanding.module.css`: snippet font reduced to
+     `clamp(17px, 1.9vw, 22px)`, line-clamp from 5 → 7, box height
+     9.5em → 11.5em. Holds 300+ chars without clipping. Client-side
+     last-resort cap raised 320 → 360 (rarely fires now).
+- **Cosmos-speaks section sits higher in the glass panel.**
+  `.todaySection` switched from `justify-content: center` to
+  `flex-start` with small padding. Brand row + CTA stay inside the
+  panel; the snippet feels anchored near the top.
+
+### Performance
+- **Canvas init deferred via `requestIdleCallback`.** The 260-star + meteor
+  canvas no longer blocks first paint. Falls back to a short setTimeout
+  in Safari (no `requestIdleCallback`). Expected ~80–120ms cut to LCP
+  on cold loads.
+
+### Tests
+- `lib/engines/today-landing.test.ts` — new case verifying `.max(320)`
+  rejects snippets that exceed the bound.
+
+---
+
 ## [2026-05-21] — Profile-create flow + theme-aware Tarabalam + "What's active now" fallback
 
 ### Fixed (profile creation)

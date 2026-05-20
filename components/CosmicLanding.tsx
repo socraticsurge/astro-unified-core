@@ -34,8 +34,13 @@ const AUTO_CYCLE_MS = 6500
 // Cross-fade tuning. Total cycle = OUT + IN; keep under AUTO_CYCLE_MS by a wide margin.
 const SNIPPET_FADE_OUT_MS = 380
 const SNIPPET_FADE_IN_MS = 520
-// Defensive cap so an unusually long LLM output can't overflow the panel.
-const SNIPPET_MAX_CHARS = 320
+// When the visitor pins their ascendant, we hold on it for this long, then
+// quietly resume the cycle so the page stays alive even after interaction.
+const RESUME_AUTOCYCLE_MS = 25_000
+// Last-resort cap. The LLM prompt + Zod schema enforce ≤320 chars upstream
+// (see lib/engines/today-landing.ts), so this rarely fires. Bumped from 320
+// to 360 to leave room for the rare paragraph that slips through.
+const SNIPPET_MAX_CHARS = 360
 
 function truncateSnippet(s: string): string {
   if (s.length <= SNIPPET_MAX_CHARS) return s
@@ -61,6 +66,12 @@ function readStoredSign(): number | null {
 // panel doesn't shift on data arrival.
 type SkyTile = { label: string; value: string }
 
+// Treat empty/whitespace values the same as a missing data field so we still
+// show the em-dash placeholder rather than an empty span (which renders as
+// invisible — the original "tiles aren't showing" bug).
+const dashIfBlank = (v: string | undefined | null): string =>
+  v && v.trim() ? v : '—'
+
 function buildSkyTiles(d: LandingData | null): SkyTile[] {
   if (!d) {
     return [
@@ -69,11 +80,12 @@ function buildSkyTiles(d: LandingData | null): SkyTile[] {
     ]
   }
   const tiles: SkyTile[] = [
-    { label: 'Moon', value: d.sky.moon_nakshatra },
-    { label: 'Sun', value: d.sky.sun_sign },
+    { label: 'Moon', value: dashIfBlank(d.sky?.moon_nakshatra) },
+    { label: 'Sun', value: dashIfBlank(d.sky?.sun_sign) },
   ]
-  if (d.sky.retrogrades.length > 0) {
-    tiles.push({ label: 'Retrograde', value: d.sky.retrogrades.join(', ') })
+  const retros = d.sky?.retrogrades?.filter(p => p && p.trim()) ?? []
+  if (retros.length > 0) {
+    tiles.push({ label: 'Retrograde', value: retros.join(', ') })
   }
   return tiles
 }
@@ -96,6 +108,11 @@ export function CosmicLanding() {
   // effect (Next.js 16's stricter React rules disallow ref writes in render).
   const pinSignRef = useRef<(idx: number, source: 'click' | 'tap' | 'restored') => void>(() => {})
 
+  // Auto-resume timer: when the user pins a sign, hold on it for
+  // RESUME_AUTOCYCLE_MS, then quietly flip isPinned back to false so the
+  // cycle resumes. The page stays lively even after interaction.
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const isStale = data?.is_stale ?? false
   function pinSign(idx: number, source: 'click' | 'tap' | 'restored') {
     if (idx < 0 || idx >= ZODIAC.length) return
@@ -106,10 +123,28 @@ export function CosmicLanding() {
     try {
       posthog.capture('landing_ascendant_pinned', { sign, source, is_stale: isStale })
     } catch { /* posthog may not be initialized in dev without keys */ }
+    // Reset any prior resume timer and start a fresh one. We don't resume on
+    // 'restored' (localStorage on mount) since that wasn't a deliberate
+    // interaction — the visitor presumably still wants their sign.
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    if (source !== 'restored') {
+      resumeTimerRef.current = setTimeout(() => {
+        setIsPinned(false)
+        resumeTimerRef.current = null
+      }, RESUME_AUTOCYCLE_MS)
+    }
   }
 
   // pinSign captures fresh state every render; refresh the ref accordingly.
   useEffect(() => { pinSignRef.current = pinSign })
+
+  // Cleanup the resume timer on unmount so we don't try to setState after
+  // the component is gone.
+  useEffect(() => {
+    return () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    }
+  }, [])
 
   // Fetch today's landing data once on mount. A failure is non-fatal: the
   // page keeps cycling through the static fallback snippets defined in
@@ -348,12 +383,31 @@ export function CosmicLanding() {
 
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('resize', onResize)
-    resize()
-    draw()
+
+    // Defer the heavy canvas work until the browser has had a chance to
+    // paint the glass panel + content. Cuts ~80–120ms off Largest
+    // Contentful Paint on cold loads. requestIdleCallback is the right
+    // tool but isn't in Safari; fall back to a short setTimeout.
+    let startHandle: number | ReturnType<typeof setTimeout>
+    const startCanvas = () => { resize(); draw() }
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (id: number) => void
+    }
+    if (typeof win.requestIdleCallback === 'function') {
+      startHandle = win.requestIdleCallback(startCanvas, { timeout: 400 })
+    } else {
+      startHandle = setTimeout(startCanvas, 80)
+    }
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId)
       if (resizeTimer) clearTimeout(resizeTimer)
+      if (typeof startHandle === 'number' && typeof win.cancelIdleCallback === 'function') {
+        win.cancelIdleCallback(startHandle)
+      } else if (startHandle) {
+        clearTimeout(startHandle as ReturnType<typeof setTimeout>)
+      }
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('resize', onResize)
     }
