@@ -40,10 +40,5 @@ jobs:
       - name: Vitest
         run: npx vitest run
 
-      # Lint runs but does NOT fail the workflow. There are pre-existing errors
-      # from Next.js 16's stricter React rules that predate the CI setup. We
-      # surface them for visibility; tighten this when the existing errors are
-      # cleaned up.
-      - name: ESLint (advisory)
+      - name: ESLint
         run: npm run lint
-        continue-on-error: true

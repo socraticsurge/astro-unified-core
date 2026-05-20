@@ -8,6 +8,28 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Enforce ESLint as a gate
+
+### Changed
+- **`.github/workflows/test.yml`** — removed `continue-on-error: true` from
+  the ESLint step. Lint errors now fail the CI workflow like tsc and
+  vitest do. Renamed the step from `ESLint (advisory)` to `ESLint`.
+- **`.githooks/pre-push`** — added `npm run lint` after the vitest step.
+  Pushes are now blocked locally if lint reports errors. Warnings are
+  still tolerated (ESLint's default exit behavior).
+- **`AGENTS.md`** — added `npm run lint` to the pre-flight checklist
+  required before opening any PR. This closes the gap that allowed
+  React 19.2's stricter rules to surface 12 errors that piled up before
+  CI was set up.
+
+### Why
+With the slate cleaned in the previous entries (0 errors, 0 warnings),
+the gate can be tightened. The protocol previously enforced tsc + vitest
+but not lint, which let React purity and set-state-in-effect violations
+accumulate undetected.
+
+---
+
 ## [2026-05-20] — Shared `<EngineLoading>` and `<EngineError>` components
 
 ### Added
