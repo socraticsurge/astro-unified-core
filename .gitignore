@@ -52,3 +52,6 @@ lib/content/content-index.json
 .jules/
 .cursor/
 .aider/
+
+# Sentry Config File
+.env.sentry-build-plugin

@@ -143,6 +143,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
 | `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`                        |
 | `ADMIN_EMAILS` (required)  | Comma-separated list of admin email addresses. If unset, no one has admin access. |
+| `SENTRY_AUTH_TOKEN`        | Build-time only. Uploads source maps to Sentry for readable stack traces. From Sentry → Settings → Auth Tokens. |
 
 ### Sidecar — none required.
 
