@@ -2,7 +2,12 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { db } from "@/lib/db";
-import { buildTodayReading, PROMPT_VERSION } from "@/lib/engines/today-reading";
+import {
+  buildCurrentReading,
+  buildNatalReading,
+  PROMPT_VERSION_CURRENT,
+  PROMPT_VERSION_NATAL,
+} from "@/lib/engines/today-reading";
 import { GET } from "./route";
 
 vi.mock("next-auth/next", () => ({ getServerSession: vi.fn() }));
@@ -22,11 +27,13 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-// We export PROMPT_VERSION from this stub so the route can import it. The
-// actual module imports "server-only" which isn't available in vitest.
+// The actual engine module imports "server-only" which is unavailable under
+// vitest. We stub the build functions; PROMPT_VERSION_* values are local.
 vi.mock("@/lib/engines/today-reading", () => ({
-  PROMPT_VERSION: 1,
-  buildTodayReading: vi.fn(),
+  PROMPT_VERSION_CURRENT: 1,
+  PROMPT_VERSION_NATAL: 1,
+  buildCurrentReading: vi.fn(),
+  buildNatalReading: vi.fn(),
 }));
 
 const completeProfile = {
@@ -48,21 +55,34 @@ const chartPayload = {
   },
 };
 
-const generatedReading = {
-  dasha_reading: "fresh dasha",
-  chart_reading: "fresh chart",
-};
-
-const cachedReading = {
-  dasha_reading: "cached dasha",
-  chart_reading: "cached chart",
-};
-
 const defaultLlmConfig = {
   temperature: 0.7,
   max_tokens: 800,
   custom_instructions: "",
 };
+
+const FRESH_CURRENT_TEXT = "fresh current reading";
+const FRESH_NATAL_TEXT   = "fresh natal reading";
+const CACHED_CURRENT     = "cached current";
+const CACHED_NATAL       = "cached natal";
+
+const BIRTH_FIELDS = {
+  date_of_birth: completeProfile.date_of_birth,
+  time_of_birth: completeProfile.time_of_birth,
+  latitude: completeProfile.latitude,
+  longitude: completeProfile.longitude,
+  timezone: completeProfile.timezone,
+};
+
+// Match the route's fingerprint formula so we can construct snapshots that
+// the route considers fresh.
+async function fp(version: number) {
+  const { createHash } = await import("crypto");
+  return createHash("sha1")
+    .update(`v${version}|t0.7|m800|`)
+    .digest("hex")
+    .slice(0, 12);
+}
 
 function mockSession(id = "user1") {
   vi.mocked(getServerSession).mockResolvedValue({ user: { id } } as never);
@@ -73,175 +93,174 @@ function makeRequest(profileId = "prof1") {
   return new NextRequest(`http://localhost/api/readings/today-reading?profile_id=${profileId}`);
 }
 
+/**
+ * Configure `db.readings.latestByEngine` to respond per engine name:
+ *   chart  → the dashaflow chart row
+ *   today-current → optional cached row
+ *   today-natal   → optional cached row
+ */
+function mockReadings({
+  chart = { output_data: JSON.stringify(chartPayload) },
+  currentCache = null,
+  natalCache = null,
+}: {
+  chart?: unknown;
+  currentCache?: unknown;
+  natalCache?: unknown;
+}) {
+  vi.mocked(db.readings.latestByEngine).mockImplementation(async (_id: string, engine: string) => {
+    if (engine === "dashaflow")     return chart as never;
+    if (engine === "today-current") return currentCache as never;
+    if (engine === "today-natal")   return natalCache as never;
+    return null as never;
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(db.settings.getTodayReadingLlm).mockResolvedValue(defaultLlmConfig);
-  vi.mocked(buildTodayReading).mockResolvedValue(generatedReading);
+  vi.mocked(buildCurrentReading).mockResolvedValue(FRESH_CURRENT_TEXT);
+  vi.mocked(buildNatalReading).mockResolvedValue(FRESH_NATAL_TEXT);
 });
 
 describe("GET /api/readings/today-reading", () => {
-  it("returns 401 when unauthenticated (via resolveProfile)", async () => {
+  it("returns 401 when unauthenticated", async () => {
     vi.mocked(getServerSession).mockResolvedValue(null);
     const res = await GET(makeRequest());
     expect(res.status).toBe(401);
   });
 
-  it("returns 400 when chart has never been generated", async () => {
+  it("returns 400 when chart row is missing", async () => {
     mockSession();
-    vi.mocked(db.readings.latestByEngine).mockResolvedValueOnce(null);
+    mockReadings({ chart: null });
     const res = await GET(makeRequest());
     expect(res.status).toBe(400);
   });
 
-  it("returns 500 when chart row exists but JSON is corrupted", async () => {
+  it("returns 500 when chart JSON is corrupted", async () => {
     mockSession();
-    vi.mocked(db.readings.latestByEngine).mockResolvedValueOnce({
-      output_data: "not json {{{",
-    } as never);
+    mockReadings({ chart: { output_data: "not json {{" } });
     const res = await GET(makeRequest());
     expect(res.status).toBe(500);
   });
 
-  it("returns cached reading when input_snapshot matches", async () => {
+  it("regenerates both tiers when caches are empty (cold-start)", async () => {
     mockSession();
-    // Build a snapshot whose llm_fingerprint matches what the route will compute
-    // from defaultLlmConfig + PROMPT_VERSION. Using a fresh dynamic require so
-    // we recompute the same hash here as the route.
-    const { createHash } = await import("crypto");
-    const fp = createHash("sha1")
-      .update(`v${PROMPT_VERSION}|t0.7|m800|`)
-      .digest("hex")
-      .slice(0, 12);
-
-    const cachedSnapshot = JSON.stringify({
-      date_of_birth: completeProfile.date_of_birth,
-      time_of_birth: completeProfile.time_of_birth,
-      latitude: completeProfile.latitude,
-      longitude: completeProfile.longitude,
-      timezone: completeProfile.timezone,
-      pratyantar_end: "2026-06-01",
-      llm_fingerprint: fp,
-    });
-
-    vi.mocked(db.readings.latestByEngine)
-      .mockResolvedValueOnce({ output_data: JSON.stringify(chartPayload) } as never) // chart
-      .mockResolvedValueOnce({
-        input_snapshot: cachedSnapshot,
-        output_data: JSON.stringify(cachedReading),
-      } as never); // today-reading cache
-
+    mockReadings({});
     const res = await GET(makeRequest());
     const body = await res.json();
     expect(res.status).toBe(200);
-    expect(body.cached).toBe(true);
-    expect(body.output).toEqual(cachedReading);
-    expect(buildTodayReading).not.toHaveBeenCalled();
+    expect(buildCurrentReading).toHaveBeenCalledTimes(1);
+    expect(buildNatalReading).toHaveBeenCalledTimes(1);
+    expect(body.output.dasha_reading).toBe(FRESH_CURRENT_TEXT);
+    expect(body.output.chart_reading).toBe(FRESH_NATAL_TEXT);
+    expect(body.cached_tiers).toEqual({ current: false, natal: false });
   });
 
-  it("regenerates when the cached fingerprint does not match", async () => {
+  it("saves each generated tier to its own engine row", async () => {
     mockSession();
-    const cachedSnapshot = JSON.stringify({
-      date_of_birth: completeProfile.date_of_birth,
-      time_of_birth: completeProfile.time_of_birth,
-      latitude: completeProfile.latitude,
-      longitude: completeProfile.longitude,
-      timezone: completeProfile.timezone,
-      pratyantar_end: "2026-06-01",
-      llm_fingerprint: "STALE",
-    });
-
-    vi.mocked(db.readings.latestByEngine)
-      .mockResolvedValueOnce({ output_data: JSON.stringify(chartPayload) } as never)
-      .mockResolvedValueOnce({
-        input_snapshot: cachedSnapshot,
-        output_data: JSON.stringify(cachedReading),
-      } as never);
-
-    const res = await GET(makeRequest());
-    const body = await res.json();
-    expect(res.status).toBe(200);
-    expect(body.cached).toBe(false);
-    expect(body.output).toEqual(generatedReading);
-    expect(buildTodayReading).toHaveBeenCalledTimes(1);
-  });
-
-  it("regenerates when pratyantar period has rolled over", async () => {
-    mockSession();
-    const cachedSnapshot = JSON.stringify({
-      date_of_birth: completeProfile.date_of_birth,
-      time_of_birth: completeProfile.time_of_birth,
-      latitude: completeProfile.latitude,
-      longitude: completeProfile.longitude,
-      timezone: completeProfile.timezone,
-      pratyantar_end: "2025-12-01", // earlier than chart's 2026-06-01
-      llm_fingerprint: "doesnt matter — pratyantar mismatches first",
-    });
-
-    vi.mocked(db.readings.latestByEngine)
-      .mockResolvedValueOnce({ output_data: JSON.stringify(chartPayload) } as never)
-      .mockResolvedValueOnce({
-        input_snapshot: cachedSnapshot,
-        output_data: JSON.stringify(cachedReading),
-      } as never);
-
-    const res = await GET(makeRequest());
-    expect((await res.json()).cached).toBe(false);
-    expect(buildTodayReading).toHaveBeenCalledTimes(1);
-  });
-
-  it("persists snapshot with pratyantar_end and llm_fingerprint on save", async () => {
-    mockSession();
-    vi.mocked(db.readings.latestByEngine)
-      .mockResolvedValueOnce({ output_data: JSON.stringify(chartPayload) } as never)
-      .mockResolvedValueOnce(null); // no cache
-
+    mockReadings({});
     await GET(makeRequest());
-    expect(db.readings.save).toHaveBeenCalledTimes(1);
-    const arg = vi.mocked(db.readings.save).mock.calls[0][0] as {
-      input_snapshot: { pratyantar_end: string; llm_fingerprint: string };
-    };
-    expect(arg.input_snapshot.pratyantar_end).toBe("2026-06-01");
-    expect(arg.input_snapshot.llm_fingerprint).toMatch(/^[0-9a-f]{12}$/);
+    expect(db.readings.save).toHaveBeenCalledTimes(2);
+    const engines = vi
+      .mocked(db.readings.save)
+      .mock.calls.map((c) => (c[0] as { engine: string }).engine)
+      .sort();
+    expect(engines).toEqual(["today-current", "today-natal"]);
   });
 
-  it("returns 502 when buildTodayReading throws", async () => {
+  it("serves both tiers from cache when both fingerprints match", async () => {
     mockSession();
-    vi.mocked(db.readings.latestByEngine)
-      .mockResolvedValueOnce({ output_data: JSON.stringify(chartPayload) } as never)
-      .mockResolvedValueOnce(null);
-    vi.mocked(buildTodayReading).mockRejectedValueOnce(new Error("LLM offline"));
+    const fpCurrent = await fp(PROMPT_VERSION_CURRENT);
+    const fpNatal   = await fp(PROMPT_VERSION_NATAL);
+    mockReadings({
+      currentCache: {
+        input_snapshot: JSON.stringify({ ...BIRTH_FIELDS, pratyantar_end: "2026-06-01", llm_fingerprint: fpCurrent }),
+        output_data:    JSON.stringify({ dasha_reading: CACHED_CURRENT }),
+      },
+      natalCache: {
+        input_snapshot: JSON.stringify({ ...BIRTH_FIELDS, llm_fingerprint: fpNatal }),
+        output_data:    JSON.stringify({ chart_reading: CACHED_NATAL }),
+      },
+    });
 
+    const res = await GET(makeRequest());
+    const body = await res.json();
+    expect(body.cached).toBe(true);
+    expect(body.cached_tiers).toEqual({ current: true, natal: true });
+    expect(body.output.dasha_reading).toBe(CACHED_CURRENT);
+    expect(body.output.chart_reading).toBe(CACHED_NATAL);
+    expect(buildCurrentReading).not.toHaveBeenCalled();
+    expect(buildNatalReading).not.toHaveBeenCalled();
+  });
+
+  it("regenerates ONLY current when pratyantar has shifted (natal stays cached)", async () => {
+    mockSession();
+    const fpCurrent = await fp(PROMPT_VERSION_CURRENT);
+    const fpNatal   = await fp(PROMPT_VERSION_NATAL);
+    mockReadings({
+      currentCache: {
+        // Stale pratyantar_end
+        input_snapshot: JSON.stringify({ ...BIRTH_FIELDS, pratyantar_end: "2025-12-01", llm_fingerprint: fpCurrent }),
+        output_data:    JSON.stringify({ dasha_reading: CACHED_CURRENT }),
+      },
+      natalCache: {
+        input_snapshot: JSON.stringify({ ...BIRTH_FIELDS, llm_fingerprint: fpNatal }),
+        output_data:    JSON.stringify({ chart_reading: CACHED_NATAL }),
+      },
+    });
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+    expect(buildCurrentReading).toHaveBeenCalledTimes(1);
+    expect(buildNatalReading).not.toHaveBeenCalled();
+    expect(body.cached_tiers).toEqual({ current: false, natal: true });
+    expect(body.output.dasha_reading).toBe(FRESH_CURRENT_TEXT);
+    expect(body.output.chart_reading).toBe(CACHED_NATAL);
+  });
+
+  it("regenerates ONLY natal when its fingerprint mismatches (current stays cached)", async () => {
+    mockSession();
+    const fpCurrent = await fp(PROMPT_VERSION_CURRENT);
+    mockReadings({
+      currentCache: {
+        input_snapshot: JSON.stringify({ ...BIRTH_FIELDS, pratyantar_end: "2026-06-01", llm_fingerprint: fpCurrent }),
+        output_data:    JSON.stringify({ dasha_reading: CACHED_CURRENT }),
+      },
+      natalCache: {
+        input_snapshot: JSON.stringify({ ...BIRTH_FIELDS, llm_fingerprint: "STALE-NATAL" }),
+        output_data:    JSON.stringify({ chart_reading: CACHED_NATAL }),
+      },
+    });
+
+    const res = await GET(makeRequest());
+    const body = await res.json();
+    expect(buildCurrentReading).not.toHaveBeenCalled();
+    expect(buildNatalReading).toHaveBeenCalledTimes(1);
+    expect(body.cached_tiers).toEqual({ current: true, natal: false });
+    expect(body.output.dasha_reading).toBe(CACHED_CURRENT);
+    expect(body.output.chart_reading).toBe(FRESH_NATAL_TEXT);
+  });
+
+  it("returns 502 when the LLM throws", async () => {
+    mockSession();
+    mockReadings({});
+    vi.mocked(buildCurrentReading).mockRejectedValueOnce(new Error("LLM offline"));
     const res = await GET(makeRequest());
     expect(res.status).toBe(502);
-    expect((await res.json()).error).toBe("LLM offline");
   });
 
   it("falls through to regenerate when cached output JSON is corrupted", async () => {
     mockSession();
-    const { createHash } = await import("crypto");
-    const fp = createHash("sha1")
-      .update(`v${PROMPT_VERSION}|t0.7|m800|`)
-      .digest("hex")
-      .slice(0, 12);
-    const validSnapshot = JSON.stringify({
-      date_of_birth: completeProfile.date_of_birth,
-      time_of_birth: completeProfile.time_of_birth,
-      latitude: completeProfile.latitude,
-      longitude: completeProfile.longitude,
-      timezone: completeProfile.timezone,
-      pratyantar_end: "2026-06-01",
-      llm_fingerprint: fp,
-    });
-    vi.mocked(db.readings.latestByEngine)
-      .mockResolvedValueOnce({ output_data: JSON.stringify(chartPayload) } as never)
-      .mockResolvedValueOnce({
-        input_snapshot: validSnapshot,
+    const fpCurrent = await fp(PROMPT_VERSION_CURRENT);
+    mockReadings({
+      currentCache: {
+        input_snapshot: JSON.stringify({ ...BIRTH_FIELDS, pratyantar_end: "2026-06-01", llm_fingerprint: fpCurrent }),
         output_data: "definitely not json",
-      } as never);
-
+      },
+    });
     const res = await GET(makeRequest());
     expect(res.status).toBe(200);
-    expect((await res.json()).cached).toBe(false);
-    expect(buildTodayReading).toHaveBeenCalled();
+    expect(buildCurrentReading).toHaveBeenCalled();
   });
 });

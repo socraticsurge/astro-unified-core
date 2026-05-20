@@ -1,10 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-// Stub server-only so the module imports cleanly under vitest.
 vi.mock("server-only", () => ({}));
 
-// Stub Next.js cache module that some upstream content imports might pull in.
-// (Not strictly needed today, but cheap safety.)
 vi.mock("@/lib/engines/ai-caller", () => ({
   callAIForJson: vi.fn(),
 }));
@@ -18,7 +15,12 @@ vi.mock("@/lib/chart-summary", () => ({
   summarizeDashaflow: vi.fn(() => "stubbed chart summary"),
 }));
 
-import { buildTodayReading, PROMPT_VERSION } from "../today-reading";
+import {
+  buildCurrentReading,
+  buildNatalReading,
+  PROMPT_VERSION_CURRENT,
+  PROMPT_VERSION_NATAL,
+} from "../today-reading";
 import { callAIForJson } from "../ai-caller";
 import { lookupDashaPair, lookupAscendant } from "@/lib/content/lookup";
 
@@ -50,141 +52,147 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("PROMPT_VERSION", () => {
-  it("is a positive integer (bumpable cache key)", () => {
-    expect(Number.isInteger(PROMPT_VERSION)).toBe(true);
-    expect(PROMPT_VERSION).toBeGreaterThan(0);
+describe("PROMPT_VERSION constants", () => {
+  it("CURRENT and NATAL are positive integers (bumpable cache keys)", () => {
+    expect(Number.isInteger(PROMPT_VERSION_CURRENT)).toBe(true);
+    expect(Number.isInteger(PROMPT_VERSION_NATAL)).toBe(true);
+    expect(PROMPT_VERSION_CURRENT).toBeGreaterThan(0);
+    expect(PROMPT_VERSION_NATAL).toBeGreaterThan(0);
   });
 });
 
-describe("buildTodayReading", () => {
-  it("returns empty strings when no content blocks are available", async () => {
+describe("buildCurrentReading", () => {
+  it("returns empty string when maha and antar are missing", async () => {
     vi.mocked(lookupDashaPair).mockReturnValue(undefined);
-    vi.mocked(lookupAscendant).mockReturnValue(undefined);
-
-    const out = await buildTodayReading(
-      profile,
-      chartWith({ maha: { planet: "Sun" }, antar: { planet: "Mars" } }),
-      defaultConfig,
-    );
-    expect(out).toEqual({ dasha_reading: "", chart_reading: "" });
+    const out = await buildCurrentReading(profile, chartWith({}), defaultConfig);
+    expect(out).toBe("");
     expect(callAIForJson).not.toHaveBeenCalled();
   });
 
-  it("calls the LLM when at least one content block matches", async () => {
-    vi.mocked(lookupAscendant).mockReturnValue({
-      body: "<p>Aries ascendants are <em>direct</em>.</p>",
-    } as never);
-    vi.mocked(callAIForJson).mockResolvedValue({
-      dasha_reading: "ok",
-      chart_reading: "ok",
-    } as never);
-
-    const out = await buildTodayReading(
+  it("returns empty string when no dasha-pair content matches", async () => {
+    vi.mocked(lookupDashaPair).mockReturnValue(undefined);
+    const out = await buildCurrentReading(
       profile,
       chartWith({ maha: { planet: "Sun" }, antar: { planet: "Mars" } }),
       defaultConfig,
     );
-    expect(callAIForJson).toHaveBeenCalledTimes(1);
-    expect(out).toEqual({ dasha_reading: "ok", chart_reading: "ok" });
+    expect(out).toBe("");
+    expect(callAIForJson).not.toHaveBeenCalled();
   });
 
-  it("propagates llmConfig.temperature and max_tokens to the AI caller", async () => {
-    vi.mocked(lookupAscendant).mockReturnValue({ body: "Aries body" } as never);
-    vi.mocked(callAIForJson).mockResolvedValue({} as never);
-
-    await buildTodayReading(
+  it("calls the LLM and returns dasha_reading when dasha-pair content exists", async () => {
+    vi.mocked(lookupDashaPair).mockReturnValue({ body: "<p>Sun-Mars body</p>" } as never);
+    vi.mocked(callAIForJson).mockResolvedValue({ dasha_reading: "your current period…" } as never);
+    const out = await buildCurrentReading(
       profile,
-      chartWith({}),
+      chartWith({ maha: { planet: "Sun" }, antar: { planet: "Mars" } }),
+      defaultConfig,
+    );
+    expect(out).toBe("your current period…");
+    expect(callAIForJson).toHaveBeenCalledTimes(1);
+  });
+
+  it("propagates temperature and max_tokens to the AI caller", async () => {
+    vi.mocked(lookupDashaPair).mockReturnValue({ body: "body" } as never);
+    vi.mocked(callAIForJson).mockResolvedValue({} as never);
+    await buildCurrentReading(
+      profile,
+      chartWith({ maha: { planet: "Sun" }, antar: { planet: "Mars" } }),
       { temperature: 0.2, max_tokens: 1234, custom_instructions: "" },
     );
     expect(callAIForJson).toHaveBeenCalledWith(
-      expect.any(String),
+      "gemini-flash",
       expect.any(String),
       expect.any(String),
       { temperature: 0.2, maxTokens: 1234 },
     );
   });
 
-  it("appends custom_instructions to the system prompt verbatim", async () => {
-    vi.mocked(lookupAscendant).mockReturnValue({ body: "Aries body" } as never);
+  it("includes the antardasha alert when antar.end is within 8 weeks", async () => {
+    vi.mocked(lookupDashaPair).mockReturnValue({ body: "body" } as never);
     vi.mocked(callAIForJson).mockResolvedValue({} as never);
-
-    await buildTodayReading(profile, chartWith({}), {
-      ...defaultConfig,
-      custom_instructions: "Use more bullet points.",
-    });
-    const systemPrompt = vi.mocked(callAIForJson).mock.calls[0][1];
-    expect(systemPrompt).toContain("Use more bullet points.");
-  });
-
-  it("includes an antardasha-ending alert when antar.end is within 8 weeks", async () => {
-    vi.mocked(lookupAscendant).mockReturnValue({ body: "Aries body" } as never);
-    vi.mocked(callAIForJson).mockResolvedValue({} as never);
-
-    await buildTodayReading(
+    await buildCurrentReading(
       profile,
-      chartWith({
-        antar: { planet: "Mars", end: futureIso(4) },
-      }),
+      chartWith({ maha: { planet: "Sun" }, antar: { planet: "Mars", end: futureIso(4) } }),
       defaultConfig,
     );
     const userPrompt = vi.mocked(callAIForJson).mock.calls[0][2];
     expect(userPrompt).toMatch(/Antardasha transition in ~\d+ weeks/);
   });
 
-  it("does not include an antardasha alert when end is more than 8 weeks away", async () => {
-    vi.mocked(lookupAscendant).mockReturnValue({ body: "Aries body" } as never);
+  it("appends custom_instructions to the system prompt verbatim", async () => {
+    vi.mocked(lookupDashaPair).mockReturnValue({ body: "body" } as never);
     vi.mocked(callAIForJson).mockResolvedValue({} as never);
-
-    await buildTodayReading(
+    await buildCurrentReading(
       profile,
-      chartWith({
-        antar: { planet: "Mars", end: futureIso(20) },
-      }),
-      defaultConfig,
+      chartWith({ maha: { planet: "Sun" }, antar: { planet: "Mars" } }),
+      { ...defaultConfig, custom_instructions: "Lean more existential." },
     );
-    const userPrompt = vi.mocked(callAIForJson).mock.calls[0][2];
-    expect(userPrompt).not.toMatch(/Antardasha transition/);
+    const systemPrompt = vi.mocked(callAIForJson).mock.calls[0][1];
+    expect(systemPrompt).toContain("Lean more existential.");
   });
 
-  it("includes a pratyantar-shift alert when end is within 4 weeks", async () => {
-    vi.mocked(lookupAscendant).mockReturnValue({ body: "Aries body" } as never);
+  it("identifies itself as the CURRENT-period tier in the system prompt", async () => {
+    vi.mocked(lookupDashaPair).mockReturnValue({ body: "body" } as never);
     vi.mocked(callAIForJson).mockResolvedValue({} as never);
-
-    await buildTodayReading(
+    await buildCurrentReading(
       profile,
-      chartWith({
-        pratyantar: { planet: "Mercury", end: futureIso(2) },
-      }),
+      chartWith({ maha: { planet: "Sun" }, antar: { planet: "Mars" } }),
       defaultConfig,
     );
-    const userPrompt = vi.mocked(callAIForJson).mock.calls[0][2];
-    expect(userPrompt).toMatch(/Pratyantar shift in ~\d+ weeks/);
+    const systemPrompt = vi.mocked(callAIForJson).mock.calls[0][1];
+    expect(systemPrompt).toMatch(/CURRENT PERIOD/);
+    expect(systemPrompt).not.toMatch(/NATAL CHART reading/);
+  });
+});
+
+describe("buildNatalReading", () => {
+  it("returns empty string when no ascendant content matches", async () => {
+    vi.mocked(lookupAscendant).mockReturnValue(undefined);
+    const out = await buildNatalReading(profile, chartWith({}), defaultConfig);
+    expect(out).toBe("");
+    expect(callAIForJson).not.toHaveBeenCalled();
   });
 
-  it("strips HTML tags from content block bodies", async () => {
+  it("calls the LLM and returns chart_reading when ascendant content exists", async () => {
+    vi.mocked(lookupAscendant).mockReturnValue({ body: "<p>Aries body</p>" } as never);
+    vi.mocked(callAIForJson).mockResolvedValue({ chart_reading: "your natal chart…" } as never);
+    const out = await buildNatalReading(profile, chartWith({}, "Aries"), defaultConfig);
+    expect(out).toBe("your natal chart…");
+  });
+
+  it("identifies itself as the NATAL tier in the system prompt", async () => {
+    vi.mocked(lookupAscendant).mockReturnValue({ body: "body" } as never);
+    vi.mocked(callAIForJson).mockResolvedValue({} as never);
+    await buildNatalReading(profile, chartWith({}, "Aries"), defaultConfig);
+    const systemPrompt = vi.mocked(callAIForJson).mock.calls[0][1];
+    expect(systemPrompt).toMatch(/NATAL CHART/);
+  });
+
+  it("strips HTML from the ascendant body", async () => {
     vi.mocked(lookupAscendant).mockReturnValue({
-      body: "<p>Aries are <strong>bold</strong>.</p><blockquote>Quote</blockquote>",
+      body: "<p>Aries are <strong>bold</strong> and <em>direct</em>.</p>",
     } as never);
     vi.mocked(callAIForJson).mockResolvedValue({} as never);
-
-    await buildTodayReading(profile, chartWith({}), defaultConfig);
+    await buildNatalReading(profile, chartWith({}, "Aries"), defaultConfig);
     const userPrompt = vi.mocked(callAIForJson).mock.calls[0][2];
-    expect(userPrompt).toContain("Aries are bold");
+    expect(userPrompt).toContain("Aries are bold and direct");
     expect(userPrompt).not.toContain("<strong>");
-    expect(userPrompt).not.toContain("</blockquote>");
+    expect(userPrompt).not.toContain("</em>");
   });
 
-  it("coerces non-string LLM fields to empty string", async () => {
-    vi.mocked(lookupAscendant).mockReturnValue({ body: "Aries body" } as never);
-    vi.mocked(callAIForJson).mockResolvedValue({
-      dasha_reading: 42, // not a string
-      chart_reading: "fine",
-    } as never);
+  it("coerces non-string output to empty string", async () => {
+    vi.mocked(lookupAscendant).mockReturnValue({ body: "body" } as never);
+    vi.mocked(callAIForJson).mockResolvedValue({ chart_reading: 42 } as never);
+    const out = await buildNatalReading(profile, chartWith({}, "Aries"), defaultConfig);
+    expect(out).toBe("");
+  });
 
-    const out = await buildTodayReading(profile, chartWith({}), defaultConfig);
-    expect(out.dasha_reading).toBe("");
-    expect(out.chart_reading).toBe("fine");
+  it("asks for ~5x more content than the current-period reading", async () => {
+    vi.mocked(lookupAscendant).mockReturnValue({ body: "body" } as never);
+    vi.mocked(callAIForJson).mockResolvedValue({} as never);
+    await buildNatalReading(profile, chartWith({}, "Aries"), defaultConfig);
+    const userPrompt = vi.mocked(callAIForJson).mock.calls[0][2];
+    expect(userPrompt).toMatch(/15.?20 sentences|3.?4 short paragraphs|350.?500 words/);
   });
 });

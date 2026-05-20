@@ -4,11 +4,18 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveProfile } from "@/lib/engines/reading-handler";
-import { buildTodayReading, PROMPT_VERSION } from "@/lib/engines/today-reading";
+import {
+  buildCurrentReading,
+  buildNatalReading,
+  PROMPT_VERSION_CURRENT,
+  PROMPT_VERSION_NATAL,
+  type LlmConfig,
+} from "@/lib/engines/today-reading";
 
 export const dynamic = "force-dynamic";
 
-const ENGINE = "today-reading";
+const ENGINE_CURRENT = "today-current";
+const ENGINE_NATAL   = "today-natal";
 
 function extractPratyantarEnd(chartOutput: Record<string, unknown>): string | null {
   const data = (chartOutput?.data ?? chartOutput) as Record<string, unknown>;
@@ -16,23 +23,30 @@ function extractPratyantarEnd(chartOutput: Record<string, unknown>): string | nu
   return dashas?.pratyantar?.end ?? dashas?.antar?.end ?? null;
 }
 
-// Fingerprints the inputs that influence the LLM output beyond the natal chart:
-// the prompt template version and the admin-tunable model settings. Bumping
-// PROMPT_VERSION or editing custom_instructions in the admin settings will
-// invalidate cached readings on next request.
-function llmFingerprint(cfg: { temperature: number; max_tokens: number; custom_instructions: string }): string {
-  const payload = `v${PROMPT_VERSION}|t${cfg.temperature}|m${cfg.max_tokens}|${cfg.custom_instructions}`;
+// Fingerprints the LLM-call inputs beyond the chart itself. Each tier has its
+// own version constant so a prompt rewrite on one tier doesn't invalidate the
+// other's cache.
+function fingerprint(version: number, cfg: LlmConfig): string {
+  const payload = `v${version}|t${cfg.temperature}|m${cfg.max_tokens}|${cfg.custom_instructions}`;
   return createHash("sha1").update(payload).digest("hex").slice(0, 12);
 }
 
-function isStale(
-  cachedSnapshotJson: string,
-  current: { date_of_birth: string; time_of_birth: string; latitude: number; longitude: number; timezone: string },
+type BirthInput = {
+  date_of_birth: string;
+  time_of_birth: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+};
+
+function currentIsStale(
+  snapshotJson: string,
+  current: BirthInput,
   currentPratyantarEnd: string | null,
-  currentLlmFingerprint: string,
+  fp: string,
 ): boolean {
   try {
-    const snap = JSON.parse(cachedSnapshotJson) as Record<string, unknown>;
+    const snap = JSON.parse(snapshotJson) as Record<string, unknown>;
     return (
       snap.date_of_birth !== current.date_of_birth ||
       snap.time_of_birth !== current.time_of_birth ||
@@ -40,7 +54,23 @@ function isStale(
       snap.longitude !== current.longitude ||
       snap.timezone !== current.timezone ||
       snap.pratyantar_end !== currentPratyantarEnd ||
-      snap.llm_fingerprint !== currentLlmFingerprint
+      snap.llm_fingerprint !== fp
+    );
+  } catch {
+    return true;
+  }
+}
+
+function natalIsStale(snapshotJson: string, current: BirthInput, fp: string): boolean {
+  try {
+    const snap = JSON.parse(snapshotJson) as Record<string, unknown>;
+    return (
+      snap.date_of_birth !== current.date_of_birth ||
+      snap.time_of_birth !== current.time_of_birth ||
+      snap.latitude !== current.latitude ||
+      snap.longitude !== current.longitude ||
+      snap.timezone !== current.timezone ||
+      snap.llm_fingerprint !== fp
     );
   } catch {
     return true;
@@ -67,37 +97,89 @@ export async function GET(req: NextRequest) {
 
   const pratyantarEnd = extractPratyantarEnd(chartOutput);
   const llmConfig = await db.settings.getTodayReadingLlm();
-  const fingerprint = llmFingerprint(llmConfig);
+  const fpCurrent = fingerprint(PROMPT_VERSION_CURRENT, llmConfig);
+  const fpNatal   = fingerprint(PROMPT_VERSION_NATAL,   llmConfig);
 
-  const cached = await db.readings.latestByEngine(profile_id, ENGINE);
-  if (cached && !isStale(cached.input_snapshot as string, input, pratyantarEnd, fingerprint)) {
+  // Read both caches in parallel.
+  const [cachedCurrent, cachedNatal] = await Promise.all([
+    db.readings.latestByEngine(profile_id, ENGINE_CURRENT),
+    db.readings.latestByEngine(profile_id, ENGINE_NATAL),
+  ]);
+
+  let dashaReading: string | null = null;
+  let chartReadingOut: string | null = null;
+  let currentFromCache = false;
+  let natalFromCache = false;
+
+  if (cachedCurrent && !currentIsStale(cachedCurrent.input_snapshot as string, input, pratyantarEnd, fpCurrent)) {
     try {
-      return NextResponse.json({
-        output: JSON.parse(cached.output_data as string),
-        cached: true,
-      });
+      dashaReading = JSON.parse(cachedCurrent.output_data as string).dasha_reading ?? null;
+      currentFromCache = true;
     } catch {
-      // Corrupted cache — fall through to regenerate
+      // Corrupt cache — fall through to regenerate
     }
   }
 
-  let output;
-  try {
-    output = await buildTodayReading(profile, chartOutput, llmConfig);
-  } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to generate reading" },
-      { status: 502 },
+  if (cachedNatal && !natalIsStale(cachedNatal.input_snapshot as string, input, fpNatal)) {
+    try {
+      chartReadingOut = JSON.parse(cachedNatal.output_data as string).chart_reading ?? null;
+      natalFromCache = true;
+    } catch {
+      // Corrupt cache — fall through to regenerate
+    }
+  }
+
+  // Generate the stale tiers in parallel. Either or both may run.
+  const llmPromises: Promise<unknown>[] = [];
+  if (dashaReading === null) {
+    llmPromises.push(
+      buildCurrentReading(profile, chartOutput, llmConfig)
+        .then(async (text) => {
+          dashaReading = text;
+          await db.readings.save({
+            profile_id,
+            engine: ENGINE_CURRENT,
+            input_snapshot: { ...input, pratyantar_end: pratyantarEnd, llm_fingerprint: fpCurrent },
+            output_data: { dasha_reading: text },
+          });
+        }),
+    );
+  }
+  if (chartReadingOut === null) {
+    llmPromises.push(
+      buildNatalReading(profile, chartOutput, llmConfig)
+        .then(async (text) => {
+          chartReadingOut = text;
+          await db.readings.save({
+            profile_id,
+            engine: ENGINE_NATAL,
+            input_snapshot: { ...input, llm_fingerprint: fpNatal },
+            output_data: { chart_reading: text },
+          });
+        }),
     );
   }
 
-  const inputSnapshot = { ...input, pratyantar_end: pratyantarEnd, llm_fingerprint: fingerprint };
-  await db.readings.save({
-    profile_id,
-    engine: ENGINE,
-    input_snapshot: inputSnapshot,
-    output_data: output,
-  });
+  if (llmPromises.length > 0) {
+    try {
+      await Promise.all(llmPromises);
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Failed to generate reading" },
+        { status: 502 },
+      );
+    }
+  }
 
-  return NextResponse.json({ output, cached: false });
+  return NextResponse.json({
+    output: {
+      dasha_reading: dashaReading ?? "",
+      chart_reading: chartReadingOut ?? "",
+    },
+    cached: currentFromCache && natalFromCache,
+    cached_tiers: {
+      current: currentFromCache,
+      natal: natalFromCache,
+    },
+  });
 }
