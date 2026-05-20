@@ -13,6 +13,13 @@ type SectionExplainer = {
   sources?: { text: string; chapter?: number | string; sloka?: number | string }[];
 };
 
+type MuhurthaResult = {
+  start_time: string;
+  end_time: string;
+  date: string;
+  points?: string[];
+};
+
 type Props = {
   profileId: string;
   explainer?: SectionExplainer | null;
@@ -20,11 +27,15 @@ type Props = {
 
 export function MuhurthaView({ profileId, explainer }: Props) {
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    event_type: "marriage",
-    start_date: new Date().toISOString().split("T")[0],
-    end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+  const [results, setResults] = useState<MuhurthaResult[]>([]);
+  const [form, setForm] = useState(() => {
+    const now = new Date();
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return {
+      event_type: "marriage",
+      start_date: now.toISOString().split("T")[0],
+      end_date: weekFromNow.toISOString().split("T")[0],
+    };
   });
 
   const handleSearch = async () => {

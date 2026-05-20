@@ -1,9 +1,10 @@
 "use client";
 import { SIGNS_ORDER, PLANET_ORDER, PLANET_ABBR } from "@/components/unified/types";
+import type { SignName } from "@/components/unified/types";
 
 function signToHouse(planetSign: string, lagnaSign: string): number {
-  const lagnaIdx = SIGNS_ORDER.indexOf(lagnaSign as any);
-  const planetIdx = SIGNS_ORDER.indexOf(planetSign as any);
+  const lagnaIdx = SIGNS_ORDER.indexOf(lagnaSign as SignName);
+  const planetIdx = SIGNS_ORDER.indexOf(planetSign as SignName);
   if (lagnaIdx < 0 || planetIdx < 0) return 0;
   return ((planetIdx - lagnaIdx + 12) % 12) + 1;
 }
