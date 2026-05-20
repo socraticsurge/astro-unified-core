@@ -8,23 +8,25 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
-## [2026-05-20] — Health endpoint, runbook, Ask Dr Chaganti rename
+## [2026-05-20] — Sentry error tracking
 
 ### Added
-- `/api/health` endpoint that checks DB (`SELECT 1`) and sidecar
-  reachability; returns 503 if either is down. Public, no auth, no
-  cache. Point an uptime monitor at this.
-- `docs/RUNBOOK.md` — health monitoring, Turso backup/restore (manual
-  `.dump` workflow + PITR), sidecar incident playbook, common
-  incidents. RPO 24h / RTO under 1h while we're under 100 DAUs.
-- `.gitignore`: `/backups/` so manual Turso dumps stay local.
+- `@sentry/nextjs` integration via the Sentry wizard. Project
+  `astrochaganti` on EU SaaS. Captures uncaught exceptions on client,
+  server, edge, and via App Router `global-error.tsx`.
+- Build-time source map upload — requires `SENTRY_AUTH_TOKEN` env var
+  on Vercel (added).
+- `docs/PROJECT.md`: documented `SENTRY_AUTH_TOKEN`.
 
-### Changed
-- "Ask an expert" → "Ask Dr Chaganti" everywhere user-facing
-  (NavBar button, AskPanel title, AskPanel success copy, today
-  insight CTAs in `lib/insights.ts`, and the corresponding test
-  fixtures).
-- `CLAUDE.md` doc map now lists `docs/RUNBOOK.md`.
+### Tuned
+- `tracesSampleRate: 0.1` (free tier ~5k errors/month).
+- `sendDefaultPii: false` everywhere — we have OAuth session cookies
+  + user emails, do not ship them to Sentry by default.
+- `enableLogs: false` — `console.log` not forwarded.
+
+### Removed
+- Wizard-generated `/sentry-example-page` and
+  `/api/sentry-example-api` routes — verification only.
 
 ---
 

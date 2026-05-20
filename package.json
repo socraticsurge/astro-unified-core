@@ -20,6 +20,7 @@
     "@base-ui/react": "^1.4.1",
     "@fusionstrings/panchangam": "^0.2.0",
     "@libsql/client": "^0.14.0",
+    "@sentry/nextjs": "^10.53.1",
     "@types/dompurify": "^3.0.5",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
