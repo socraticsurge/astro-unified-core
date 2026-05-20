@@ -1,6 +1,8 @@
 // Career engine client — calls the /career endpoint on our Python sidecar.
 // Returns analyze_career() output: D10 themes, planet-domain recommendations.
 
+import { fetchWithRetry } from "./fetch-with-retry";
+
 const SIDECAR =
   process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
 
@@ -19,12 +21,11 @@ export type CareerOutput = {
 
 export async function fetchCareer(input: CareerInput): Promise<CareerOutput> {
   try {
-    const res = await fetch(`${SIDECAR}/career`, {
+    const res = await fetchWithRetry(`${SIDECAR}/career`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
       cache: "no-store",
-      signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }));

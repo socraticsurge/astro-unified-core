@@ -27,6 +27,27 @@ export const compatibility = {
     return rs.rows as unknown as CompatibilityCheck[];
   },
 
+  async countByUser(userId: string): Promise<number> {
+    await ensureSchema();
+    const rs = await getClient().execute({
+      sql: "SELECT COUNT(*) FROM compatibility_checks WHERE user_id = ?",
+      args: [userId],
+    });
+    return Number(rs.rows[0]?.[0] ?? 0);
+  },
+
+  async findDuplicate(userId: string, id1: string, id2: string): Promise<CompatibilityCheck | undefined> {
+    await ensureSchema();
+    const rs = await getClient().execute({
+      sql: `SELECT * FROM compatibility_checks
+            WHERE user_id = ?
+            AND ((profile_id_1 = ? AND profile_id_2 = ?) OR (profile_id_1 = ? AND profile_id_2 = ?))
+            LIMIT 1`,
+      args: [userId, id1, id2, id2, id1],
+    });
+    return rs.rows[0] as unknown as CompatibilityCheck | undefined;
+  },
+
   async listAllWithDetails(): Promise<CompatibilityCheckWithDetails[]> {
     await ensureSchema();
     const rs = await getClient().execute(`

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { fetchWithRetry } from "@/lib/engines/fetch-with-retry";
 
 const SIDECAR_URL =
   process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
@@ -30,10 +31,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Call Python Sidecar
-    const res = await fetch(`${SIDECAR_URL}/muhurtha`, {
+    const res = await fetchWithRetry(`${SIDECAR_URL}/muhurtha`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(20_000),
       body: JSON.stringify({
         birth_data: {
           date_of_birth: p.date_of_birth,

@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Max Profiles Check
-    const existingProfiles = await db.profiles.list(userId);
-    if (existingProfiles.length >= 10) {
+    const profileCount = await db.profiles.count(userId);
+    if (profileCount >= 10) {
       return NextResponse.json({ error: "You have reached the maximum limit of 10 profiles." }, { status: 403 });
     }
 

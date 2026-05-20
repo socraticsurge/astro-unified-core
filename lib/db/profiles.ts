@@ -38,6 +38,15 @@ export const profiles = {
     return rs.rows as unknown as Profile[];
   },
 
+  async count(userId: string): Promise<number> {
+    await ensureSchema();
+    const rs = await getClient().execute({
+      sql: "SELECT COUNT(*) FROM profiles WHERE user_id = ?",
+      args: [userId],
+    });
+    return Number(rs.rows[0]?.[0] ?? 0);
+  },
+
   async listAll(): Promise<Profile[]> {
     await ensureSchema();
     const rs = await getClient().execute("SELECT * FROM profiles ORDER BY created_at DESC");

@@ -8,6 +8,31 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Reliability, performance, CSP, and test coverage (Session 2)
+
+### Security
+- **`next.config.ts`** — Removed `unsafe-eval` from `script-src` in the Content-Security-Policy header. Production Next.js builds do not use `eval()`; the directive was overly permissive and undermined XSS protection. Also tightened `connect-src` from `https:` (any external domain) to `'self'` — all browser→API traffic goes to the same origin.
+
+### Reliability
+- **`lib/engines/fetch-with-retry.ts`** (new) — Shared utility that adds a single 1-retry with 500ms backoff on 502/503/504 responses from sidecar or LLM calls. Does not retry 4xx (genuine client errors) or `TimeoutError` (already exceeded budget). Each attempt gets a fresh `AbortSignal.timeout` so the timer resets on retry.
+- **`lib/engines/dashaflow.ts`**, **`lib/engines/transit.ts`**, **`lib/engines/career.ts`**, **`app/api/readings/muhurtha/route.ts`** — All sidecar fetch calls now use `fetchWithRetry` instead of bare `fetch`. Transient sidecar cold-start 502s are now auto-recovered without surfacing an error to the user.
+
+### Performance
+- **`lib/db/profiles.ts`** — Added `count(userId)` method: `SELECT COUNT(*)` instead of loading all profile rows just to check the cap.
+- **`lib/db/compatibility.ts`** — Added `countByUser(userId)` and `findDuplicate(userId, id1, id2)` methods using targeted SQL queries. Previously the whole user's compatibility list was loaded to count and search for duplicates in JavaScript.
+- **`app/api/profiles/route.ts`** — Profile cap check now uses `db.profiles.count()` instead of `db.profiles.list()`. Fixes a TOCTOU race condition: two concurrent POST requests could both see count=9, both pass the check, and both create a profile — resulting in 11 profiles.
+- **`app/api/compatibility/route.ts`** — Compatibility cap and duplicate checks now use the two new targeted DB methods.
+
+### Test coverage
+- **`lib/tarabalam.test.ts`** (new) — 34 tests covering all exported functions in `lib/tarabalam.ts`: `getNakshatraIndex` (exact match, unknown, prefix/pada), `computeTara` (all 27×27 pairs, wrap-around, known values), `computeTithi` (Amavasya/Purnima, all pakshas, wrap-around, full range), `extrapolateMoonLongitude` (0-offset, daily motion, wrap, negative days, full-cycle), `extrapolateMoonNakshatra` (all 27 segments), `extrapolateSunLongitude` (daily motion, full year), `TARAS` constant integrity.
+- **`lib/engines/dashaflow.test.ts`** — Updated 503 test to mock `fetch` twice (initial call + retry) to match the new `fetchWithRetry` behaviour.
+
+### Code quality
+- **`package.json`** — Added `"prepare"` script (`git config core.hooksPath .githooks`) so any fresh `npm install` auto-registers the pre-push hook.
+- **`.githooks/pre-push`** (new) — Shell hook that runs `tsc --noEmit` and `vitest run` before every push. Blocks the push if either fails.
+
+---
+
 ## [2026-05-20] — Security hardening, reliability, and code quality (Session 1)
 
 ### Security
