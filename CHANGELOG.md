@@ -8,6 +8,27 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Prune dead npm dependencies
+
+### Removed
+Six unused packages from `package.json` + the matching `package-lock.json`
+entries, verified by grepping `from "<pkg>"` across the codebase:
+
+- `@fusionstrings/panchangam` — engine removed long ago; also dropped
+  its now-stale entry from `serverExternalPackages` in `next.config.ts`.
+- `dompurify` + `@types/dompurify` — only `isomorphic-dompurify` is
+  imported (`lib/sanitize.ts`). `isomorphic-dompurify` ships its own
+  `.d.ts`, so the explicit types package is also unnecessary.
+- `uuid` + `@types/uuid` — `lib/db/profiles.ts` uses `randomUUID`
+  from `node:crypto` instead. No imports anywhere.
+- `tsconfig-paths` — vitest has its own `resolve.alias`; `tsx` reads
+  `tsconfig.json` directly. No references in any config or source.
+
+Supersedes PR #78 (which had become unmergeable due to overlap with the
+earlier cleanup PR #80 that already removed the boilerplate SVGs).
+
+---
+
 ## [2026-05-20] — Today readings: copy / share / thumbs feedback
 
 ### Added

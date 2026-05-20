@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   // geo-tz reads .dat files at runtime; bundling breaks fs.readFile lookups.
   serverExternalPackages: [
     "better-sqlite3",
-    "@fusionstrings/panchangam",
     "geo-tz",
   ],
   // Force-include geo-tz's data files in the function bundle.
