@@ -24,6 +24,17 @@ export async function POST(request: Request) {
   const { success } = rateLimit(`consultation:${userId}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS);
   if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
+  // Prevent multiple in-flight requests per user — only one at a time should
+  // be awaiting payment / answer. The user can submit a fresh request once
+  // the prior one has been answered.
+  const existing = await db.consultationRequests.getPending(userId);
+  if (existing) {
+    return NextResponse.json(
+      { error: "You already have an outstanding consultation request. Please wait for it to be answered." },
+      { status: 409 }
+    );
+  }
+
   const body = await request.json();
   const { profile_ids, delivery_mode, slot_id } = body;
 

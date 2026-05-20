@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("next-auth/next", () => ({ getServerSession: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ authOptions: {} }));
+vi.mock("@/lib/auth", () => ({ authOptions: {}, getUserId: (s) => s?.user?.id ?? "" }));
 vi.mock("@/lib/admin", () => ({ isAdmin: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
 vi.mock("@/lib/engine-error", () => ({ extractEngineError: vi.fn() }));
@@ -24,7 +24,22 @@ import { rateLimit } from "@/lib/rate-limit";
 
 const session = { user: { id: "user-1" } };
 const profile = { id: "prof-1", user_id: "user-1", date_of_birth: "1990-01-01", time_of_birth: "12:00", latitude: 19, longitude: 72, timezone: "Asia/Kolkata" };
-const cachedReading = { id: "read-1", profile_id: "prof-1", engine: "dashaflow", output_data: JSON.stringify({ planets: {} }), input_snapshot: "{}", created_at: "2026-01-01T00:00:00Z" };
+// input_snapshot must match the test `profile`'s birth fields so the route's
+// `birthDataChanged()` check returns false and the cached value is served.
+const cachedReading = {
+  id: "read-1",
+  profile_id: "prof-1",
+  engine: "dashaflow",
+  output_data: JSON.stringify({ planets: {} }),
+  input_snapshot: JSON.stringify({
+    date_of_birth: "1990-01-01",
+    time_of_birth: "12:00",
+    latitude: 19,
+    longitude: 72,
+    timezone: "Asia/Kolkata",
+  }),
+  created_at: "2026-01-01T00:00:00Z",
+};
 
 describe("GET /api/readings/dashaflow", () => {
   beforeEach(() => vi.clearAllMocks());
