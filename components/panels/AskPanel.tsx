@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/Toast"
+import { PAYMENT_FLOW_ENABLED } from "@/lib/constants"
 
 export interface AskContext {
   profileName: string
@@ -130,7 +131,8 @@ export function AskPanel({
               )}
             </div>
 
-            {/* Delivery mode toggle — only when both options are available */}
+            {/* Delivery mode toggle — only when both options are available.
+                Fee labels are hidden when PAYMENT_FLOW_ENABLED=false. */}
             {showToggle && (
               <div className="grid grid-cols-2 gap-2">
                 {(["written", "live"] as const).map(m => {
@@ -151,9 +153,11 @@ export function AskPanel({
                       )}
                     >
                       <span className="text-xs font-medium">{label}</span>
-                      <span className={cn("text-[11px]", mode === m ? "text-[var(--color-accent)]" : "text-muted-foreground/60")}>
-                        {fee}
-                      </span>
+                      {PAYMENT_FLOW_ENABLED && (
+                        <span className={cn("text-[11px]", mode === m ? "text-[var(--color-accent)]" : "text-muted-foreground/60")}>
+                          {fee}
+                        </span>
+                      )}
                     </button>
                   )
                 })}
@@ -194,7 +198,7 @@ export function AskPanel({
                 >
                   {submitting
                     ? "Submitting…"
-                    : isFree
+                    : !PAYMENT_FLOW_ENABLED || isFree
                       ? "Submit question"
                       : `Submit · ${fmtRupees(writtenFeePaise)}`}
                 </Button>
@@ -211,7 +215,7 @@ export function AskPanel({
                   href="/consultation"
                   className="inline-flex items-center justify-center w-full rounded-md bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-[var(--color-accent)] text-sm font-medium px-4 py-2.5 hover:bg-[var(--color-accent-faint)]/80 transition-colors"
                 >
-                  Book a live session · {fmtRupees(liveFeePaise)} →
+                  Book a live session{PAYMENT_FLOW_ENABLED ? ` · ${fmtRupees(liveFeePaise)}` : ""} →
                 </a>
               </div>
             )}

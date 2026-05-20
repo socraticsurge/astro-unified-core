@@ -73,19 +73,26 @@ export const consultationRequests = {
 
   async create(
     userId: string,
-    data: Pick<ConsultationRequest, "profile_ids" | "life_area" | "observation" | "constraint_text" | "objective" | "options" | "delivery_mode"> & { amount_paise: number; slot_starts_at?: string | null }
+    data: Pick<ConsultationRequest, "profile_ids" | "life_area" | "observation" | "constraint_text" | "objective" | "options" | "delivery_mode"> & {
+      amount_paise: number;
+      slot_starts_at?: string | null;
+      /** Initial status. Routes pass `pending` when PAYMENT_FLOW_ENABLED is false; defaults to legacy `pending_payment` otherwise. */
+      initial_status?: "pending_payment" | "pending";
+    }
   ): Promise<ConsultationRequest> {
     await ensureSchema();
     const id = randomUUID();
     const created_at = new Date().toISOString();
+    const status: "pending_payment" | "pending" = data.initial_status ?? "pending_payment";
     await getClient().execute({
       sql: `INSERT INTO consultation_requests
             (id, user_id, profile_ids, life_area, observation, constraint_text, objective, options, delivery_mode, status, amount_paise, slot_starts_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment', ?, ?, ?)`,
-      args: [id, userId, data.profile_ids, data.life_area, data.observation, data.constraint_text, data.objective, data.options ?? null, data.delivery_mode, data.amount_paise, data.slot_starts_at ?? null, created_at],
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [id, userId, data.profile_ids, data.life_area, data.observation, data.constraint_text, data.objective, data.options ?? null, data.delivery_mode, status, data.amount_paise, data.slot_starts_at ?? null, created_at],
     });
-    const { amount_paise, slot_starts_at, ...rest } = data;
-    return { id, user_id: userId, status: "pending_payment", amount_paise, slot_starts_at: slot_starts_at ?? null, admin_note: null, user_rating: null, user_feedback_note: null, answered_at: null, created_at, ...rest };
+    const { amount_paise, slot_starts_at, initial_status: _ignored, ...rest } = data;
+    void _ignored;
+    return { id, user_id: userId, status, amount_paise, slot_starts_at: slot_starts_at ?? null, admin_note: null, user_rating: null, user_feedback_note: null, answered_at: null, created_at, ...rest };
   },
 
   async markPaid(id: string): Promise<void> {
