@@ -8,6 +8,36 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Today readings: copy / share / thumbs feedback
+
+### Added
+- New reusable `<ReadingActions>` (in `components/tabs/ReadingActions.tsx`):
+  Copy (clipboard), Share (Web Share API with copy fallback), Thumbs
+  Up / Down. Toggles off on second tap. Rolls back optimistic state on
+  network failure.
+- Wired into both Today-tab reading cards (`Current period —` and
+  `Your natal chart`) via plumbing through `DashboardClient` →
+  `TodayTab`. Each card now exposes the four actions in a small
+  toolbar row at the bottom.
+- PostHog events fire from the client:
+  - `today_reading_copied` `{ engine, length }`
+  - `today_reading_shared` `{ engine, surface: 'web-share'|'clipboard-fallback', length }`
+  - `today_reading_rated`  `{ engine, rating: 1 | -1 | null }`
+
+### Added (API)
+- `PATCH /api/readings/[id]/rating` (new) — user-facing thumbs endpoint.
+  Validates the session user owns the profile the reading belongs to
+  via `db.profiles.get(profile_id, userId)`. Admins can rate any
+  reading. Returns 401/404/400 appropriately. Six unit tests cover the
+  branches.
+- `db.readings.getById(id)` — small CRUD helper used by the rating
+  endpoint.
+- `GET /api/readings/today-reading` now returns `meta.current` and
+  `meta.natal` (each `{ id, rating }`) alongside the existing
+  `output` so the Today tab can wire ratings without an extra fetch.
+
+---
+
 ## [2026-05-20] — Landing polish: anchored eyebrow, wind cross-fade, mobile pills out of glass
 
 ### Changed

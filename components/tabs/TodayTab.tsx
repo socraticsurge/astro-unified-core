@@ -1,13 +1,19 @@
 "use client"
 import { generateInsights } from '@/lib/insights'
 import { TodayInsightCard, type TodayInsight } from './TodayInsightCard'
+import { ReadingActions } from './ReadingActions'
 import { TwoColumnTabGrid, TabColumn, TabSection } from '@/components/unified/TabGrid'
 
 type DashaLevel = { planet?: string; start?: string; end?: string }
 
+interface TodayReadingMeta {
+  current: { id: string | null; rating: 1 | -1 | null }
+  natal:   { id: string | null; rating: 1 | -1 | null }
+}
 interface TodayReadingOutput {
   dasha_reading: string
   chart_reading: string
+  meta?: TodayReadingMeta
 }
 
 interface TodayTabProps {
@@ -102,6 +108,15 @@ export function TodayTab({
             <p style={{ fontSize: 13, color: "var(--color-ink-2)", lineHeight: 1.6 }}>
               {todayReadingOutput?.dasha_reading}
             </p>
+            {todayReadingOutput?.dasha_reading && (
+              <ReadingActions
+                text={todayReadingOutput.dasha_reading}
+                readingId={todayReadingOutput.meta?.current.id ?? null}
+                initialRating={todayReadingOutput.meta?.current.rating ?? null}
+                engine="today-current"
+                shareTitle="My current dasha period — Astro Chaganti"
+              />
+            )}
           </div>
         </TabSection>
       </TabColumn>
@@ -116,6 +131,15 @@ export function TodayTab({
             <p style={{ fontSize: 13, color: "var(--color-ink-2)", lineHeight: 1.65 }}>
               {todayReadingOutput?.chart_reading}
             </p>
+            {todayReadingOutput?.chart_reading && (
+              <ReadingActions
+                text={todayReadingOutput.chart_reading}
+                readingId={todayReadingOutput.meta?.natal.id ?? null}
+                initialRating={todayReadingOutput.meta?.natal.rating ?? null}
+                engine="today-natal"
+                shareTitle="My natal chart reading — Astro Chaganti"
+              />
+            )}
           </div>
         </TabSection>
       </TabColumn>
