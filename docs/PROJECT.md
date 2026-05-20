@@ -146,6 +146,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `SENTRY_AUTH_TOKEN`        | Build-time only. Uploads source maps to Sentry for readable stack traces. From Sentry → Settings → Auth Tokens. |
 | `NEXT_PUBLIC_POSTHOG_KEY`  | PostHog Project API key (`phc_…`). Browser-visible (public-prefix is correct). |
 | `NEXT_PUBLIC_POSTHOG_HOST` | PostHog ingest URL — `https://eu.i.posthog.com`. Browser hits `/ingest/*` which `next.config.ts` rewrites to this. |
+| `RESEND_API_KEY`           | Resend API key (`re_…`). Used to send the admin notification email on new consultation requests. If unset, notifications are silently skipped (helper short-circuits). Recipient and from-address are hardcoded in `lib/constants.ts`. |
 
 ### Sidecar — none required.
 

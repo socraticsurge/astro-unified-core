@@ -8,6 +8,34 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Admin email notifications via Resend
+
+### Added
+- `resend` SDK + `lib/email/client.ts` (lazy singleton, returns null when
+  `RESEND_API_KEY` is missing so local dev / tests don't blow up).
+- `lib/email/admin-notify.ts` — sends a formatted HTML+text email to the
+  admin recipient when a new consultation request lands. Includes
+  requester, profiles, mode, slot (if appointment), the question itself,
+  and a link to /admin.
+- Wired into `app/api/consultation-requests/route.ts` POST handler.
+  Uses Next.js 16 `after()` so the user-facing submission isn't delayed
+  by Resend latency. Wrapped in try/catch — outside a request scope
+  (tests), it silently skips.
+- Constants in `lib/constants.ts`:
+  - `ADMIN_EMAIL_NOTIFICATIONS_ENABLED` (kill-switch, default `true`)
+  - `ADMIN_NOTIFY_EMAIL` = `astrochaganti@gmail.com`
+  - `EMAIL_FROM` = `Astro Chaganti <onboarding@resend.dev>` — Resend's
+    shared sender; switch to a verified-domain sender once
+    `astrochaganti.com` is live.
+- `docs/PROJECT.md`: documented `RESEND_API_KEY`.
+
+### Why
+- The "respond by email" flow depended on Dr. Chaganti manually checking
+  the admin queue. Without a notification, a question could sit for
+  days. This closes that gap before public launch.
+
+---
+
 ## [2026-05-20] — Enforce ESLint as a gate
 
 ### Changed
