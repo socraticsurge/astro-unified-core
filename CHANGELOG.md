@@ -8,6 +8,58 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — PR-8: Legacy Compatibility UI removed + Transit chart
+
+Two corrections from user testing:
+1. The standalone Compatibility screens (`/compatibility`, `/compatibility/[id]`,
+   their clients + chat/insight components) are unreachable from the live UI —
+   no NavBar link, no in-app router push outside the legacy client itself.
+   The Compare tab inside the dashboard is the canonical compatibility view now.
+2. The Transits tab should render as a D1-style chart with the transiting
+   planet placements overlaid on the natal SAV bindu lattice — that's how the
+   reading is done classically. The card grid I built in PR-4 missed that.
+
+### Removed (legacy compatibility, UI-orphaned)
+- `app/compatibility/page.tsx`
+- `app/compatibility/[id]/page.tsx`
+- `app/compatibility/[id]/CompatibilityDetailClient.tsx`
+- `components/compatibility/CompatibilityClient.tsx`
+- `components/engines/CompatibilityChat.tsx` (only consumer was the deleted client)
+- `components/engines/CompatibilityInsightShell.tsx` (same)
+- `app/api/readings/chat/compatibility/route.ts` + its test (only consumer was
+  the deleted `CompatibilityChat` component)
+- `app/api/readings/chat/route.ts` (orphaned by the prior `ProfileChat` deletion;
+  no remaining caller)
+
+Kept (still in use):
+- `app/api/compatibility/route.ts` + `app/api/compatibility/[id]/route.ts` —
+  consumed by the dashboard Compare tab.
+- `app/api/readings/ai-insight/compatibility/route.ts` — consumed by the
+  admin `AIAdminPanel` when expanding a compare check.
+- `lib/engines/groq.ts` — still wired through `lib/engines/ai-caller.ts`
+  (today-reading + admin draft + ai-insight may route to Groq depending on
+  the configured model).
+
+Net: ~700 lines of dead UI + API code gone.
+
+### Changed
+- **TransitsTab → D1-style chart with natal SAV bindus + transit planet
+  positions** (per user correction). `NatalChartGrid` receives the transit's
+  `planets[*].sign` keyed by `signKey="sign"`, with the natal lagna for
+  orientation and the natal `sarvashtakavarga` for per-sign bindu counts.
+  The compact card grid stays below the chart as a "Transit detail" strip —
+  it's still useful for retrograde markers and the H/Lagna / H/Moon callouts,
+  but the chart now leads.
+- `ProfileView` passes `chartOutput` to `TransitsTab`.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 267/267 pass (-8 from PR-7: the deleted compatibility-chat
+  route had 8 tests; all other tests untouched)
+- `npm run build` → success
+
+---
+
 ## [2026-05-20] — PR-7: AdminTables split + ExplainerModal mobile
 
 The remaining cleanup items from the audit (N3 + N7).

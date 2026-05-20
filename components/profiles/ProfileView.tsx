@@ -260,6 +260,7 @@ export function ProfileView({
         {activeTab === 'transits' && (
           <div id="profileview-panel-transits" role="tabpanel" aria-labelledby="profileview-tab-transits">
             <TransitsTab
+              chartOutput={chartOutput}
               transitOutput={transitOutput}
               isTransitLoading={isTransitLoading}
               transitError={transitError}
