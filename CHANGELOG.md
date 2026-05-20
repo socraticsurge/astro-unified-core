@@ -8,6 +8,47 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Landing API hotfix + UX polish (gender, loader, snippet box)
+
+### Fixed
+- **`/api/landing/today` was returning HTTP 500** on every request to the
+  development preview. Two compounding bugs:
+  1. **Race condition in `recordAttempt`** — the SELECT-then-INSERT
+     pattern hit `UNIQUE constraint failed: daily_landing.ist_date`
+     whenever two cold-cache visitors landed at nearly the same time.
+     Replaced with a single atomic `INSERT … ON CONFLICT(ist_date) DO
+     UPDATE` UPSERT.
+  2. **Unwrapped DB calls in the route handler** — `getByDate()` and
+     `getMostRecentSuccess()` could throw and bubble up as a 500.
+     Wrapped both in try/catch; the route now gracefully falls through
+     to the cold-start 503 instead of crashing.
+- **`lib/db/daily-landing.ts` now self-creates its table.** Added a
+  module-level `ensureTable()` that runs an idempotent `CREATE TABLE IF
+  NOT EXISTS` before every operation, so the module is robust to any
+  schema-version drift (the main `ensureSchema()` flow gates table
+  creation by `schema_version`, which can skip the CREATE if version
+  was bumped without the table actually existing).
+- **Snippet's last line was visually clipping descenders** (the `g` /
+  `y` tails of "obvious" etc.). Bumped `.snippetText` height from
+  11.5em → 13em, `line-height` 1.55 → 1.6, added `padding-bottom:
+  0.35em` to the snippet `<p>` so the `-webkit-line-clamp` +
+  `overflow: hidden` combo doesn't visually shear the bottom line.
+  Mobile equivalent: height 9em → 10em, padding 0.3em.
+
+### Changed
+- **Profile-creation loader dismisses on chart-ready instead of
+  all-four-fetches-ready.** Was: wait for chart + transit + career +
+  today-reading (slow LLM call). Now: wait for chart only — the other
+  engines load behind the dashboard with per-engine loading states.
+  Minimum animation time also shortened 2s → 1.4s. Combined effect:
+  loader now feels deliberate, not stuck.
+- **Profile form gender options reduced to Male / Female.** Removed
+  the "Other" option from both the `<select>` in `ProfileForm.tsx`
+  and the `GENDERS` constant in `ProfileFormFields.tsx`. Existing
+  profiles with `gender: "Other"` remain valid in the DB.
+
+---
+
 ## [2026-05-21] — Landing page polish: auto-resume cycling, em-dash safety, no-clip snippets, faster first paint
 
 ### Changed
