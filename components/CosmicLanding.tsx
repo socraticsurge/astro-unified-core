@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { signIn } from 'next-auth/react'
 import styles from './CosmicLanding.module.css'
+import { LANDING_FALLBACK_ASCENDANTS } from '@/lib/content/landing-fallback'
 
 const ZODIAC = [
   { symbol: '♈', name: 'Aries', key: 'aries' as const },
@@ -57,7 +58,6 @@ export function CosmicLanding() {
   const zodiacGRef = useRef<SVGGElement>(null)
 
   const [data, setData] = useState<LandingData | null>(null)
-  const [errored, setErrored] = useState(false)
 
   // Read the restored ascendant from localStorage exactly once during initial
   // render (useState lazy initializer). Avoids the "setState in effect"
@@ -86,7 +86,10 @@ export function CosmicLanding() {
   // pinSign captures fresh state every render; refresh the ref accordingly.
   useEffect(() => { pinSignRef.current = pinSign })
 
-  // Fetch today's landing data once on mount.
+  // Fetch today's landing data once on mount. A failure is non-fatal: the
+  // page keeps cycling through the static fallback snippets defined in
+  // lib/content/landing-fallback.ts, so the visitor always sees per-sign
+  // text even when the LLM endpoint is cold or misconfigured.
   useEffect(() => {
     let cancelled = false
     fetch('/api/landing/today', { cache: 'no-store' })
@@ -95,18 +98,19 @@ export function CosmicLanding() {
         return (await r.json()) as LandingData
       })
       .then(d => { if (!cancelled) setData(d) })
-      .catch(() => { if (!cancelled) setErrored(true) })
+      .catch(() => { /* fall back to static per-sign snippets */ })
     return () => { cancelled = true }
   }, [])
 
-  // Auto-cycle through signs when not pinned and data is loaded.
+  // Auto-cycle through signs when not pinned. Runs immediately on mount so
+  // the page feels alive even before /api/landing/today resolves.
   useEffect(() => {
-    if (isPinned || !data) return
+    if (isPinned) return
     const handle = setInterval(() => {
       setActiveIndex(prev => (prev + 1) % ZODIAC.length)
     }, AUTO_CYCLE_MS)
     return () => clearInterval(handle)
-  }, [isPinned, data])
+  }, [isPinned])
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -331,8 +335,10 @@ export function CosmicLanding() {
   }, [])
 
   const activeSign = ZODIAC[activeIndex]
-  const snippet = data?.ascendants?.[activeSign.key] ?? ''
-  const showFallback = errored || !data
+  // Prefer LLM-generated copy for today; fall back to the static per-sign
+  // paragraph so the panel is never empty.
+  const snippet =
+    data?.ascendants?.[activeSign.key] || LANDING_FALLBACK_ASCENDANTS[activeSign.key]
   const skyLabel = data ? formatSkyLabel(data) : null
 
   return (
@@ -365,16 +371,11 @@ export function CosmicLanding() {
           <circle r={320} fill="url(#rimGlow)" />
           <g
             ref={zodiacGRef}
-            className={styles.zodiacRotor}
             style={{
               transformOrigin: '0px 0px',
-              transform: `rotate(${-((activeIndex + 0.5) * 30)}deg)`,
+              animation: 'spinZodiac 160s linear infinite',
             }}
           />
-          {/* Stationary indicator at 12 o'clock (outside the rotor) */}
-          <g className={styles.signIndicator}>
-            <polygon points="0,-310 -7,-298 7,-298" fill="rgba(251,191,36,0.95)" />
-          </g>
         </svg>
       </div>
 
@@ -388,37 +389,28 @@ export function CosmicLanding() {
             </div>
           )}
 
-          {showFallback ? (
-            <div className={styles.snippetText}>
-              <span className={styles.activeSignLabel}>Astro Chaganti</span>
-              <p>Sign in to begin.</p>
-            </div>
-          ) : (
-            <div className={styles.snippetText}>
-              <span className={styles.activeSignLabel}>{activeSign.name.toUpperCase()} — RISING</span>
-              <p>{snippet || '…'}</p>
-            </div>
-          )}
+          <div className={styles.snippetText}>
+            <span key={`label-${activeSign.key}`} className={styles.activeSignLabel}>{activeSign.name.toUpperCase()} — RISING</span>
+            <p key={`copy-${activeSign.key}`}>{snippet}</p>
+          </div>
 
           {/* Mobile pill strip (hidden on desktop via CSS) */}
-          {!showFallback && (
-            <div className={styles.pillStrip} role="tablist" aria-label="Choose your ascendant">
-              {ZODIAC.map((z, i) => (
-                <button
-                  key={z.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === activeIndex}
-                  className={i === activeIndex ? `${styles.pill} ${styles.pillActive}` : styles.pill}
-                  onClick={() => pinSign(i, 'tap')}
-                  title={z.name}
-                >
-                  <span aria-hidden>{z.symbol}</span>
-                  <span className={styles.srOnly}>{z.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          <div className={styles.pillStrip} role="tablist" aria-label="Choose your ascendant">
+            {ZODIAC.map((z, i) => (
+              <button
+                key={z.key}
+                type="button"
+                role="tab"
+                aria-selected={i === activeIndex}
+                className={i === activeIndex ? `${styles.pill} ${styles.pillActive}` : styles.pill}
+                onClick={() => pinSign(i, 'tap')}
+                title={z.name}
+              >
+                <span aria-hidden>{z.symbol}</span>
+                <span className={styles.srOnly}>{z.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className={styles.panelDivider} />

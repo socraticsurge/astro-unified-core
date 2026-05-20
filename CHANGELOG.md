@@ -8,6 +8,60 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Landing page: restore wheel spin, fix font var, never-empty snippet
+
+### Fixed
+- **Zodiac wheel no longer rotates naturally.** PR #81 had replaced
+  the continuous slow rotation with a discrete
+  `transform: rotate(${activeIndex * 30}deg)` snap on the rotor `<g>`,
+  so the wheel only moved 30° every 6.5 s (auto-cycle step) and felt
+  jerky. Restored the pre-#81 behaviour:
+  `animation: spinZodiac 160s linear infinite` directly on the rotor.
+  The `@keyframes spinZodiac` in `app/globals.css` was already there
+  — the rewrite just stopped referencing it. Click-to-pin still
+  updates the panel snippet; the wheel itself stays decorative.
+- **Landing fonts fell back to Georgia.**
+  `components/CosmicLanding.module.css` referenced
+  `var(--font-cormorant)` in three places, but that CSS variable is
+  not defined anywhere — `app/layout.tsx` exposes only
+  `--font-display` (Libre Baskerville), `--font-ui` (Inter), and
+  `--font-mono`. The italic 32 px snippet and the "Astro *Chaganti*"
+  brand row were silently falling back to Georgia. Swapped all three
+  references to `var(--font-display)`.
+- **Snippets never appeared.** On cold start (no prior `daily_landing`
+  row) and any subsequent generation failure (sidecar timeout,
+  missing `GOOGLE_GEMINI_API_KEY`, etc.), `/api/landing/today`
+  returns `503 no_content_available`, the client set `errored=true`,
+  and the panel rendered "Astro Chaganti / Sign in to begin." — no
+  per-sign text at all. Loosened PR #81's "no canned-text fallback"
+  rule: added `lib/content/landing-fallback.ts` with one short
+  (~30–45 word) curated paragraph per ascendant, in the same
+  observational tone as the LLM prompt. The client now always
+  renders a per-sign paragraph from that map; when the API succeeds,
+  today's LLM-generated copy supersedes the fallback transparently.
+
+### Changed
+- Removed the dead `.zodiacRotor` and `.signIndicator` CSS classes,
+  the 12 o'clock indicator polygon, the mobile media-query rule that
+  hid the indicator, and the `errored` / `showFallback` client state
+  — the snippet path is now always live.
+- Auto-cycle effect no longer waits for `data` to load; it ticks
+  through the fallback snippets immediately on mount.
+- Added a small `landingSnippetFade` keyframe so the active sign
+  label and snippet text fade in (~500 ms) whenever the active sign
+  changes (auto-cycle or click). React `key` on the `<p>` /
+  `<span>` re-triggers the animation per cycle.
+
+### Notes
+- The cold-start / failure UX no longer reads as broken even when
+  the LLM endpoint is unreachable. The "Today — Moon in …" sky
+  badge still only appears when the live endpoint returns; the
+  static fallback never invents transit facts.
+- `tsc --noEmit`, `npx vitest run` (387 tests), and `npx eslint .`
+  all clean.
+
+---
+
 ## [2026-05-20] — Living landing: 12 daily ascendant snippets
 
 ### Added
