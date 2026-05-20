@@ -45,7 +45,6 @@ Things that work but are suboptimal. Prioritise when there is slack.
 
 | # | Description | File(s) | Effort |
 |---|---|---|---|
-| T2 | `proxy.ts` is the NextAuth middleware but uses a non-standard name. Next.js convention is `middleware.ts`. | `proxy.ts` | Small — rename + update any references |
 | T3 | `db.users.list()` and `db.feedback.list()` cast rows via `as unknown as T[]`. A Zod schema parse would catch DB/schema drift at runtime. | `lib/db/users.ts`, `lib/db/feedback.ts` | Medium |
 | T4 | Admin panel `AdminTables.tsx` sort uses string-indexed sort with `Record<string, unknown>` cast. | `app/admin/AdminTables.tsx` | Small |
 | T5 | `lib/content/loader.ts` caches markdown in memory per Lambda instance. Cold starts re-parse all 538 files. Pre-building a static JSON bundle at build time would eliminate this. | `lib/content/loader.ts` | Medium |

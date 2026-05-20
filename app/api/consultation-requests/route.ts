@@ -14,7 +14,7 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const requests = await db.consultationRequests.listByUser(userId);
-  return NextResponse.json(requests);
+  return NextResponse.json(requests, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(request: Request) {
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
       amount_paise,
       slot_starts_at,
     });
-    return NextResponse.json(created, { status: 201 });
+    return NextResponse.json(created, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     // If create fails after a slot was booked, release the slot to prevent orphaning
     if (slot_starts_at && slot_id) {

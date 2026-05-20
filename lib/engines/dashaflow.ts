@@ -26,6 +26,7 @@ export async function fetchDashaflow(input: DashaflowInput): Promise<DashaflowOu
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
       cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: res.statusText }));
@@ -37,9 +38,10 @@ export async function fetchDashaflow(input: DashaflowInput): Promise<DashaflowOu
     const json = (await res.json()) as { status?: string; data?: unknown };
     return { data: json.data ?? null };
   } catch (e) {
+    const isTimeout = e instanceof Error && e.name === "TimeoutError";
     return {
       data: null,
-      error: e instanceof Error ? e.message : String(e),
+      error: isTimeout ? "Sidecar request timed out. Please try again." : (e instanceof Error ? e.message : String(e)),
     };
   }
 }

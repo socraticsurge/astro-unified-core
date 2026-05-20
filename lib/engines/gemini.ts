@@ -29,6 +29,7 @@ export async function callGemini(
         maxOutputTokens: opts?.maxOutputTokens ?? 4096,
       },
     }),
+    signal: AbortSignal.timeout(60_000),
   });
 
   if (!response.ok) {
@@ -67,6 +68,7 @@ export async function callGeminiText(
         maxOutputTokens: opts?.maxOutputTokens ?? 8192,
       },
     }),
+    signal: AbortSignal.timeout(60_000),
   });
 
   if (!response.ok) {

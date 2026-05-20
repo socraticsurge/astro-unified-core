@@ -17,6 +17,11 @@ export async function POST(req: NextRequest) {
 
     if (!profile_id) return NextResponse.json({ error: "Profile ID required" }, { status: 400 });
 
+    const VALID_EVENT_TYPES = ["marriage", "house_entry", "business", "travel", "education", "medical"] as const;
+    if (event_type && !VALID_EVENT_TYPES.includes(event_type)) {
+      return NextResponse.json({ error: "Invalid event_type" }, { status: 400 });
+    }
+
     const p = await db.profiles.get(profile_id, userId);
     if (!p) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
 
@@ -28,6 +33,7 @@ export async function POST(req: NextRequest) {
     const res = await fetch(`${SIDECAR_URL}/muhurtha`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(20_000),
       body: JSON.stringify({
         birth_data: {
           date_of_birth: p.date_of_birth,

@@ -11,7 +11,7 @@ export async function GET() {
   
   const userId = (session.user as { id: string }).id;
   const profiles = await db.profiles.list(userId);
-  return NextResponse.json(profiles);
+  return NextResponse.json(profiles, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(req: NextRequest) {
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       relationship,
     });
 
-    return NextResponse.json(profile, { status: 201 });
+    return NextResponse.json(profile, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (e) {
     console.error("POST /api/profiles failed:", e);
     const msg = e instanceof Error ? e.message : "Internal error";

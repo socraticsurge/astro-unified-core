@@ -8,6 +8,28 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Security hardening, reliability, and code quality (Session 1)
+
+### Security
+- **`app/api/profiles/route.ts`**, **`app/api/consultation-requests/route.ts`**, **`app/api/compatibility/route.ts`**, **`app/api/readings/dashaflow/route.ts`** — Added `Cache-Control: private, no-store` to all authenticated data responses. Without this header, browsers and shared proxies could cache personal chart data and serve it to other users on the same device or network. AI insight and chat routes already had this header; the gap was in the core data retrieval endpoints.
+- **`lib/sanitize.ts`** — Replaced homegrown regex-based HTML sanitizer (known OWASP anti-pattern, bypassable with obfuscated payloads) with `isomorphic-dompurify`. DOMPurify is maintained by cure53, uses a real DOM parser on both client and server, and is the industry standard. Package was already in `dependencies`; only the implementation changed.
+- **`app/api/readings/muhurtha/route.ts`** — Added enum validation for `event_type` against `["marriage", "house_entry", "business", "travel", "education", "medical"]`. Unknown values now return 400 instead of being forwarded to the sidecar.
+- **`app/api/readings/tarabalam/route.ts`** — Added validation that `end_date` is strictly after `start_date`. Previously a reversed range produced a negative `daysDiff` that passed the 90-day guard and sent a backwards date range to the engine.
+- **`app/api/admin/backfill/route.ts`**, **`app/api/admin/clear-compatibility/route.ts`** — Replaced direct `createClient()` instantiation with `getClient()` from `lib/db/client.ts`. Admin routes were creating fresh libSQL client instances on every request instead of using the shared singleton, accumulating connection objects on warm Lambdas and bypassing future safety guards.
+
+### Reliability
+- **`lib/engines/dashaflow.ts`**, **`lib/engines/transit.ts`**, **`lib/engines/career.ts`** — Added `AbortSignal.timeout(20_000)` (20s) to all sidecar fetch calls. Node's default timeout is ~2 minutes; a hung sidecar would block the Lambda and produce a raw Vercel 504 with no user-friendly message. `TimeoutError` now returns a clear message.
+- **`lib/engines/gemini.ts`**, **`lib/engines/groq.ts`** — Added `AbortSignal.timeout(60_000)` (60s) to all LLM API fetch calls.
+- **`app/api/readings/muhurtha/route.ts`** — Added 20s timeout to the muhurtha sidecar fetch.
+
+### Code quality
+- **`lib/db/client.ts`** — Parameterized the `INSERT OR IGNORE INTO settings` statement (was using a template literal with `new Date().toISOString()` directly in SQL, violating the codebase's own parameterized-query rule). Replaced the 14 empty `catch {}` blocks around `ALTER TABLE` migrations with a shared `migrate()` helper that logs unexpected errors (i.e. errors that are NOT "duplicate column name"), making genuine migration failures visible instead of silent.
+- **`package.json`** — Fixed `"test"` script from `"jest"` (no config, always fails) to `"vitest run"`. Added `"test:watch": "vitest"` and `"test:coverage": "vitest run --coverage"`.
+- **`vitest.config.ts`** — Added coverage configuration: v8 provider, text + lcov reporters, 60% statement/branch thresholds.
+- **`proxy.ts` → `middleware.ts`** — Renamed to follow Next.js convention. Next.js loads middleware from `middleware.ts`; the previous name worked but was non-standard.
+
+---
+
 ## [2026-05-14] — Fix Muhurtha event type mismatch
 
 ### Fixed
