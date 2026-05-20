@@ -12,6 +12,7 @@ import {
 import type { ConsultationRequest, Profile, ConsultationSlot } from "@/lib/db";
 import type { DeliveryMode } from "@/lib/consultation";
 import { fonts, textStyles, colors, scale, interactive, glass, radii, motion } from "@/lib/typography";
+import { PAYMENT_FLOW_ENABLED } from "@/lib/constants";
 import { ProfileSelectorCard } from "@/components/profile/ProfileSelectorCard";
 
 const UPI_ID = "meherkalyanichaganti@okaxis";
@@ -201,7 +202,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                   selected={deliveryMode === "written"}
                   onClick={() => { setDeliveryMode("written"); setSelectedSlotId(null); }}
                   title="Written Response"
-                  price={formatFee(writtenFeePaise)}
+                  price={PAYMENT_FLOW_ENABLED ? formatFee(writtenFeePaise) : ""}
                   description="Detailed written answer within a few days"
                 />
               )}
@@ -210,7 +211,7 @@ export function ConsultationForm({ allRequests, profiles, writtenConsultationEna
                   selected={deliveryMode === "appointment"}
                   onClick={() => setDeliveryMode("appointment")}
                   title="Live Session"
-                  price={formatFee(liveFeePaise)}
+                  price={PAYMENT_FLOW_ENABLED ? formatFee(liveFeePaise) : ""}
                   description="25-minute live consultation"
                 />
               )}
@@ -334,21 +335,30 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
   userName: string;
   userEmail: string;
 }) {
-  const awaitingPayment = pending.status === "pending_payment" || pending.status === "pending";
+  // When PAYMENT_FLOW_ENABLED is off, "pending" requests are treated as
+  // queued for the astrologer — no payment step. The Payment Instructions
+  // card and the "Awaiting payment" wording are suppressed.
+  const showPaymentFlow = PAYMENT_FLOW_ENABLED && (pending.status === "pending_payment" || pending.status === "paid");
+  const awaitingPayment = showPaymentFlow && pending.status === "pending_payment";
   const isPaid = pending.status === "paid";
+  const isQueued = !PAYMENT_FLOW_ENABLED && pending.status !== "answered";
 
   return (
     <div style={{
       ...glassCard,
       padding: "20px",
-      borderColor: isPaid ? "rgba(52,211,153,0.2)" : "var(--color-accent-dim)",
-      background: isPaid ? "rgba(4,120,87,0.10)" : "rgba(120,53,15,0.12)",
+      borderColor: (isPaid || isQueued) ? "rgba(52,211,153,0.2)" : "var(--color-accent-dim)",
+      background: (isPaid || isQueued) ? "rgba(4,120,87,0.10)" : "rgba(120,53,15,0.12)",
       boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
     }}>
       <div className="flex items-center gap-2 mb-4">
         <Clock className="h-4 w-4 text-[var(--color-warning)]" />
-        <span style={{ ...fonts.display, fontSize: "1rem", color: isPaid ? "var(--color-success)" : "var(--color-accent)" }}>
-          {isPaid ? "Payment confirmed — in the queue" : "Awaiting payment"}
+        <span style={{ ...fonts.display, fontSize: "1rem", color: (isPaid || isQueued) ? "var(--color-success)" : "var(--color-accent)" }}>
+          {isQueued
+            ? "In the queue — Dr. Chaganti will respond shortly"
+            : isPaid
+              ? "Payment confirmed — in the queue"
+              : "Awaiting payment"}
         </span>
       </div>
 
@@ -386,14 +396,14 @@ function PendingCard({ pending, profileNames, userName, userEmail }: {
         <PaymentInstructions pending={pending} profileNames={profileNames} userName={userName} userEmail={userEmail} />
       )}
 
-      {isPaid && (
+      {(isPaid || isQueued) && (
         <div className="space-y-3">
           <div className="rounded-xl border border-[var(--color-success-border)] bg-[var(--color-success-faint)] px-4 py-3 flex items-center gap-2 text-[var(--color-success)] text-sm">
             <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
             <span style={fonts.display}>
               {pending.delivery_mode === "appointment"
                 ? "Confirmed. You will receive a Google Meet link for your slot."
-                : "Confirmed. Dr. Chaganti will answer your question shortly."}
+                : "Confirmed. Dr. Chaganti will answer your question shortly. He'll respond by email."}
             </span>
           </div>
           {pending.delivery_mode === "appointment" && pending.slot_starts_at && (

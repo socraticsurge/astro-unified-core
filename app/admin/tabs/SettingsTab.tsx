@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { AppSettings, ConsultationSlot } from "@/lib/db";
+import { PAYMENT_FLOW_ENABLED } from "@/lib/constants";
 
 interface SettingsTabProps {
   appSettings: AppSettings;
@@ -107,40 +108,46 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
           />
         </div>
 
-        <div className="border-t border-[var(--color-border-subtle)]" />
+        {/* Pricing section is dormant until PAYMENT_FLOW_ENABLED is flipped on.
+            Payment is currently handled out-of-band (email reply). */}
+        {PAYMENT_FLOW_ENABLED && (
+          <>
+            <div className="border-t border-[var(--color-border-subtle)]" />
 
-        <div className="space-y-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pricing</p>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">Written Response (₹)</label>
-              <input
-                type="number"
-                min={0}
-                value={writtenFeeRs}
-                onChange={(e) => setWrittenFeeRs(parseInt(e.target.value, 10) || 0)}
-                className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
-              />
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pricing</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Written Response (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={writtenFeeRs}
+                    onChange={(e) => setWrittenFeeRs(parseInt(e.target.value, 10) || 0)}
+                    className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Live Session (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={liveFeeRs}
+                    onChange={(e) => setLiveFeeRs(parseInt(e.target.value, 10) || 0)}
+                    className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
+                  />
+                </div>
+              </div>
+              <button
+                disabled={feeSaving}
+                onClick={saveFees}
+                className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+              >
+                {feeSaving ? "Saving…" : "Save Pricing"}
+              </button>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">Live Session (₹)</label>
-              <input
-                type="number"
-                min={0}
-                value={liveFeeRs}
-                onChange={(e) => setLiveFeeRs(parseInt(e.target.value, 10) || 0)}
-                className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
-              />
-            </div>
-          </div>
-          <button
-            disabled={feeSaving}
-            onClick={saveFees}
-            className="text-xs bg-[var(--color-accent-faint)] hover:bg-[var(--color-accent-faint)]/80 border border-[var(--color-accent-dim)] text-[var(--color-accent)] px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
-          >
-            {feeSaving ? "Saving…" : "Save Pricing"}
-          </button>
-        </div>
+          </>
+        )}
 
         <div className="border-t border-[var(--color-border-subtle)]" />
 

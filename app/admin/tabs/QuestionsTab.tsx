@@ -6,6 +6,7 @@ import { assembleStatement } from "@/lib/consultation";
 import { ModelPicker } from "@/components/ui/ModelPicker";
 import { DEFAULT_DRAFT_MODEL, type AiModelKey } from "@/lib/engines/models";
 import type { ConsultationRequestWithUser } from "@/lib/db";
+import { PAYMENT_FLOW_ENABLED } from "@/lib/constants";
 import { sortBy, renderSortIcon, resolveProfileIds } from "../utils";
 
 interface QuestionsTabProps {
@@ -115,8 +116,13 @@ export function QuestionsTab({ consultationRequests, profileNameMap }: Questions
           {sortedQuestions.map((req) => {
             const effectiveStatus = markedIds.has(req.id) ? "answered" : paidIds.has(req.id) ? "paid" : req.status;
             const isDone = effectiveStatus === "answered";
+            // When payment flow is OFF, treat every non-answered request as
+            // ready-to-answer: the admin sees the draft assistant immediately
+            // and there is no "Mark as Paid" step. `isReadyToAnswer` is the
+            // combined state.
             const isPaid = effectiveStatus === "paid";
-            const awaitingPayment = !isDone && !isPaid;
+            const awaitingPayment = PAYMENT_FLOW_ENABLED && !isDone && !isPaid;
+            const isReadyToAnswer = !isDone && (!PAYMENT_FLOW_ENABLED || isPaid);
             const isExpanded = expandedQId === req.id;
             const profileList = resolveProfileIds(req.profile_ids, profileNameMap);
             return (
@@ -164,8 +170,9 @@ export function QuestionsTab({ consultationRequests, profileNameMap }: Questions
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {isDone && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--color-success-faint)] text-[var(--color-success)]">Answered</span>}
-                      {isPaid && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] text-[var(--color-ink-2)]">Paid</span>}
-                      {awaitingPayment && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--color-accent-faint)] text-[var(--color-accent)]">Awaiting Payment</span>}
+                      {PAYMENT_FLOW_ENABLED && isPaid && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] text-[var(--color-ink-2)]">Paid</span>}
+                      {PAYMENT_FLOW_ENABLED && awaitingPayment && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--color-accent-faint)] text-[var(--color-accent)]">Awaiting Payment</span>}
+                      {!PAYMENT_FLOW_ENABLED && isReadyToAnswer && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--color-accent-faint)] text-[var(--color-accent)]">Pending</span>}
                       {req.user_rating === "helpful" && <ThumbsUp className="h-3 w-3 text-[var(--color-success)]" />}
                       {req.user_rating === "not_helpful" && <ThumbsDown className="h-3 w-3 text-[var(--color-danger)]" />}
                     </div>
@@ -222,7 +229,7 @@ export function QuestionsTab({ consultationRequests, profileNameMap }: Questions
                             {markingPaidId === req.id ? "Saving…" : "Mark as Paid"}
                           </button>
                         )}
-                        {isPaid && (
+                        {isReadyToAnswer && (
                           <div className="space-y-3 pt-1">
                             <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 space-y-2">
                               <div className="flex items-center justify-between gap-2">

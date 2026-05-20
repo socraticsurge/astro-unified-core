@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { MIN_FIELD_LENGTH } from "@/lib/consultation";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAdmin } from "@/lib/admin";
-import { MAX_FIELD_LENGTH, MAX_CONSULTATION_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { MAX_FIELD_LENGTH, MAX_CONSULTATION_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS, PAYMENT_FLOW_ENABLED } from "@/lib/constants";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -130,10 +130,15 @@ export async function POST(request: Request) {
     slot_starts_at = slot.starts_at;
   }
 
-  const appSettings = await db.settings.getAll();
-  const amount_paise = delivery_mode === "written"
-    ? appSettings.written_fee_paise
-    : appSettings.live_fee_paise;
+  // When PAYMENT_FLOW_ENABLED=false, skip the awaiting-payment state entirely:
+  // amount_paise is 0 and initial status is `pending` (admin answers directly).
+  let amount_paise = 0;
+  if (PAYMENT_FLOW_ENABLED) {
+    const appSettings = await db.settings.getAll();
+    amount_paise = delivery_mode === "written"
+      ? appSettings.written_fee_paise
+      : appSettings.live_fee_paise;
+  }
 
   try {
     const created = await db.consultationRequests.create(userId, {
@@ -146,6 +151,7 @@ export async function POST(request: Request) {
       delivery_mode,
       amount_paise,
       slot_starts_at,
+      initial_status: PAYMENT_FLOW_ENABLED ? "pending_payment" : "pending",
     });
     return NextResponse.json(created, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
