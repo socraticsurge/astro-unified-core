@@ -324,18 +324,6 @@ export function CosmicLanding() {
         </svg>
       </div>
 
-      {/* Earth video */}
-      <div className={styles.earthWrap}>
-        <div className={styles.earthAtmo} />
-        <div className={styles.earthClip}>
-          <video autoPlay muted loop playsInline preload="auto" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}>
-            <source src="/earth.webm" type="video/webm" />
-            <source src="/earth.mp4" type="video/mp4" />
-          </video>
-        </div>
-        <div className={styles.earthLight} />
-      </div>
-
       {/* Glass panel */}
       <div className={styles.panel}>
         <div className={styles.quoteSection}>

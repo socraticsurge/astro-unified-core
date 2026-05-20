@@ -7,31 +7,6 @@
   overflow: hidden;
 }
 
-/* ── Earth video ── */
-.earthWrap {
-  position: fixed;
-  left: -38vh; top: calc(50vh - 38vh);
-  width: 76vh; height: 76vh;
-  z-index: 6; pointer-events: none;
-}
-.earthAtmo {
-  position: absolute; inset: -10%; border-radius: 50%;
-  background: radial-gradient(circle, transparent 52%, rgba(70,160,255,0.55) 78%, rgba(70,160,255,0) 100%);
-  filter: blur(4px);
-}
-.earthClip {
-  position: absolute; inset: 0;
-  border-radius: 50%; overflow: hidden;
-  background: radial-gradient(circle at 35% 30%, #2a6b8a 0%, #1a4f6e 25%, #0f3a5a 50%, #083048 70%, #051e30 100%);
-}
-.earthLight {
-  position: absolute; inset: 0; border-radius: 50%;
-  background:
-    radial-gradient(circle at 34% 28%, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 46%),
-    radial-gradient(circle at 50% 50%, transparent 50%, rgba(0,0,18,0.75) 100%);
-  pointer-events: none;
-}
-
 /* ── Mobile gradient bridge ── */
 .mobileFade {
   display: none;
@@ -139,7 +114,6 @@
     height: 28vh;
     background: linear-gradient(to bottom, transparent 0%, rgba(6,3,24,0.6) 50%, rgba(6,3,24,0.95) 100%);
   }
-  .earthWrap { left: 50%; top: -12vw; transform: translateX(-50%); width: 88vw; height: 88vw; }
   .zodiacWrap { left: -28vw; top: -46vw; width: 156vw; height: 156vw; }
   .panel {
     right: 0; left: 0; bottom: 0; top: auto;

@@ -8,6 +8,33 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Cleanup + remove pending-request submission limit
+
+### Removed
+- `design/landing-mockup/` (24MB, local-only Vite scratchpad — was already
+  gitignored, this just clears local disk + drops the now-dead
+  gitignore/eslintignore entries).
+- `public/earth.{webm,mp4}` (1.6MB) and the earth render block in
+  `components/CosmicLanding.tsx` + `.module.css` (`.earthWrap` /
+  `.earthAtmo` / `.earthClip` / `.earthLight` + mobile rule). Landing
+  still has the zodiac wheel, glass quote panel, and starfield.
+- Default `create-next-app` boilerplate SVGs from `public/`:
+  `next.svg`, `vercel.svg`, `file.svg`, `window.svg`, `globe.svg`
+  — zero references anywhere in the codebase.
+- "You already have an outstanding consultation request" 409 guard in
+  `POST /api/consultation-requests`. Users can now submit any number of
+  questions back-to-back; the rate-limit (5/min) still applies. The
+  corresponding test case was removed.
+
+### Why
+- Cleanup: drop accidentally-committed mockups + 1.6MB of unused
+  landing assets before launch.
+- The pending-request limit was a guard for the (now-dormant) payment
+  flow — it doesn't fit the email-driven model where Dr. Chaganti may
+  legitimately have several open questions per user in flight.
+
+---
+
 ## [2026-05-20] — Admin email notifications via Resend
 
 ### Added
