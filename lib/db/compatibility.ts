@@ -48,19 +48,20 @@ export const compatibility = {
     return rs.rows[0] as unknown as CompatibilityCheck | undefined;
   },
 
-  async listAllWithDetails(): Promise<CompatibilityCheckWithDetails[]> {
+  async listAllWithDetails(limit = 200): Promise<CompatibilityCheckWithDetails[]> {
     await ensureSchema();
-    const rs = await getClient().execute(`
-      SELECT c.*,
-             u.email as user_email,
-             p1.name as p1_name,
-             p2.name as p2_name
-      FROM compatibility_checks c
-      LEFT JOIN users u ON u.id = c.user_id
-      LEFT JOIN profiles p1 ON p1.id = c.profile_id_1
-      LEFT JOIN profiles p2 ON p2.id = c.profile_id_2
-      ORDER BY c.created_at DESC
-    `);
+    const rs = await getClient().execute({
+      sql: `SELECT c.*,
+                   u.email as user_email,
+                   p1.name as p1_name,
+                   p2.name as p2_name
+            FROM compatibility_checks c
+            LEFT JOIN users u ON u.id = c.user_id
+            LEFT JOIN profiles p1 ON p1.id = c.profile_id_1
+            LEFT JOIN profiles p2 ON p2.id = c.profile_id_2
+            ORDER BY c.created_at DESC LIMIT ?`,
+      args: [limit],
+    });
     return rs.rows as unknown as CompatibilityCheckWithDetails[];
   },
 

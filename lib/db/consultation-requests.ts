@@ -47,14 +47,15 @@ export const consultationRequests = {
     return rs.rows as unknown as ConsultationRequest[];
   },
 
-  async listAllWithUser(): Promise<ConsultationRequestWithUser[]> {
+  async listAllWithUser(limit = 200): Promise<ConsultationRequestWithUser[]> {
     await ensureSchema();
-    const rs = await getClient().execute(`
-      SELECT cr.*, u.email AS user_email, u.name AS user_name
-      FROM consultation_requests cr
-      LEFT JOIN users u ON u.id = cr.user_id
-      ORDER BY cr.created_at DESC
-    `);
+    const rs = await getClient().execute({
+      sql: `SELECT cr.*, u.email AS user_email, u.name AS user_name
+            FROM consultation_requests cr
+            LEFT JOIN users u ON u.id = cr.user_id
+            ORDER BY cr.created_at DESC LIMIT ?`,
+      args: [limit],
+    });
     return rs.rows as unknown as ConsultationRequestWithUser[];
   },
 

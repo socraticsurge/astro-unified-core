@@ -53,13 +53,14 @@ export const profiles = {
     return rs.rows as unknown as Profile[];
   },
 
-  async listAllWithUser(): Promise<ProfileWithUser[]> {
+  async listAllWithUser(limit = 200): Promise<ProfileWithUser[]> {
     await ensureSchema();
-    const rs = await getClient().execute(`
-      SELECT p.*, u.name AS user_name, u.email AS user_email
-      FROM profiles p LEFT JOIN users u ON u.id = p.user_id
-      ORDER BY p.created_at DESC
-    `);
+    const rs = await getClient().execute({
+      sql: `SELECT p.*, u.name AS user_name, u.email AS user_email
+            FROM profiles p LEFT JOIN users u ON u.id = p.user_id
+            ORDER BY p.created_at DESC LIMIT ?`,
+      args: [limit],
+    });
     return rs.rows as unknown as ProfileWithUser[];
   },
 

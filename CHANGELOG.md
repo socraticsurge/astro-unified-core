@@ -8,6 +8,23 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Route tests, admin pagination, and eslint hardening (Session 3)
+
+### Test coverage
+- **`app/api/profiles/route.test.ts`** (new) — 8 tests: GET (401, 200+list, Cache-Control) and POST (401, 429, 403 cap at 10, 400 missing fields, 400 name > 100 chars, 201 success with geocoding, 400 geocoding failure).
+- **`app/api/compatibility/route.test.ts`** (new) — 9 tests: GET (401, 200+Cache-Control) and POST (401, 429, 400 missing IDs, 200 duplicate no-sidecar, 403 cap, 404 profiles not found, 200 sidecar success+Cache-Control).
+- **`app/api/readings/dashaflow/route.test.ts`** (new) — 12 tests: GET (401, 400 missing profile_id, 404, 200 cached+Cache-Control, 200 fresh, 502 engine error, admin `getAny` path) and POST (401, 429, 404, 502, 200 success+Cache-Control).
+- **`app/api/readings/ai-insight/route.test.ts`** (new) — 11 tests: GET (403 non-admin, 400 missing tab, 400 invalid tab, 200 with reading+Cache-Control, 200 null when no reading) and POST (403, 400 missing tab, 200 cached no-LLM, 404 profile not found, 200 fresh insight, 500 LLM throws).
+- **`app/api/consultation-requests/route.test.ts`** (new) — 10 tests: GET (401, 200+Cache-Control) and POST (401, 429, 409 pending, 400 missing fields, 400 too short, 400 invalid delivery_mode, 400 appointment no slot, 404 profile not found, 201 success, 409 slot already booked).
+
+### Performance
+- **`lib/db/users.ts`**, **`lib/db/feedback.ts`**, **`lib/db/profiles.ts`**, **`lib/db/compatibility.ts`**, **`lib/db/consultation-requests.ts`** — All `list()` / `listAll*()` admin queries now include `LIMIT 200` (default, callers can pass a higher value). Previously these queries loaded all rows into Lambda memory with no upper bound. At moderate user scale the unbounded 3-way join in `listAllWithDetails()` would hit Vercel's 50 MB response ceiling. Full pagination with page-controls in the admin UI is deferred to backlog.
+
+### Code quality
+- **`eslint.config.mjs`** — Explicitly wired `eslint-plugin-jsx-a11y` (`flatConfigs.recommended`) alongside `eslint-config-next/core-web-vitals`. The plugin was installed transitively but not explicitly declared; this makes accessibility linting unambiguous and resilient to future dependency changes.
+
+---
+
 ## [2026-05-20] — Reliability, performance, CSP, and test coverage (Session 2)
 
 ### Security

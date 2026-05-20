@@ -24,9 +24,12 @@ export const users = {
     });
   },
 
-  async list(): Promise<User[]> {
+  async list(limit = 200): Promise<User[]> {
     await ensureSchema();
-    const rs = await getClient().execute("SELECT * FROM users ORDER BY last_login DESC");
+    const rs = await getClient().execute({
+      sql: "SELECT * FROM users ORDER BY last_login DESC LIMIT ?",
+      args: [limit],
+    });
     return rs.rows as unknown as User[];
   },
 };

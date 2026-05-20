@@ -27,9 +27,12 @@ export const feedback = {
     return { id, created_at, user_email: data.user_email || null, rating: data.rating, message: data.message || null, page_url: data.page_url || null };
   },
 
-  async list(): Promise<Feedback[]> {
+  async list(limit = 200): Promise<Feedback[]> {
     await ensureSchema();
-    const rs = await getClient().execute("SELECT * FROM feedback ORDER BY created_at DESC");
+    const rs = await getClient().execute({
+      sql: "SELECT * FROM feedback ORDER BY created_at DESC LIMIT ?",
+      args: [limit],
+    });
     return rs.rows as unknown as Feedback[];
   },
 };
