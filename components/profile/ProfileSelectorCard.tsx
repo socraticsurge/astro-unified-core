@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { ProfileAvatar } from "./ProfileAvatar";
-import { textStyles, colors, fonts, scale, clamp, interactive, radii, motion } from "@/lib/typography";
+import { textStyles, colors, fonts, scale, clamp, interactive, radii } from "@/lib/typography";
 
 interface ProfileSelectorCardProps {
   name: string;

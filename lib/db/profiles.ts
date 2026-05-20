@@ -1,7 +1,6 @@
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { getClient, ensureSchema } from "./client";
-import type { User } from "./users";
 
 const ProfileSchema = z.object({
   id: z.string(),

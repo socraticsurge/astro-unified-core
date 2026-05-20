@@ -1,6 +1,5 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";

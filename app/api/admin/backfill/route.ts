@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
-import { db } from "@/lib/db";
 import { getClient } from "@/lib/db/client";
 
 export async function POST() {

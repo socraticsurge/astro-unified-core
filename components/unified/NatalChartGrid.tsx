@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import {
-  SIGNS_ORDER, PLANET_ORDER, PLANET_ABBR, DIGNITY_COLORS,
+  PLANET_ORDER, PLANET_ABBR, DIGNITY_COLORS,
 } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 

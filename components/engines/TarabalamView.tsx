@@ -112,8 +112,6 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
     return loaded.every(p => row.profile_taras[p.id]?.quality === "auspicious");
   }
 
-  const currentProfile = profiles.find(p => p.id === profileId);
-
   return (
     <SectionShell sectionInView="Tarabalam" explainer={explainer ?? null}>
       <div className="space-y-6">
