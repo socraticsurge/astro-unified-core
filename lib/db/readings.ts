@@ -41,6 +41,15 @@ export const readings = {
     return { id, created_at, profile_id: data.profile_id, engine: data.engine, input_snapshot: JSON.stringify(data.input_snapshot), output_data: JSON.stringify(data.output_data) };
   },
 
+  async getById(id: string): Promise<Reading | undefined> {
+    await ensureSchema();
+    const rs = await getClient().execute({
+      sql: "SELECT * FROM readings WHERE id = ? LIMIT 1",
+      args: [id],
+    });
+    return rs.rows[0] ? ReadingSchema.parse(rs.rows[0]) : undefined;
+  },
+
   async latestByEngine(profile_id: string, engine: string): Promise<Reading | undefined> {
     await ensureSchema();
     const rs = await getClient().execute({

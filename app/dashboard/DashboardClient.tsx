@@ -41,11 +41,23 @@ function initState<T>(): EngineState<T> {
 // refetching chart/transit/career/today-reading every time the user toggles
 // between profile pills in the NavBar. Refresh via the existing
 // fetchTransit/fetchCareer(force=true) paths still bypasses this.
+// Today reading shape carries `meta` alongside the two strings so the Today
+// tab can wire copy / share / thumbs feedback per reading row.
+type TodayReadingMeta = {
+  current: { id: string | null; rating: 1 | -1 | null }
+  natal:   { id: string | null; rating: 1 | -1 | null }
+}
+type TodayReadingData = {
+  dasha_reading: string
+  chart_reading: string
+  meta?: TodayReadingMeta
+}
+
 type ProfileCache = {
   chart: Record<string, unknown> | null
   transit: Record<string, unknown> | null
   career: Record<string, unknown> | null
-  todayReading: { dasha_reading: string; chart_reading: string } | null
+  todayReading: TodayReadingData | null
 }
 
 export function DashboardClient({
@@ -64,7 +76,7 @@ export function DashboardClient({
   const [chart,        setChart]        = useState(initState<Record<string, unknown>>())
   const [transit,      setTransit]      = useState(initState<Record<string, unknown>>())
   const [career,       setCareer]       = useState(initState<Record<string, unknown>>())
-  const [todayReading, setTodayReading] = useState(initState<{ dasha_reading: string; chart_reading: string }>())
+  const [todayReading, setTodayReading] = useState(initState<TodayReadingData>())
   const [askOpen, setAskOpen] = useState(false)
   const [askCtx,  setAskCtx]  = useState<Partial<AskContext>>({})
   const [aiOpen,  setAiOpen]  = useState(false)
@@ -139,7 +151,9 @@ export function DashboardClient({
         fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
           .then(r => r.json())
           .then(d => {
-            const tr = d.output ?? null
+            const tr: TodayReadingData | null = d.output
+              ? { ...d.output, meta: d.meta as TodayReadingMeta | undefined }
+              : null
             setTodayReading({ data: tr, loading: false, error: d.error ?? null })
             if (tr) updateCache(activeProfileId, { todayReading: tr })
           })
@@ -218,7 +232,9 @@ export function DashboardClient({
             fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
               .then(r => r.json())
               .then(d => {
-                const tr = d.output ?? null
+                const tr: TodayReadingData | null = d.output
+                  ? { ...d.output, meta: d.meta as TodayReadingMeta | undefined }
+                  : null
                 setTodayReading({ data: tr, loading: false, error: d.error ?? null })
                 if (tr) updateCache(activeProfileId, { todayReading: tr })
               })

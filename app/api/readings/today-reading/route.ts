@@ -110,6 +110,13 @@ export async function GET(req: NextRequest) {
   let chartReadingOut: string | null = null;
   let currentFromCache = false;
   let natalFromCache = false;
+  // IDs + ratings surfaced to the client so the Today tab can wire copy /
+  // share / thumbs feedback per reading. May be reassigned when a tier is
+  // regenerated mid-request.
+  let currentReadingId: string | null = cachedCurrent?.id ?? null;
+  let natalReadingId: string | null = cachedNatal?.id ?? null;
+  let currentRating: 1 | -1 | null = (cachedCurrent?.rating as 1 | -1 | null | undefined) ?? null;
+  let natalRating:   1 | -1 | null = (cachedNatal?.rating   as 1 | -1 | null | undefined) ?? null;
 
   if (cachedCurrent && !currentIsStale(cachedCurrent.input_snapshot as string, input, pratyantarEnd, fpCurrent)) {
     try {
@@ -136,12 +143,14 @@ export async function GET(req: NextRequest) {
       buildCurrentReading(profile, chartOutput, llmConfig)
         .then(async (text) => {
           dashaReading = text;
-          await db.readings.save({
+          const row = await db.readings.save({
             profile_id,
             engine: ENGINE_CURRENT,
             input_snapshot: { ...input, pratyantar_end: pratyantarEnd, llm_fingerprint: fpCurrent },
             output_data: { dasha_reading: text },
           });
+          currentReadingId = row.id;
+          currentRating = null;
         }),
     );
   }
@@ -150,12 +159,14 @@ export async function GET(req: NextRequest) {
       buildNatalReading(profile, chartOutput, llmConfig)
         .then(async (text) => {
           chartReadingOut = text;
-          await db.readings.save({
+          const row = await db.readings.save({
             profile_id,
             engine: ENGINE_NATAL,
             input_snapshot: { ...input, llm_fingerprint: fpNatal },
             output_data: { chart_reading: text },
           });
+          natalReadingId = row.id;
+          natalRating = null;
         }),
     );
   }
@@ -175,6 +186,10 @@ export async function GET(req: NextRequest) {
     output: {
       dasha_reading: dashaReading ?? "",
       chart_reading: chartReadingOut ?? "",
+    },
+    meta: {
+      current: { id: currentReadingId, rating: currentRating },
+      natal:   { id: natalReadingId,   rating: natalRating   },
     },
     cached: currentFromCache && natalFromCache,
     cached_tiers: {

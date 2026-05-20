@@ -121,6 +121,11 @@ beforeEach(() => {
   vi.mocked(db.settings.getTodayReadingLlm).mockResolvedValue(defaultLlmConfig);
   vi.mocked(buildCurrentReading).mockResolvedValue(FRESH_CURRENT_TEXT);
   vi.mocked(buildNatalReading).mockResolvedValue(FRESH_NATAL_TEXT);
+  // The route now reads back the newly-saved row id to surface it in the
+  // response. Stub save to return a fake row whose id reflects the engine.
+  vi.mocked(db.readings.save).mockImplementation(async (data) =>
+    ({ id: `${data.engine}-row`, ...data }) as never,
+  );
 });
 
 describe("GET /api/readings/today-reading", () => {
