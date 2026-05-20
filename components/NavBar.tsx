@@ -73,7 +73,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
           </div>
         )}
 
-        {/* Right: Add profile · Ask an expert · Settings */}
+        {/* Right: Add profile · Ask Dr Chaganti · Settings */}
         <div className="flex items-center gap-1 px-3 shrink-0 ml-auto">
           {isLoggedIn && (
             <>
@@ -92,7 +92,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                   className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)] text-[var(--color-accent)]"
                 >
                   <span aria-hidden="true">✦</span>
-                  <span className="hidden sm:inline">Ask an expert</span>
+                  <span className="hidden sm:inline">Ask Dr Chaganti</span>
                   <span className="sm:hidden">Ask</span>
                 </button>
               )}
