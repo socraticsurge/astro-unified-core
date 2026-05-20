@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Calendar } from "lucide-react";
+import { toast } from "@/components/ui/Toast";
 
 type SectionExplainer = {
   title: string;
@@ -50,7 +51,7 @@ export function MuhurthaView({ profileId, explainer }: Props) {
       if (!res.ok) throw new Error(data.error || "Search failed");
       setResults(data.timings || []);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Search failed");
+      toast(e instanceof Error ? e.message : "Search failed", "error");
     } finally {
       setLoading(false);
     }

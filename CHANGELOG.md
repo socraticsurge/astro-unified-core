@@ -8,6 +8,50 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Shared `<EngineLoading>` and `<EngineError>` components
+
+### Added
+- **`components/ui/EngineLoading.tsx`** — shared loading state for engine
+  views. Two variants: `inline` (spinner + text, no surface) and `card`
+  (wrapped in `.ac-card .ac-card-pad`). Accent-colored `Loader2`,
+  `role="status"`, `aria-live="polite"`.
+- **`components/ui/EngineError.tsx`** — shared error state. Accepts a
+  string or `Error` (renders nothing if nullish), optional `onRetry`
+  renders a "Retry" button, `tone` switches between `danger` (default,
+  red) and `warning` (yellow, for soft / no-data states). Built on the
+  existing `.ac-banner` CSS.
+- **`app/globals.css`** — added `.ac-banner.danger` (uses
+  `--color-danger-*` tokens) to complete the trio alongside the existing
+  `.accent` and `.warn` variants.
+- **`components/ui/__tests__/EngineLoading.test.tsx`** and
+  **`components/ui/__tests__/EngineError.test.tsx`** — 11 unit tests
+  covering default message, variant switching, tone switching, nullish
+  guard, Error-instance unwrapping, and Retry button click.
+
+### Changed (migrations using the new components)
+- **`components/engines/TarabalamView.tsx`** — replaced the inline
+  `<div className="ac-banner warn">{error}</div>` with
+  `<EngineError error={error} onRetry={handleSearch} />`. Switches the
+  tone from warning to danger (genuine fetch errors deserve danger
+  styling) and adds a one-click retry button that was previously absent.
+- **`components/engines/MuhurthaView.tsx`** — replaced the synchronous
+  `alert(...)` on search failure with `toast(message, "error")`. Aligns
+  with the rest of the app's toast pattern and doesn't block the user.
+- **`components/engines/ExplainerModal.tsx`** — replaced the inline
+  `<Loader2 /> Loading readings…` snippet with
+  `<EngineLoading message="Loading readings…" />`. The `Loader2` import
+  is no longer needed at this site.
+
+### Why
+Previously each engine reinvented loading and error UI: some used
+`.ac-banner.warn`, some used inline `text-red-400` paragraphs, some used
+browser `alert()`. The result was visually inconsistent and accessibility
+was uneven. These shared components give a single, accessible
+(`role="status"` / `role="alert"`, `aria-live`) source of truth that
+future engines should reach for first.
+
+---
+
 ## [2026-05-20] — Clear all ESLint warnings
 
 ### Fixed

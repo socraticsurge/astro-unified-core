@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Users, RefreshCw } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { taraColor, type Tara, type Tithi } from "@/lib/tarabalam";
+import { EngineError } from "@/components/ui/EngineError";
 
 type SectionExplainer = {
   title: string;
@@ -186,9 +187,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
         </div>
 
         {/* Error state */}
-        {error && (
-          <div className="ac-banner warn">{error}</div>
-        )}
+        <EngineError error={error} onRetry={handleSearch} />
 
         {/* Results */}
         {result && !loading && (

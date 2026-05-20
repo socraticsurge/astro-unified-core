@@ -753,6 +753,7 @@
 }
 .ac-banner.accent { background: var(--color-accent-faint); border-color: var(--color-accent-dim); color: var(--color-accent); }
 .ac-banner.warn   { background: var(--color-warning-faint); border-color: var(--color-warning-border); color: var(--color-warning); }
+.ac-banner.danger { background: var(--color-danger-faint);  border-color: var(--color-danger-border);  color: var(--color-danger);  }
 
 /* ── Dasha row ── */
 .ac-dasha-row {
