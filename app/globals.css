@@ -785,6 +785,45 @@
 .ac-dasha-row.current { background: var(--color-accent-faint); }
 .ac-dasha-row.current .planet-name { color: var(--color-accent); }
 
+/* On narrow screens, the planet-name (1fr) + auto date column collapses the
+   date into a 2-line superscript next to a giant planet name. Stack as two
+   rows so the date sits on its own line, left-aligned under the planet. */
+@media (max-width: 640px) {
+  .ac-dasha-row {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "level planet"
+      "level range";
+    column-gap: 12px;
+    row-gap: 2px;
+    padding: 10px 12px;
+  }
+  .ac-dasha-row .level     { grid-area: level; align-self: center; }
+  .ac-dasha-row .planet-name { grid-area: planet; font-size: 15px; }
+  .ac-dasha-row .range     { grid-area: range; font-size: 11px; white-space: nowrap; }
+}
+
+/* ── Upapada (Jaimini) ── */
+.ac-upapada-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-6);
+  align-items: baseline;
+}
+.ac-upapada-cell { min-width: 0; }
+.ac-upapada-desc {
+  color: var(--color-ink-2);
+  line-height: 1.55;
+  font-size: 13px;
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+@media (max-width: 640px) {
+  .ac-upapada-row { gap: var(--sp-4); }
+  .ac-upapada-cell > div:last-child { font-size: 16px; }
+}
+
 /* ── Long-form reading text ── */
 .ac-reading {
   font-family: var(--font-display);

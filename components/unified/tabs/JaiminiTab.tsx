@@ -91,24 +91,24 @@ export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknow
 
       <TabSection when={!!upapada}>
         <SectionHeading>Upapada (A12) · spouse indicator</SectionHeading>
-        <div className="ac-card ac-card-pad" style={{ marginTop: "var(--sp-3)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, auto) 1fr", gap: "var(--sp-6)", alignItems: "baseline" }}>
-            <div>
+        <div className="ac-card ac-card-pad ac-upapada" style={{ marginTop: "var(--sp-3)" }}>
+          <div className="ac-upapada-row">
+            <div className="ac-upapada-cell">
               <div className="ac-eyebrow" style={{ marginBottom: 4 }}>UL sign</div>
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}>{upapada?.sign ?? "—"}</div>
             </div>
-            <div>
+            <div className="ac-upapada-cell">
               <div className="ac-eyebrow" style={{ marginBottom: 4 }}>Lord</div>
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--cool)" }}>{upapada?.lord ?? "—"}</div>
             </div>
-            <div>
+            <div className="ac-upapada-cell">
               <div className="ac-eyebrow" style={{ marginBottom: 4 }}>2nd from UL</div>
               <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}>{upapada?.second_from_ul ?? "—"}</div>
             </div>
-            {upapada?.description && (
-              <div style={{ color: "var(--color-ink-2)", lineHeight: 1.55, fontSize: 13 }}>{upapada.description}</div>
-            )}
           </div>
+          {upapada?.description && (
+            <div className="ac-upapada-desc">{upapada.description}</div>
+          )}
         </div>
       </TabSection>
 

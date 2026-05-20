@@ -390,6 +390,7 @@ export function CosmicLanding() {
           )}
 
           <div className={styles.snippetText}>
+            <span key={`eyebrow-${activeSign.key}`} className={styles.cosmosEyebrow}>The cosmos speaks</span>
             <span key={`label-${activeSign.key}`} className={styles.activeSignLabel}>{activeSign.name.toUpperCase()} — RISING</span>
             <p key={`copy-${activeSign.key}`}>{snippet}</p>
           </div>

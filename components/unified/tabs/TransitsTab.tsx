@@ -1,18 +1,15 @@
 "use client";
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
-import { PLANET_ORDER } from "@/components/unified/types";
 import type { Planet, SignName } from "@/components/unified/types";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 import { TabLoadingSkeleton } from "@/components/unified/TabLoadingSkeleton";
 
-// PR-8: per user direction — Transits should render as a chart (D1-style) with
-// the transiting planet positions placed on the natal SAV-bindu lattice, not
-// as a wide planet-attribute table. The classical professional reading is
-// "Saturn transiting Pisces, which has 24 natal bindus" — chart + bindus give
-// that at a glance. We keep a compact detail strip below for retrograde
-// indicators and house-from-lagna / house-from-moon callouts.
+// Transits render as a D1-style chart with the transiting planet positions
+// placed on the natal SAV-bindu lattice — "Saturn transiting Pisces, which
+// has 24 natal bindus" at a glance. The earlier per-planet detail strip was
+// removed per product direction (2026-05-20).
 
 export function TransitsTab({
   chartOutput,
@@ -117,47 +114,6 @@ export function TransitsTab({
             </section>
           )}
 
-          {/* Compact strip below the chart — gives the per-planet details a
-              quick reader still wants (retrograde marker + house-from-lagna /
-              house-from-moon / planet SAV points), without taking over the tab. */}
-          {transitPlanetsRaw && (
-            <section>
-              <div className="ac-eyebrow" style={{ marginBottom: 8 }}>Transit detail</div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-                {PLANET_ORDER.map((name) => {
-                  const p = transitPlanetsRaw[name];
-                  if (!p) return null;
-                  const savVal = p.sav_points ?? 0;
-                  const savCls = savVal >= 30 ? "ac-cell-good" : savVal <= 22 ? "ac-cell-bad" : "";
-                  return (
-                    <div key={name} className="ac-card ac-card-pad-sm">
-                      <div className="flex items-baseline justify-between gap-2 mb-1.5">
-                        <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--color-ink-1)" }}>
-                          {name}
-                          {p.is_retrograde && <span className="ac-retro" style={{ marginLeft: 3 }}>℞</span>}
-                        </span>
-                        <span style={{ fontSize: 11, color: "var(--color-ink-3)" }}>{p.sign ?? "—"}</span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-[var(--color-border-subtle)]">
-                        <div className="text-center">
-                          <div className="ac-eyebrow" style={{ fontSize: 9 }}>H/Lag</div>
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-ink-2)" }}>{p.house_from_lagna ?? "—"}</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="ac-eyebrow" style={{ fontSize: 9 }}>H/Moon</div>
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-ink-2)" }}>{p.house_from_moon ?? "—"}</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="ac-eyebrow" style={{ fontSize: 9 }}>SAV</div>
-                          <div className={savCls} style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{savVal}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
         </>
       )}
     </div>

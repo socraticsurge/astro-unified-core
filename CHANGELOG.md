@@ -8,6 +8,47 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Audit round 2: mobile layout fixes + Transits cleanup
+
+### Added
+- **Landing — "The cosmos speaks" eyebrow** restored above the sign
+  label so the snippet has the same framing line the earlier version
+  had. Same fade animation as the label + paragraph.
+
+### Fixed
+- **Landing — mobile panel was bleeding the spinning wheel through
+  the glass.** Strengthened the mobile `.panel` background
+  (`rgba(8,4,24,0.78)`) and increased the backdrop blur to 42 px so
+  the wheel reads as a faint glow behind the panel rather than
+  competing with the snippet copy.
+- **Jaimini → Upapada (spouse indicator) — mobile squeeze.** The card
+  was a single 4-column grid (UL sign / Lord / 2nd from UL /
+  description) which collapsed the description to one word per line
+  on phones. Split into a 3-column header row + a full-width
+  description block underneath, separated by a thin divider. New
+  `.ac-upapada` / `.ac-upapada-row` / `.ac-upapada-desc` classes
+  handle the desktop + mobile layout.
+- **Current Dasha Period — mobile date-superscript.** The
+  `.ac-dasha-row` grid `110px 1fr auto` was squashing the date range
+  into a 2-line superscript next to a giant planet name. Added a
+  `@media (max-width: 640px)` rule that reflows the row into
+  `level | planet` / `level | range` grid areas so the date sits on
+  its own line, full-width, in mono, with `white-space: nowrap`.
+
+### Removed
+- **Transits tab — "Transit detail" planet-card strip.** The compact
+  per-planet card grid below the chart (showing retrograde marker,
+  house-from-lagna, house-from-moon, planet SAV) is gone. The same
+  bindu information is already in the natal-SAV-lattice chart
+  immediately above. Dropped the now-unused `PLANET_ORDER` import.
+
+### Verified
+- `tsc --noEmit`, `npx vitest run` (387 tests), `npx eslint .` clean.
+- Landing renders 200 with the "The cosmos speaks" eyebrow visible
+  in the HTML.
+
+---
+
 ## [2026-05-20] — Landing page: restore wheel spin, fix font var, never-empty snippet
 
 ### Fixed
