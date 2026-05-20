@@ -68,37 +68,46 @@ export function TransitsTab({
             </div>
           )}
 
+          {/*
+            Compact card grid (PDF observation #6): the previous full-width
+            5-column table wasted screen real estate (3 of 5 cols were single
+            numbers). One card per planet, 2-up on small screens, 3-up at md,
+            4-up at lg. Sign + retro on top; the three numeric metrics share a
+            tight 3-col footer with stable column widths so the grid stays neat.
+          */}
           {transitPlanets && (
-            <div className="ac-card overflow-x-auto">
-              <table className="ac-table">
-                <thead>
-                  <tr>
-                    {["Planet", "Transit Sign", "H / Lagna", "H / Moon", "SAV"].map(h => (
-                      <th key={h}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {PLANET_ORDER.map(name => {
-                    const p = transitPlanets[name];
-                    if (!p) return null;
-                    const savVal = p.sav_points ?? 0;
-                    const savCls = savVal >= 30 ? "ac-cell-good" : savVal <= 22 ? "ac-cell-bad" : "";
-                    return (
-                      <tr key={name}>
-                        <td className="planet">
-                          {name}
-                          {p.is_retrograde && <span className="ac-retro" style={{ marginLeft: 4 }}>℞</span>}
-                        </td>
-                        <td>{p.sign ?? "—"}</td>
-                        <td className="num right">{p.house_from_lagna ?? "—"}</td>
-                        <td className="num right">{p.house_from_moon ?? "—"}</td>
-                        <td className={`num right ${savCls}`}>{savVal}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {PLANET_ORDER.map((name) => {
+                const p = transitPlanets[name];
+                if (!p) return null;
+                const savVal  = p.sav_points ?? 0;
+                const savCls  = savVal >= 30 ? "ac-cell-good" : savVal <= 22 ? "ac-cell-bad" : "";
+                return (
+                  <div key={name} className="ac-card ac-card-pad-sm">
+                    <div className="flex items-baseline justify-between mb-2">
+                      <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "var(--color-ink-1)" }}>
+                        {name}
+                        {p.is_retrograde && <span className="ac-retro" style={{ marginLeft: 4 }}>℞</span>}
+                      </span>
+                      <span style={{ fontSize: 12, color: "var(--color-ink-3)" }}>{p.sign ?? "—"}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1 pt-2 border-t border-[var(--color-border-subtle)]">
+                      <div className="text-center">
+                        <div className="ac-eyebrow" style={{ fontSize: 9, marginBottom: 2 }}>H/Lag</div>
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--color-ink-2)" }}>{p.house_from_lagna ?? "—"}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="ac-eyebrow" style={{ fontSize: 9, marginBottom: 2 }}>H/Moon</div>
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--color-ink-2)" }}>{p.house_from_moon ?? "—"}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="ac-eyebrow" style={{ fontSize: 9, marginBottom: 2 }}>SAV</div>
+                        <div className={`${savCls}`} style={{ fontFamily: "var(--font-mono)", fontSize: 13 }}>{savVal}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
