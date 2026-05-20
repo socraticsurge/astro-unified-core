@@ -243,13 +243,18 @@ export function ExplainerModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="explainer-title"
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm md:p-6" style={{ background: 'var(--color-overlay)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-3 md:p-6" style={{ background: 'var(--color-overlay)' }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full h-full md:h-auto md:max-h-[85vh] md:w-[640px] md:max-w-[92vw] md:rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-2xl flex flex-col">
-        <header className="flex items-start justify-between gap-3 p-5 border-b border-[var(--color-border)]">
+      {/* `max-h-[92vh]` on mobile (was `h-full`) — leaves a backdrop strip
+          the user can tap to close, and prevents iOS Safari's dynamic toolbar
+          from hiding the X button below the visible viewport. */}
+      <div className="relative w-full max-h-[92vh] md:h-auto md:max-h-[85vh] md:w-[640px] md:max-w-[92vw] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-2xl flex flex-col">
+        {/* Sticky header — close button stays reachable even if the modal
+            renders before the OS chrome settles. */}
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-3 p-5 border-b border-[var(--color-border)] bg-[var(--color-surface-1)] rounded-t-lg">
           <div>
             <h2 id="explainer-title" className="font-heading text-xl font-medium text-foreground">
               {title}

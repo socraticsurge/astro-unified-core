@@ -8,6 +8,58 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — PR-7: AdminTables split + ExplainerModal mobile
+
+The remaining cleanup items from the audit (N3 + N7).
+
+### Changed
+- **`app/admin/AdminTables.tsx` split** — was 880 lines in a single file with
+  intertwined per-tab state. Extracted:
+  - **`app/admin/tabs/QuestionsTab.tsx`** (287 lines) — full Questions tab
+    with its own draft / answer / payment state, paid-now → answered flow,
+    and the inline Draft Assistant.
+  - **`app/admin/tabs/SettingsTab.tsx`** (244 lines) — consultation toggles,
+    pricing form, slot management; owns its own state and the `Toggle`
+    helper.
+  - **`app/admin/utils.tsx`** (33 lines) — shared `sortBy`, `renderSortIcon`,
+    `resolveProfileIds`.
+  - **`AdminTables.tsx`** is now 370 lines and only holds the inline Users /
+    Profiles / Compatibility / Feedback / AI Insights / LLM Settings tabs
+    (each under 70 lines).
+  - No behavior change — DOM output is identical to the prior single-file
+    implementation.
+
+- **`ExplainerModal` on mobile** (observation N7) — the modal previously used
+  `h-full` on mobile, occupying 100% of the viewport. On iOS Safari the
+  dynamic toolbar could hide the X button below the visible area. Switched
+  to `max-h-[92vh]` on mobile (was `h-full`), added `sticky top-0` to the
+  header so the close affordance stays reachable as content scrolls, and
+  added `p-3` padding around the backdrop so the user can tap outside to
+  close. Rounded corners now apply at all sizes for consistency.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 275/275 pass
+- `npm run build` → success
+
+### Audit status — all 11 items addressed
+| Item | PR |
+|---|---|
+| Display rules (Born/Lives raw, proper case) | PR-1 (#58) |
+| Profile create in sidebar | PR-1 (#58) |
+| Logo / wordmark | PR-1 (#58) |
+| Tab primitives (TwoColumnTabGrid, TabSection) | PR-2 (#59) |
+| Today tab redesign | PR-2 (#59) |
+| Today reading LLM split | PR-3 (#60) |
+| Jaimini, Dasha, Transits, Career tab refits | PR-4 (#61) |
+| Toast + sticky tabs + loading skeleton | PR-5 (#62) |
+| Compare responsive + orphan cleanup | PR-6 (#63) |
+| AdminTables split + ExplainerModal mobile | PR-7 (this PR) |
+
+The Compatibility Basic/Pro toggle decision (N8) is still queued for your call.
+
+---
+
 ## [2026-05-20] — PR-6: Compare responsive + orphan cleanup
 
 Audits the remaining untouched tabs from the UI/UX review, removes orphaned
