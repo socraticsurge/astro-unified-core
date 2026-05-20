@@ -49,9 +49,19 @@ Free-tier databases get periodic snapshots only. Confirm the current
 retention window in the Turso dashboard under the database's **Settings →
 Backups** page; do not rely on numbers cached here, they drift.
 
-### Taking a manual snapshot (recommended before risky migrations)
+### Taking a manual snapshot
 
-Install the Turso CLI once: `curl -sSfL https://get.tur.so/install.sh | bash`
+You have **two equivalent options**. Pick whichever is faster.
+
+**Option A — Dashboard (no CLI needed).** Turso dashboard → your DB →
+**Export Database**. Downloads a binary `.db` SQLite file. This is the
+canonical backup format — byte-for-byte exact, includes indexes and
+page structure. Store it somewhere that is NOT the same Turso account
+(iCloud, Google Drive, S3 — the local `backups/` folder is gitignored,
+fine for short-term but back it up off-machine too).
+
+**Option B — CLI `.dump`.** Install once:
+`curl -sSfL https://get.tur.so/install.sh | bash`
 
 ```bash
 turso auth login                       # browser flow, one-time
@@ -59,15 +69,30 @@ turso db list                          # find the DB name
 turso db shell <db-name> .dump > backups/$(date +%F).sql
 ```
 
-The dump file is a plain SQL script — re-runnable on any SQLite instance.
-Store it somewhere that is NOT the same Turso account (e.g. iCloud,
-Google Drive, S3). The `backups/` folder is gitignored so commits don't
-balloon.
+This produces a plain SQL file. Use it when you want a *text* backup
+you can diff between dates or open in a text editor for audit. Less
+common.
 
-### Restoring from a manual dump
+If you've already downloaded a `.db` from the dashboard and want a
+`.sql` alongside it, convert locally without touching Turso:
+
+```bash
+sqlite3 your-downloaded.db .dump > backups/$(date +%F).sql
+```
+
+### Restoring from a manual snapshot
+
+**If you have a `.db` file** (Option A above): Turso dashboard →
+**Databases → Create Database** → choose **Import from existing DB**
+→ upload the `.db`. Done in one step.
+
+**If you have a `.sql` file** (Option B above):
 
 1. Create a new DB: `turso db create <new-name>`
 2. Pipe the dump in: `turso db shell <new-name> < backups/2026-05-20.sql`
+
+**Either way, then:**
+
 3. Point the app at the new DB by updating `TURSO_DATABASE_URL` (and
    generating a fresh token via `turso db tokens create <new-name>`).
 4. Redeploy. The new connection will trigger `ensureSchema()` on first
@@ -201,13 +226,15 @@ If you skip this, sign-in will fail in production with
 
 ### Pre-deploy DB safety
 
-```bash
-# Take a manual snapshot before the deploy.
-turso db shell <db-name> .dump > backups/$(date +%F)-pre-prod.sql
-```
+Take a manual snapshot before the deploy. Either:
 
-This is your rollback if a migration goes wrong. See "Taking a manual
-snapshot" above.
+- **Dashboard:** Turso → your DB → **Export Database** → save the `.db`
+  file off-machine.
+- **CLI:** `turso db shell <db-name> .dump > backups/$(date +%F)-pre-prod.sql`
+
+The `.db` file is the canonical format; the SQL dump is for cases where
+you need a text-readable snapshot. See "Taking a manual snapshot" above
+for the trade-off.
 
 ### Opening the PR
 
