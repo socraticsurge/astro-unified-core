@@ -31,6 +31,16 @@ type LandingData = {
 
 const STORAGE_KEY = 'astrochaganti.ascendant'
 const AUTO_CYCLE_MS = 6500
+// Cross-fade tuning. Total cycle = OUT + IN; keep under AUTO_CYCLE_MS by a wide margin.
+const SNIPPET_FADE_OUT_MS = 380
+const SNIPPET_FADE_IN_MS = 520
+// Defensive cap so an unusually long LLM output can't overflow the panel.
+const SNIPPET_MAX_CHARS = 320
+
+function truncateSnippet(s: string): string {
+  if (s.length <= SNIPPET_MAX_CHARS) return s
+  return s.slice(0, SNIPPET_MAX_CHARS - 1).trimEnd() + '…'
+}
 const SIGN_INDEX_BY_KEY: Record<SignKey, number> = ZODIAC.reduce(
   (acc, z, i) => { acc[z.key] = i; return acc },
   {} as Record<SignKey, number>,
@@ -336,10 +346,33 @@ export function CosmicLanding() {
 
   const activeSign = ZODIAC[activeIndex]
   // Prefer LLM-generated copy for today; fall back to the static per-sign
-  // paragraph so the panel is never empty.
-  const snippet =
-    data?.ascendants?.[activeSign.key] || LANDING_FALLBACK_ASCENDANTS[activeSign.key]
+  // paragraph so the panel is never empty. Truncate as a defense — a fixed
+  // visual area below assumes ≤320 chars.
+  const targetSnippet = truncateSnippet(
+    data?.ascendants?.[activeSign.key] || LANDING_FALLBACK_ASCENDANTS[activeSign.key],
+  )
   const skyLabel = data ? formatSkyLabel(data) : null
+
+  // Cross-fade state: hold the currently-rendered text separately from the
+  // target. When activeSign changes, fade the displayed snippet out, then
+  // swap to the new one, then fade back in. The "wind" feel comes from a
+  // slight blur + downward drift on entry, mirrored on exit.
+  const [displayedSnippet, setDisplayedSnippet] = useState(targetSnippet)
+  const [fadePhase, setFadePhase] = useState<'in' | 'out'>('in')
+
+  useEffect(() => {
+    if (targetSnippet === displayedSnippet) return
+    // The fade-out → swap → fade-in dance is intentional state plumbing
+    // rather than something we can derive from props synchronously.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setFadePhase('out')
+    const handle = setTimeout(() => {
+      setDisplayedSnippet(targetSnippet)
+      setFadePhase('in')
+    }, SNIPPET_FADE_OUT_MS)
+    /* eslint-enable react-hooks/set-state-in-effect */
+    return () => clearTimeout(handle)
+  }, [targetSnippet, displayedSnippet])
 
   return (
     <div style={{
@@ -390,27 +423,15 @@ export function CosmicLanding() {
           )}
 
           <div className={styles.snippetText}>
-            <span key={`eyebrow-${activeSign.key}`} className={styles.cosmosEyebrow}>The cosmos speaks</span>
-            <span key={`label-${activeSign.key}`} className={styles.activeSignLabel}>{activeSign.name.toUpperCase()} — RISING</span>
-            <p key={`copy-${activeSign.key}`}>{snippet}</p>
-          </div>
-
-          {/* Mobile pill strip (hidden on desktop via CSS) */}
-          <div className={styles.pillStrip} role="tablist" aria-label="Choose your ascendant">
-            {ZODIAC.map((z, i) => (
-              <button
-                key={z.key}
-                type="button"
-                role="tab"
-                aria-selected={i === activeIndex}
-                className={i === activeIndex ? `${styles.pill} ${styles.pillActive}` : styles.pill}
-                onClick={() => pinSign(i, 'tap')}
-                title={z.name}
-              >
-                <span aria-hidden>{z.symbol}</span>
-                <span className={styles.srOnly}>{z.name}</span>
-              </button>
-            ))}
+            <span className={styles.cosmosEyebrow}>The cosmos speaks</span>
+            <p
+              className={fadePhase === 'in' ? styles.snippetCopyIn : styles.snippetCopyOut}
+              style={{
+                transitionDuration: `${fadePhase === 'in' ? SNIPPET_FADE_IN_MS : SNIPPET_FADE_OUT_MS}ms`,
+              }}
+            >
+              {displayedSnippet}
+            </p>
           </div>
         </div>
 
@@ -488,7 +509,27 @@ export function CosmicLanding() {
           </svg>
           Continue with Google
         </button>
-        <p className={styles.ctaFootnote}>Free · Up to 10 Natal Charts and 6 Kundali Matches</p>
+      </div>
+
+      {/* Mobile pill strip — sits ABOVE the panel against the sky, not behind
+          the panel's glass. Hidden on desktop where the wheel is the picker. */}
+      <div className={styles.pillDock}>
+        <div className={styles.pillStrip} role="tablist" aria-label="Choose your ascendant">
+          {ZODIAC.map((z, i) => (
+            <button
+              key={z.key}
+              type="button"
+              role="tab"
+              aria-selected={i === activeIndex}
+              className={i === activeIndex ? `${styles.pill} ${styles.pillActive}` : styles.pill}
+              onClick={() => pinSign(i, 'tap')}
+              title={z.name}
+            >
+              <span aria-hidden>{z.symbol}</span>
+              <span className={styles.srOnly}>{z.name}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

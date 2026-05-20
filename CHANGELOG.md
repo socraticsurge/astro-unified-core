@@ -8,6 +8,37 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Landing polish: anchored eyebrow, wind cross-fade, mobile pills out of glass
+
+### Changed
+- **`CosmicLanding.tsx` + `CosmicLanding.module.css`:**
+  - Removed the per-sign `ASCENDANT — RISING` label. The LLM snippet
+    already names the sign — the label was redundant.
+  - Anchored the "The cosmos speaks" eyebrow at a fixed top position
+    inside a fixed-height snippet box (9.5em desktop, 7.5em mobile).
+    The eyebrow no longer jumps as snippet lengths vary; the
+    paragraph below clips at 5 lines (4 on mobile) with `-webkit-line-clamp`.
+    Client-side defensive truncate to 320 chars too.
+  - **Cross-fade between snippets** ("wind stroke" feel): state-driven
+    two-phase transition. Current text fades out with a slight upward
+    drift + 4px blur (380ms), the displayed text swaps, then drifts
+    back in (520ms). Replaces the abrupt key-remount fade.
+  - **Mobile: pill picker moved ABOVE the glass panel.** The pills now
+    sit in a new `.pillDock` fixed-positioned above the panel's top
+    edge (against the night sky, not behind the panel's frosted
+    glass). Backdrop blur on each pill keeps glyphs legible over the
+    starfield.
+- **`lib/engines/today-landing.ts`** prompt tightened from "~50 words"
+  to "STRICT max 40 words, aim for 30-38." `PROMPT_VERSION_LANDING`
+  bumped 1 → 2 (signals intent; daily cache key is by IST date, so
+  the new prompt takes effect on tomorrow's regeneration).
+
+### Removed
+- The "Free · Up to 10 Natal Charts and 6 Kundali Matches" footnote
+  under the sign-in button.
+
+---
+
 ## [2026-05-20] — Audit round 2: mobile layout fixes + Transits cleanup
 
 ### Added
