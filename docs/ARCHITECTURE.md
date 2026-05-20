@@ -1,6 +1,6 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-05-20 -->
+<!-- last-updated: 2026-05-21 -->
 
 > **Note:** The legacy "Basic / Professional" two-mode chart view was replaced
 > with the unified 10-tab dashboard on 2026-05-19. The components below
@@ -41,6 +41,7 @@
 11. [Utility Modules](#11-utility-modules)
 12. [User Journey Traces](#12-user-journey-traces)
 13. [Code Organisation Assessment](#13-code-organisation-assessment)
+14. [Observability & Daily Landing Engine](#14-observability--daily-landing-engine)
 
 ---
 
@@ -1021,6 +1022,130 @@ call (instead of one per day) is a clean design. The accuracy trade-off
 
 ---
 
+## 14. Observability & Daily Landing Engine
+
+<!-- last-updated: 2026-05-21 -->
+
+This section catalogs the platform-level modules added in the 2026-05-20
+sprint (Sentry, PostHog, Resend, `/api/health`) and the daily landing
+generation engine. These pieces are cross-cutting and don't belong in any
+single section above, so they live here.
+
+### 14.1 Error tracking — Sentry
+
+| File | Purpose |
+|---|---|
+| `instrumentation.ts` | Next.js entry point — registers server + edge configs by runtime |
+| `instrumentation-client.ts` | Browser SDK init; also fires PostHog (single file, two SDKs) |
+| `sentry.server.config.ts` | Server SDK init |
+| `sentry.edge.config.ts` | Edge runtime SDK init |
+| `app/global-error.tsx` | App-Router uncaught-exception capture |
+| `next.config.ts` | Wrapped with `withSentryConfig` for build-time source map upload |
+
+**Tuned defaults (DO NOT regress):** `tracesSampleRate: 0.1`,
+`sendDefaultPii: false`, `enableLogs: false`. Free tier ≈ 5k events/month
+— pure abuse defense. See `lib/posthog-server.ts` and the three Sentry
+configs.
+
+**Build-time env:** `SENTRY_AUTH_TOKEN` (Vercel-only, never in client
+bundle). Without it source maps don't upload; runtime capture still works
+but stack traces are minified.
+
+### 14.2 Product analytics — PostHog
+
+| File | Purpose |
+|---|---|
+| `instrumentation-client.ts` | `posthog-js` init alongside Sentry |
+| `lib/posthog-server.ts` | Lazy singleton for `posthog-node` (flushAt: 1, fire-and-forget) |
+| `components/PostHogIdentifier.tsx` | Browser identify on session change |
+| `lib/auth.ts` (signIn callback) | Server identify + `user_signed_in` event |
+
+**Tuned defaults:** `capture_exceptions: false` (Sentry owns errors —
+don't double-track).
+
+**`/ingest/*` rewrite** in `next.config.ts` proxies browser PostHog
+calls through the app domain, defeating ad-blockers.
+
+**Event catalog (current):**
+
+| Event | Source | Properties |
+|---|---|---|
+| `user_signed_in` | server (auth callback) | provider |
+| `profile_created`, `profile_deleted` | server (REST) | relationship, ... |
+| `consultation_request_created` | server (REST) | delivery_mode, profile_count, payment_flow_enabled, amount_paise |
+| `consultation_feedback_submitted` | client (thumbs on answered) | rating, has_note |
+| `feedback_submitted` | server (REST) | rating, has_message, authenticated |
+| `ask_panel_opened`, `ai_insight_panel_opened` | client | tab |
+| `landing_ascendant_pinned` | client | sign, source, is_stale |
+| `today_reading_copied` | client | engine, length |
+| `today_reading_shared` | client | engine, surface, length |
+| `today_reading_rated` | client | engine, rating |
+
+**Known caveat:** `posthog-node` on Vercel serverless is fire-and-forget.
+Most server events land; a small fraction may drop when Lambda freezes
+before flush HTTP completes. Acceptable for analytics, not for auditing.
+
+### 14.3 Email notifications — Resend
+
+| File | Purpose |
+|---|---|
+| `lib/email/client.ts` | Lazy `Resend` singleton; returns `null` when `RESEND_API_KEY` missing |
+| `lib/email/admin-notify.ts` | Formats + sends "new consultation request" admin email |
+| `app/api/consultation-requests/route.ts` (POST) | Calls `notifyAdminOfConsultationRequest` via Next.js `after()` so the response isn't delayed |
+
+**Hardcoded in `lib/constants.ts`:**
+- `ADMIN_EMAIL_NOTIFICATIONS_ENABLED` (kill switch)
+- `ADMIN_NOTIFY_EMAIL` (single recipient)
+- `EMAIL_FROM` (currently Resend's shared `onboarding@resend.dev`)
+
+**Gotcha:** `onboarding@resend.dev` can only deliver to the email
+address you signed up to Resend with. Switch to a verified-domain
+sender (`notify@astrochaganti.com`) once the domain's DNS is configured
+in Resend.
+
+### 14.4 Health endpoint — `/api/health`
+
+`app/api/health/route.ts` runs `SELECT 1` against Turso and pings the
+sidecar's `/health`. Returns 200 with both statuses or 503 if either is
+down. Public, no auth, `Cache-Control: no-store`. Point UptimeRobot
+here. See `docs/RUNBOOK.md` §"Health monitoring".
+
+### 14.5 Daily landing engine
+
+The unauthenticated landing page calls `/api/landing/today` once on
+mount; the response is one row from `daily_landing` (schema v9) that
+caches a single LLM call's output — 12 ascendant-specific snippets
+plus today's Moon nakshatra, Sun sign, and active retrogrades.
+
+| File | Purpose |
+|---|---|
+| `app/api/landing/today/route.ts` | Public GET; retry budget (3/day, ≥10-min gap); serves prior day with `is_stale: true` on failure |
+| `lib/engines/today-landing.ts` | Synthetic sidecar call for sky facts + single Gemini Flash Lite call grounded in `lookupAscendant` content blocks |
+| `lib/db/daily-landing.ts` | CRUD on the new `daily_landing` table (`getByDate`, `getMostRecentSuccess`, `recordAttempt`, `storeSuccess`) |
+| `lib/content/landing-fallback.ts` | Static per-ascendant paragraphs used pre-fetch so the panel is never blank |
+| `components/CosmicLanding.tsx` | Spinning zodiac wheel is the desktop picker (each sign is a click target); horizontal pill strip is the mobile picker. localStorage remembers the pinned sign |
+
+**Cache invalidation:** keyed by IST date. `PROMPT_VERSION_LANDING` is a
+signal-only constant — bumping it does not auto-regenerate today's row
+(use the admin shell to delete the row if you need to force regen).
+
+### 14.6 Today reading feedback — `ReadingActions`
+
+`components/tabs/ReadingActions.tsx` adds Copy / Share / Thumbs-Up /
+Thumbs-Down to each Today-tab reading card. Reads/writes ratings via
+`PATCH /api/readings/[id]/rating` (user-facing, validates ownership via
+`db.profiles.get(profile_id, userId)`; admins bypass). The server-side
+`db.readings.getById` was added in the same change.
+
+### 14.7 Schema v9
+
+`lib/db/client.ts` bumped `SCHEMA_VERSION` 8 → 9 to add the
+`daily_landing` table. See Section 5 (Database Layer) for the schema
+version pattern.
+
+---
+
 *For env vars, deployment gotchas, and auth model see [`PROJECT.md`](./PROJECT.md).*
+*For health checks, DB backup/restore, and the dev → main promotion runbook see [`RUNBOOK.md`](./RUNBOOK.md).*
 *For the full issue/debt list see [`BACKLOG.md`](./BACKLOG.md).*
 *For recent changes see [`CHANGELOG.md`](../CHANGELOG.md).*

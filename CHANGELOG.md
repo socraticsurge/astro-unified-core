@@ -8,6 +8,29 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Docs refresh: ARCHITECTURE.md §14, PROJECT.md env vars, RUNBOOK.md promotion section
+
+### Changed
+- **`docs/ARCHITECTURE.md`:** new §14 "Observability & Daily Landing Engine"
+  catalogs every module added in the 2026-05-20 sprint — Sentry, PostHog
+  (incl. the full event catalog), Resend, `/api/health`, the daily
+  landing engine (`/api/landing/today`, `today-landing.ts`,
+  `daily_landing` table, schema v9), and `ReadingActions`. Top
+  `last-updated` stamp bumped to 2026-05-21.
+- **`docs/PROJECT.md`:** added the two previously-undocumented env vars
+  the code references — `GOOGLE_GEMINI_API_KEY` and `GROQ_API_KEY`.
+- **`docs/RUNBOOK.md`:** new "Promoting `development` → `main`" section.
+  Covers the pre-PR gate, env var parity check across Vercel
+  environments, the Google OAuth redirect URI update needed before the
+  first prod sign-in, post-deploy verification steps, and the
+  one-time monitoring/Resend/Sentry/PostHog updates needed on cutover
+  to `astrochaganti.com`.
+- **`docs/BACKLOG.md`:** T13 — `AIAdminPanel` silently swallows AI
+  insight fetch failures; should `Sentry.captureException` and surface
+  an inline error state.
+
+---
+
 ## [2026-05-20] — Prune dead npm dependencies
 
 ### Removed
