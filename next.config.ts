@@ -46,6 +46,9 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
+            // connect-src keeps https: to allow Vercel Analytics / Speed Insights
+            // and any future client-side fetches to third-party services. The
+            // tighter `'self'` form (from PR #66) would break analytics.
             value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self';",
           },
         ],

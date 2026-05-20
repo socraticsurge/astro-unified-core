@@ -1,0 +1,11 @@
+#!/bin/sh
+# Runs before every git push. Blocks the push if types or tests fail.
+set -e
+
+echo "Running type check..."
+./node_modules/.bin/tsc --noEmit
+
+echo "Running tests..."
+npx vitest run
+
+echo "All checks passed."

@@ -42,6 +42,9 @@ export async function POST(req: NextRequest) {
   if (isNaN(startMs) || isNaN(endMs)) {
     return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
   }
+  if (endMs <= startMs) {
+    return NextResponse.json({ error: "end_date must be after start_date" }, { status: 400 });
+  }
   const daysDiff = (endMs - startMs) / 86_400_000;
   if (daysDiff > MAX_DAYS) {
     return NextResponse.json({ error: `Date range cannot exceed ${MAX_DAYS} days` }, { status: 400 });

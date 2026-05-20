@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
-import { createClient } from "@libsql/client";
+import { getClient } from "@/lib/db/client";
 
 export async function POST() {
   const session = await getServerSession(authOptions);
@@ -12,9 +12,7 @@ export async function POST() {
   }
 
   try {
-    const url = process.env.TURSO_DATABASE_URL || "file:dummy.db";
-    const authToken = process.env.TURSO_AUTH_TOKEN;
-    const client = createClient({ url, authToken });
+    const client = getClient();
 
     const rs = await client.execute("DELETE FROM compatibility_checks;");
 

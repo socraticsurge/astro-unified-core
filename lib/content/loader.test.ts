@@ -32,8 +32,9 @@ describe("content loader caching", () => {
     const readFileSyncSpy = vi.spyOn(fs, "readFileSync").mockReturnValue("---\ntype: section\ntitle: Test Section\n---\nTest content body");
     const loader = await import("./loader");
 
+    // +1 for the content-index.json read attempted during module init
     const firstResult = loader.loadByTypeAndKey("section", "test-key");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(1);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(2);
     expect(firstResult).toEqual(expect.objectContaining({
       type: "section",
       title: "Test Section",
@@ -41,7 +42,7 @@ describe("content loader caching", () => {
     }));
 
     const secondResult = loader.loadByTypeAndKey("section", "test-key");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(1);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(2); // no new reads — cached
     expect(secondResult).toBe(firstResult);
   });
 
@@ -52,12 +53,13 @@ describe("content loader caching", () => {
 
     const loader = await import("./loader");
 
+    // +1 for the content-index.json read attempted during module init
     const firstResult = loader.loadByTypeAndKey("section", "missing-key");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(1);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(2);
     expect(firstResult).toBeNull();
 
     const secondResult = loader.loadByTypeAndKey("section", "missing-key");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(1);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(2); // no new reads — cached
     expect(secondResult).toBeNull();
   });
 
@@ -70,17 +72,18 @@ describe("content loader caching", () => {
 
     const loader = await import("./loader");
 
-    loader.loadByTypeAndKey("section", "key1");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(1);
-
-    loader.loadByTypeAndKey("section", "key2");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(2);
-
+    // +1 for the content-index.json read attempted during module init
     loader.loadByTypeAndKey("section", "key1");
     expect(readFileSyncSpy).toHaveBeenCalledTimes(2);
 
     loader.loadByTypeAndKey("section", "key2");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(2);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(3);
+
+    loader.loadByTypeAndKey("section", "key1");
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(3); // cached
+
+    loader.loadByTypeAndKey("section", "key2");
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(3); // cached
   });
 
   it("should handle different types independently", async () => {
@@ -92,14 +95,18 @@ describe("content loader caching", () => {
 
     const loader = await import("./loader");
 
+    // +1 for the content-index.json read attempted during module init
     loader.loadByTypeAndKey("section", "same-key");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(1);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(2);
 
     loader.loadByTypeAndKey("dasha-pair", "same-key");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(2);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(3);
 
     loader.loadByTypeAndKey("section", "same-key");
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(2);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(3); // cached
+
+    loader.loadByTypeAndKey("dasha-pair", "same-key");
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(3); // cached
   });
 });
 
@@ -119,12 +126,13 @@ describe("loadAllSections caching", () => {
 
     const loader = await import("./loader");
 
+    // +1 for the content-index.json read attempted during module init
     const sections = loader.loadAllSections();
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(1);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(2);
     expect(sections["Test View"]).toBeDefined();
 
     const sections2 = loader.loadAllSections();
-    expect(readFileSyncSpy).toHaveBeenCalledTimes(1);
+    expect(readFileSyncSpy).toHaveBeenCalledTimes(2); // no new reads — cached
     expect(sections2["Test View"]).toBe(sections["Test View"]);
   });
 

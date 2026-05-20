@@ -1,16 +1,19 @@
 import { randomUUID } from "crypto";
+import { z } from "zod";
 import { getClient, ensureSchema } from "./client";
 
-export type Reading = {
-  id: string;
-  profile_id: string;
-  engine: string;
-  input_snapshot: string;
-  output_data: string;
-  created_at: string;
-  rating?: number | null;
-  rated_at?: string | null;
-};
+const ReadingSchema = z.object({
+  id: z.string(),
+  profile_id: z.string(),
+  engine: z.string(),
+  input_snapshot: z.string(),
+  output_data: z.string(),
+  created_at: z.string(),
+  rating: z.coerce.number().nullable().optional(),
+  rated_at: z.string().nullable().optional(),
+});
+
+export type Reading = z.infer<typeof ReadingSchema>;
 
 export type AiInsightStat = {
   engine: string;
@@ -44,7 +47,7 @@ export const readings = {
       sql: "SELECT * FROM readings WHERE profile_id = ? AND engine = ? ORDER BY created_at DESC LIMIT 1",
       args: [profile_id, engine],
     });
-    return rs.rows[0] as unknown as Reading | undefined;
+    return rs.rows[0] ? ReadingSchema.parse(rs.rows[0]) : undefined;
   },
 
   async latestByEngineMany(profile_ids: string[], engine: string): Promise<Reading[]> {
@@ -67,7 +70,7 @@ export const readings = {
       `,
       args: [engine, ...profile_ids],
     });
-    return rs.rows as unknown as Reading[];
+    return rs.rows.map((r) => ReadingSchema.parse(r));
   },
 
   async deleteByProfile(profile_id: string): Promise<void> {

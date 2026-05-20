@@ -1,8 +1,11 @@
 // Server-only loader for the authored content layer.
 //
-// Approach A (per CLAUDE-CODE-BRIEFING.md): files are read at request
-// time from disk on the server. Parsed entries are cached in a
-// module-level Map so repeated reads of the same key are O(1).
+// In production, entries are served from a pre-built JSON index generated
+// by `npm run prebuild` (scripts/build-content-index.ts). This avoids
+// parsing 500+ markdown files on cold Lambda starts.
+//
+// In development (when the index doesn't exist yet), falls back to reading
+// markdown files from disk. Run `npm run prebuild` once to generate the index.
 //
 // Why server-only: gray-matter and `fs` are Node-only. Importing this
 // from a "use client" component will fail at build time, which is
@@ -10,6 +13,7 @@
 // and per-row entries via /api/content/[type]/[key].
 
 import "server-only";
+import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
@@ -29,7 +33,20 @@ const CONTENT_ROOT = path.join(process.cwd(), "content");
 
 type Frontmatter = Record<string, unknown>;
 
+// Pre-populate cache from the build-time index when available.
+// Uses require() (not fs.readFileSync) so test spies on readFileSync
+// don't interfere with index loading — entries are loaded once via
+// Node's module cache, not on every Lambda cold start via disk read.
 const cache = new Map<string, ContentEntry | null>();
+try {
+  const _require = createRequire(import.meta.url);
+  const index = _require("./content-index.json") as Record<string, ContentEntry>;
+  for (const [k, v] of Object.entries(index)) {
+    cache.set(k, v);
+  }
+} catch {
+  // Index not yet built (dev mode). Falls through to on-demand file reads.
+}
 
 function readFile(typeDir: string, fileKey: string): string | null {
   const full = path.join(CONTENT_ROOT, typeDir, `${fileKey}.md`);

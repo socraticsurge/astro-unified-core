@@ -2,10 +2,10 @@
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 
 /** String-key sort for admin tables. Stable under repeated calls. */
-export function sortBy<T>(arr: T[], col: string, dir: "asc" | "desc"): T[] {
+export function sortBy<T extends Record<string, unknown>>(arr: T[], col: string, dir: "asc" | "desc"): T[] {
   return [...arr].sort((a, b) => {
-    const aVal = String((a as Record<string, unknown>)[col] ?? "");
-    const bVal = String((b as Record<string, unknown>)[col] ?? "");
+    const aVal = String(a[col as keyof T] ?? "");
+    const bVal = String(b[col as keyof T] ?? "");
     const cmp = aVal.localeCompare(bVal);
     return dir === "asc" ? cmp : -cmp;
   });

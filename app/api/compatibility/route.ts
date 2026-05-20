@@ -13,7 +13,7 @@ export async function GET() {
   const userId = getUserId(session);
 
   const checks = await db.compatibility.list(userId);
-  return NextResponse.json(checks);
+  return NextResponse.json(checks, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(req: NextRequest) {
@@ -31,11 +31,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Two profiles required" }, { status: 400 });
     }
 
-    const existingChecks = await db.compatibility.list(userId);
-    const duplicate = existingChecks.find(c =>
-      (c.profile_id_1 === profile_id_1 && c.profile_id_2 === profile_id_2) ||
-      (c.profile_id_1 === profile_id_2 && c.profile_id_2 === profile_id_1)
-    );
+    // Targeted SQL — avoids loading every check into JS just to scan for a duplicate
+    // or count. Also fixes a TOCTOU race in the 6-check cap.
+    const duplicate = await db.compatibility.findDuplicate(userId, profile_id_1, profile_id_2);
+    if (!duplicate) {
+      const count = await db.compatibility.countByUser(userId);
+      if (count >= 6) {
+        return NextResponse.json({ error: "You have reached the maximum limit of 6 compatibility checks. Please delete some checks or contact support to run more." }, { status: 403 });
+      }
+    }
 
     const [p1, p2] = await Promise.all([
       db.profiles.get(profile_id_1, userId),
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (duplicate) {
-      return NextResponse.json(duplicate);
+      return NextResponse.json(duplicate, { headers: { "Cache-Control": "private, no-store" } });
     }
 
     // Call Python Sidecar
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
       result_json: JSON.stringify(data),
     });
 
-    return NextResponse.json(check);
+    return NextResponse.json(check, { headers: { "Cache-Control": "private, no-store" } });
   } catch (e) {
     console.error("POST /api/compatibility failed:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

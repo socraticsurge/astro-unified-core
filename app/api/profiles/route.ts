@@ -12,16 +12,16 @@ export async function GET() {
   
   const userId = getUserId(session);
   const profiles = await db.profiles.list(userId);
-  return NextResponse.json(profiles);
+  return NextResponse.json(profiles, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as { id?: string } | undefined)?.id;
-    if (!session?.user || !userId) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const userId = getUserId(session);
 
     // Rate Limiting Check
     const rateLimitResult = rateLimit(`create_profile_${userId}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS);
@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Too many requests. Please wait a minute before creating another profile." }, { status: 429 });
     }
 
-    // Max Profiles Check
-    const existingProfiles = await db.profiles.list(userId);
-    if (existingProfiles.length >= MAX_PROFILES) {
+    // Max Profiles Check — use COUNT() rather than loading the full list (TOCTOU + memory).
+    const profileCount = await db.profiles.count(userId);
+    if (profileCount >= MAX_PROFILES) {
       return NextResponse.json({ error: `You have reached the maximum limit of ${MAX_PROFILES} profiles.` }, { status: 403 });
     }
 
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       relationship,
     });
 
-    return NextResponse.json(profile, { status: 201 });
+    return NextResponse.json(profile, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (e) {
     console.error("POST /api/profiles failed:", e);
     const msg = e instanceof Error ? e.message : "Internal error";

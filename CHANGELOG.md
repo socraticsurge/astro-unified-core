@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Merge of PR #66 (audit fixes, Sessions 1-4)
+
+Picked up the substantive backend hardening from PR #66: Cache-Control on
+auth-gated routes, isomorphic-dompurify sanitizer, AbortSignal timeouts on
+sidecar/LLM, fetch-with-retry utility, Zod schemas across DB modules,
+COUNT queries (TOCTOU fix), 5 new route test files (61 tests), admin
+pagination LIMIT 200, eslint-plugin-jsx-a11y wiring, content index
+prebuild, pre-push hook. Conflicts resolved by combining with PR-1..PR-8
+work (proper-case display, sidebar create, tab primitives, today-reading
+two-tier cache, AdminTables split, Transit chart). See the dedicated
+session entries below for the details.
+
+---
+
 ## [2026-05-20] — PR-8: Legacy Compatibility UI removed + Transit chart
 
 Two corrections from user testing:
@@ -1219,6 +1233,84 @@ is in shape to merge to `main`.
 
 ### Changed
 - **`design/landing-mockup/bundle.html`** — Earlier design iteration, kept as reference.
+## [2026-05-20] — Zod DB validation, content index prebuild, and sort type fix (Session 4)
+
+### Code quality
+- **`lib/db/users.ts`**, **`lib/db/feedback.ts`**, **`lib/db/profiles.ts`**, **`lib/db/compatibility.ts`**, **`lib/db/consultation-requests.ts`**, **`lib/db/consultation-slots.ts`**, **`lib/db/readings.ts`** — Replaced all `as unknown as T` raw type casts with Zod schema parsing. Each module now defines a `z.object({...})` schema that matches the table columns exactly. Schema mismatch between the DB and TypeScript types now throws a `ZodError` at runtime rather than silently producing `undefined` fields. Used `z.infer<typeof Schema>` to derive the exported types, so schemas and types stay in sync automatically.
+- **`app/admin/AdminTables.tsx`** — Replaced `(a as Record<string, unknown>)[col]` sort accessor with a bounded generic `<T extends Record<string, unknown>>(arr: T[], col: string): T[]`. Accessing via `a[col as keyof T]` removes the unconstrained cast while keeping the `string`-typed sort state.
+
+### Performance
+- **`scripts/build-content-index.ts`** (new) — Pre-build script that reads all 542 markdown content files, parses them using the same logic as `lib/content/loader.ts`, and writes `lib/content/content-index.json` (394 entries, ~456 KB) at build time. Added to `package.json` as `"prebuild": "tsx scripts/build-content-index.ts"` so it runs automatically before `next build`.
+- **`lib/content/loader.ts`** — Modified to load the pre-built JSON index at module init time (via `createRequire`), pre-populating the in-memory cache before the first request arrives. Cold Lambda starts no longer parse 500+ markdown files — they read a single JSON. Falls back to on-demand file reading if the index doesn't exist (dev mode without running `prebuild`).
+- **`lib/content/loader.test.ts`** — Updated call-count assertions to account for the one-time content-index.json read that now occurs at module init. Caching invariants are unaffected.
+- **`.gitignore`** — Added `lib/content/content-index.json` (generated at build time; not committed).
+
+### Housekeeping (I3)
+- Old engine readings (`bazi`, `vedastro`, `western`, `panchangam`) remain in the DB. Run this once via Turso dashboard when convenient: `DELETE FROM readings WHERE engine IN ('bazi', 'vedastro', 'western', 'panchangam');`
+
+---
+
+## [2026-05-20] — Route tests, admin pagination, and eslint hardening (Session 3)
+
+### Test coverage
+- **`app/api/profiles/route.test.ts`** (new) — 8 tests: GET (401, 200+list, Cache-Control) and POST (401, 429, 403 cap at 10, 400 missing fields, 400 name > 100 chars, 201 success with geocoding, 400 geocoding failure).
+- **`app/api/compatibility/route.test.ts`** (new) — 9 tests: GET (401, 200+Cache-Control) and POST (401, 429, 400 missing IDs, 200 duplicate no-sidecar, 403 cap, 404 profiles not found, 200 sidecar success+Cache-Control).
+- **`app/api/readings/dashaflow/route.test.ts`** (new) — 12 tests: GET (401, 400 missing profile_id, 404, 200 cached+Cache-Control, 200 fresh, 502 engine error, admin `getAny` path) and POST (401, 429, 404, 502, 200 success+Cache-Control).
+- **`app/api/readings/ai-insight/route.test.ts`** (new) — 11 tests: GET (403 non-admin, 400 missing tab, 400 invalid tab, 200 with reading+Cache-Control, 200 null when no reading) and POST (403, 400 missing tab, 200 cached no-LLM, 404 profile not found, 200 fresh insight, 500 LLM throws).
+- **`app/api/consultation-requests/route.test.ts`** (new) — 10 tests: GET (401, 200+Cache-Control) and POST (401, 429, 409 pending, 400 missing fields, 400 too short, 400 invalid delivery_mode, 400 appointment no slot, 404 profile not found, 201 success, 409 slot already booked).
+
+### Performance
+- **`lib/db/users.ts`**, **`lib/db/feedback.ts`**, **`lib/db/profiles.ts`**, **`lib/db/compatibility.ts`**, **`lib/db/consultation-requests.ts`** — All `list()` / `listAll*()` admin queries now include `LIMIT 200` (default, callers can pass a higher value). Previously these queries loaded all rows into Lambda memory with no upper bound. At moderate user scale the unbounded 3-way join in `listAllWithDetails()` would hit Vercel's 50 MB response ceiling. Full pagination with page-controls in the admin UI is deferred to backlog.
+
+### Code quality
+- **`eslint.config.mjs`** — Explicitly wired `eslint-plugin-jsx-a11y` (`flatConfigs.recommended`) alongside `eslint-config-next/core-web-vitals`. The plugin was installed transitively but not explicitly declared; this makes accessibility linting unambiguous and resilient to future dependency changes.
+
+---
+
+## [2026-05-20] — Reliability, performance, CSP, and test coverage (Session 2)
+
+### Security
+- **`next.config.ts`** — Removed `unsafe-eval` from `script-src` in the Content-Security-Policy header. Production Next.js builds do not use `eval()`; the directive was overly permissive and undermined XSS protection. Also tightened `connect-src` from `https:` (any external domain) to `'self'` — all browser→API traffic goes to the same origin.
+
+### Reliability
+- **`lib/engines/fetch-with-retry.ts`** (new) — Shared utility that adds a single 1-retry with 500ms backoff on 502/503/504 responses from sidecar or LLM calls. Does not retry 4xx (genuine client errors) or `TimeoutError` (already exceeded budget). Each attempt gets a fresh `AbortSignal.timeout` so the timer resets on retry.
+- **`lib/engines/dashaflow.ts`**, **`lib/engines/transit.ts`**, **`lib/engines/career.ts`**, **`app/api/readings/muhurtha/route.ts`** — All sidecar fetch calls now use `fetchWithRetry` instead of bare `fetch`. Transient sidecar cold-start 502s are now auto-recovered without surfacing an error to the user.
+
+### Performance
+- **`lib/db/profiles.ts`** — Added `count(userId)` method: `SELECT COUNT(*)` instead of loading all profile rows just to check the cap.
+- **`lib/db/compatibility.ts`** — Added `countByUser(userId)` and `findDuplicate(userId, id1, id2)` methods using targeted SQL queries. Previously the whole user's compatibility list was loaded to count and search for duplicates in JavaScript.
+- **`app/api/profiles/route.ts`** — Profile cap check now uses `db.profiles.count()` instead of `db.profiles.list()`. Fixes a TOCTOU race condition: two concurrent POST requests could both see count=9, both pass the check, and both create a profile — resulting in 11 profiles.
+- **`app/api/compatibility/route.ts`** — Compatibility cap and duplicate checks now use the two new targeted DB methods.
+
+### Test coverage
+- **`lib/tarabalam.test.ts`** (new) — 34 tests covering all exported functions in `lib/tarabalam.ts`: `getNakshatraIndex` (exact match, unknown, prefix/pada), `computeTara` (all 27×27 pairs, wrap-around, known values), `computeTithi` (Amavasya/Purnima, all pakshas, wrap-around, full range), `extrapolateMoonLongitude` (0-offset, daily motion, wrap, negative days, full-cycle), `extrapolateMoonNakshatra` (all 27 segments), `extrapolateSunLongitude` (daily motion, full year), `TARAS` constant integrity.
+- **`lib/engines/dashaflow.test.ts`** — Updated 503 test to mock `fetch` twice (initial call + retry) to match the new `fetchWithRetry` behaviour.
+
+### Code quality
+- **`package.json`** — Added `"prepare"` script (`git config core.hooksPath .githooks`) so any fresh `npm install` auto-registers the pre-push hook.
+- **`.githooks/pre-push`** (new) — Shell hook that runs `tsc --noEmit` and `vitest run` before every push. Blocks the push if either fails.
+
+---
+
+## [2026-05-20] — Security hardening, reliability, and code quality (Session 1)
+
+### Security
+- **`app/api/profiles/route.ts`**, **`app/api/consultation-requests/route.ts`**, **`app/api/compatibility/route.ts`**, **`app/api/readings/dashaflow/route.ts`** — Added `Cache-Control: private, no-store` to all authenticated data responses. Without this header, browsers and shared proxies could cache personal chart data and serve it to other users on the same device or network. AI insight and chat routes already had this header; the gap was in the core data retrieval endpoints.
+- **`lib/sanitize.ts`** — Replaced homegrown regex-based HTML sanitizer (known OWASP anti-pattern, bypassable with obfuscated payloads) with `isomorphic-dompurify`. DOMPurify is maintained by cure53, uses a real DOM parser on both client and server, and is the industry standard. Package was already in `dependencies`; only the implementation changed.
+- **`app/api/readings/muhurtha/route.ts`** — Added enum validation for `event_type` against `["marriage", "house_entry", "business", "travel", "education", "medical"]`. Unknown values now return 400 instead of being forwarded to the sidecar.
+- **`app/api/readings/tarabalam/route.ts`** — Added validation that `end_date` is strictly after `start_date`. Previously a reversed range produced a negative `daysDiff` that passed the 90-day guard and sent a backwards date range to the engine.
+- **`app/api/admin/backfill/route.ts`**, **`app/api/admin/clear-compatibility/route.ts`** — Replaced direct `createClient()` instantiation with `getClient()` from `lib/db/client.ts`. Admin routes were creating fresh libSQL client instances on every request instead of using the shared singleton, accumulating connection objects on warm Lambdas and bypassing future safety guards.
+
+### Reliability
+- **`lib/engines/dashaflow.ts`**, **`lib/engines/transit.ts`**, **`lib/engines/career.ts`** — Added `AbortSignal.timeout(20_000)` (20s) to all sidecar fetch calls. Node's default timeout is ~2 minutes; a hung sidecar would block the Lambda and produce a raw Vercel 504 with no user-friendly message. `TimeoutError` now returns a clear message.
+- **`lib/engines/gemini.ts`**, **`lib/engines/groq.ts`** — Added `AbortSignal.timeout(60_000)` (60s) to all LLM API fetch calls.
+- **`app/api/readings/muhurtha/route.ts`** — Added 20s timeout to the muhurtha sidecar fetch.
+
+### Code quality
+- **`lib/db/client.ts`** — Parameterized the `INSERT OR IGNORE INTO settings` statement (was using a template literal with `new Date().toISOString()` directly in SQL, violating the codebase's own parameterized-query rule). Replaced the 14 empty `catch {}` blocks around `ALTER TABLE` migrations with a shared `migrate()` helper that logs unexpected errors (i.e. errors that are NOT "duplicate column name"), making genuine migration failures visible instead of silent.
+- **`package.json`** — Fixed `"test"` script from `"jest"` (no config, always fails) to `"vitest run"`. Added `"test:watch": "vitest"` and `"test:coverage": "vitest run --coverage"`.
+- **`vitest.config.ts`** — Added coverage configuration: v8 provider, text + lcov reporters, 60% statement/branch thresholds.
+- **`proxy.ts` → `middleware.ts`** — Renamed to follow Next.js convention. Next.js loads middleware from `middleware.ts`; the previous name worked but was non-standard.
 
 ---
 

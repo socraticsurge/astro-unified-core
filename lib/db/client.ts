@@ -137,29 +137,40 @@ export async function ensureSchema() {
     `);
     await client.execute("CREATE INDEX IF NOT EXISTS idx_consultation_requests_user ON consultation_requests (user_id, status);");
     // Seed default settings — ignore conflict if already seeded.
-    await client.execute(`INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES ('live_consultation_enabled', 'false', '${new Date().toISOString()}')`);
+    await client.execute({
+      sql: "INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
+      args: ["live_consultation_enabled", "false", new Date().toISOString()],
+    });
+
+    function migrate(sql: string) {
+      return client.execute(sql).catch((e: Error) => {
+        if (!e.message?.includes("duplicate column name") && !e.message?.includes("already exists")) {
+          console.warn("DB migration warning:", e.message, "|", sql);
+        }
+      });
+    }
 
     // Column migrations — silently skip if column already exists.
-    try { await client.execute("ALTER TABLE users ADD COLUMN created_at TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN relationship TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN gender TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_location TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_latitude REAL;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_longitude REAL;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE profiles ADD COLUMN current_timezone_offset REAL;"); } catch {}
+    await migrate("ALTER TABLE users ADD COLUMN created_at TEXT;");
+    await migrate("ALTER TABLE profiles ADD COLUMN relationship TEXT;");
+    await migrate("ALTER TABLE profiles ADD COLUMN gender TEXT;");
+    await migrate("ALTER TABLE profiles ADD COLUMN current_location TEXT;");
+    await migrate("ALTER TABLE profiles ADD COLUMN current_latitude REAL;");
+    await migrate("ALTER TABLE profiles ADD COLUMN current_longitude REAL;");
+    await migrate("ALTER TABLE profiles ADD COLUMN current_timezone TEXT;");
+    await migrate("ALTER TABLE profiles ADD COLUMN current_timezone_offset REAL;");
 
     // v5: options field + user feedback on consultation requests
-    try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN options TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN user_rating TEXT;"); } catch {}
-    try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN user_feedback_note TEXT;"); } catch {}
+    await migrate("ALTER TABLE consultation_requests ADD COLUMN options TEXT;");
+    await migrate("ALTER TABLE consultation_requests ADD COLUMN user_rating TEXT;");
+    await migrate("ALTER TABLE consultation_requests ADD COLUMN user_feedback_note TEXT;");
 
     // v6: payment tracking
-    try { await client.execute("ALTER TABLE consultation_requests ADD COLUMN amount_paise INTEGER;"); } catch {}
+    await migrate("ALTER TABLE consultation_requests ADD COLUMN amount_paise INTEGER;");
 
     // v8: AI insight ratings on readings
-    try { await client.execute("ALTER TABLE readings ADD COLUMN rating INTEGER;"); } catch {}
-    try { await client.execute("ALTER TABLE readings ADD COLUMN rated_at TEXT;"); } catch {}
+    await migrate("ALTER TABLE readings ADD COLUMN rating INTEGER;");
+    await migrate("ALTER TABLE readings ADD COLUMN rated_at TEXT;");
 
     // v7: live consultation slot booking
     await client.execute(`
