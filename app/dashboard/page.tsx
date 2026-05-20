@@ -11,7 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ profile?: string; compare?: string; new?: string }> | { profile?: string; compare?: string; new?: string }
+  searchParams?:
+    | Promise<{ profile?: string; compare?: string; new?: string; create?: string }>
+    | { profile?: string; compare?: string; new?: string; create?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/auth/signin");
@@ -49,11 +51,14 @@ export default async function DashboardPage({
       }
     }
   } else {
-    if (ownProfiles.length === 0) redirect("/profiles/new");
+    // Empty-profile users go straight into create mode — the sidebar renders
+    // the inline create form. No more separate /profiles/new screen.
     initialProfileId = params?.profile
       ? ownProfiles.find(p => p.id === params.profile)?.id
       : undefined;
   }
+
+  const isCreating = params?.create === "1" || (!adminUser && ownProfiles.length === 0);
 
   return (
     <DashboardClient
@@ -61,6 +66,7 @@ export default async function DashboardPage({
       initialProfileId={initialProfileId}
       isAdmin={adminUser}
       isNewProfile={params?.new === "1"}
+      isCreating={isCreating}
       initialCompareCheck={initialCompareCheck}
       appSettings={{
         writtenEnabled: appSettings.written_consultation_enabled,

@@ -1,15 +1,17 @@
 "use client"
 import { useState, useEffect, useCallback, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { NavBar } from "@/components/NavBar"
 import { ProfileView } from "@/components/profiles/ProfileView"
 import type { AIOpenPayload } from "@/components/profiles/ProfileView"
-import { ProfileSidebar } from "@/components/profiles/ProfileSidebar"
+import { ProfileSidebar, ProfileSidebarCreate } from "@/components/profiles/ProfileSidebar"
 import { ProfileLoadingScreen } from "@/components/ProfileLoadingScreen"
 import { AskPanel } from "@/components/panels/AskPanel"
 import type { AskContext } from "@/components/panels/AskPanel"
 import { AIAdminPanel } from "@/components/panels/AIAdminPanel"
 import type { AIPanelContext } from "@/components/panels/AIAdminPanel"
 import type { Profile, CompatibilityCheck } from "@/lib/db"
+import { formatName } from "@/lib/display"
 
 export interface AppSettings {
   writtenEnabled: boolean
@@ -23,6 +25,7 @@ interface DashboardClientProps {
   initialProfileId?: string
   isAdmin?: boolean
   isNewProfile?: boolean
+  isCreating?: boolean
   initialCompareCheck?: CompatibilityCheck
   appSettings: AppSettings
 }
@@ -49,9 +52,11 @@ export function DashboardClient({
   initialProfileId,
   isAdmin = false,
   isNewProfile = false,
+  isCreating = false,
   initialCompareCheck,
   appSettings,
 }: DashboardClientProps) {
+  const router = useRouter();
   const [activeProfileId, setActiveProfileId] = useState<string | null>(
     initialProfileId ?? profiles[0]?.id ?? null
   )
@@ -271,11 +276,11 @@ export function DashboardClient({
     if (!activeProfile) return
     setAiCtx({
       profileId:      activeProfile.id,
-      profileName:    activeProfile.name,
+      profileName:    formatName(activeProfile.name),
       activeTab:      payload.activeTab,
       tabLabel:       payload.tabLabel,
       compareCheckId: payload.compareCheckId,
-      partnerName:    payload.partnerName,
+      partnerName:    payload.partnerName ? formatName(payload.partnerName) : payload.partnerName,
     })
     setAiOpen(true)
   }, [activeProfile])
@@ -284,7 +289,7 @@ export function DashboardClient({
     const data = chart.data?.data as Record<string, unknown> | undefined
     const dashas = data?.dashas as { maha?: { planet?: string }; antar?: { planet?: string } } | undefined
     setAskCtx({
-      profileName:  activeProfile?.name ?? '',
+      profileName:  formatName(activeProfile?.name ?? ''),
       relationship: activeProfile?.relationship ?? 'Other',
       mahadasha:    dashas?.maha?.planet ?? '—',
       antardasha:   dashas?.antar?.planet ?? '—',
@@ -313,24 +318,13 @@ export function DashboardClient({
 
   const defaultTab = initialCompareCheck ? 'compare' : undefined
 
-  if (profiles.length === 0) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <NavBar />
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 text-center">
-          <h1 className="text-2xl font-bold text-[var(--color-ink-1)]">Your cosmic story starts here</h1>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            Enter your birth details — everything else flows from there.
-          </p>
-          <a
-            href="/profiles/new"
-            className="px-6 py-2.5 rounded-lg bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover,var(--color-accent))] transition-colors"
-          >
-            Create your first profile
-          </a>
-        </div>
-      </div>
-    )
+  // Cancel "create" mode → return to existing profile (or home if none).
+  const cancelCreate = () => {
+    if (profiles.length > 0) {
+      router.push(`/dashboard?profile=${profiles[0].id}`)
+    } else {
+      router.push("/")
+    }
   }
 
   return (
@@ -351,8 +345,12 @@ export function DashboardClient({
       />
 
       <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
-        {activeProfile && (
-          <ProfileSidebar profile={activeProfile} chartOutput={chart.data} />
+        {isCreating ? (
+          <ProfileSidebarCreate onCancel={profiles.length > 0 ? cancelCreate : undefined} />
+        ) : (
+          activeProfile && (
+            <ProfileSidebar profile={activeProfile} chartOutput={chart.data} />
+          )
         )}
         <div className="flex-1 overflow-hidden">
           {activeProfile ? (
@@ -377,6 +375,17 @@ export function DashboardClient({
                 defaultTab={defaultTab}
                 initialCompareCheck={initialCompareCheck}
               />
+            </div>
+          ) : isCreating ? (
+            <div className="flex items-center justify-center h-full px-4 text-center">
+              <div className="space-y-2 max-w-sm">
+                <p className="text-sm text-[var(--color-ink-2)]">
+                  {profiles.length === 0 ? "Your cosmic story starts here." : "Add another profile"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Enter the birth details in the sidebar. Everything else flows from there.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">

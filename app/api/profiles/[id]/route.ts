@@ -29,13 +29,14 @@ export async function PUT(
       return NextResponse.json({ error: "Name, birth place, and current location must be under 100 characters." }, { status: 400 });
     }
 
+    // We preserve the user's typed strings as the canonical display values for
+    // `place_of_birth` and `current_location`. Geocoding still runs to refresh
+    // lat/lon/timezone on changes, but only the coordinate fields are stored.
     let latitude = existingProfile.latitude;
     let longitude = existingProfile.longitude;
     let timezone = existingProfile.timezone;
     let timezone_offset = existingProfile.timezone_offset;
-    let finalPlaceOfBirth = existingProfile.place_of_birth;
 
-    // Only re-geocode if the birth place changed
     if (place_of_birth !== existingProfile.place_of_birth) {
       try {
         const geo = await geocodePlace(place_of_birth);
@@ -43,7 +44,6 @@ export async function PUT(
         longitude = geo.longitude;
         timezone = geo.timezone;
         timezone_offset = geo.timezone_offset;
-        finalPlaceOfBirth = geo.display_name;
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Geocoding birth place failed";
         return NextResponse.json({ error: msg }, { status: 400 });
@@ -54,23 +54,19 @@ export async function PUT(
     let current_longitude = existingProfile.current_longitude;
     let current_timezone = existingProfile.current_timezone;
     let current_timezone_offset = existingProfile.current_timezone_offset;
-    let finalCurrentLocation = existingProfile.current_location;
 
-    // Only re-geocode current location if it changed
-    if (current_location !== existingProfile.current_location && current_location) {
+    if (current_location && current_location !== existingProfile.current_location) {
       try {
         const currentGeo = await geocodePlace(current_location);
         current_latitude = currentGeo.latitude;
         current_longitude = currentGeo.longitude;
         current_timezone = currentGeo.timezone;
         current_timezone_offset = currentGeo.timezone_offset;
-        finalCurrentLocation = currentGeo.display_name;
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Geocoding current location failed";
         return NextResponse.json({ error: msg }, { status: 400 });
       }
     } else if (!current_location) {
-      finalCurrentLocation = null;
       current_latitude = null;
       current_longitude = null;
       current_timezone = null;
@@ -91,12 +87,12 @@ export async function PUT(
       name,
       date_of_birth,
       time_of_birth,
-      place_of_birth: finalPlaceOfBirth,
+      place_of_birth,
       latitude,
       longitude,
       timezone,
       timezone_offset,
-      current_location: finalCurrentLocation,
+      current_location: current_location || null,
       current_latitude,
       current_longitude,
       current_timezone,
