@@ -172,8 +172,17 @@ export function loadByTypeAndKey(type: ContentType, fileKey: string): ContentEnt
   return load(TYPE_TO_DIR[type], fileKey);
 }
 
+let cachedSections: Record<string, SectionEntry> | null = null;
+
 /** Load all section explainers as a Map keyed by `section_in_view`. */
 export function loadAllSections(): Record<string, SectionEntry> {
+  // ⚡ Bolt: Caching section explainers in memory.
+  // 💡 What: Introduced `cachedSections` variable to prevent repeated disk I/O.
+  // 🎯 Why: `loadAllSections` is called on every profile page load, doing a blocking `fs.readdirSync`.
+  // 📊 Impact: O(1) memory lookup vs O(N) disk operations per profile load. Eliminates file system bottlenecks and lowers latency under load.
+  // 🔬 Measurement: Observe reduction in load times for `/profiles/[id]` and no repeated file read ops in server tracing.
+  if (cachedSections && process.env.NODE_ENV === "production") return cachedSections;
+
   const dir = path.join(CONTENT_ROOT, "sections");
   let files: string[] = [];
   try {
@@ -189,5 +198,6 @@ export function loadAllSections(): Record<string, SectionEntry> {
       out[entry.section_in_view] = entry;
     }
   }
+  cachedSections = out;
   return out;
 }
