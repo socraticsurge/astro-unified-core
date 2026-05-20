@@ -1,31 +1,34 @@
 import { randomUUID } from "crypto";
+import { z } from "zod";
 import { getClient, ensureSchema } from "./client";
 
-export type ConsultationRequest = {
-  id: string;
-  user_id: string;
-  profile_ids: string;          // JSON array of profile id strings
-  life_area: string;
-  observation: string;
-  constraint_text: string;
-  objective: string;
-  options: string | null;       // nullable for legacy rows pre-v5
-  delivery_mode: "written" | "appointment";
-  // "pending" = legacy pre-v6 rows; treat same as "pending_payment"
-  status: "pending_payment" | "paid" | "pending" | "answered";
-  amount_paise: number | null;  // nullable for legacy rows pre-v6
-  slot_starts_at: string | null; // ISO string (IST); only set for appointment mode
-  admin_note: string | null;
-  user_rating: "helpful" | "not_helpful" | null;
-  user_feedback_note: string | null;
-  created_at: string;
-  answered_at: string | null;
-};
+const ConsultationRequestSchema = z.object({
+  id: z.string(),
+  user_id: z.string(),
+  profile_ids: z.string(),
+  life_area: z.string(),
+  observation: z.string(),
+  constraint_text: z.string(),
+  objective: z.string(),
+  options: z.string().nullable(),
+  delivery_mode: z.enum(["written", "appointment"]),
+  status: z.enum(["pending_payment", "paid", "pending", "answered"]),
+  amount_paise: z.coerce.number().nullable(),
+  slot_starts_at: z.string().nullable(),
+  admin_note: z.string().nullable(),
+  user_rating: z.enum(["helpful", "not_helpful"]).nullable(),
+  user_feedback_note: z.string().nullable(),
+  created_at: z.string(),
+  answered_at: z.string().nullable(),
+});
 
-export type ConsultationRequestWithUser = ConsultationRequest & {
-  user_email: string | null;
-  user_name: string | null;
-};
+const ConsultationRequestWithUserSchema = ConsultationRequestSchema.extend({
+  user_email: z.string().nullable(),
+  user_name: z.string().nullable(),
+});
+
+export type ConsultationRequest = z.infer<typeof ConsultationRequestSchema>;
+export type ConsultationRequestWithUser = z.infer<typeof ConsultationRequestWithUserSchema>;
 
 export const consultationRequests = {
   // Returns any active (non-answered) request — covers pending_payment, paid, and legacy pending.
@@ -35,7 +38,7 @@ export const consultationRequests = {
       sql: "SELECT * FROM consultation_requests WHERE user_id = ? AND status != 'answered' LIMIT 1",
       args: [userId],
     });
-    return rs.rows[0] as unknown as ConsultationRequest | undefined;
+    return rs.rows[0] ? ConsultationRequestSchema.parse(rs.rows[0]) : undefined;
   },
 
   async listByUser(userId: string): Promise<ConsultationRequest[]> {
@@ -44,7 +47,7 @@ export const consultationRequests = {
       sql: "SELECT * FROM consultation_requests WHERE user_id = ? ORDER BY created_at DESC",
       args: [userId],
     });
-    return rs.rows as unknown as ConsultationRequest[];
+    return rs.rows.map((r) => ConsultationRequestSchema.parse(r));
   },
 
   async listAllWithUser(limit = 200): Promise<ConsultationRequestWithUser[]> {
@@ -56,7 +59,7 @@ export const consultationRequests = {
             ORDER BY cr.created_at DESC LIMIT ?`,
       args: [limit],
     });
-    return rs.rows as unknown as ConsultationRequestWithUser[];
+    return rs.rows.map((r) => ConsultationRequestWithUserSchema.parse(r));
   },
 
   async getById(id: string): Promise<ConsultationRequest | undefined> {
@@ -65,7 +68,7 @@ export const consultationRequests = {
       sql: "SELECT * FROM consultation_requests WHERE id = ? LIMIT 1",
       args: [id],
     });
-    return rs.rows[0] as unknown as ConsultationRequest | undefined;
+    return rs.rows[0] ? ConsultationRequestSchema.parse(rs.rows[0]) : undefined;
   },
 
   async create(

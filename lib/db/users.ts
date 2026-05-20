@@ -1,13 +1,16 @@
+import { z } from "zod";
 import { getClient, ensureSchema } from "./client";
 
-export type User = {
-  id: string;
-  name: string | null;
-  email: string | null;
-  image: string | null;
-  last_login: string | null;
-  created_at: string | null;
-};
+const UserSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  email: z.string().nullable(),
+  image: z.string().nullable(),
+  last_login: z.string().nullable(),
+  created_at: z.string().nullable(),
+});
+
+export type User = z.infer<typeof UserSchema>;
 
 export const users = {
   async upsert(user: { id: string; name?: string | null; email?: string | null; image?: string | null }) {
@@ -30,6 +33,6 @@ export const users = {
       sql: "SELECT * FROM users ORDER BY last_login DESC LIMIT ?",
       args: [limit],
     });
-    return rs.rows as unknown as User[];
+    return rs.rows.map((r) => UserSchema.parse(r));
   },
 };

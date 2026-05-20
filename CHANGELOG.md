@@ -8,6 +8,23 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — Zod DB validation, content index prebuild, and sort type fix (Session 4)
+
+### Code quality
+- **`lib/db/users.ts`**, **`lib/db/feedback.ts`**, **`lib/db/profiles.ts`**, **`lib/db/compatibility.ts`**, **`lib/db/consultation-requests.ts`**, **`lib/db/consultation-slots.ts`**, **`lib/db/readings.ts`** — Replaced all `as unknown as T` raw type casts with Zod schema parsing. Each module now defines a `z.object({...})` schema that matches the table columns exactly. Schema mismatch between the DB and TypeScript types now throws a `ZodError` at runtime rather than silently producing `undefined` fields. Used `z.infer<typeof Schema>` to derive the exported types, so schemas and types stay in sync automatically.
+- **`app/admin/AdminTables.tsx`** — Replaced `(a as Record<string, unknown>)[col]` sort accessor with a bounded generic `<T extends Record<string, unknown>>(arr: T[], col: string): T[]`. Accessing via `a[col as keyof T]` removes the unconstrained cast while keeping the `string`-typed sort state.
+
+### Performance
+- **`scripts/build-content-index.ts`** (new) — Pre-build script that reads all 542 markdown content files, parses them using the same logic as `lib/content/loader.ts`, and writes `lib/content/content-index.json` (394 entries, ~456 KB) at build time. Added to `package.json` as `"prebuild": "tsx scripts/build-content-index.ts"` so it runs automatically before `next build`.
+- **`lib/content/loader.ts`** — Modified to load the pre-built JSON index at module init time (via `createRequire`), pre-populating the in-memory cache before the first request arrives. Cold Lambda starts no longer parse 500+ markdown files — they read a single JSON. Falls back to on-demand file reading if the index doesn't exist (dev mode without running `prebuild`).
+- **`lib/content/loader.test.ts`** — Updated call-count assertions to account for the one-time content-index.json read that now occurs at module init. Caching invariants are unaffected.
+- **`.gitignore`** — Added `lib/content/content-index.json` (generated at build time; not committed).
+
+### Housekeeping (I3)
+- Old engine readings (`bazi`, `vedastro`, `western`, `panchangam`) remain in the DB. Run this once via Turso dashboard when convenient: `DELETE FROM readings WHERE engine IN ('bazi', 'vedastro', 'western', 'panchangam');`
+
+---
+
 ## [2026-05-20] — Route tests, admin pagination, and eslint hardening (Session 3)
 
 ### Test coverage

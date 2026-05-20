@@ -38,3 +38,4 @@ next-env.d.ts
 public/data/hip_main.dat
 .env*.local
 coverage/
+lib/content/content-index.json
