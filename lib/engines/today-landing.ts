@@ -6,7 +6,10 @@ import { lookupAscendant } from "@/lib/content/lookup";
 
 // Bump to invalidate cached payloads when the prompt template or output
 // schema changes meaningfully. Same pattern as today-reading.ts.
-export const PROMPT_VERSION_LANDING = 1;
+// Bump when prompt template / output shape changes meaningfully. v2 (2026-05-20):
+// tightened length to 1-2 sentences ≤ 40 words to fit a fixed-height snippet
+// box on the landing without visual jumps.
+export const PROMPT_VERSION_LANDING = 2;
 
 export const ZODIAC_SIGNS = [
   "aries", "taurus", "gemini", "cancer", "leo", "virgo",
@@ -94,7 +97,7 @@ Tone:
 1. Clear and observational. Speak about what TODAY's sky touches in a person born under a given ascendant.
 2. Inviting reflection — not commands, not predictions, not fortune-cookie clichés.
 3. No mystical jargon ("the cosmos compels", "destiny calls", etc.). No CTAs of any kind.
-4. Each paragraph is 2 sentences, ~50 words.
+4. Each paragraph is 1-2 sentences. STRICT MAXIMUM 40 words. Aim for 30-38 words. Brevity is non-negotiable — the landing has a fixed-size visual box.
 5. Reference the specific celestial facts provided (Moon's nakshatra, Sun's sign, named active retrogrades). Do not invent transits the data doesn't show.
 6. Return strict JSON matching the requested schema. No markdown fences, no commentary.`;
 }
@@ -119,7 +122,7 @@ function buildUserPrompt(sky: TodaySky): string {
 - Sun's sign: ${sky.sun_sign}
 - ${retroLine}
 
-For each of the 12 ascendants below, write what today's sky (above) ADDS or ASKS of a person born with that ascendant. Use the natal-lens grounding as the stable lens; let today's facts vary the angle. 2 sentences, ~50 words.
+For each of the 12 ascendants below, write what today's sky (above) ADDS or ASKS of a person born with that ascendant. Use the natal-lens grounding as the stable lens; let today's facts vary the angle. 1-2 sentences, STRICT MAX 40 words (aim for 30-38).
 
 ${groundingBlocks.join("\n")}
 

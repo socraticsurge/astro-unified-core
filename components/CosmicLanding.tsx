@@ -31,6 +31,16 @@ type LandingData = {
 
 const STORAGE_KEY = 'astrochaganti.ascendant'
 const AUTO_CYCLE_MS = 6500
+// Cross-fade tuning. Total cycle = OUT + IN; keep under AUTO_CYCLE_MS by a wide margin.
+const SNIPPET_FADE_OUT_MS = 380
+const SNIPPET_FADE_IN_MS = 520
+// Defensive cap so an unusually long LLM output can't overflow the panel.
+const SNIPPET_MAX_CHARS = 320
+
+function truncateSnippet(s: string): string {
+  if (s.length <= SNIPPET_MAX_CHARS) return s
+  return s.slice(0, SNIPPET_MAX_CHARS - 1).trimEnd() + '…'
+}
 const SIGN_INDEX_BY_KEY: Record<SignKey, number> = ZODIAC.reduce(
   (acc, z, i) => { acc[z.key] = i; return acc },
   {} as Record<SignKey, number>,
@@ -45,12 +55,27 @@ function readStoredSign(): number | null {
   return null
 }
 
-function formatSkyLabel(d: LandingData): string {
-  const retro = d.sky.retrogrades.length > 0
-    ? d.sky.retrogrades.map(p => `${p} retrograde`).join(' · ')
-    : 'No major retrogrades'
-  const prefix = d.is_stale ? `Yesterday's sky — ` : `Today — `
-  return `${prefix}Moon in ${d.sky.moon_nakshatra} · Sun in ${d.sky.sun_sign} · ${retro}`
+// Three-tile transit row above "The cosmos speaks" — Moon nakshatra, Sun
+// sign, and (only when present) the list of retrograding planets. When data
+// hasn't resolved yet we render the layout with em-dash placeholders so the
+// panel doesn't shift on data arrival.
+type SkyTile = { label: string; value: string }
+
+function buildSkyTiles(d: LandingData | null): SkyTile[] {
+  if (!d) {
+    return [
+      { label: 'Moon', value: '—' },
+      { label: 'Sun', value: '—' },
+    ]
+  }
+  const tiles: SkyTile[] = [
+    { label: 'Moon', value: d.sky.moon_nakshatra },
+    { label: 'Sun', value: d.sky.sun_sign },
+  ]
+  if (d.sky.retrogrades.length > 0) {
+    tiles.push({ label: 'Retrograde', value: d.sky.retrogrades.join(', ') })
+  }
+  return tiles
 }
 
 export function CosmicLanding() {
@@ -336,10 +361,34 @@ export function CosmicLanding() {
 
   const activeSign = ZODIAC[activeIndex]
   // Prefer LLM-generated copy for today; fall back to the static per-sign
-  // paragraph so the panel is never empty.
-  const snippet =
-    data?.ascendants?.[activeSign.key] || LANDING_FALLBACK_ASCENDANTS[activeSign.key]
-  const skyLabel = data ? formatSkyLabel(data) : null
+  // paragraph so the panel is never empty. Truncate as a defense — a fixed
+  // visual area below assumes ≤320 chars.
+  const targetSnippet = truncateSnippet(
+    data?.ascendants?.[activeSign.key] || LANDING_FALLBACK_ASCENDANTS[activeSign.key],
+  )
+  const skyTiles = buildSkyTiles(data)
+  const skyDayLabel = data?.is_stale ? 'Yesterday' : 'Today'
+
+  // Cross-fade state: hold the currently-rendered text separately from the
+  // target. When activeSign changes, fade the displayed snippet out, then
+  // swap to the new one, then fade back in. The "wind" feel comes from a
+  // slight blur + downward drift on entry, mirrored on exit.
+  const [displayedSnippet, setDisplayedSnippet] = useState(targetSnippet)
+  const [fadePhase, setFadePhase] = useState<'in' | 'out'>('in')
+
+  useEffect(() => {
+    if (targetSnippet === displayedSnippet) return
+    // The fade-out → swap → fade-in dance is intentional state plumbing
+    // rather than something we can derive from props synchronously.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setFadePhase('out')
+    const handle = setTimeout(() => {
+      setDisplayedSnippet(targetSnippet)
+      setFadePhase('in')
+    }, SNIPPET_FADE_OUT_MS)
+    /* eslint-enable react-hooks/set-state-in-effect */
+    return () => clearTimeout(handle)
+  }, [targetSnippet, displayedSnippet])
 
   return (
     <div style={{
@@ -382,35 +431,28 @@ export function CosmicLanding() {
       {/* Glass panel */}
       <div className={styles.panel}>
         <div className={styles.todaySection}>
-          {skyLabel && (
-            <div className={styles.skyBadge}>
-              <span className={styles.skyDot} aria-hidden>✦</span>
-              <span>{skyLabel}</span>
+          <div className={styles.skyRow} aria-label={`${skyDayLabel}'s transits`}>
+            <span className={styles.skyDayLabel}>{skyDayLabel}</span>
+            <div className={styles.skyTiles}>
+              {skyTiles.map((t) => (
+                <div key={t.label} className={styles.skyTile}>
+                  <span className={styles.skyTileLabel}>{t.label}</span>
+                  <span className={styles.skyTileValue}>{t.value}</span>
+                </div>
+              ))}
             </div>
-          )}
-
-          <div className={styles.snippetText}>
-            <span key={`eyebrow-${activeSign.key}`} className={styles.cosmosEyebrow}>The cosmos speaks</span>
-            <span key={`label-${activeSign.key}`} className={styles.activeSignLabel}>{activeSign.name.toUpperCase()} — RISING</span>
-            <p key={`copy-${activeSign.key}`}>{snippet}</p>
           </div>
 
-          {/* Mobile pill strip (hidden on desktop via CSS) */}
-          <div className={styles.pillStrip} role="tablist" aria-label="Choose your ascendant">
-            {ZODIAC.map((z, i) => (
-              <button
-                key={z.key}
-                type="button"
-                role="tab"
-                aria-selected={i === activeIndex}
-                className={i === activeIndex ? `${styles.pill} ${styles.pillActive}` : styles.pill}
-                onClick={() => pinSign(i, 'tap')}
-                title={z.name}
-              >
-                <span aria-hidden>{z.symbol}</span>
-                <span className={styles.srOnly}>{z.name}</span>
-              </button>
-            ))}
+          <div className={styles.snippetText}>
+            <span className={styles.cosmosEyebrow}>The cosmos speaks</span>
+            <p
+              className={fadePhase === 'in' ? styles.snippetCopyIn : styles.snippetCopyOut}
+              style={{
+                transitionDuration: `${fadePhase === 'in' ? SNIPPET_FADE_IN_MS : SNIPPET_FADE_OUT_MS}ms`,
+              }}
+            >
+              {displayedSnippet}
+            </p>
           </div>
         </div>
 
@@ -488,7 +530,27 @@ export function CosmicLanding() {
           </svg>
           Continue with Google
         </button>
-        <p className={styles.ctaFootnote}>Free · Up to 10 Natal Charts and 6 Kundali Matches</p>
+      </div>
+
+      {/* Mobile pill strip — sits ABOVE the panel against the sky, not behind
+          the panel's glass. Hidden on desktop where the wheel is the picker. */}
+      <div className={styles.pillDock}>
+        <div className={styles.pillStrip} role="tablist" aria-label="Choose your ascendant">
+          {ZODIAC.map((z, i) => (
+            <button
+              key={z.key}
+              type="button"
+              role="tab"
+              aria-selected={i === activeIndex}
+              className={i === activeIndex ? `${styles.pill} ${styles.pillActive}` : styles.pill}
+              onClick={() => pinSign(i, 'tap')}
+              title={z.name}
+            >
+              <span aria-hidden>{z.symbol}</span>
+              <span className={styles.srOnly}>{z.name}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

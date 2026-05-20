@@ -40,49 +40,89 @@
   min-height: 0;
 }
 
-.skyBadge {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-family: var(--font-ui), system-ui, sans-serif;
-  font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
-  color: rgba(255,255,255,0.45);
-  padding: 6px 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 999px;
-  background: rgba(255,255,255,0.025);
-  align-self: flex-start;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap; text-overflow: ellipsis;
+/* Today's transits — a small, scannable row above "The cosmos speaks".
+   Two tiles (Moon, Sun) always; a third (Retrograde) appears only when at
+   least one planet is retrograde. Em-dashes hold the slots before /api/landing
+   resolves so the layout doesn't shift on data arrival. */
+.skyRow {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.skyDot {
+.skyDayLabel {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
   color: rgba(251,191,36,0.85);
-  font-size: 11px;
+}
+.skyTiles {
+  display: flex; align-items: stretch; gap: 18px;
+  flex-wrap: wrap;
+}
+.skyTile {
+  display: flex; flex-direction: column; gap: 4px;
+  /* Subtle vertical divider between tiles via padding + border on the next.
+     Skipped on the first via :first-child reset below. */
+  padding-left: 18px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+.skyTile:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+.skyTileLabel {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+.skyTileValue {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 18px; font-weight: 400; font-style: italic;
+  color: rgba(255,255,255,0.92);
+  line-height: 1.2;
 }
 
 .snippetText {
-  display: flex; flex-direction: column; gap: 10px;
-  min-height: 7em;
+  display: flex; flex-direction: column; gap: 14px;
+  /* Fixed visual area so the "The cosmos speaks" eyebrow doesn't jump
+     when snippet lengths change. The paragraph below fills the rest. */
+  height: 9.5em;
 }
 .cosmosEyebrow {
   font-family: var(--font-ui), system-ui, sans-serif;
   font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
   color: rgba(255,255,255,0.32);
-  animation: landingSnippetFade 500ms ease-out both;
-}
-.activeSignLabel {
-  font-family: var(--font-ui), system-ui, sans-serif;
-  font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase;
-  color: rgba(251,191,36,0.85);
-  animation: landingSnippetFade 500ms ease-out both;
+  /* Eyebrow is anchored — no per-sign animation, doesn't move with snippet
+     transitions. */
 }
 .snippetText p {
   font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(22px, 2.6vw, 32px);
+  font-size: clamp(20px, 2.3vw, 28px);
   font-weight: 400; font-style: italic;
   color: rgba(255,255,255,0.92);
-  line-height: 1.55;
+  line-height: 1.5;
   margin: 0;
-  animation: landingSnippetFade 500ms ease-out both;
+  /* Hard clip if a stray snippet exceeds the box. CSS handles long lines;
+     JS pre-truncates to ≤320 chars as the primary defense. */
+  flex: 1; min-height: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+/* Wind-stroke cross-fade between snippets. Single element, two phases —
+   the paragraph fades out with a slight upward drift + blur, swaps content,
+   then drifts back in. transition-duration comes inline from React state. */
+.snippetCopyIn,
+.snippetCopyOut {
+  transition-property: opacity, transform, filter;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform, filter;
+}
+.snippetCopyIn {
+  opacity: 1; transform: translateY(0); filter: blur(0);
+}
+.snippetCopyOut {
+  opacity: 0; transform: translateY(-6px); filter: blur(4px);
 }
 
 .pillStrip {
@@ -147,7 +187,11 @@
   filter: brightness(0.95);
   animation: none;
 }
-.ctaFootnote { margin-top: 12px; font-size: 13px; color: rgba(255,255,255,0.2); letter-spacing: 0.04em; text-align: center; }
+/* Pill dock — a fixed-positioned container sitting above the mobile panel.
+   On desktop the wheel is the picker, so the dock is hidden. */
+.pillDock {
+  display: none;
+}
 
 /* ── Mobile ── */
 @media (max-width: 700px) {
@@ -173,34 +217,58 @@
   }
   .todaySection { gap: 12px; }
   .cosmosEyebrow { font-size: 9px; letter-spacing: 0.28em; }
-  .snippetText { min-height: 5em; }
-  .snippetText p { font-size: 18px; line-height: 1.5; }
-  .activeSignLabel { font-size: 10px; letter-spacing: 0.22em; }
-  .skyBadge { font-size: 10px; padding: 5px 10px; }
+  .snippetText {
+    /* Mobile gets a slightly tighter box. line-clamp pares down to ~4 lines. */
+    height: 7.5em;
+  }
+  .snippetText p { font-size: 17px; line-height: 1.5; -webkit-line-clamp: 4; }
+  .skyRow { gap: 6px; padding-bottom: 10px; }
+  .skyDayLabel { font-size: 9px; letter-spacing: 0.28em; }
+  .skyTiles { gap: 12px; }
+  .skyTile { padding-left: 12px; }
+  .skyTileLabel { font-size: 9px; letter-spacing: 0.22em; }
+  .skyTileValue { font-size: 15px; }
+
+  /* Pill dock sits ABOVE the panel against the night sky — not behind the
+     glass. Positioned just above the panel's top edge so the wheel still
+     breathes above it. */
+  .pillDock {
+    display: block;
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(62vh + 8px);
+    z-index: 9; /* below panel (10) so any tall pill never floats over the
+                  panel's edge, but above the wheel (5). */
+    pointer-events: none; /* re-enabled on the strip itself */
+  }
   .pillStrip {
+    pointer-events: auto;
     display: flex;
     overflow-x: auto;
     gap: 6px;
-    padding: 4px 2px;
+    padding: 6px 16px;
     -ms-overflow-style: none; scrollbar-width: none;
   }
   .pillStrip::-webkit-scrollbar { display: none; }
   .pill {
     flex: 0 0 auto;
-    width: 36px; height: 36px;
+    width: 34px; height: 34px;
     display: inline-flex; align-items: center; justify-content: center;
     border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(255,255,255,0.03);
-    color: rgba(255,255,255,0.55);
+    /* Slightly opaque so a glyph stays legible over the starfield */
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(8, 4, 24, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(255,255,255,0.65);
     font-size: 18px;
     cursor: pointer;
     transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
   .pillActive {
-    background: rgba(251,191,36,0.12);
-    border-color: rgba(251,191,36,0.45);
-    color: rgba(251,191,36,0.95);
+    background: rgba(251,191,36,0.18);
+    border-color: rgba(251,191,36,0.55);
+    color: rgba(251,191,36,0.98);
   }
   .panelDivider { margin: 14px 0; }
   .brandName { font-size: 28px; }
