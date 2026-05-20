@@ -8,26 +8,47 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
-## [2026-05-21] — Docs refresh: ARCHITECTURE.md §14, PROJECT.md env vars, RUNBOOK.md promotion section
+## [2026-05-21] — Profile-create flow + theme-aware Tarabalam + "What's active now" fallback
 
-### Changed
-- **`docs/ARCHITECTURE.md`:** new §14 "Observability & Daily Landing Engine"
-  catalogs every module added in the 2026-05-20 sprint — Sentry, PostHog
-  (incl. the full event catalog), Resend, `/api/health`, the daily
-  landing engine (`/api/landing/today`, `today-landing.ts`,
-  `daily_landing` table, schema v9), and `ReadingActions`. Top
-  `last-updated` stamp bumped to 2026-05-21.
-- **`docs/PROJECT.md`:** added the two previously-undocumented env vars
-  the code references — `GOOGLE_GEMINI_API_KEY` and `GROQ_API_KEY`.
-- **`docs/RUNBOOK.md`:** new "Promoting `development` → `main`" section.
-  Covers the pre-PR gate, env var parity check across Vercel
-  environments, the Google OAuth redirect URI update needed before the
-  first prod sign-in, post-deploy verification steps, and the
-  one-time monitoring/Resend/Sentry/PostHog updates needed on cutover
-  to `astrochaganti.com`.
-- **`docs/BACKLOG.md`:** T13 — `AIAdminPanel` silently swallows AI
-  insight fetch failures; should `Sentry.captureException` and surface
-  an inline error state.
+### Fixed (profile creation)
+- **Previous profile's chart no longer renders behind the create form.**
+  `app/dashboard/DashboardClient.tsx`: when `isCreating` is true, the
+  main panel now renders the create empty-state regardless of any
+  `activeProfile` left over from the URL the user came from.
+- **Post-create redirect now actually lands on the new profile.**
+  `app/dashboard/page.tsx`: added a `key` prop to `<DashboardClient>`
+  derived from URL params (profile id + isCreating + isNewProfile) so
+  the component remounts on navigation. Without this, React's `useState`
+  initializer kept the previously-active profile id, ignoring the new
+  `?profile=<newId>&new=1` URL.
+- **`ProfileLoadingScreen` now fires on the post-create redirect.**
+  Side effect of the same fix — the remount initializes
+  `showLoadingScreen` from the fresh `isNewProfile` prop.
+
+### Fixed (theme adaptation)
+- **`lib/tarabalam.ts` `taraColor()`** was returning hardcoded Tailwind
+  palette classes (`bg-emerald-900/40 text-emerald-300 …` /
+  `bg-red-900/30 text-red-300 …`) that don't adapt to the Vellum (light)
+  theme. Replaced with `--color-success-*` / `--color-danger-*` tokens
+  matching the rest of the app.
+- **`components/unified/IdentityStrip.tsx`** Sun sign was rendered in
+  `text-amber-300` (also off-theme). Switched to `text-[var(--color-accent)]`.
+
+### Changed (insights)
+- **"What's active now" section now always renders** on the Today tab.
+- `lib/insights.ts` adds a low-urgency fallback: when no imminent
+  antardasha, no imminent pratyantar, no active Sade Sati, and no Kaal
+  Sarpa is present, surface the upcoming pratyantar shift regardless of
+  distance ("Next: Saturn pratyantar in ~3 months"). New helper
+  `formatLeadTime()` picks weeks vs. months automatically.
+- `components/tabs/TodayTab.tsx` removes the `when={insights.length > 0}`
+  gate. The empty-state copy ("A quiet stretch in your chart…") is
+  reserved for the rare case where dasha data isn't loaded.
+
+### Tests
+- Updated `lib/__tests__/insights.test.ts` to cover the new fallback
+  contract: when antar+pratyantar are both far, the fallback fires; when
+  an imminent insight is already present, the fallback skips.
 
 ---
 
