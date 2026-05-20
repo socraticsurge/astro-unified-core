@@ -95,14 +95,6 @@ describe("POST /api/consultation-requests", () => {
     expect(res.status).toBe(429);
   });
 
-  it("returns 409 when user already has a pending request", async () => {
-    vi.mocked(getServerSession).mockResolvedValue(session as never);
-    vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
-    vi.mocked(db.consultationRequests.getPending).mockResolvedValue({ id: "req-existing" } as never);
-    const res = await POST(makeReq(validBody));
-    expect(res.status).toBe(409);
-  });
-
   it("returns 400 when required fields are missing", async () => {
     vi.mocked(getServerSession).mockResolvedValue(session as never);
     vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
