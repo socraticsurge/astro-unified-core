@@ -8,6 +8,44 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-20] — PR-2: tab primitives + Today refit
+
+Second batch from the UI/UX review. Establishes the global standards
+(`<TwoColumnTabGrid>` + `<TabSection>`) and applies them to the Today tab.
+Subsequent tab refits (Jaimini, Dasha, Transits, Career) compose these
+primitives instead of being re-styled individually.
+
+### Added
+- **`components/unified/TabGrid.tsx`** with three exports:
+  - **`<TwoColumnTabGrid>`** — `grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8`. Collapses cleanly on small screens.
+  - **`<TabColumn>`** — `space-y-6 min-w-0` per column. The `min-w-0` is critical: it lets long inline content (mono ranges) truncate or wrap cleanly inside the grid cell instead of forcing the column wider than the grid track.
+  - **`<TabSection title? when? trailing? children>`** — encodes the "no empty sections" rule. When `when` evaluates to `false`, the entire section (including the heading) renders nothing. The heading is rendered as `.ac-eyebrow` for consistency. The `trailing` slot is meant for refresh buttons / inline actions next to the heading.
+  - 6 unit tests in `components/unified/__tests__/TabGrid.test.tsx`.
+
+### Fixed
+- **Maha Dasha line wraps in light theme** (observation 3a). The Current Dasha card was using inline `flex` with a fixed-width `width: 80` label column that wasn't wide enough for "Maha Dasha" + Inter-light at light-theme metrics. Now uses the existing `.ac-dasha-row` class (`grid-template-columns: 110px 1fr auto`) which always fits the label.
+- **Removed duplicate antardasha / pratyantar shift chips from the Current Dasha Period card** (observation 3a). The same data is already rendered as expanded `TodayInsightCard`s under "What's active now". The chips were redundant; the cards win because they carry context + the Ask CTA.
+- **"What's active now" section no longer renders when empty** (observation 3a). The "No significant patterns active right now" italic-greyed placeholder is gone. `TabSection when={insights.length > 0}` suppresses the entire section — heading included.
+
+### Changed
+- **Today tab is now a two-column layout** (observation 3b layout-only portion):
+  - **Column 1**: What's active now → Current dasha period → Current period reading
+  - **Column 2**: Natal chart reading
+  Collapses to single column below `lg:` (1024px). Falls back to single column with natal at the bottom on mobile.
+- All Today sections converted to `<TabSection>`, inheriting the empty-state policy automatically.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 264/264 pass (+6 new)
+- `npm run build` → success
+
+### Not in this PR (queued)
+- **PR-3** — today-reading LLM split (observation 3b cost portion): two engine rows (`today-current` + `today-natal`), independent fingerprints, ~2× content for current period, ~5× for natal. Storage replaces API calls.
+- **PR-4** — Jaimini / Dasha / Transits / Career tab refits using these primitives.
+- **PR-5** — sticky tab nav, Toast provider, loading skeleton consistency, Ask submission confirmation.
+
+---
+
 ## [2026-05-20] — PR-1: display rules + profile create in sidebar + brand
 
 First batch from the user UI/UX review pass. The aim is "cognitive consistency"

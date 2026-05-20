@@ -1,6 +1,7 @@
 "use client"
 import { generateInsights } from '@/lib/insights'
 import { TodayInsightCard, type TodayInsight } from './TodayInsightCard'
+import { TwoColumnTabGrid, TabColumn, TabSection } from '@/components/unified/TabGrid'
 
 type DashaLevel = { planet?: string; start?: string; end?: string }
 
@@ -26,12 +27,6 @@ const DASHA_LEVELS: { key: string; label: string }[] = [
   { key: 'prana',      label: 'Prana'       },
 ]
 
-function weeksUntil(dateStr: string): number {
-  const ms = new Date(dateStr).getTime()
-  if (isNaN(ms)) return Infinity
-  return (ms - Date.now()) / (7 * 24 * 60 * 60 * 1000)
-}
-
 export function TodayTab({
   chartOutput,
   transitOutput,
@@ -53,98 +48,77 @@ export function TodayTab({
     )
   }
 
-  const shiftPills: string[] = []
-  if (dashas?.antar?.end) {
-    const w = Math.round(weeksUntil(dashas.antar.end))
-    if (w >= 0 && w <= 8)
-      shiftPills.push(`Antardasha shifts in ${w} week${w === 1 ? '' : 's'}`)
-  }
-  if (dashas?.pratyantar?.end) {
-    const w = Math.round(weeksUntil(dashas.pratyantar.end))
-    if (w >= 0 && w <= 4)
-      shiftPills.push(`Pratyantar shifts in ${w} week${w === 1 ? '' : 's'}`)
-  }
+  const mahaPlanet = dashas?.maha?.planet
+  const antarPlanet = dashas?.antar?.planet
+  const pratyantarPlanet = dashas?.pratyantar?.planet
 
   return (
-    <div className="space-y-5 max-w-xl">
-      {/* Current dasha hero */}
-      <div className="ac-card ac-card-pad">
-        <div className="ac-eyebrow" style={{ marginBottom: 10 }}>Current dasha period</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {DASHA_LEVELS.map(({ key, label }) => {
-            const d = dashas?.[key]
-            if (!d?.planet) return null
-            return (
-              <div key={key} style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                <span className="ac-eyebrow" style={{ width: 80, flexShrink: 0 }}>{label}</span>
-                <span style={{ fontSize: 14, fontWeight: 500, color: "var(--color-ink-1)" }}>{d.planet}</span>
-                {d.start && (
-                  <span style={{ fontSize: 11, color: "var(--color-ink-3)", marginLeft: "auto" }}>{d.start} – {d.end ?? '…'}</span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        {shiftPills.length > 0 && (
-          <div className="ac-pills" style={{ marginTop: 12, gap: 6 }}>
-            {shiftPills.map(pill => (
-              <span key={pill} className="ac-tag warn">● {pill}</span>
+    <TwoColumnTabGrid>
+      {/* Left column — current period, what's active now, current reading */}
+      <TabColumn>
+        <TabSection when={insights.length > 0} title="What's active now">
+          <div className="space-y-2">
+            {insights.map((insight) => (
+              <TodayInsightCard
+                key={insight.id}
+                insight={insight}
+                onAsk={(i) => onAsk(i)}
+                onExplore={onExplore}
+              />
             ))}
           </div>
+        </TabSection>
+
+        <TabSection title="Current dasha period">
+          <div className="ac-card ac-card-pad">
+            {DASHA_LEVELS.map(({ key, label }) => {
+              const d = dashas?.[key]
+              if (!d?.planet) return null
+              return (
+                <div key={key} className="ac-dasha-row">
+                  <span className="level">{label}</span>
+                  <span className="planet-name">{d.planet}</span>
+                  {d.start && (
+                    <span className="range">{d.start} – {d.end ?? '…'}</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </TabSection>
+
+        {isTodayReadingLoading && (
+          <div className="flex items-center gap-2 text-xs text-[var(--color-ink-3)] py-2">
+            <span className="animate-pulse">●</span>
+            <span>Generating your reading…</span>
+          </div>
         )}
-      </div>
 
-      {/* Insight cards */}
-      {insights.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div className="ac-eyebrow">What&apos;s active now</div>
-          {insights.map(insight => (
-            <TodayInsightCard
-              key={insight.id}
-              insight={insight}
-              onAsk={i => onAsk(i)}
-              onExplore={onExplore}
-            />
-          ))}
-        </div>
-      ) : (
-        <p style={{ fontSize: 13, fontStyle: "italic", color: "var(--color-ink-3)" }}>No significant patterns active right now.</p>
-      )}
+        <TabSection
+          when={!isTodayReadingLoading && !!todayReadingOutput?.dasha_reading}
+          title={`Current period — ${[mahaPlanet, antarPlanet, pratyantarPlanet].filter(Boolean).join(' / ')}`}
+        >
+          <div className="ac-card ac-card-pad">
+            <p style={{ fontSize: 13, color: "var(--color-ink-2)", lineHeight: 1.6 }}>
+              {todayReadingOutput?.dasha_reading}
+            </p>
+          </div>
+        </TabSection>
+      </TabColumn>
 
-      {/* Loading reading */}
-      {isTodayReadingLoading && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--color-ink-3)", padding: "8px 0" }}>
-          <span className="animate-pulse">●</span>
-          <span>Generating your reading…</span>
-        </div>
-      )}
-
-      {/* AI reading */}
-      {!isTodayReadingLoading && todayReadingOutput && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div className="ac-eyebrow">Your reading</div>
-
-          {todayReadingOutput.dasha_reading && (
-            <div className="ac-card ac-card-pad">
-              <div className="ac-eyebrow" style={{ marginBottom: 6 }}>
-                Current period — {dashas?.maha?.planet} / {dashas?.antar?.planet}{dashas?.pratyantar?.planet ? ` / ${dashas.pratyantar.planet}` : ''}
-              </div>
-              <p style={{ fontSize: 13, color: "var(--color-ink-2)", lineHeight: 1.6 }}>
-                {todayReadingOutput.dasha_reading}
-              </p>
-            </div>
-          )}
-
-          {todayReadingOutput.chart_reading && (
-            <div className="ac-card ac-card-pad">
-              <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Your natal chart</div>
-              <p style={{ fontSize: 13, color: "var(--color-ink-2)", lineHeight: 1.6 }}>
-                {todayReadingOutput.chart_reading}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+      {/* Right column — natal chart reading */}
+      <TabColumn>
+        <TabSection
+          when={!isTodayReadingLoading && !!todayReadingOutput?.chart_reading}
+          title="Your natal chart"
+        >
+          <div className="ac-card ac-card-pad">
+            <p style={{ fontSize: 13, color: "var(--color-ink-2)", lineHeight: 1.65 }}>
+              {todayReadingOutput?.chart_reading}
+            </p>
+          </div>
+        </TabSection>
+      </TabColumn>
+    </TwoColumnTabGrid>
   )
 }
