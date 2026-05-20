@@ -35,8 +35,15 @@
 
 .todaySection {
   flex: 1;
-  display: flex; flex-direction: column; justify-content: center;
+  display: flex; flex-direction: column;
+  /* Anchor the today section near the top of its flex slot so the eyebrow
+     + snippet sit visually higher in the glass panel. A bit of breathing
+     room below absorbs taller snippets without pushing the brand row
+     to the edge. */
+  justify-content: flex-start;
   gap: 22px;
+  padding-top: 4px;
+  padding-bottom: 12px;
   min-height: 0;
 }
 
@@ -83,9 +90,11 @@
 
 .snippetText {
   display: flex; flex-direction: column; gap: 14px;
-  /* Fixed visual area so the "The cosmos speaks" eyebrow doesn't jump
-     when snippet lengths change. The paragraph below fills the rest. */
-  height: 9.5em;
+  /* Fixed visual area so the eyebrow doesn't jump when snippet lengths
+     change. Sized to hold ~7 lines at the new smaller font; combined with
+     the upstream Zod cap (≤320 chars) this comfortably fits a full
+     snippet without the brutal mid-sentence truncate we had before. */
+  height: 11.5em;
 }
 .cosmosEyebrow {
   font-family: var(--font-ui), system-ui, sans-serif;
@@ -96,17 +105,20 @@
 }
 .snippetText p {
   font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(20px, 2.3vw, 28px);
+  /* Smaller than before so we can fit ~320 chars without clipping.
+     Previously clamp(20px, 2.3vw, 28px). */
+  font-size: clamp(17px, 1.9vw, 22px);
   font-weight: 400; font-style: italic;
   color: rgba(255,255,255,0.92);
-  line-height: 1.5;
+  line-height: 1.55;
   margin: 0;
-  /* Hard clip if a stray snippet exceeds the box. CSS handles long lines;
-     JS pre-truncates to ≤320 chars as the primary defense. */
+  /* Safety net only — upstream Zod schema rejects snippets > 320 chars,
+     and the prompt asks for ≤50 words / ≤300 chars. With 7 lines at this
+     font size we comfortably hold 300+ chars without ever clipping. */
   flex: 1; min-height: 0;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 7;
   -webkit-box-orient: vertical;
 }
 /* Wind-stroke cross-fade between snippets. Single element, two phases —
@@ -215,13 +227,13 @@
     -webkit-backdrop-filter: blur(42px) saturate(1.8) brightness(1.04);
     padding: 24px 22px 28px; height: 62vh; overflow: hidden;
   }
-  .todaySection { gap: 12px; }
+  .todaySection { gap: 12px; padding-top: 2px; padding-bottom: 8px; }
   .cosmosEyebrow { font-size: 9px; letter-spacing: 0.28em; }
   .snippetText {
-    /* Mobile gets a slightly tighter box. line-clamp pares down to ~4 lines. */
-    height: 7.5em;
+    /* Mobile fits ~5 lines at the new smaller font, plenty for ≤300 chars. */
+    height: 9em;
   }
-  .snippetText p { font-size: 17px; line-height: 1.5; -webkit-line-clamp: 4; }
+  .snippetText p { font-size: 15px; line-height: 1.55; -webkit-line-clamp: 5; }
   .skyRow { gap: 6px; padding-bottom: 10px; }
   .skyDayLabel { font-size: 9px; letter-spacing: 0.28em; }
   .skyTiles { gap: 12px; }

@@ -6,10 +6,12 @@ import { lookupAscendant } from "@/lib/content/lookup";
 
 // Bump to invalidate cached payloads when the prompt template or output
 // schema changes meaningfully. Same pattern as today-reading.ts.
-// Bump when prompt template / output shape changes meaningfully. v2 (2026-05-20):
-// tightened length to 1-2 sentences ≤ 40 words to fit a fixed-height snippet
-// box on the landing without visual jumps.
-export const PROMPT_VERSION_LANDING = 2;
+// Bump when prompt template / output shape changes meaningfully.
+// v2 (2026-05-20): tightened length to 1-2 sentences ≤ 40 words.
+// v3 (2026-05-21): hard cap of 300 chars / 45 words in prompt + Zod
+// .max(320) schema so an over-long Gemini response fails validation and
+// retries — no more brutal client-side mid-sentence truncation.
+export const PROMPT_VERSION_LANDING = 3;
 
 export const ZODIAC_SIGNS = [
   "aries", "taurus", "gemini", "cancer", "leo", "virgo",
@@ -30,19 +32,25 @@ export type LandingPayload = {
   ascendants: Record<ZodiacSign, string>;
 };
 
+// Each snippet must fit the landing's fixed-height box. .max(320) hard-fails
+// a Gemini response that ignored the prompt's word/char limits, so the route
+// triggers a retry (we have 3 attempts/day) instead of shipping a snippet
+// that gets clipped client-side.
+const SNIPPET_SCHEMA = z.string().min(20).max(320);
+
 const AscendantsSchema = z.object({
-  aries: z.string().min(20),
-  taurus: z.string().min(20),
-  gemini: z.string().min(20),
-  cancer: z.string().min(20),
-  leo: z.string().min(20),
-  virgo: z.string().min(20),
-  libra: z.string().min(20),
-  scorpio: z.string().min(20),
-  sagittarius: z.string().min(20),
-  capricorn: z.string().min(20),
-  aquarius: z.string().min(20),
-  pisces: z.string().min(20),
+  aries: SNIPPET_SCHEMA,
+  taurus: SNIPPET_SCHEMA,
+  gemini: SNIPPET_SCHEMA,
+  cancer: SNIPPET_SCHEMA,
+  leo: SNIPPET_SCHEMA,
+  virgo: SNIPPET_SCHEMA,
+  libra: SNIPPET_SCHEMA,
+  scorpio: SNIPPET_SCHEMA,
+  sagittarius: SNIPPET_SCHEMA,
+  capricorn: SNIPPET_SCHEMA,
+  aquarius: SNIPPET_SCHEMA,
+  pisces: SNIPPET_SCHEMA,
 });
 
 export const LlmResponseSchema = z.object({ ascendants: AscendantsSchema });
@@ -97,7 +105,7 @@ Tone:
 1. Clear and observational. Speak about what TODAY's sky touches in a person born under a given ascendant.
 2. Inviting reflection — not commands, not predictions, not fortune-cookie clichés.
 3. No mystical jargon ("the cosmos compels", "destiny calls", etc.). No CTAs of any kind.
-4. Each paragraph is 1-2 sentences. STRICT MAXIMUM 40 words. Aim for 30-38 words. Brevity is non-negotiable — the landing has a fixed-size visual box.
+4. Each paragraph is 1-2 sentences. STRICT MAXIMUM: 45 words AND 300 characters (count, do not estimate). Aim for 35-42 words. The landing has a fixed-size visual box; any snippet exceeding these limits will be rejected and the entire batch regenerated.
 5. Reference the specific celestial facts provided (Moon's nakshatra, Sun's sign, named active retrogrades). Do not invent transits the data doesn't show.
 6. Return strict JSON matching the requested schema. No markdown fences, no commentary.`;
 }
@@ -122,7 +130,7 @@ function buildUserPrompt(sky: TodaySky): string {
 - Sun's sign: ${sky.sun_sign}
 - ${retroLine}
 
-For each of the 12 ascendants below, write what today's sky (above) ADDS or ASKS of a person born with that ascendant. Use the natal-lens grounding as the stable lens; let today's facts vary the angle. 1-2 sentences, STRICT MAX 40 words (aim for 30-38).
+For each of the 12 ascendants below, write what today's sky (above) ADDS or ASKS of a person born with that ascendant. Use the natal-lens grounding as the stable lens; let today's facts vary the angle. 1-2 sentences. STRICT MAX 45 words AND 300 chars (aim 35-42 words / ~250 chars). Over-length snippets cause the whole response to be rejected.
 
 ${groundingBlocks.join("\n")}
 

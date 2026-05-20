@@ -37,6 +37,12 @@ describe("today-landing LlmResponseSchema", () => {
     expect(() => LlmResponseSchema.parse({ ascendants: tiny })).toThrow();
   });
 
+  it("rejects a snippet that exceeds 320 chars (forces retry instead of clipping)", () => {
+    const tooLong = makeValid();
+    tooLong.leo = "L".repeat(400);
+    expect(() => LlmResponseSchema.parse({ ascendants: tooLong })).toThrow();
+  });
+
   it("rejects entirely wrong shape", () => {
     expect(() => LlmResponseSchema.parse({ wrong: "shape" })).toThrow();
     expect(() => LlmResponseSchema.parse(null)).toThrow();
