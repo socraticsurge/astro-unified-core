@@ -52,6 +52,10 @@ lib/content/content-index.json
 .jules/
 .cursor/
 .aider/
+.claude/
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# PostHog wizard scaffolding
+posthog-setup-report.md

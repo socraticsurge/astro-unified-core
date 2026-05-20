@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
+import { PostHogIdentifier } from "@/components/PostHogIdentifier";
 import { NavBar } from "@/components/NavBar";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppShell } from "@/components/AppShell";
@@ -66,6 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ThemeProvider>
           <ToastProvider>
             <NextAuthProvider session={session}>
+              <PostHogIdentifier />
               <AppShell
               navBar={<NavBar />}
               footer={

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import posthog from "posthog-js";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Clock, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown } from "lucide-react";
 import Link from "next/link";
@@ -570,6 +571,10 @@ function HistorySection({ answered, resolveProfileNames }: {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating, note: ratingNote[id] ?? undefined }),
+      });
+      posthog.capture("consultation_feedback_submitted", {
+        rating,
+        has_note: !!(ratingNote[id]?.trim()),
       });
       setRatings(prev => ({ ...prev, [id]: rating }));
       setShowNoteFor(null);
