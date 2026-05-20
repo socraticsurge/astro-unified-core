@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo } from "react";
 
 interface Star {
   x: number;
@@ -11,7 +11,7 @@ interface Star {
   drift: number;      // upward drift speed px/frame
 }
 
-export function AppStarCanvas() {
+export const AppStarCanvas = memo(function AppStarCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -49,6 +49,12 @@ export function AppStarCanvas() {
       ctx.clearRect(0, 0, cv.width, cv.height);
       frame++;
 
+      const theme = document.documentElement.getAttribute('data-theme') ?? 'dark';
+      if (theme !== lastTheme) {
+        lastTheme = theme;
+        starRGB = theme === 'light' ? '60,80,140' : '220,230,255';
+      }
+
       for (const s of stars) {
         s.y -= s.drift;
         if (s.y + s.r < 0) s.y = cv.height + s.r;
@@ -57,8 +63,6 @@ export function AppStarCanvas() {
         const twinkle = 1 + 0.2 * Math.sin(frame * s.phaseSpeed + s.phase);
         const opacity = Math.min(1, s.baseOpacity * twinkle);
 
-        const theme = document.documentElement.getAttribute('data-theme') ?? 'dark';
-        if (theme !== lastTheme) { lastTheme = theme; starRGB = theme === 'light' ? '60,80,140' : '220,230,255'; }
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${starRGB},${opacity.toFixed(3)})`;
@@ -95,4 +99,4 @@ export function AppStarCanvas() {
       aria-hidden="true"
     />
   );
-}
+});
