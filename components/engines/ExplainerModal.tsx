@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState, useMemo } from "react";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { EngineLoading } from "@/components/ui/EngineLoading";
 
 type Source = { text: string; chapter?: number | string; sloka?: number | string };
 
@@ -214,9 +215,7 @@ export function ExplainerModal({
 
   const renderedChart = hasChartEntries ? (
     chartLoading && chartFetched.length === 0 ? (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground px-5 py-6">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading readings…
-      </div>
+      <EngineLoading message="Loading readings…" />
     ) : (
       <div className="px-5 py-4 space-y-6">
         {chartFetched.map((entry, i) => {
