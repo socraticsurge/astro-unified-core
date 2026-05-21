@@ -81,6 +81,8 @@ export function DashboardClient({
   const [askCtx,  setAskCtx]  = useState<Partial<AskContext>>({})
   const [aiOpen,  setAiOpen]  = useState(false)
   const [aiCtx,   setAiCtx]   = useState<AIPanelContext | null>(null)
+  const [mobileSidebarOpen,    setMobileSidebarOpen]    = useState(false)
+  const [mobileSidebarEditing, setMobileSidebarEditing] = useState(false)
 
   // Loading screen state — only shown once for new profiles
   const [showLoadingScreen, setShowLoadingScreen] = useState(isNewProfile)
@@ -358,7 +360,7 @@ export function DashboardClient({
           relationship: p.relationship ?? null,
         }))}
         activeProfileId={activeProfileId}
-        onProfileChange={setActiveProfileId}
+        onProfileChange={(id) => { setActiveProfileId(id); setMobileSidebarOpen(false) }}
         onAskOpen={() => handleAskOpen()}
       />
 
@@ -367,7 +369,13 @@ export function DashboardClient({
           <ProfileSidebarCreate onCancel={profiles.length > 0 ? cancelCreate : undefined} />
         ) : (
           activeProfile && (
-            <ProfileSidebar profile={activeProfile} chartOutput={chart.data} />
+            <ProfileSidebar
+              profile={activeProfile}
+              chartOutput={chart.data}
+              mobileOpen={mobileSidebarOpen}
+              onMobileClose={() => setMobileSidebarOpen(false)}
+              mobileEditMode={mobileSidebarEditing}
+            />
           )
         )}
         <div className="flex-1 overflow-hidden">
@@ -404,6 +412,8 @@ export function DashboardClient({
                 onFetchCareer={fetchCareer}
                 onAskOpen={handleAskOpen}
                 onAIOpen={handleAIOpen}
+                onOpenSidebar={() => { setMobileSidebarEditing(false); setMobileSidebarOpen(true) }}
+                onOpenSidebarEdit={() => { setMobileSidebarEditing(true); setMobileSidebarOpen(true) }}
                 isAdmin={isAdmin}
                 defaultTab={defaultTab}
                 initialCompareCheck={initialCompareCheck}

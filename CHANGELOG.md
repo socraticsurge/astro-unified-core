@@ -8,6 +8,21 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Mobile profile UI improvements
+
+### Changed
+- **Profile nav on mobile is now a dropdown select** instead of a horizontal scroll strip. Selecting a profile from the dropdown immediately switches to that profile. The existing chip strip is preserved on `sm` and wider viewports.
+- **Edit profile on mobile now opens the inline sidebar form** (same as desktop) instead of navigating to the separate `/profiles/[id]/edit` full-page form. The edit button in the mobile header triggers the sidebar overlay in edit mode.
+- **Sidebar is now accessible on mobile** via a `PanelLeft` icon button to the left of the profile name in the mobile header. Tapping the icon opens a full-screen overlay containing birth info, panchang, D1 (Rasi) chart, and D9 (Navamsa) chart — previously these were only visible on desktop. Switching profiles closes the overlay automatically.
+
+### Technical
+- `ProfileNav`: renders `<select>` on `< sm`, chip strip on `sm+`.
+- `ProfileSidebar`: new `mobileOpen / onMobileClose / mobileEditMode` props; `<aside>` switches between `fixed inset-0 z-50` overlay on mobile and the standard `hidden md:flex w-80` sidebar on desktop.
+- `ProfileView`: new `onOpenSidebar` / `onOpenSidebarEdit` optional callbacks; mobile header restructured to add the `PanelLeft` trigger.
+- `DashboardClient`: manages `mobileSidebarOpen` / `mobileSidebarEditing` state and wires the callbacks.
+
+---
+
 ## [2026-05-21] — Mobile dasha-row alignment (Today tab + Dasha tab)
 
 ### Fixed
