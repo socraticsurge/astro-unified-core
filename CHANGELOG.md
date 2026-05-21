@@ -8,10 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
-## [2026-05-21] — Mobile dropdown background fix; remove mobile theme switch
+## [2026-05-21] — Fix ESLint CI failure in ProfileSidebar; mobile dropdown background fix; remove mobile theme switch
 
 ### Fixed
 - **Profile dropdown was transparent**, letting page content bleed through. Now uses `bg-[var(--color-background)]` for a solid, legible control.
+
+### Fixed
+- **ESLint CI failure** (`react-hooks/set-state-in-effect`) in `ProfileSidebar.tsx`. The `useEffect` that resets `isEditing` when the mobile overlay closes was missing the disable comment; added `/* eslint-disable/enable react-hooks/set-state-in-effect */` block matching the project pattern used in `DashboardClient.tsx`.
 
 ### Removed
 - **Theme switch removed from mobile entirely.** The Settings dropdown no longer shows a Theme row on mobile; the desktop wordmark toggle is unchanged.
