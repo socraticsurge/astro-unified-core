@@ -115,15 +115,6 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                   <Settings className="w-4 h-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
-                  {/* Theme toggle — shown on mobile only; desktop has it in the wordmark */}
-                  <DropdownMenuItem
-                    className="sm:hidden flex items-center gap-2"
-                    onSelect={e => e.preventDefault()}
-                  >
-                    <ThemeToggle />
-                    <span className="text-sm">Theme</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="sm:hidden" />
                   {/* "Account settings" was here pointing at /settings, but
                       that route does not exist (no app/settings/page.tsx).
                       Removed to stop sending users to a 404. Restore when

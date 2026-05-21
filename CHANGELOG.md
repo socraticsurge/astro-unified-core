@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Mobile dropdown background fix; remove mobile theme switch
+
+### Fixed
+- **Profile dropdown was transparent**, letting page content bleed through. Now uses `bg-[var(--color-background)]` for a solid, legible control.
+
+### Removed
+- **Theme switch removed from mobile entirely.** The Settings dropdown no longer shows a Theme row on mobile; the desktop wordmark toggle is unchanged.
+
+---
+
 ## [2026-05-21] — Mobile nav cleanup: Ask in header, Theme in Settings
 
 ### Changed

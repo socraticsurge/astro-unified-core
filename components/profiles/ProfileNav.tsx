@@ -24,7 +24,7 @@ export function ProfileNav({ profiles, activeProfileId, onProfileChange }: Profi
         <select
           value={activeProfileId ?? ""}
           onChange={e => onProfileChange(e.target.value)}
-          className="w-full h-8 rounded-md text-sm bg-transparent text-[var(--color-ink-1)] border border-[var(--color-border)] px-2 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+          className="w-full h-8 rounded-md text-sm bg-[var(--color-background)] text-[var(--color-ink-1)] border border-[var(--color-border)] px-2 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
         >
           {profiles.map(p => (
             <option key={p.id} value={p.id}>
