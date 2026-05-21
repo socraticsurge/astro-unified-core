@@ -8,6 +8,27 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Fix Vimshottari sub-dasha date drift in timeline
+
+### Fixed
+- **Dasha timeline showed wrong planets at Sukshma/Prana level.** The
+  expandable Vimshottari timeline was computing sub-periods using a fixed
+  `365.25 days/year` constant (`addYears`), which drifts from the Python
+  sidecar's precise calculation. Error compounds through each nested level
+  (Maha → Antar → Pratyantar → Sukshma), producing a 3-4 day offset at
+  Pratyantar level — enough to land in a completely different planet's period
+  at Sukshma/Prana depth.
+- **Fix:** `computeSubDashas` now proportions the parent's exact day count
+  (`parentEnd − parentStart` in ms) rather than multiplying planet-years by
+  a year constant. Sub-periods sum to exactly the parent duration with no
+  gaps or overlaps at any depth. The Maha timeline start/end dates come
+  directly from the sidecar, so all nesting levels inherit sidecar-authoritative
+  boundaries.
+- `components/unified/tabs/DashaTab.tsx` — removed `addYears`, rewrote
+  `computeSubDashas(parentStart, parentEnd, parentPlanet)`.
+
+---
+
 ## [2026-05-21] — Invalidate all stale readings on profile birth-data edit
 
 ### Fixed
