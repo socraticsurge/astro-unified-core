@@ -28,18 +28,18 @@ export type ChartTabId =
 const DESKTOP_ONLY_TABS = new Set<ChartTabId>(['planets', 'divisional', 'yogas', 'jaimini', 'ashtakavarga', 'dasha'])
 
 const CHART_TABS: { id: ChartTabId; label: string; adminOnly?: boolean }[] = [
-  { id: 'today',        label: 'Today'        },
-  { id: 'planets',      label: 'Planets'      },
-  { id: 'divisional',   label: 'Divisional'   },
-  { id: 'yogas',        label: 'Yogas'        },
-  { id: 'jaimini',      label: 'Jaimini'      },
-  { id: 'ashtakavarga', label: 'Ashtakavarga' },
-  { id: 'dasha',        label: 'Dasha'        },
-  { id: 'transits',     label: 'Transits'     },
-  { id: 'career',       label: 'Career'       },
+  { id: 'today',        label: 'Current Period' },
+  { id: 'planets',      label: 'Planets'        },
+  { id: 'divisional',   label: 'Divisional',    adminOnly: true },
+  { id: 'yogas',        label: 'Yogas',         adminOnly: true },
+  { id: 'jaimini',      label: 'Jaimini',       adminOnly: true },
+  { id: 'ashtakavarga', label: 'Ashtakavarga',  adminOnly: true },
+  { id: 'dasha',        label: 'Dashas',        adminOnly: true },
+  { id: 'transits',     label: 'Transits',      adminOnly: true },
+  { id: 'career',       label: 'Career'         },
   { id: 'compare',      label: 'Marriage Compatibility' },
-  { id: 'muhurtha',     label: 'Muhurtha',    adminOnly: true },
-  { id: 'tarabalam',    label: 'Tarabalam',   adminOnly: true },
+  { id: 'muhurtha',     label: 'Muhurtha',      adminOnly: true },
+  { id: 'tarabalam',    label: 'Tarabalam',     adminOnly: true },
 ]
 
 export interface AIOpenPayload {
@@ -238,32 +238,32 @@ export function ProfileView({
             <PlanetsTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'divisional' && chartOutput && (
+        {activeTab === 'divisional' && isAdmin && chartOutput && (
           <div id="profileview-panel-divisional" role="tabpanel" aria-labelledby="profileview-tab-divisional">
             <HousesVargasTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'yogas' && chartOutput && (
+        {activeTab === 'yogas' && isAdmin && chartOutput && (
           <div id="profileview-panel-yogas" role="tabpanel" aria-labelledby="profileview-tab-yogas">
             <YogasTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'jaimini' && chartOutput && (
+        {activeTab === 'jaimini' && isAdmin && chartOutput && (
           <div id="profileview-panel-jaimini" role="tabpanel" aria-labelledby="profileview-tab-jaimini">
             <JaiminiTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'ashtakavarga' && chartOutput && (
+        {activeTab === 'ashtakavarga' && isAdmin && chartOutput && (
           <div id="profileview-panel-ashtakavarga" role="tabpanel" aria-labelledby="profileview-tab-ashtakavarga">
             <AshtakavargaTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'dasha' && chartOutput && (
+        {activeTab === 'dasha' && isAdmin && chartOutput && (
           <div id="profileview-panel-dasha" role="tabpanel" aria-labelledby="profileview-tab-dasha">
             <DashaTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'transits' && (
+        {activeTab === 'transits' && isAdmin && (
           <div id="profileview-panel-transits" role="tabpanel" aria-labelledby="profileview-tab-transits">
             <TransitsTab
               chartOutput={chartOutput}

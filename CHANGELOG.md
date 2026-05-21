@@ -8,6 +8,24 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Admin-only tabs; rename Today → Current Period
+
+### Changed
+- **Six tabs restricted to admin users only:** Divisional, Yogas, Jaimini,
+  Ashtakavarga, Dashas, and Transits are now hidden from regular users.
+  Users see only: Current Period, Planets, Career, Marriage Compatibility.
+  Tab bar filter and content render guards both enforce the restriction so
+  neither the tab label nor the content is reachable by non-admins.
+- **"Today" tab renamed to "Current Period"** across the tab bar, AI ask
+  context (PostHog capture + `AskContext.tab` default), and `DashboardClient`
+  fallback strings.
+- `components/profiles/ProfileView.tsx` — `adminOnly: true` added to 6 tabs;
+  `isAdmin &&` guards added to their content sections; label updated.
+- `app/dashboard/DashboardClient.tsx` — three `'Today'` fallback strings
+  updated to `'Current Period'`.
+
+---
+
 ## [2026-05-21] — Fix Vimshottari sub-dasha date drift in timeline
 
 ### Fixed
