@@ -56,3 +56,9 @@ lib/content/content-index.json
 
 # PostHog wizard scaffolding
 posthog-setup-report.md
+
+# Playwright (Tier-0 mobile layout E2E). Browsers + HTML reports +
+# test artifacts shouldn't be committed.
+/playwright-report/
+/test-results/
+/playwright/.cache/
