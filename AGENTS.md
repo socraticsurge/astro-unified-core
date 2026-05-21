@@ -27,6 +27,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - [ ] `npm run lint` — zero errors (warnings tolerated)
 - [ ] `npm run check:palette` — no raw Tailwind palette classes (use `var(--color-*)` tokens)
 - [ ] `npm run check:routes` — no internal links pointing at nonexistent `app/` pages
+- [ ] (when touching mobile layout) `npm run test:e2e` — Playwright mobile-layout suite still passes; first run requires `npm run test:e2e:install`
 - [ ] No `public` Cache-Control on auth-gated routes
 - [ ] No `isAdmin(session)` calls inside `"use client"` components
 - [ ] `CHANGELOG.md` updated with today's dated entry

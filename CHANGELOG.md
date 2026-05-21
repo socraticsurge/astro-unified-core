@@ -8,6 +8,45 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Tier-0 Playwright mobile-layout suite
+
+### Added
+- **`@playwright/test`** + `playwright.config.ts` + `tests/playwright/landing.spec.ts`.
+  Three layout-only assertions that run across **three mobile viewports**
+  (360 × 800, 375 × 812, 414 × 896) in Chromium-headless:
+  1. Landing snippet paragraph and the "Astro Chaganti" brand row do
+     **not** vertically intersect (catches the overlap regression that
+     just shipped to testers).
+  2. "Continue with Google" CTA is fully inside the viewport and at
+     least 40-px tall (catches CTA-pushed-off-screen and tap-target
+     regressions).
+  3. The 12 ascendant pills exist as accessible `<tab>` elements and
+     have a tappable first pill (catches the picker-collapsed-to-zero
+     regression).
+- Tests use `page.route()` to stub `/api/landing/today` — no DB, sidecar,
+  or LLM dependency. The Next dev server boots with a stub
+  `NEXTAUTH_SECRET` from `playwright.config.ts` so anyone with the
+  repo can `npm run test:e2e` cold.
+- `npm run test:e2e` runs the suite; `npm run test:e2e:install`
+  downloads Chromium on first use.
+- Vitest exclude pattern updated so it doesn't try to interpret the
+  Playwright specs.
+- **CI integration deliberately deferred to a follow-up PR.** First
+  pass ships the tests + config + npm scripts only. Once the suite
+  has run cleanly locally for a week we add a Playwright job to
+  `.github/workflows/test.yml`. Keeps the dev → main pipeline from
+  being flake-blocked by infra issues on day one.
+
+### Why
+- All three landing-mobile bugs we've shipped recently (`/settings`
+  dead link aside) were CSS layout issues at mobile widths that
+  vitest couldn't catch because it doesn't render. These three
+  geometry assertions would have caught the snippet-overlap, the
+  hidden-scrollbar tab strip, and the navbar-crushed-chip-strip bugs
+  before they reached testers.
+
+---
+
 ## [2026-05-21] — Mobile landing: snippet box overlapped brand row — taller panel + tighter chrome
 
 ### Fixed
