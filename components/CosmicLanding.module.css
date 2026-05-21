@@ -187,8 +187,8 @@
 .featureName { font-size: 11px; color: rgba(255,255,255,0.48); letter-spacing: 0.04em; text-align: center; line-height: 1.5; }
 
 .siderealRow { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.siderealLine { flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
-.siderealRow span { font-size: 10px; color: rgba(255,255,255,0.15); letter-spacing: 0.16em; text-transform: uppercase; white-space: nowrap; }
+.siderealLine { flex: 1; height: 1px; background: rgba(255,255,255,0.15); }
+.siderealRow span { font-size: 10px; color: rgba(255,255,255,0.45); letter-spacing: 0.16em; text-transform: uppercase; white-space: nowrap; }
 
 .ctaBtn {
   width: 100%; padding: 13px 0; border-radius: 16px; border: none; cursor: pointer;
