@@ -120,6 +120,70 @@ above to repoint the app.
 
 ---
 
+## Weekly Sentry review (15 minutes)
+
+Tests catch what we anticipate. Sentry catches what we don't. A short
+weekly pass keeps prod issues from compounding.
+
+### Cadence
+
+Every Monday morning. Total ~15 minutes. If you skip a week, double the
+budget the following week — don't skip twice.
+
+### What to look at, in order
+
+1. **Sentry → Issues, "New issues this week"** filter. Click each:
+   - Read the top stack frame. Is it a route handler? a client component?
+     a third-party (e.g. dashaflow sidecar)?
+   - Check the "Events" count — single user blip or actual recurrence?
+   - Check the affected releases column. If only one release, it's a
+     regression introduced by that PR.
+   - **Triage decision:** fix, ignore (with a note), or watch.
+
+2. **Sentry → Issues, "Frequency" sort, last 7 days**. The top 5 issues
+   by count are the actual fires. Even if you fixed something, if the
+   count is still climbing, the fix didn't deploy or didn't work.
+
+3. **Sentry → Performance, "Web Vitals"**. Glance at p75 LCP and CLS
+   for `/` and `/dashboard`. If LCP is creeping above 2.5s, something
+   regressed.
+
+4. **Sentry → Releases**. The most recent release should show its
+   issue count. A spike at release time = the release introduced
+   something.
+
+### What to ignore
+
+- **AbortError / `signal aborted`** from `fetchWithRetry`. These are
+  user-cancelled requests (navigated away), not real failures. Sentry
+  groups them; if the count is high it's still benign.
+- **`ResizeObserver loop limit exceeded`** — Chrome quirk, not actionable.
+- **Bot crawlers hitting unauthenticated routes.** Look at the
+  user-agent — `GoogleBot`, `BingBot`, etc. are not real users.
+- **Single events from one specific browser/device.** A single Safari
+  16.1 user with a JS error is a fluke until it repeats.
+
+### What to act on
+
+- Any 500 from a route handler, ever. We should never 500 — handlers
+  must catch and return 4xx/503. The recent
+  `/api/landing/today` race was caught this way.
+- Repeated errors from the same client component (suggests a
+  state-sync bug like the profile-create flow).
+- A new high-frequency issue introduced by the most recent release.
+- Anything tagged `feature: daily-landing` repeatedly — the LLM /
+  sidecar interaction has the most surface area.
+
+### After the review
+
+- Open issues for anything that needs fixing → assign to the next sprint.
+- Click "Resolve" on issues you've already shipped fixes for. Sentry
+  re-opens them if they recur on a later release.
+- Update this RUNBOOK if you spot a new failure mode that needs
+  documenting.
+
+---
+
 ## Sidecar — Dashaflow service
 
 - Hosted on Vercel (separate project from the main app).

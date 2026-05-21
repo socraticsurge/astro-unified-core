@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -78,6 +79,18 @@ function natalIsStale(snapshotJson: string, current: BirthInput, fp: string): bo
 }
 
 export async function GET(req: NextRequest) {
+  try {
+    return await handleGet(req);
+  } catch (err) {
+    // Catch-all: a libsql blip in any of the DB reads below would
+    // otherwise bubble up as a 500. Degrade to 503 + log to Sentry so
+    // the client can show its loading state rather than an error.
+    Sentry.captureException(err, { tags: { route: "GET /api/readings/today-reading" } });
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+  }
+}
+
+async function handleGet(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const r = await resolveProfile(req.nextUrl.searchParams.get("profile_id"), session);
   if (!r.ok) return r.response;

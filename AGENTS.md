@@ -25,6 +25,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - [ ] All test mocks satisfy their TypeScript types
 - [ ] `npx vitest run` — all pass
 - [ ] `npm run lint` — zero errors (warnings tolerated)
+- [ ] `npm run check:palette` — no raw Tailwind palette classes (use `var(--color-*)` tokens)
 - [ ] No `public` Cache-Control on auth-gated routes
 - [ ] No `isAdmin(session)` calls inside `"use client"` components
 - [ ] `CHANGELOG.md` updated with today's dated entry
