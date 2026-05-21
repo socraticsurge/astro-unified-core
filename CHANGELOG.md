@@ -8,6 +8,22 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Mobile NavBar: wordmark collapses to "AC" so profile chips fit
+
+### Fixed
+- **Profile switcher invisible on mobile.** The NavBar wordmark "Astro
+  Chaganti" + ThemeToggle + Add profile + Ask + Settings icons consumed
+  the entire 360px width, crushing the `flex-1` slot reserved for
+  `ProfileNav` to zero. Mobile users with multiple profiles had no way
+  to switch between them. Now the wordmark renders as "AC" below the
+  `sm` breakpoint (640px) — full "Astro Chaganti" returns at 640px+.
+  Frees ~140px for the profile chip strip on mobile.
+- Added `data-testid="profile-nav"` to the ProfileNav container so the
+  upcoming Playwright mobile-geometry tests can assert the chip strip
+  has non-zero width at small viewports.
+
+---
+
 ## [2026-05-21] — Hotfix: stable user.id + mobile create-sidebar + dead-link gate + auth contract tests
 
 ### Fixed
