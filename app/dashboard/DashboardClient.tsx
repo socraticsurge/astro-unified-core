@@ -308,14 +308,14 @@ export function DashboardClient({
     const data = chart.data?.data as Record<string, unknown> | undefined
     const dashas = data?.dashas as { maha?: { planet?: string }; antar?: { planet?: string } } | undefined
     posthog.capture("ask_panel_opened", {
-      tab: ctx?.tab ?? 'Today',
+      tab: ctx?.tab ?? 'Current Period',
     })
     setAskCtx({
       profileName:  formatName(activeProfile?.name ?? ''),
       relationship: activeProfile?.relationship ?? 'Other',
       mahadasha:    dashas?.maha?.planet ?? '—',
       antardasha:   dashas?.antar?.planet ?? '—',
-      tab:          'Today',
+      tab:          'Current Period',
       ...ctx,
     })
     setAskOpen(true)
@@ -450,7 +450,7 @@ export function DashboardClient({
           relationship: askCtx.relationship ?? 'Other',
           mahadasha:    askCtx.mahadasha    ?? '—',
           antardasha:   askCtx.antardasha   ?? '—',
-          tab:          askCtx.tab          ?? 'Today',
+          tab:          askCtx.tab          ?? 'Current Period',
           insightTitle: askCtx.insightTitle,
         }}
         writtenEnabled={appSettings.writtenEnabled}
