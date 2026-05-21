@@ -47,16 +47,25 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
     >
       <div className="flex items-stretch h-12">
 
-        {/* Wordmark — same width as the profile sidebar so profile tabs align below */}
-        <div className="w-auto md:w-80 shrink-0 flex items-center gap-2 px-4 border-r border-[var(--color-border)]">
+        {/* Wordmark — collapses to "AC" on mobile so the navbar has room
+           for the profile chip strip. md:w-80 matches the ProfileSidebar
+           width on desktop so profile tabs align below the sidebar edge;
+           on mobile we let it shrink to content. */}
+        <div className="w-auto md:w-80 shrink-0 flex items-center gap-2 px-3 sm:px-4 border-r border-[var(--color-border)]">
           <Link
             href={isLoggedIn ? "/dashboard" : "/"}
             className="flex items-center flex-1 min-w-0"
-            aria-label="Home"
+            aria-label="Astro Chaganti home"
           >
             <span style={wordmarkStyle}>
-              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
-              <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
+              {/* sm and up: full wordmark. <sm: "AC" only — frees ~140px
+                  for the ProfileNav chip strip on mobile. */}
+              <span className="hidden sm:inline" style={{ color: "var(--color-ink-1)" }}>Astro </span>
+              <span className="hidden sm:inline" style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
+              <span className="sm:hidden" aria-hidden="true">
+                <span style={{ color: "var(--color-ink-1)" }}>A</span>
+                <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>C</span>
+              </span>
             </span>
           </Link>
           <ThemeToggle />
@@ -64,7 +73,7 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
 
         {/* Profile tabs — fills remaining space */}
         {isLoggedIn && onProfileChange && (
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0" data-testid="profile-nav">
             <ProfileNav
               profiles={profiles}
               activeProfileId={activeProfileId}
