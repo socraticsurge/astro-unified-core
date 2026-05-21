@@ -8,6 +8,49 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Hotfix: stable user.id + mobile create-sidebar + dead-link gate + auth contract tests
+
+### Fixed
+- **Orphan profiles after sign-in (P0).** `lib/db/users.ts` was running
+  `ON CONFLICT(email) DO UPDATE SET id = excluded.id, …` on every Google
+  sign-in, which rewrote the primary key whenever NextAuth produced a
+  different `user.id` for the same email — orphaning every
+  `profiles.user_id` row pointing at the old value. Three testers and a
+  family member hit this in production. Fix: drop `id = excluded.id`
+  from the upsert, add `users.getByEmail`, and resolve `session.user.id`
+  from the DB (by email) in `lib/auth.ts`, with a `token.sub` fallback
+  for the first-signin race.
+- **Mobile profile creation sidebar invisible.** `ProfileSidebarCreate`
+  used `hidden md:flex` — fine for the read-only sidebar (chips replace
+  it on mobile), but the create state has no mobile equivalent, so
+  mobile users saw "enter the birth details in the sidebar" and no
+  sidebar. Now `w-full md:w-80 … flex` so it spans full width on mobile.
+- **`/settings` dead link in NavBar dropdown.** "Account settings" linked
+  to a route that doesn't exist (no `app/settings/page.tsx`). Removed the
+  menu item; will restore when the settings page is built.
+
+### Added (preventive guards)
+- **`lib/db/users.test.ts`** — contract tests on `users.upsert` that
+  fail if anything re-introduces `id = excluded.id` in the ON CONFLICT
+  clause, plus coverage for `users.getByEmail`. The original incident
+  would have been caught by a 10-line test; now it is.
+- **`scripts/check-dead-route-links.mjs` + `npm run check:routes` CI
+  gate.** Enumerates routes from `app/**/page.tsx`, scans `.ts`/`.tsx`
+  in `app/`, `components/`, `lib/` for `Link href="/…"`,
+  `router.push("/…")`, `redirect("/…")` etc., and fails on any literal
+  that doesn't resolve to a real page. Wired into `.github/workflows/test.yml`
+  and the `AGENTS.md` pre-flight checklist. Skips template literals
+  (`/dashboard?profile=${id}`) and external URLs.
+
+### Operational
+- Existing orphan profiles in production are NOT auto-recovered by
+  this fix — they remain pointed at stale user ids. A one-time SQL
+  backfill is required to relink them to the canonical id for each
+  affected email. The PR body documents the queries; not blocking
+  this merge.
+
+---
+
 ## [2026-05-21] — Landing: eyebrow names the active ascendant + LLM stops restating transits + slower cross-fade
 
 ### Changed (landing UI)

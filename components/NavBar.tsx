@@ -105,21 +105,21 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                   <Settings className="w-4 h-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem>
-                    <Link href="/settings" className="w-full">Account settings</Link>
-                  </DropdownMenuItem>
+                  {/* "Account settings" was here pointing at /settings, but
+                      that route does not exist (no app/settings/page.tsx).
+                      Removed to stop sending users to a 404. Restore when
+                      the settings page is actually built. */}
                   {showAdmin && (
                     <>
-                      <DropdownMenuSeparator />
                       <DropdownMenuItem>
                         <Link href="/admin" className="flex items-center gap-2 w-full">
                           <ShieldCheck className="w-3.5 h-3.5" />
                           Admin
                         </Link>
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                     </>
                   )}
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => signOut({ callbackUrl: "/" })}
                     variant="destructive"
