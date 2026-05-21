@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { buildInsightForTab, TAB_ENGINE, INSIGHT_TABS } from "@/lib/ai-insight";
 import type { InsightTab } from "@/lib/ai-insight";
 import { resolveModel, DEFAULT_INSIGHT_MODEL, type AiModelKey } from "@/lib/engines/models";
+import { birthDataChanged } from "@/lib/engines/cache-validate";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,15 @@ export async function GET(req: NextRequest) {
 
   const reading = await db.readings.latestByEngine(profile_id, TAB_ENGINE[tab]);
   if (!reading) return NextResponse.json({ insight: null, reading_id: null });
+
+  // Self-healing staleness check: if the profile's birth data changed since
+  // this insight was generated, treat it as a cache miss. This catches the
+  // edge case where deleteByProfile didn't run (race condition, partial
+  // failure) or the insight was generated before the profile edit landed.
+  const profile = await db.profiles.getAny(profile_id);
+  if (profile && birthDataChanged(reading.input_snapshot as string, profile)) {
+    return NextResponse.json({ insight: null, reading_id: null });
+  }
 
   return NextResponse.json({
     insight: JSON.parse(reading.output_data),
@@ -76,7 +86,19 @@ export async function POST(req: NextRequest) {
     const reading = await db.readings.save({
       profile_id,
       engine,
-      input_snapshot: { model: insight.model, prompt_version: insight.prompt_version, tab, profile_id },
+      // Include birth data so the GET staleness check can detect when the
+      // profile's birth details have changed since this insight was generated.
+      input_snapshot: {
+        model: insight.model,
+        prompt_version: insight.prompt_version,
+        tab,
+        profile_id,
+        date_of_birth: profile.date_of_birth,
+        time_of_birth: profile.time_of_birth,
+        latitude: profile.latitude,
+        longitude: profile.longitude,
+        timezone: profile.timezone,
+      },
       output_data: insight,
     });
 
