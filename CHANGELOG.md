@@ -8,6 +8,35 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Mobile landing: snippet box overlapped brand row — taller panel + tighter chrome
+
+### Fixed
+- **`CosmicLanding` mobile: snippet text bled into the "Astro Chaganti"
+  brand row.** The glass panel was a flex column with `.todaySection`
+  set to `flex: 1` and an inner `.snippetText` with a rigid `height: 13em`
+  (~175px at 13.5px font). Below the snippet, the panel chrome (brand
+  row + features + sidereal row + CTA) needed ~310px. On a 720-px
+  Android viewport the panel was only 62vh = 446px, leaving the
+  todaySection's flex slot too small for the 13em snippet box — so the
+  snippet visually overflowed its container and rendered on top of the
+  brand row.
+- Three coordinated changes inside `@media (max-width: 700px)`:
+  1. Panel height 62vh → **68vh** (recovers ~43px on a 720-px phone).
+     `pillDock` `bottom: calc(62vh + 8px) → calc(68vh + 8px)` and
+     `mobileFade` `bottom: 54vh → 60vh / height: 28vh → 22vh` track
+     the new top edge so the wheel/snippet pill dock alignment is
+     preserved.
+  2. `.snippetText` height 13em → **12em** + `-webkit-line-clamp` 8 → 7
+     (recovers ~14px; still fits a 320-char snippet at ~46-50 chars
+     per visible line × 7 lines = ~340 chars cap).
+  3. Trimmed mobile chrome margins: `.panelDivider` 14px → 8px,
+     `.brandRow` margin-bottom 14px → 8px, `.features` margin-bottom
+     14px → 8px, `.siderealRow` margin-bottom 16px → 8px. Brand
+     subtitle font 16px → 12px, brand name 28px → 26px. Net ~30px
+     recovered without breaking the visual rhythm.
+
+---
+
 ## [2026-05-21] — Mobile: tab strip shows scrollbar so the "Jaimi…" cutoff has a swipe affordance
 
 ### Fixed
