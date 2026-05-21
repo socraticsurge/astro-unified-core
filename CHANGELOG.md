@@ -8,6 +8,36 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Landing: eyebrow names the active ascendant + LLM stops restating transits + slower cross-fade
+
+### Changed (landing UI)
+- **`CosmicLanding.tsx` eyebrow now reads "THE COSMOS SPEAKS FOR
+  ARIES"** (or whatever sign is active). After the prompt was tightened
+  for word count, the LLM stopped reliably opening snippets with the
+  ascendant name — so the reader couldn't always tell which sign the
+  paragraph addressed. The sign name in the eyebrow cross-fades in
+  lockstep with the snippet (shares the `snippetCopyIn` / `snippetCopyOut`
+  transition classes), and gets a gold-accent colour so the active sign
+  is unambiguous at a glance.
+- Tracks a new `displayedKey` state next to `displayedSnippet` — both
+  swap together when the active sign changes.
+- **Slowed the snippet cross-fade.** `SNIPPET_FADE_OUT_MS` 380 → 700
+  and `SNIPPET_FADE_IN_MS` 520 → 900. Total 1600ms transition vs 6500ms
+  cycle leaves ~5s of stillness — plenty of read time, but the
+  transition itself feels like a wind-stroke instead of a click.
+
+### Changed (LLM prompt — `PROMPT_VERSION_LANDING` 3 → 4)
+- **Snippets no longer restate today's transit data.** The reader
+  already sees the Moon nakshatra / Sun sign / retrogrades in the
+  tile row above the snippet; opening with "The Sun in Taurus brings…"
+  wasted the 45-word / 300-char budget on info the reader already had.
+  System prompt now explicitly forbids phrases like "The Sun in…",
+  "Moon in <nakshatra> asks…", "Mercury retrograde slows…". User prompt
+  reinforces: today's sky is private context for the LLM's choice of
+  angle; the snippet's words go to guidance, not celestial mechanics.
+
+---
+
 ## [2026-05-21] — Hotfix: cron via GitHub Actions, not Vercel Cron
 
 ### Fixed
