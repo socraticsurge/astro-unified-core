@@ -5,7 +5,10 @@ export default defineConfig({
   test: {
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
-    exclude: ['**/node_modules/**', '**/.worktrees/**'],
+    // tests/playwright/ holds @playwright/test specs. Excluding so
+    // vitest doesn't try to interpret them — they're run via
+    // `npm run test:e2e`.
+    exclude: ['**/node_modules/**', '**/.worktrees/**', 'tests/playwright/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
