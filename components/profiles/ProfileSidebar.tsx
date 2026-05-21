@@ -1,7 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/db";
 import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import type { Planet, SignName } from "@/components/unified/types";
@@ -140,10 +141,19 @@ export function InlineCreateForm({ onCancel }: { onCancel?: () => void }) {
 interface ProfileSidebarProps {
   profile: Profile;
   chartOutput: Record<string, unknown> | null;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
+export function ProfileSidebar({ profile, chartOutput, mobileOpen = false, onMobileClose }: ProfileSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
+
+  // Reset editing state when overlay closes so re-opening starts in view mode.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!mobileOpen) setIsEditing(false);
+  }, [mobileOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete ${formatName(profile.name)}? This cannot be undone.`)) return;
@@ -181,7 +191,25 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
     : [];
 
   return (
-    <aside className="w-80 flex-shrink-0 border-r border-[var(--color-border)] overflow-y-auto hidden md:flex flex-col">
+    <aside className={cn(
+      "flex-shrink-0 flex flex-col overflow-y-auto",
+      mobileOpen
+        ? "fixed inset-0 z-50 bg-[var(--color-background)]"
+        : "hidden md:flex w-80 border-r border-[var(--color-border)]"
+    )}>
+      {mobileOpen && (
+        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] flex-shrink-0">
+          <span className="text-sm font-medium text-[var(--color-ink-1)]">Profile details</span>
+          <button
+            type="button"
+            onClick={onMobileClose}
+            className="p-2 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       <div className="p-4 space-y-5">
 
         {/* Name + edit toggle */}

@@ -68,7 +68,8 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
               </span>
             </span>
           </Link>
-          <ThemeToggle />
+          {/* Hidden on mobile — accessible via Settings dropdown instead */}
+          <span className="hidden sm:block"><ThemeToggle /></span>
         </div>
 
         {/* Profile tabs — fills remaining space */}
@@ -94,15 +95,15 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                 <span className="hidden sm:inline">Add profile</span>
               </Link>
 
+              {/* Hidden on mobile — Ask lives in the profile header row instead */}
               {onAskOpen && (
                 <button
                   type="button"
                   onClick={onAskOpen}
-                  className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)] text-[var(--color-accent)]"
+                  className="hidden sm:flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)] text-[var(--color-accent)]"
                 >
                   <span aria-hidden="true">✦</span>
-                  <span className="hidden sm:inline">Ask Dr Chaganti</span>
-                  <span className="sm:hidden">Ask</span>
+                  Ask Dr Chaganti
                 </button>
               )}
 

@@ -1,6 +1,6 @@
 "use client"
 import { useState } from 'react'
-import { Sparkles, Pencil, Trash2, Monitor } from 'lucide-react'
+import { Sparkles, Monitor, PanelLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatName } from '@/lib/display'
 import type { Profile, CompatibilityCheck } from '@/lib/db'
@@ -70,6 +70,7 @@ interface ProfileViewProps {
   onFetchCareer: (force?: boolean) => void
   onAskOpen: (context?: Partial<AskContext>) => void
   onAIOpen?: (payload: AIOpenPayload) => void
+  onOpenSidebar?: () => void
   isAdmin?: boolean
   defaultTab?: ChartTabId
   initialCompareCheck?: CompatibilityCheck
@@ -91,6 +92,7 @@ export function ProfileView({
   onFetchCareer,
   onAskOpen,
   onAIOpen,
+  onOpenSidebar,
   isAdmin = false,
   defaultTab = 'today',
   initialCompareCheck,
@@ -133,41 +135,37 @@ export function ProfileView({
 
   const needsChart = activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare' && activeTab !== 'muhurtha' && activeTab !== 'tarabalam'
 
-  const handleMobileDelete = async () => {
-    if (!window.confirm(`Delete ${formatName(profile.name)}? This cannot be undone.`)) return
-    await fetch(`/api/profiles/${profile.id}`, { method: 'DELETE' })
-    window.location.href = '/dashboard'
-  }
-
   return (
     <div className="h-full flex flex-col min-h-0">
-      {/* Mobile-only profile header — edit/delete without the sidebar */}
+      {/* Mobile-only profile header — sidebar toggle + Ask */}
       <div className="flex-shrink-0 md:hidden flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)]">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{formatName(profile.name)}</p>
-          {(profile.relationship || profile.gender) && (
-            <p className="text-xs text-muted-foreground">
-              {[profile.relationship, profile.gender].filter(Boolean).join(' · ')}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-0.5 shrink-0 ml-2">
-          <a
-            href={`/profiles/${profile.id}/edit`}
-            title="Edit profile"
-            className="p-2.5 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
-          >
-            <Pencil className="h-4 w-4" />
-          </a>
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={handleMobileDelete}
-            title="Delete profile"
-            className="p-2.5 rounded text-muted-foreground hover:text-danger transition-colors"
+            onClick={onOpenSidebar}
+            title="View birth charts & profile details"
+            className="p-2 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors shrink-0"
           >
-            <Trash2 className="h-4 w-4" />
+            <PanelLeft className="h-4 w-4" />
           </button>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{formatName(profile.name)}</p>
+            {(profile.relationship || profile.gender) && (
+              <p className="text-xs text-muted-foreground">
+                {[profile.relationship, profile.gender].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => handleAskFromInsight()}
+          title="Ask Dr Chaganti"
+          className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)] transition-colors shrink-0 ml-2"
+        >
+          <span aria-hidden="true">✦</span>
+          Ask
+        </button>
       </div>
 
       {/* Tab bar — kept visible while scrolling the active tab's content.
