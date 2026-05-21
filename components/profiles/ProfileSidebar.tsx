@@ -271,9 +271,16 @@ export function ProfileSidebar({ profile, chartOutput }: ProfileSidebarProps) {
 // the chart/panchang/disclaimer sections. Used when the user clicks
 // "Add profile" — no active profile is required.
 
+// IMPORTANT: this component must be visible on mobile too. The previous
+// `hidden md:flex` matched the read-only ProfileSidebar (where the wide
+// chart sidebar is desktop-only and the NavBar profile chips replace it
+// on mobile), but the CREATE state has no mobile equivalent — hiding the
+// sidebar left mobile users with "Enter the birth details in the sidebar"
+// and no sidebar. Now it spans full width on mobile and the standard
+// `w-80` on desktop.
 export function ProfileSidebarCreate({ onCancel }: { onCancel?: () => void }) {
   return (
-    <aside className="w-80 flex-shrink-0 border-r border-[var(--color-border)] overflow-y-auto hidden md:flex flex-col">
+    <aside className="w-full md:w-80 flex-shrink-0 md:border-r border-[var(--color-border)] overflow-y-auto flex flex-col">
       <div className="p-4 space-y-4">
         <div className="ac-person-name">
           <span>New profile</span>

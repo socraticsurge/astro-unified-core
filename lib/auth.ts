@@ -46,9 +46,27 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id: string; isAdmin: boolean }).id = token.sub as string;
+        // Resolve the user's id from OUR DB by email, not from token.sub.
+        // token.sub can change between NextAuth versions / strategies; the
+        // DB-stored id is immutable per email (see users.upsert comment).
+        // This is what keeps `profiles.user_id` joins working across
+        // sign-ins. Falls back to token.sub if the DB lookup fails — that
+        // path only matters for the *first* sign-in (race between
+        // signIn callback writing the row and session callback reading
+        // it), and the next sign-in stabilises.
+        let resolvedId = token.sub as string;
+        const email = session.user.email?.toLowerCase();
+        if (email) {
+          try {
+            const dbUser = await db.users.getByEmail(email);
+            if (dbUser?.id) resolvedId = dbUser.id;
+          } catch {
+            // DB blip — fall back to token.sub so sign-in still works.
+          }
+        }
+        (session.user as { id: string; isAdmin: boolean }).id = resolvedId;
         (session.user as { id: string; isAdmin: boolean }).isAdmin =
-          ADMIN_EMAILS.includes(session.user.email?.toLowerCase() ?? "");
+          ADMIN_EMAILS.includes(email ?? "");
       }
       return session;
     },
