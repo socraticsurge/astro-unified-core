@@ -276,6 +276,7 @@ Variables → Production**:
 | `SENTRY_AUTH_TOKEN` | Same. |
 | `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` | Same. |
 | `RESEND_API_KEY` | Same. |
+| `CRON_SECRET` | Different per environment — generate a fresh random string for Production. Cron is configured in `vercel.json` and runs only against Production. |
 
 ### Google Cloud Console — OAuth consent
 

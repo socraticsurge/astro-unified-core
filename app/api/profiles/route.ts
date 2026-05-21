@@ -48,6 +48,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name, birth place, and current location must be under 100 characters." }, { status: 400 });
     }
 
+    // DOB must not be in the future. The form sets `max={today}` but clients
+    // can bypass — guard server-side too. Compare as ISO date strings.
+    if (date_of_birth > new Date().toISOString().slice(0, 10)) {
+      return NextResponse.json({ error: "Date of birth cannot be in the future." }, { status: 400 });
+    }
+
     let geo;
     try {
       geo = await geocodePlace(place_of_birth);
