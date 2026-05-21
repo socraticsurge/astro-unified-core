@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Mobile: tab strip shows scrollbar so the "Jaimi…" cutoff has a swipe affordance
+
+### Fixed
+- **Profile tab strip looked truncated on mobile.** Mobile users saw
+  "Today | Planets | Divisional | Yogas | Jaimi…" with no visual cue
+  that the strip horizontally scrolls (Ashtakavarga / Dasha / Transits
+  / Career / Compatibility were one swipe away but invisible). The
+  scrollbar was hidden via `[scrollbar-width:none] [&::-webkit-scrollbar]:hidden`
+  — fine on desktop where the strip usually fits, hostile on mobile
+  where it always overflows. Now the hide rules are gated on `sm` and
+  up, so mobile gets a thin native scrollbar as the swipe affordance.
+
+---
+
 ## [2026-05-21] — Mobile NavBar: wordmark collapses to "AC" so profile chips fit
 
 ### Fixed
