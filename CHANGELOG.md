@@ -8,6 +8,25 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Mobile dasha-row alignment (Today tab + Dasha tab)
+
+### Fixed
+- **Current dasha period rows looked ragged on mobile.** The mobile
+  grid for `.ac-dasha-row` used `grid-template-columns: auto 1fr`,
+  which sized the level column to the widest label (PRATYANTAR) but
+  left short labels (ANTAR, PRANA, SUKSHMA) **left-aligned** inside
+  that column — opening a variable, ragged gap between the label and
+  the planet name. Tester described it as "disorganized, unaligned".
+- Now `grid-template-columns: 92px 1fr` with `text-align: right` on
+  `.level`. Every label's right edge sits flush against the planet
+  column → consistent visual rhythm row to row. Slightly bumped
+  column-gap (12 → 14), row-gap (2 → 3), and padding (10/12 → 12/14)
+  for breathing room without growing the card noticeably.
+- Single CSS edit; both `TodayTab` (current dasha card) and
+  `DashaTab` (dedicated tab) use the same class so both improve.
+
+---
+
 ## [2026-05-21] — Tier-0 Playwright mobile-layout suite
 
 ### Added
