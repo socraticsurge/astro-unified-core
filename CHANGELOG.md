@@ -8,6 +8,22 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Landing eyebrow names the active ascendant
+
+### Changed
+- **`CosmicLanding.tsx` eyebrow now reads "THE COSMOS SPEAKS FOR
+  ARIES"** (or whatever sign is active). After the prompt was tightened
+  for word count, the LLM stopped reliably opening snippets with the
+  ascendant name — so the reader couldn't always tell which sign the
+  paragraph addressed. The sign name in the eyebrow cross-fades in
+  lockstep with the snippet (shares the `snippetCopyIn` / `snippetCopyOut`
+  transition classes), and gets a gold-accent colour so the active sign
+  is unambiguous at a glance.
+- Tracks a new `displayedKey` state next to `displayedSnippet` — both
+  swap together when the active sign changes.
+
+---
+
 ## [2026-05-21] — Hotfix: cron via GitHub Actions, not Vercel Cron
 
 ### Fixed

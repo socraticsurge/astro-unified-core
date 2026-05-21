@@ -423,10 +423,12 @@ export function CosmicLanding() {
   const skyTiles = buildSkyTiles(data)
   const skyDayLabel = data?.is_stale ? 'Yesterday' : 'Today'
 
-  // Cross-fade state: hold the currently-rendered text separately from the
-  // target. When activeSign changes, fade the displayed snippet out, then
-  // swap to the new one, then fade back in. The "wind" feel comes from a
-  // slight blur + downward drift on entry, mirrored on exit.
+  // Cross-fade state: hold the currently-rendered text AND its sign label
+  // separately from the target. When activeSign changes, fade the displayed
+  // snippet + eyebrow sign out, then swap to the new ones, then fade back
+  // in. The eyebrow's "for ARIES" part cross-fades in lockstep with the
+  // snippet so the reader sees a single coherent transition.
+  const [displayedKey, setDisplayedKey] = useState<SignKey>(activeSign.key)
   const [displayedSnippet, setDisplayedSnippet] = useState(targetSnippet)
   const [fadePhase, setFadePhase] = useState<'in' | 'out'>('in')
 
@@ -437,12 +439,15 @@ export function CosmicLanding() {
     /* eslint-disable react-hooks/set-state-in-effect */
     setFadePhase('out')
     const handle = setTimeout(() => {
+      setDisplayedKey(activeSign.key)
       setDisplayedSnippet(targetSnippet)
       setFadePhase('in')
     }, SNIPPET_FADE_OUT_MS)
     /* eslint-enable react-hooks/set-state-in-effect */
     return () => clearTimeout(handle)
-  }, [targetSnippet, displayedSnippet])
+  }, [targetSnippet, displayedSnippet, activeSign.key])
+
+  const displayedSignName = ZODIAC[SIGN_INDEX_BY_KEY[displayedKey]]?.name ?? ''
 
   return (
     <div style={{
@@ -498,7 +503,22 @@ export function CosmicLanding() {
           </div>
 
           <div className={styles.snippetText}>
-            <span className={styles.cosmosEyebrow}>The cosmos speaks</span>
+            {/* Eyebrow always reads "THE COSMOS SPEAKS FOR <SIGN>". The
+                "for" prefix is static; the sign name itself cross-fades
+                in lockstep with the snippet below so the reader always
+                knows which ascendant the paragraph addresses (the LLM
+                output no longer reliably opens with the sign's name). */}
+            <span className={styles.cosmosEyebrow}>
+              The cosmos speaks for{' '}
+              <span
+                className={`${styles.cosmosEyebrowSign} ${fadePhase === 'in' ? styles.snippetCopyIn : styles.snippetCopyOut}`}
+                style={{
+                  transitionDuration: `${fadePhase === 'in' ? SNIPPET_FADE_IN_MS : SNIPPET_FADE_OUT_MS}ms`,
+                }}
+              >
+                {displayedSignName}
+              </span>
+            </span>
             <p
               className={fadePhase === 'in' ? styles.snippetCopyIn : styles.snippetCopyOut}
               style={{
