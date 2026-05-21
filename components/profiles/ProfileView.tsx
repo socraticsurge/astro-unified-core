@@ -174,9 +174,17 @@ export function ProfileView({
           `flex-shrink-0` pins it in the flex column; the background ensures
           tab content scrolling beneath doesn't bleed through. */}
       <div className="flex-shrink-0 flex items-stretch border-b border-[var(--color-border)] bg-[var(--color-background)] z-10">
+        {/* overflow-x-auto means the strip horizontally scrolls when the
+           tab labels are wider than the viewport — which is every mobile
+           viewport. We previously hid the scrollbar unconditionally with
+           `[scrollbar-width:none]`, so mobile users saw "Jaimi…" clipped
+           at the right edge with no visual cue they could swipe.
+           Now the scrollbar shows below `sm` (mobile) as the swipe
+           affordance, and stays hidden from `sm` and up where the strip
+           usually fits without scrolling. */}
         <div
           role="tablist"
-          className="flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex-1 overflow-x-auto sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden"
         >
           <div className="flex min-w-max">
             {CHART_TABS.filter(t => !t.adminOnly || isAdmin).map(t => (
