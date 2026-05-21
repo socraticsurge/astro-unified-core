@@ -148,9 +148,12 @@ interface ProfileSidebarProps {
 export function ProfileSidebar({ profile, chartOutput, mobileOpen = false, onMobileClose }: ProfileSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
 
+  // Reset editing state when overlay closes so re-opening starts in view mode.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!mobileOpen) setIsEditing(false);
   }, [mobileOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete ${formatName(profile.name)}? This cannot be undone.`)) return;
