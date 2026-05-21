@@ -1,0 +1,60 @@
+name: landing-cron
+
+# Vercel Hobby plan only allows daily cron schedules, so we drive the
+# 8-hour refresh from GitHub Actions instead. The endpoint itself
+# (/api/cron/regenerate-landing) is unchanged — it still checks the
+# Authorization header against CRON_SECRET, still smart-skips when the
+# moon nakshatra is unchanged.
+#
+# Required repo secrets (GitHub → Settings → Secrets and variables → Actions):
+#   - CRON_SECRET       — same value as the Vercel env var
+#   - LANDING_CRON_URL  — full URL to ping, e.g.
+#                         https://astrochaganti.com/api/cron/regenerate-landing
+#
+# If either secret is missing, the workflow fails loudly (not silently).
+
+on:
+  schedule:
+    # Every 8 hours at minute 0 UTC. Cron in GHA runs in UTC; this lands
+    # at 00:00, 08:00, 16:00 UTC = 05:30, 13:30, 21:30 IST.
+    - cron: '0 */8 * * *'
+  workflow_dispatch: # manual trigger from the Actions UI
+
+concurrency:
+  group: landing-cron
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate secrets are present
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          LANDING_CRON_URL: ${{ secrets.LANDING_CRON_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Repo secret CRON_SECRET is unset"
+            exit 1
+          fi
+          if [ -z "$LANDING_CRON_URL" ]; then
+            echo "::error::Repo secret LANDING_CRON_URL is unset"
+            exit 1
+          fi
+
+      - name: Hit /api/cron/regenerate-landing
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          LANDING_CRON_URL: ${{ secrets.LANDING_CRON_URL }}
+        run: |
+          set -e
+          # Use --fail-with-body so non-2xx responses fail the step but we
+          # still see the body for debugging. -sS keeps the output quiet on
+          # success, loud on error.
+          response=$(curl -sS --fail-with-body \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            --max-time 60 \
+            "$LANDING_CRON_URL")
+          echo "Response: $response"

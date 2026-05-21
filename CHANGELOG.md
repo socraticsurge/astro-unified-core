@@ -8,6 +8,38 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Hotfix: cron via GitHub Actions, not Vercel Cron
+
+### Fixed
+- **PR #91's deploy was rejected by Vercel.** Vercel Hobby plan only
+  allows daily cron schedules; the `0 */8 * * *` schedule in
+  `vercel.json` failed validation and blocked the development deploy
+  entirely (no cron route, no DOB fix, no Rahu/Ketu filter ever
+  reached the preview). Vercel's status check link pointed at the
+  Cron Jobs Usage & Pricing docs as the diagnostic.
+
+### Changed
+- **Switched to GitHub Actions schedule.** Removed `vercel.json` (the
+  crons section was its only content). Added
+  `.github/workflows/landing-cron.yml` with `schedule: 0 */8 * * *`
+  that curls `/api/cron/regenerate-landing` with the
+  `Authorization: Bearer ${{ secrets.CRON_SECRET }}` header. Same
+  cadence as we wanted (every 8 hours), free, works on any GitHub plan.
+  The endpoint code is unchanged.
+- **Two repo secrets needed in GitHub** (Settings → Secrets and variables
+  → Actions):
+  - `CRON_SECRET` — same value as the Vercel env var
+  - `LANDING_CRON_URL` — full URL, e.g.
+    `https://astrochaganti.com/api/cron/regenerate-landing`
+  Workflow fails loudly if either is missing.
+
+### Documentation
+- `docs/PROJECT.md` env table — clarified `CRON_SECRET` lives in two
+  places (Vercel + GitHub) and explained the GitHub Actions choice.
+- `docs/RUNBOOK.md` promotion env-parity table — updated.
+
+---
+
 ## [2026-05-21] — DOB max + Rahu/Ketu filter + 8-hour cron landing refresh
 
 ### Added

@@ -149,7 +149,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `NEXT_PUBLIC_POSTHOG_KEY`  | PostHog Project API key (`phc_…`). Browser-visible (public-prefix is correct). |
 | `NEXT_PUBLIC_POSTHOG_HOST` | PostHog ingest URL — `https://eu.i.posthog.com`. Browser hits `/ingest/*` which `next.config.ts` rewrites to this. |
 | `RESEND_API_KEY`           | Resend API key (`re_…`). Used to send the admin notification email on new consultation requests. If unset, notifications are silently skipped (helper short-circuits). Recipient and from-address are hardcoded in `lib/constants.ts`. |
-| `CRON_SECRET` (required)   | Shared secret Vercel Cron sends as `Authorization: Bearer <secret>` to `/api/cron/regenerate-landing` every 8 hours. Generate a random 32+ char string. If unset, the cron endpoint returns 500 and the landing snippets stop refreshing through the day. |
+| `CRON_SECRET` (required)   | Shared secret the landing-refresh cron sends as `Authorization: Bearer <secret>` to `/api/cron/regenerate-landing` every 8 hours. Generate a random 32+ char string. Set as both a Vercel env var (so the route can validate) AND a GitHub Actions repo secret (so the workflow can send). The workflow lives at `.github/workflows/landing-cron.yml` — we use GitHub Actions instead of Vercel Cron because the Hobby plan only allows daily cron schedules. |
 
 ### Sidecar — none required.
 

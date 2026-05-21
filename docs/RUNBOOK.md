@@ -276,7 +276,7 @@ Variables → Production**:
 | `SENTRY_AUTH_TOKEN` | Same. |
 | `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` | Same. |
 | `RESEND_API_KEY` | Same. |
-| `CRON_SECRET` | Different per environment — generate a fresh random string for Production. Cron is configured in `vercel.json` and runs only against Production. |
+| `CRON_SECRET` | Same value lives in **two** places: Vercel env vars (validates the incoming request) AND GitHub Actions repo secrets (workflow sends it). The cron itself is `.github/workflows/landing-cron.yml`, not Vercel Cron — Hobby blocks sub-daily schedules. Also set `LANDING_CRON_URL` as a GitHub Actions repo secret (e.g. `https://astrochaganti.com/api/cron/regenerate-landing`). |
 
 ### Google Cloud Console — OAuth consent
 
