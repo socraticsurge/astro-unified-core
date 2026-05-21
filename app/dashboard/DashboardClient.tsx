@@ -81,8 +81,7 @@ export function DashboardClient({
   const [askCtx,  setAskCtx]  = useState<Partial<AskContext>>({})
   const [aiOpen,  setAiOpen]  = useState(false)
   const [aiCtx,   setAiCtx]   = useState<AIPanelContext | null>(null)
-  const [mobileSidebarOpen,    setMobileSidebarOpen]    = useState(false)
-  const [mobileSidebarEditing, setMobileSidebarEditing] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   // Loading screen state — only shown once for new profiles
   const [showLoadingScreen, setShowLoadingScreen] = useState(isNewProfile)
@@ -374,7 +373,6 @@ export function DashboardClient({
               chartOutput={chart.data}
               mobileOpen={mobileSidebarOpen}
               onMobileClose={() => setMobileSidebarOpen(false)}
-              mobileEditMode={mobileSidebarEditing}
             />
           )
         )}
@@ -412,8 +410,7 @@ export function DashboardClient({
                 onFetchCareer={fetchCareer}
                 onAskOpen={handleAskOpen}
                 onAIOpen={handleAIOpen}
-                onOpenSidebar={() => { setMobileSidebarEditing(false); setMobileSidebarOpen(true) }}
-                onOpenSidebarEdit={() => { setMobileSidebarEditing(true); setMobileSidebarOpen(true) }}
+                onOpenSidebar={() => setMobileSidebarOpen(true)}
                 isAdmin={isAdmin}
                 defaultTab={defaultTab}
                 initialCompareCheck={initialCompareCheck}
