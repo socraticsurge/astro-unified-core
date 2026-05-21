@@ -30,6 +30,11 @@ export async function PUT(
       return NextResponse.json({ error: "Name, birth place, and current location must be under 100 characters." }, { status: 400 });
     }
 
+    // DOB must not be in the future — guard server-side as defense-in-depth.
+    if (date_of_birth > new Date().toISOString().slice(0, 10)) {
+      return NextResponse.json({ error: "Date of birth cannot be in the future." }, { status: 400 });
+    }
+
     // We preserve the user's typed strings as the canonical display values for
     // `place_of_birth` and `current_location`. Geocoding still runs to refresh
     // lat/lon/timezone on changes, but only the coordinate fields are stored.

@@ -8,6 +8,34 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — DOB max + Rahu/Ketu filter + 8-hour cron landing refresh
+
+### Added
+- **Vercel Cron every 8 hours** regenerates today's landing snippets
+  when the moon's nakshatra changes. New route `/api/cron/regenerate-
+  landing` (auth via `CRON_SECRET` header) + `vercel.json` with
+  schedule `0 */8 * * *`. **Smart skip:** if the moon's nakshatra in
+  today's cached payload matches the current sky, no LLM call. Net
+  cost: 1–2 LLM calls/day typical, catches the nakshatra change
+  within ≤8 hours of when it happens.
+- Seven unit tests cover auth (missing/wrong/unset secret), skip,
+  regenerate, and cold-row paths.
+
+### Changed
+- **Profile form blocks future DOB.** `max={today}` on the date input
+  in both `ProfileFormFields.tsx` and `ProfileForm.tsx`. Server-side
+  defense-in-depth validation in `POST /api/profiles` and
+  `PUT /api/profiles/[id]`.
+- **Rahu/Ketu filtered out of the retrograde tile** in
+  `fetchTodayCelestialFacts()`. The lunar nodes are always retrograde
+  from Earth's frame; surfacing them every day was noise.
+
+### Documentation
+- `docs/PROJECT.md` — added `CRON_SECRET` (required).
+- `docs/RUNBOOK.md` — promotion-runbook env-parity table updated.
+
+---
+
 ## [2026-05-21] — Test/lint guards + Sentry runbook
 
 ### Added (catch entire bug classes going forward)

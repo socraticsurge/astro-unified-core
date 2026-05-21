@@ -42,7 +42,19 @@ interface Props {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
 
+// Today's date in YYYY-MM-DD as the `max` attribute on the DOB input.
+// Computed at render time — fine for a low-traffic form. (A profile created
+// at 23:59 with a midnight clock-flip is a non-issue.)
+function todayIsoDate(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export function ProfileFormFields({ form, onChange }: Props) {
+  const today = todayIsoDate();
   return (
     <>
       <div className="space-y-1">
@@ -71,7 +83,7 @@ export function ProfileFormFields({ form, onChange }: Props) {
       </div>
       <div className="space-y-1">
         <label className={LABEL_CLASS}>Date of birth</label>
-        <input type="date" name="date_of_birth" value={form.date_of_birth} onChange={onChange} className={INPUT_CLASS} required />
+        <input type="date" name="date_of_birth" value={form.date_of_birth} onChange={onChange} max={today} className={INPUT_CLASS} required />
       </div>
       <div className="space-y-1">
         <label className={LABEL_CLASS}>Time of birth</label>

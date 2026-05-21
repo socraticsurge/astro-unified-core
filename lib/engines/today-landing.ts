@@ -88,9 +88,14 @@ export async function fetchTodayCelestialFacts(date: Date = new Date()): Promise
     data.planets?.Moon?.nakshatra ??
     "";
   const sunSign = data.planets?.Sun?.sign ?? "";
+  // Rahu and Ketu (the lunar nodes) are always retrograde from Earth's
+  // frame of reference — flagging them on the landing badge would be
+  // tautological and noisy. Filter out so only meaningful retrogrades
+  // (Mercury, Venus, Mars, Jupiter, Saturn) surface.
+  const ALWAYS_RETROGRADE = new Set(["Rahu", "Ketu"]);
   const retrogrades: string[] = [];
   for (const [planet, info] of Object.entries(data.planets ?? {})) {
-    if (info?.is_retrograde) retrogrades.push(planet);
+    if (info?.is_retrograde && !ALWAYS_RETROGRADE.has(planet)) retrogrades.push(planet);
   }
   if (!moonNak || !sunSign) {
     throw new Error("Sidecar response missing moon_nakshatra or sun_sign");
