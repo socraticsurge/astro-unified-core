@@ -1,6 +1,6 @@
 "use client"
 import { useState } from 'react'
-import { Sparkles, Pencil, Trash2, Monitor } from 'lucide-react'
+import { Sparkles, Pencil, Trash2, Monitor, PanelLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatName } from '@/lib/display'
 import type { Profile, CompatibilityCheck } from '@/lib/db'
@@ -70,6 +70,8 @@ interface ProfileViewProps {
   onFetchCareer: (force?: boolean) => void
   onAskOpen: (context?: Partial<AskContext>) => void
   onAIOpen?: (payload: AIOpenPayload) => void
+  onOpenSidebar?: () => void
+  onOpenSidebarEdit?: () => void
   isAdmin?: boolean
   defaultTab?: ChartTabId
   initialCompareCheck?: CompatibilityCheck
@@ -91,6 +93,8 @@ export function ProfileView({
   onFetchCareer,
   onAskOpen,
   onAIOpen,
+  onOpenSidebar,
+  onOpenSidebarEdit,
   isAdmin = false,
   defaultTab = 'today',
   initialCompareCheck,
@@ -141,24 +145,41 @@ export function ProfileView({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      {/* Mobile-only profile header — edit/delete without the sidebar */}
+      {/* Mobile-only profile header — sidebar toggle, edit, delete */}
       <div className="flex-shrink-0 md:hidden flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)]">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{formatName(profile.name)}</p>
-          {(profile.relationship || profile.gender) && (
-            <p className="text-xs text-muted-foreground">
-              {[profile.relationship, profile.gender].filter(Boolean).join(' · ')}
-            </p>
-          )}
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={onOpenSidebar}
+            title="View birth charts & profile details"
+            className="p-2 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors shrink-0"
+          >
+            <PanelLeft className="h-4 w-4" />
+          </button>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{formatName(profile.name)}</p>
+            {(profile.relationship || profile.gender) && (
+              <p className="text-xs text-muted-foreground">
+                {[profile.relationship, profile.gender].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-0.5 shrink-0 ml-2">
-          <a
-            href={`/profiles/${profile.id}/edit`}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenSidebarEdit) {
+                onOpenSidebarEdit()
+              } else {
+                window.location.href = `/profiles/${profile.id}/edit`
+              }
+            }}
             title="Edit profile"
             className="p-2.5 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
           >
             <Pencil className="h-4 w-4" />
-          </a>
+          </button>
           <button
             type="button"
             onClick={handleMobileDelete}
