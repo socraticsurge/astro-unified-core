@@ -8,6 +8,35 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Admin context-aware profile loading + compatibility bypass
+
+### Added
+- **Admin sees full user account on profile click.** When an admin navigates
+  to any user's profile from the admin panel, the dashboard now loads *all*
+  of that user's profiles as the active context — not just the single profile
+  clicked. This means Tarabalam, Marriage Compatibility, and the CompareTab
+  all work correctly with the target user's full profile set.
+- **Admin context banner.** A slim accent-bar at the top of the dashboard
+  shows "👁 Viewing [name]'s account ← Back to admin" when an admin is
+  operating in another user's context. Disappears for normal users.
+- **Admin compatibility bypass.** Admins can now run marriage compatibility
+  checks across any two profiles in the system (ownership not enforced).
+  The 6-check cap and duplicate guard are skipped for admins. Results are
+  stored under the admin's own `user_id` so the profile owner never sees
+  admin-initiated checks.
+
+### Changed
+- `app/dashboard/page.tsx` — admin branch now calls `db.profiles.list(userId)`
+  on the viewed user and fetches their name via `db.users.getById`. Passes
+  `viewingUserLabel` to `DashboardClient`.
+- `app/dashboard/DashboardClient.tsx` — renders admin context banner when
+  `viewingUserLabel` is set.
+- `app/api/compatibility/route.ts` — admin path uses `db.profiles.getAny()`
+  (bypasses ownership) and skips cap/duplicate checks.
+- `lib/db/users.ts` — added `getById(id)` query method.
+
+---
+
 ## [2026-05-21] — Fix ESLint CI failure in ProfileSidebar; mobile dropdown background fix; remove mobile theme switch
 
 ### Fixed

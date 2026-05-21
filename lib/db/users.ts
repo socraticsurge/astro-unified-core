@@ -46,6 +46,15 @@ export const users = {
     return rs.rows[0] ? UserSchema.parse(rs.rows[0]) : undefined;
   },
 
+  async getById(id: string): Promise<User | undefined> {
+    await ensureSchema();
+    const rs = await getClient().execute({
+      sql: "SELECT * FROM users WHERE id = ? LIMIT 1",
+      args: [id],
+    });
+    return rs.rows[0] ? UserSchema.parse(rs.rows[0]) : undefined;
+  },
+
   async list(limit = 200): Promise<User[]> {
     await ensureSchema();
     const rs = await getClient().execute({
