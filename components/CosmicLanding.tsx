@@ -31,9 +31,13 @@ type LandingData = {
 
 const STORAGE_KEY = 'astrochaganti.ascendant'
 const AUTO_CYCLE_MS = 6500
-// Cross-fade tuning. Total cycle = OUT + IN; keep under AUTO_CYCLE_MS by a wide margin.
-const SNIPPET_FADE_OUT_MS = 380
-const SNIPPET_FADE_IN_MS = 520
+// Cross-fade tuning. Total cycle = OUT + IN; keep under AUTO_CYCLE_MS by a
+// comfortable margin. Slowed 380/520 → 700/900 (2026-05-21): the prior
+// timing felt clicky / snappy; the new feel is closer to a wind-stroke
+// the user originally asked for. Total 1600ms vs 6500ms cycle leaves
+// 4.9s of stillness — still plenty of read time.
+const SNIPPET_FADE_OUT_MS = 700
+const SNIPPET_FADE_IN_MS = 900
 // When the visitor pins their ascendant, we hold on it for this long, then
 // quietly resume the cycle so the page stays alive even after interaction.
 const RESUME_AUTOCYCLE_MS = 25_000
