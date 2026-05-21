@@ -33,6 +33,7 @@ type Props = {
   appSettings: AppSettings;
   aiInsightStats: AiInsightStat[];
   llmSettings: { ai_insights: AiInsightsLlmConfig; chat: ChatLlmConfig; draft: DraftLlmConfig; today_reading: TodayReadingLlmConfig };
+  adminEmail: string;
 };
 
 export function AdminTables({
@@ -45,6 +46,7 @@ export function AdminTables({
   appSettings,
   aiInsightStats,
   llmSettings,
+  adminEmail,
 }: Props) {
   // Sort state for inline tabs (Users / Profiles / Compatibility). Questions
   // and Settings own their own state — see ./tabs/QuestionsTab + SettingsTab.
@@ -215,6 +217,7 @@ export function AdminTables({
             <thead className="bg-[var(--color-surface-1)] text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleCompSort("user_email")}>User {renderSortIcon("user_email", compSortCol, compSortDir)}</th>
+                <th className="px-3 py-2 font-medium whitespace-nowrap">Made By</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleCompSort("p1_name")}>Male Profile {renderSortIcon("p1_name", compSortCol, compSortDir)}</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleCompSort("p2_name")}>Female Profile {renderSortIcon("p2_name", compSortCol, compSortDir)}</th>
                 <th className="px-3 py-2 font-medium whitespace-nowrap cursor-pointer hover:bg-[var(--color-surface-hover)]" onClick={() => toggleCompSort("score")}>Score {renderSortIcon("score", compSortCol, compSortDir)}</th>
@@ -225,7 +228,7 @@ export function AdminTables({
             <tbody className="divide-y divide-[var(--color-border)]">
               {sortedComps.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground italic">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground italic">
                     No compatibility checks recorded yet.
                   </td>
                 </tr>
@@ -233,6 +236,12 @@ export function AdminTables({
                 sortedComps.map((check) => (
                   <tr key={check.id} className="hover:bg-[var(--color-surface-hover)]">
                     <td className="px-4 py-3 font-medium text-[var(--color-ink-1)]">{check.user_email || "Unknown User"}</td>
+                    <td className="px-4 py-3">
+                      {check.user_email === adminEmail
+                        ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-accent-faint)] text-[var(--color-accent)]">Admin</span>
+                        : <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-surface-2)] text-muted-foreground">User</span>
+                      }
+                    </td>
                     <td className="px-4 py-3">{check.p1_name || "Deleted Profile"}</td>
                     <td className="px-4 py-3">{check.p2_name || "Deleted Profile"}</td>
                     <td className="px-4 py-3">

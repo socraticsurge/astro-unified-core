@@ -548,7 +548,7 @@ export function CosmicLanding() {
           </div>
           <div>
             <p className={styles.brandName}>Astro <em>Chaganti</em></p>
-            <p className={styles.brandSub}>Vedic Astrology Platform</p>
+            <p className={styles.brandSub}>Vedic Astrology Readings</p>
           </div>
         </div>
 

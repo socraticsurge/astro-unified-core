@@ -75,6 +75,7 @@ export default async function AdminPage() {
         appSettings={appSettings}
         aiInsightStats={aiInsightStats}
         llmSettings={{ ai_insights: aiInsightsLlm, chat: chatLlm, draft: draftLlm, today_reading: todayReadingLlm }}
+        adminEmail={session?.user?.email ?? ""}
       />
     </div>
   );
