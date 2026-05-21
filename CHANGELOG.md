@@ -8,6 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Fix AIAdminPanel silent cache-check failure
+
+### Fixed
+- **AI panel cache-check swallowed errors silently.** When the "✦ Ask" panel
+  opened, it hit `/api/readings/ai-insight` to pre-load a cached summary. If
+  that fetch threw (network blip, DB timeout) or returned non-OK, the spinner
+  just stopped with no feedback — previously generated summaries would vanish
+  without explanation. Now surfaces the error via `summaryError` so users see
+  a readable message and can retry. `generateSummary` and chat error paths were
+  already handled correctly; this closes the one remaining silent gap. (T13)
+
+---
+
 ## [2026-05-21] — Admin context-aware profile loading + compatibility bypass
 
 ### Added
