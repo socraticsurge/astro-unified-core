@@ -116,8 +116,9 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
         if (!cancelled && data.insight) {
           setSummaryState({ insight: data.insight as TabInsight, readingId: data.reading_id, rating: data.rating ?? null })
         }
-      } catch { /* silently ignore */ }
-      finally { if (!cancelled) setSummaryChecking(false) }
+      } catch (err) {
+        if (!cancelled) setSummaryError(err instanceof Error ? err.message : "Failed to load cached summary")
+      } finally { if (!cancelled) setSummaryChecking(false) }
     }
 
     checkCache()
