@@ -21,24 +21,24 @@ const SEQUENCE = ["Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury",
 type RawEntry = { planet?: string; start?: string; end?: string };
 type SubDasha = { planet: string; start: string; end: string; years: number };
 
-function addYears(dateStr: string, years: number): string {
-  try {
-    return new Date(new Date(dateStr).getTime() + years * 365.25 * 86400000)
-      .toISOString().slice(0, 10);
-  } catch { return "?"; }
-}
-
-function computeSubDashas(parentStart: string, parentPlanet: string, parentYears: number): SubDasha[] {
+// Compute sub-dashas by proportioning the parent's exact day count rather than
+// using a fixed year constant. This eliminates floating-point drift across
+// nested levels — each sub-period sums to exactly the parent duration so there
+// are no gaps or overlaps in the timeline at any depth.
+function computeSubDashas(parentStart: string, parentEnd: string, parentPlanet: string): SubDasha[] {
   const seqIdx = SEQUENCE.indexOf(parentPlanet);
-  if (seqIdx === -1 || !parentStart || parentStart === "?") return [];
-  let cursor = parentStart;
+  if (seqIdx === -1 || !parentStart || parentStart === "?" || !parentEnd || parentEnd === "?") return [];
+  const parentMs = Date.parse(parentEnd) - Date.parse(parentStart);
+  if (parentMs <= 0) return [];
+  let cursor = Date.parse(parentStart);
   return SEQUENCE.map((_, i) => {
-    const planet = SEQUENCE[(seqIdx + i) % 9];
-    const years  = (parentYears * VIMSHOTTARI_YEARS[planet]) / 120;
-    const end    = addYears(cursor, years);
-    const entry: SubDasha = { planet, start: cursor, end, years };
-    cursor = end;
-    return entry;
+    const planet     = SEQUENCE[(seqIdx + i) % 9];
+    const durationMs = (VIMSHOTTARI_YEARS[planet] / 120) * parentMs;
+    const start      = new Date(cursor).toISOString().slice(0, 10);
+    const end        = new Date(cursor + durationMs).toISOString().slice(0, 10);
+    const years      = durationMs / (365.25 * 86400000); // display only
+    cursor          += durationMs;
+    return { planet, start, end, years };
   });
 }
 
@@ -75,7 +75,7 @@ function DashaRows({ entries, depth, expanded, onToggle }: RowsProps) {
         const key    = dkey(e.planet, e.start);
         const isOpen = !isLeaf && expanded[depth] === key;
         const active = isNow(e.start, e.end);
-        const sub    = isOpen ? computeSubDashas(e.start, e.planet, e.years) : [];
+        const sub    = isOpen ? computeSubDashas(e.start, e.end, e.planet) : [];
 
         return (
           <div key={key}>
