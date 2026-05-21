@@ -11,7 +11,12 @@ import { lookupAscendant } from "@/lib/content/lookup";
 // v3 (2026-05-21): hard cap of 300 chars / 45 words in prompt + Zod
 // .max(320) schema so an over-long Gemini response fails validation and
 // retries — no more brutal client-side mid-sentence truncation.
-export const PROMPT_VERSION_LANDING = 3;
+// v4 (2026-05-21): explicitly forbid restating today's transit data
+// (Sun sign, Moon nakshatra, retrogrades). The landing already displays
+// these facts in tiles above the snippet — repeating them in prose
+// wasted the character budget on info the reader already has. Now the
+// budget goes to guidance.
+export const PROMPT_VERSION_LANDING = 4;
 
 export const ZODIAC_SIGNS = [
   "aries", "taurus", "gemini", "cancer", "leo", "virgo",
@@ -111,8 +116,9 @@ Tone:
 2. Inviting reflection — not commands, not predictions, not fortune-cookie clichés.
 3. No mystical jargon ("the cosmos compels", "destiny calls", etc.). No CTAs of any kind.
 4. Each paragraph is 1-2 sentences. STRICT MAXIMUM: 45 words AND 300 characters (count, do not estimate). Aim for 35-42 words. The landing has a fixed-size visual box; any snippet exceeding these limits will be rejected and the entire batch regenerated.
-5. Reference the specific celestial facts provided (Moon's nakshatra, Sun's sign, named active retrogrades). Do not invent transits the data doesn't show.
-6. Return strict JSON matching the requested schema. No markdown fences, no commentary.`;
+5. **DO NOT restate today's transit data.** The landing UI already displays the Moon's nakshatra, Sun's sign, and active retrogrades in tiles above your text. Phrases like "The Sun in Taurus brings…", "Moon in Pushya asks…", "Mercury retrograde slows…" are forbidden. The reader has already read those facts. Use the natal-lens + today's sky as private context; the snippet's words are reserved for guidance, reflection, or invitation.
+6. Use the natal-lens grounding to identify what the ascendant naturally seeks; use today's sky (in your head, not on the page) to choose the angle of guidance. The reader should feel addressed personally, not lectured on celestial mechanics.
+7. Return strict JSON matching the requested schema. No markdown fences, no commentary.`;
 }
 
 function buildUserPrompt(sky: TodaySky): string {
@@ -130,12 +136,12 @@ function buildUserPrompt(sky: TodaySky): string {
       ? `Active retrogrades: ${sky.retrogrades.join(", ")}.`
       : "No major planets are retrograde today.";
 
-  return `Today's sky:
+  return `Today's sky (private context for you; the reader already sees these in tiles on the page — DO NOT restate them in your prose):
 - Moon's nakshatra: ${sky.moon_nakshatra}
 - Sun's sign: ${sky.sun_sign}
 - ${retroLine}
 
-For each of the 12 ascendants below, write what today's sky (above) ADDS or ASKS of a person born with that ascendant. Use the natal-lens grounding as the stable lens; let today's facts vary the angle. 1-2 sentences. STRICT MAX 45 words AND 300 chars (aim 35-42 words / ~250 chars). Over-length snippets cause the whole response to be rejected.
+For each of the 12 ascendants below, write **guidance** that uses the natal-lens grounding as the stable lens and today's sky (above) as private context for the angle you choose. **Do not begin with "The Sun in…", "The Moon in…", or any phrase that restates the transit facts** — those facts are already on the page above your text. The reader's question is "what does this ask of me?" — answer that. 1-2 sentences. STRICT MAX 45 words AND 300 chars (aim 35-42 words / ~250 chars). Over-length snippets cause the whole response to be rejected.
 
 ${groundingBlocks.join("\n")}
 

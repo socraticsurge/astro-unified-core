@@ -31,9 +31,13 @@ type LandingData = {
 
 const STORAGE_KEY = 'astrochaganti.ascendant'
 const AUTO_CYCLE_MS = 6500
-// Cross-fade tuning. Total cycle = OUT + IN; keep under AUTO_CYCLE_MS by a wide margin.
-const SNIPPET_FADE_OUT_MS = 380
-const SNIPPET_FADE_IN_MS = 520
+// Cross-fade tuning. Total cycle = OUT + IN; keep under AUTO_CYCLE_MS by a
+// comfortable margin. Slowed 380/520 → 700/900 (2026-05-21): the prior
+// timing felt clicky / snappy; the new feel is closer to a wind-stroke
+// the user originally asked for. Total 1600ms vs 6500ms cycle leaves
+// 4.9s of stillness — still plenty of read time.
+const SNIPPET_FADE_OUT_MS = 700
+const SNIPPET_FADE_IN_MS = 900
 // When the visitor pins their ascendant, we hold on it for this long, then
 // quietly resume the cycle so the page stays alive even after interaction.
 const RESUME_AUTOCYCLE_MS = 25_000
@@ -423,10 +427,12 @@ export function CosmicLanding() {
   const skyTiles = buildSkyTiles(data)
   const skyDayLabel = data?.is_stale ? 'Yesterday' : 'Today'
 
-  // Cross-fade state: hold the currently-rendered text separately from the
-  // target. When activeSign changes, fade the displayed snippet out, then
-  // swap to the new one, then fade back in. The "wind" feel comes from a
-  // slight blur + downward drift on entry, mirrored on exit.
+  // Cross-fade state: hold the currently-rendered text AND its sign label
+  // separately from the target. When activeSign changes, fade the displayed
+  // snippet + eyebrow sign out, then swap to the new ones, then fade back
+  // in. The eyebrow's "for ARIES" part cross-fades in lockstep with the
+  // snippet so the reader sees a single coherent transition.
+  const [displayedKey, setDisplayedKey] = useState<SignKey>(activeSign.key)
   const [displayedSnippet, setDisplayedSnippet] = useState(targetSnippet)
   const [fadePhase, setFadePhase] = useState<'in' | 'out'>('in')
 
@@ -437,12 +443,15 @@ export function CosmicLanding() {
     /* eslint-disable react-hooks/set-state-in-effect */
     setFadePhase('out')
     const handle = setTimeout(() => {
+      setDisplayedKey(activeSign.key)
       setDisplayedSnippet(targetSnippet)
       setFadePhase('in')
     }, SNIPPET_FADE_OUT_MS)
     /* eslint-enable react-hooks/set-state-in-effect */
     return () => clearTimeout(handle)
-  }, [targetSnippet, displayedSnippet])
+  }, [targetSnippet, displayedSnippet, activeSign.key])
+
+  const displayedSignName = ZODIAC[SIGN_INDEX_BY_KEY[displayedKey]]?.name ?? ''
 
   return (
     <div style={{
@@ -498,7 +507,22 @@ export function CosmicLanding() {
           </div>
 
           <div className={styles.snippetText}>
-            <span className={styles.cosmosEyebrow}>The cosmos speaks</span>
+            {/* Eyebrow always reads "THE COSMOS SPEAKS FOR <SIGN>". The
+                "for" prefix is static; the sign name itself cross-fades
+                in lockstep with the snippet below so the reader always
+                knows which ascendant the paragraph addresses (the LLM
+                output no longer reliably opens with the sign's name). */}
+            <span className={styles.cosmosEyebrow}>
+              The cosmos speaks for{' '}
+              <span
+                className={`${styles.cosmosEyebrowSign} ${fadePhase === 'in' ? styles.snippetCopyIn : styles.snippetCopyOut}`}
+                style={{
+                  transitionDuration: `${fadePhase === 'in' ? SNIPPET_FADE_IN_MS : SNIPPET_FADE_OUT_MS}ms`,
+                }}
+              >
+                {displayedSignName}
+              </span>
+            </span>
             <p
               className={fadePhase === 'in' ? styles.snippetCopyIn : styles.snippetCopyOut}
               style={{

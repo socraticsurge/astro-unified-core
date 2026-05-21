@@ -100,8 +100,16 @@
   font-family: var(--font-ui), system-ui, sans-serif;
   font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
   color: rgba(255,255,255,0.32);
-  /* Eyebrow is anchored — no per-sign animation, doesn't move with snippet
-     transitions. */
+  /* "The cosmos speaks for" stays anchored; only the sign name (below)
+     cross-fades with the snippet. */
+}
+/* The sign name within the eyebrow. Brighter than the surrounding text so
+   the active ascendant is unambiguous, and it inherits the same cross-fade
+   transition classes (snippetCopyIn / snippetCopyOut) as the snippet
+   paragraph so the swap feels like one coherent transition. */
+.cosmosEyebrowSign {
+  color: rgba(251,191,36,0.85);
+  display: inline-block;
 }
 .snippetText p {
   font-family: var(--font-display), Georgia, serif;
