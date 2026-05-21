@@ -217,8 +217,11 @@
 @media (max-width: 700px) {
   .mobileFade {
     display: block;
-    bottom: 54vh;
-    height: 28vh;
+    /* Bottom edge of the gradient sits flush against the new 68vh panel
+       (was 54vh + 28vh = 82vh; now 60vh + 22vh = 82vh — same total span
+       so the gradient still reaches the panel top). */
+    bottom: 60vh;
+    height: 22vh;
     background: linear-gradient(to bottom, transparent 0%, rgba(6,3,24,0.6) 50%, rgba(6,3,24,0.95) 100%);
   }
   .zodiacWrap { left: -28vw; top: -46vw; width: 156vw; height: 156vw; }
@@ -233,16 +236,23 @@
     background: rgba(8, 4, 24, 0.78);
     backdrop-filter: blur(42px) saturate(1.8) brightness(1.04);
     -webkit-backdrop-filter: blur(42px) saturate(1.8) brightness(1.04);
-    padding: 24px 22px 28px; height: 62vh; overflow: hidden;
+    /* Panel grew from 62vh → 68vh. Reason: the fixed-height snippet
+       box (13em) plus the brand chrome (Astro Chaganti + features +
+       sidereal + CTA) summed to more than 62vh of vertical space on
+       720-px phones, so the snippet was overflowing its flex slot and
+       visually colliding with the brand row. 68vh + tighter chrome
+       (below) restores the gap. */
+    padding: 20px 22px 24px; height: 68vh; overflow: hidden;
   }
-  .todaySection { gap: 12px; padding-top: 2px; padding-bottom: 8px; }
+  .todaySection { gap: 10px; padding-top: 2px; padding-bottom: 6px; }
   .cosmosEyebrow { font-size: 9px; letter-spacing: 0.28em; }
   .snippetText {
-    /* Mobile: smaller font + more line-clamp room so a full ~320 char
-       snippet fits without clipping. */
-    height: 13em;
+    /* Trimmed from 13em → 12em. With 13.5px font × 1.55 line-height
+       ≈ 21px/line, 12em is ~7 visible lines + eyebrow row — still
+       enough for a ~320-char snippet (50-ish chars × 7). */
+    height: 12em;
   }
-  .snippetText p { font-size: 13.5px; line-height: 1.55; -webkit-line-clamp: 8; padding-bottom: 0.3em; }
+  .snippetText p { font-size: 13.5px; line-height: 1.55; -webkit-line-clamp: 7; padding-bottom: 0.3em; }
   .skyRow { gap: 6px; padding-bottom: 10px; }
   .skyDayLabel { font-size: 9px; letter-spacing: 0.28em; }
   .skyTiles { gap: 12px; }
@@ -257,7 +267,9 @@
     display: block;
     position: fixed;
     left: 0; right: 0;
-    bottom: calc(62vh + 8px);
+    /* Matches the new 68vh panel height (was 62vh). Keeps the pill
+       strip floating ~8px above the panel's top edge. */
+    bottom: calc(68vh + 8px);
     z-index: 9; /* below panel (10) so any tall pill never floats over the
                   panel's edge, but above the wheel (5). */
     pointer-events: none; /* re-enabled on the strip itself */
@@ -291,12 +303,16 @@
     border-color: rgba(251,191,36,0.55);
     color: rgba(251,191,36,0.98);
   }
-  .panelDivider { margin: 14px 0; }
-  .brandName { font-size: 28px; }
-  .brandRow { margin-bottom: 14px; }
-  .features { margin-bottom: 14px; }
+  /* Tighter mobile chrome below the snippet. Each margin trim recovers
+     ~6-8px vertical space, totaling ~30px that prevented the snippet box
+     from colliding with the brand row. Visual rhythm still readable. */
+  .panelDivider { margin: 8px 0; }
+  .brandName { font-size: 26px; }
+  .brandSub { font-size: 12px; margin-top: 3px; }
+  .brandRow { margin-bottom: 8px; gap: 12px; }
+  .features { margin-bottom: 8px; }
   .featureName { font-size: 10px; }
-  .siderealRow { margin-bottom: 16px; }
+  .siderealRow { margin-bottom: 8px; }
   .ctaBtn { font-size: 15px; padding: 12px 0; }
-  .ctaFootnote { font-size: 12px; margin-top: 8px; }
+  .ctaFootnote { font-size: 12px; margin-top: 6px; }
 }
