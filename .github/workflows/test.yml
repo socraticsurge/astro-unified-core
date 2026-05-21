@@ -48,3 +48,10 @@ jobs:
       # for the rationale (recent Tarabalam regression).
       - name: Theme-token gate (no raw Tailwind palette)
         run: npm run check:palette
+
+      # Block dead internal route links — Link/href, router.push, redirect()
+      # pointing at routes that don't exist in app/. NavBar's /settings
+      # link was exactly this pattern; three testers hit the 404 before
+      # we noticed. See scripts/check-dead-route-links.mjs.
+      - name: Route-inventory gate (no dead internal links)
+        run: npm run check:routes
