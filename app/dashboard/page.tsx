@@ -30,24 +30,27 @@ export default async function DashboardPage({
   let profiles: Profile[] = ownProfiles;
   let initialProfileId: string | undefined;
   let initialCompareCheck: CompatibilityCheck | undefined;
+  let viewingUserLabel: string | undefined;
 
   if (adminUser && params?.profile && !ownProfiles.some(p => p.id === params.profile)) {
-    // Admin viewing another user's profile — load it regardless of ownership
+    // Admin viewing another user's profile — load ALL of that user's profiles
+    // so Tarabalam, CompareTab, etc. work with the correct profile set.
     const viewedProfile = await db.profiles.getAny(params.profile);
     if (!viewedProfile) redirect("/admin");
 
-    profiles = [viewedProfile];
+    const [contextProfiles, contextUser] = await Promise.all([
+      db.profiles.list(viewedProfile.user_id),
+      db.users.getById(viewedProfile.user_id),
+    ]);
+
+    profiles = contextProfiles.length > 0 ? contextProfiles : [viewedProfile];
     initialProfileId = viewedProfile.id;
+    viewingUserLabel = contextUser?.name ?? contextUser?.email ?? "unknown user";
 
     if (params?.compare) {
       const check = await db.compatibility.getAny(params.compare);
       if (check) {
         initialCompareCheck = check;
-        const partnerId = check.profile_id_1 === viewedProfile.id
-          ? check.profile_id_2
-          : check.profile_id_1;
-        const partnerProfile = await db.profiles.getAny(partnerId);
-        if (partnerProfile) profiles = [viewedProfile, partnerProfile];
       }
     }
   } else {
@@ -78,6 +81,7 @@ export default async function DashboardPage({
       isNewProfile={isNewProfile}
       isCreating={isCreating}
       initialCompareCheck={initialCompareCheck}
+      viewingUserLabel={viewingUserLabel}
       appSettings={{
         writtenEnabled: appSettings.written_consultation_enabled,
         liveEnabled: appSettings.live_consultation_enabled,

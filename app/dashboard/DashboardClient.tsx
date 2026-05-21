@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import posthog from "posthog-js"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { NavBar } from "@/components/NavBar"
 import { ProfileView } from "@/components/profiles/ProfileView"
 import type { AIOpenPayload } from "@/components/profiles/ProfileView"
@@ -28,6 +29,7 @@ interface DashboardClientProps {
   isNewProfile?: boolean
   isCreating?: boolean
   initialCompareCheck?: CompatibilityCheck
+  viewingUserLabel?: string
   appSettings: AppSettings
 }
 
@@ -67,6 +69,7 @@ export function DashboardClient({
   isNewProfile = false,
   isCreating = false,
   initialCompareCheck,
+  viewingUserLabel,
   appSettings,
 }: DashboardClientProps) {
   const router = useRouter();
@@ -361,6 +364,21 @@ export function DashboardClient({
         onProfileChange={setActiveProfileId}
         onAskOpen={() => handleAskOpen()}
       />
+
+      {/* Admin context banner — shown when admin is browsing another user's account */}
+      {viewingUserLabel && (
+        <div className="flex-shrink-0 flex items-center justify-between gap-3 px-4 py-1.5 bg-[var(--color-accent)] text-[var(--color-button-fg)] text-xs font-medium">
+          <span>
+            👁 Viewing <strong>{viewingUserLabel}</strong>&apos;s account
+          </span>
+          <Link
+            href="/admin"
+            className="underline underline-offset-2 opacity-80 hover:opacity-100 transition-opacity"
+          >
+            ← Back to admin
+          </Link>
+        </div>
+      )}
 
       <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
         {isCreating ? (
