@@ -80,15 +80,13 @@ export async function PUT(
     }
 
     // Check if astrological data changed
-    const chartDataChanged = 
+    const chartDataChanged =
       date_of_birth !== existingProfile.date_of_birth ||
       time_of_birth !== existingProfile.time_of_birth ||
       place_of_birth !== existingProfile.place_of_birth;
 
-    if (chartDataChanged) {
-      await db.readings.deleteByProfile(id);
-    }
-
+    // Update the profile FIRST so any reading regenerated in the window after
+    // the delete (concurrent requests) uses the new birth data, not the old.
     await db.profiles.update(id, userId, {
       name,
       date_of_birth,
@@ -106,6 +104,16 @@ export async function PUT(
       gender,
       relationship,
     });
+
+    // Delete stale readings + compatibility results AFTER the profile is saved
+    // so any concurrent request that regenerates during this window uses the
+    // correct (new) birth data rather than the old values.
+    if (chartDataChanged) {
+      await Promise.all([
+        db.readings.deleteByProfile(id),
+        db.compatibility.deleteByProfile(id),
+      ]);
+    }
 
     const updatedProfile = await db.profiles.get(id, userId);
     return NextResponse.json(updatedProfile);

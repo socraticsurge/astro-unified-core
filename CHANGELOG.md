@@ -8,6 +8,28 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-21] — Invalidate all stale readings on profile birth-data edit
+
+### Fixed
+- **Compatibility check results were never cleared on profile edit.** When a
+  user changed their date/time/place of birth, Kuta point scores and
+  Ashtakavarga results in `compatibility_checks` remained stale. Added
+  `db.compatibility.deleteByProfile(id)` and called it alongside
+  `db.readings.deleteByProfile(id)` whenever `chartDataChanged` is true.
+- **Race condition in invalidation order.** Previously readings were deleted
+  *before* the profile row was updated. In the tiny window between those two
+  calls, a concurrent request would regenerate a reading with old birth data.
+  Fixed by updating the profile first, then deleting stale rows.
+- **AI insights had no self-healing staleness check.** Every other engine
+  (dashaflow, career, today-reading) uses `birthDataChanged()` to detect
+  stale cache. AI insights did not — they served whatever row was in the DB.
+  The GET endpoint now checks `birthDataChanged` against the current profile
+  and returns `{ insight: null }` if stale, forcing regeneration. The POST
+  endpoint now stores birth coordinates in `input_snapshot` so the check has
+  data to compare against.
+
+---
+
 ## [2026-05-21] — Fix AIAdminPanel silent cache-check failure
 
 ### Fixed

@@ -109,4 +109,15 @@ export const compatibility = {
       args: [id, userId],
     });
   },
+
+  // Deletes all compatibility checks where the given profile participates as
+  // either partner. Called when profile birth data changes so stale scores
+  // (Kuta points, Ashtakavarga) are not served to users.
+  async deleteByProfile(profile_id: string): Promise<void> {
+    await ensureSchema();
+    await getClient().execute({
+      sql: "DELETE FROM compatibility_checks WHERE profile_id_1 = ? OR profile_id_2 = ?",
+      args: [profile_id, profile_id],
+    });
+  },
 };
