@@ -90,11 +90,10 @@
 
 .snippetText {
   display: flex; flex-direction: column; gap: 14px;
-  /* Fixed visual area so the eyebrow doesn't jump when snippet lengths
-     change. Sized to hold ~7 lines at the new smaller font plus
-     breathing room for descenders so line-clamp doesn't visually clip
-     the last line. */
-  height: 13em;
+  /* Fixed visual area sized to fit a full 320-char snippet with breathing
+     room for descenders. Sized against the new font (clamp 15→18px).
+     ~9 lines × 1.5 line-height = generous fit. */
+  height: 16em;
 }
 .cosmosEyebrow {
   font-family: var(--font-ui), system-ui, sans-serif;
@@ -113,20 +112,21 @@
 }
 .snippetText p {
   font-family: var(--font-display), Georgia, serif;
-  /* Smaller than before so we can fit ~320 chars without clipping.
-     Previously clamp(20px, 2.3vw, 28px). */
-  font-size: clamp(17px, 1.9vw, 22px);
+  /* Reduced further (previously clamp(17px, 1.9vw, 22px) → now smaller)
+     so a full 320-char snippet fits inside the visible box without the
+     line-clamp clipping the tail of the text. At this size we get
+     ~50 chars per line, so 9 lines hold ~450 chars — well above the
+     Zod cap of 320. */
+  font-size: clamp(15px, 1.6vw, 18px);
   font-weight: 400; font-style: italic;
   color: rgba(255,255,255,0.92);
-  line-height: 1.6;
+  line-height: 1.55;
   margin: 0;
-  /* Extra bottom padding so the line-clamp + overflow:hidden combo
-     doesn't visually shear the descenders (g, y, p) of the last line. */
   padding-bottom: 0.35em;
   flex: 1; min-height: 0;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 7;
+  -webkit-line-clamp: 9;
   -webkit-box-orient: vertical;
 }
 /* Wind-stroke cross-fade between snippets. Single element, two phases —
@@ -238,10 +238,11 @@
   .todaySection { gap: 12px; padding-top: 2px; padding-bottom: 8px; }
   .cosmosEyebrow { font-size: 9px; letter-spacing: 0.28em; }
   .snippetText {
-    /* Mobile fits ~5 lines at the new smaller font, plenty for ≤300 chars. */
-    height: 10em;
+    /* Mobile: smaller font + more line-clamp room so a full ~320 char
+       snippet fits without clipping. */
+    height: 13em;
   }
-  .snippetText p { font-size: 15px; line-height: 1.6; -webkit-line-clamp: 5; padding-bottom: 0.3em; }
+  .snippetText p { font-size: 13.5px; line-height: 1.55; -webkit-line-clamp: 8; padding-bottom: 0.3em; }
   .skyRow { gap: 6px; padding-bottom: 10px; }
   .skyDayLabel { font-size: 9px; letter-spacing: 0.28em; }
   .skyTiles { gap: 12px; }
