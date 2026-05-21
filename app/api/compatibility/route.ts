@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -10,17 +10,17 @@ const SIDECAR_URL =
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
 
   const checks = await db.compatibility.list(userId);
-  return NextResponse.json(checks);
+  return NextResponse.json(checks, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = (session.user as { id: string }).id;
+    const userId = getUserId(session);
 
     const { success } = rateLimit(`compat:${userId}`, 10, 60_000);
     if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
@@ -31,25 +31,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Two profiles required" }, { status: 400 });
     }
 
-    // Check limit before calling the sidecar
-    const existingChecks = await db.compatibility.list(userId);
-    const duplicate = existingChecks.find(c =>
-      (c.profile_id_1 === profile_id_1 && c.profile_id_2 === profile_id_2) ||
-      (c.profile_id_1 === profile_id_2 && c.profile_id_2 === profile_id_1)
-    );
-    if (!duplicate && existingChecks.length >= 6) {
-      return NextResponse.json({ error: "You have reached the maximum limit of 6 compatibility checks. Please delete some checks or contact support to run more." }, { status: 403 });
+    // Targeted SQL — avoids loading every check into JS just to scan for a duplicate
+    // or count. Also fixes a TOCTOU race in the 6-check cap.
+    const duplicate = await db.compatibility.findDuplicate(userId, profile_id_1, profile_id_2);
+    if (!duplicate) {
+      const count = await db.compatibility.countByUser(userId);
+      if (count >= 6) {
+        return NextResponse.json({ error: "You have reached the maximum limit of 6 compatibility checks. Please delete some checks or contact support to run more." }, { status: 403 });
+      }
     }
 
-    const p1 = await db.profiles.get(profile_id_1, userId);
-    const p2 = await db.profiles.get(profile_id_2, userId);
+    const [p1, p2] = await Promise.all([
+      db.profiles.get(profile_id_1, userId),
+      db.profiles.get(profile_id_2, userId),
+    ]);
 
     if (!p1 || !p2) {
       return NextResponse.json({ error: "One or both profiles not found" }, { status: 404 });
     }
 
     if (duplicate) {
-      return NextResponse.json(duplicate);
+      return NextResponse.json(duplicate, { headers: { "Cache-Control": "private, no-store" } });
     }
 
     // Call Python Sidecar
@@ -89,7 +91,7 @@ export async function POST(req: NextRequest) {
       result_json: JSON.stringify(data),
     });
 
-    return NextResponse.json(check);
+    return NextResponse.json(check, { headers: { "Cache-Control": "private, no-store" } });
   } catch (e) {
     console.error("POST /api/compatibility failed:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

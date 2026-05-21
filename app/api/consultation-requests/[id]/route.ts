@@ -19,6 +19,11 @@ export async function POST(
     return NextResponse.json({ error: "Invalid rating" }, { status: 400 });
   }
 
+  const existing = await db.consultationRequests.getById(id);
+  if (!existing || existing.user_id !== userId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   await db.consultationRequests.submitFeedback(id, userId, rating, note ?? undefined);
   return NextResponse.json({ success: true });
 }

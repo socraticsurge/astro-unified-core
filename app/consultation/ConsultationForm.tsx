@@ -1,25 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import posthog from "posthog-js";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Clock, ChevronRight, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown } from "lucide-react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
-import { Button } from "@/components/ui/button";
 import {
-  LIFE_AREAS, LIFE_AREA_EXAMPLES, OPTIONS_GENERIC_PLACEHOLDER,
-  MIN_FIELD_LENGTH, assembleStatement,
+  MIN_FIELD_LENGTH,
   WRITTEN_FEE_PAISE, LIVE_FEE_PAISE, formatFee,
 } from "@/lib/consultation";
 import type { ConsultationRequest, Profile, ConsultationSlot } from "@/lib/db";
-import type { LifeArea, DeliveryMode } from "@/lib/consultation";
+import type { DeliveryMode } from "@/lib/consultation";
+import { fonts, textStyles, colors, interactive, glass, radii, motion } from "@/lib/typography";
+import { PAYMENT_FLOW_ENABLED } from "@/lib/constants";
+import { ProfileSelectorCard } from "@/components/profile/ProfileSelectorCard";
 
 const UPI_ID = "meherkalyanichaganti@okaxis";
 const WHATSAPP_NUMBER = "919704076544";
+const MIN_QUESTION_LENGTH = MIN_FIELD_LENGTH;
+
+const glassCard: React.CSSProperties = { ...glass, borderRadius: radii.lg };
 
 type Props = {
   allRequests: ConsultationRequest[];
   profiles: Profile[];
+  writtenConsultationEnabled: boolean;
   liveConsultationEnabled: boolean;
   writtenFeePaise: number;
   liveFeePaise: number;
@@ -32,21 +38,21 @@ function isProfileComplete(p: Profile): boolean {
   return !!(p.gender && p.relationship && p.current_location && p.current_latitude != null && p.current_longitude != null);
 }
 
-export function ConsultationForm({ allRequests, profiles, liveConsultationEnabled, writtenFeePaise, liveFeePaise, availableSlots, userName, userEmail }: Props) {
+function displayQuestion(req: ConsultationRequest): string {
+  if (!req.constraint_text && !req.objective && !req.options) return req.observation;
+  return [req.observation, req.constraint_text, req.objective, req.options].filter(Boolean).join(" | ");
+}
+
+export function ConsultationForm({ allRequests, profiles, writtenConsultationEnabled, liveConsultationEnabled, writtenFeePaise, liveFeePaise, availableSlots, userName, userEmail }: Props) {
   const router = useRouter();
-  const [selectedArea, setSelectedArea] = useState<LifeArea | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
-  const [observation, setObservation] = useState("");
-  const [constraint, setConstraint] = useState("");
-  const [objective, setObjective] = useState("");
-  const [options, setOptions] = useState("");
-  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("written");
+  const [question, setQuestion] = useState("");
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(writtenConsultationEnabled ? "written" : "appointment");
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Any non-answered request blocks a new submission
-  const activeRequest = allRequests.find(r => r.status !== "answered") ?? null;
+  const openRequests = allRequests.filter(r => r.status !== "answered");
   const answered = allRequests.filter(r => r.status === "answered");
 
   const profileMap = new Map(profiles.map(p => [p.id, p.name]));
@@ -55,33 +61,23 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
     try {
       const ids: string[] = JSON.parse(profileIdsJson);
       return ids.map(id => profileMap.get(id) ?? "Deleted Profile").join(", ");
-    } catch {
-      return "—";
-    }
+    } catch { return "—"; }
   }
 
   const completeProfiles = profiles.filter(isProfileComplete);
   const incompleteProfiles = profiles.filter(p => !isProfileComplete(p));
 
-  const examples = selectedArea ? LIFE_AREA_EXAMPLES[selectedArea] : null;
-  const assembled = assembleStatement(observation, constraint, objective, options);
   const canSubmit =
-    selectedArea &&
     selectedProfiles.length > 0 &&
-    observation.trim().length >= MIN_FIELD_LENGTH &&
-    constraint.trim().length >= MIN_FIELD_LENGTH &&
-    objective.trim().length >= MIN_FIELD_LENGTH &&
-    options.trim().length >= MIN_FIELD_LENGTH &&
+    question.trim().length >= MIN_QUESTION_LENGTH &&
     (deliveryMode !== "appointment" || !!selectedSlotId);
 
   const toggleProfile = (id: string) => {
-    setSelectedProfiles(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    );
+    setSelectedProfiles(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || !selectedArea) return;
+    if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -90,11 +86,7 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           profile_ids: selectedProfiles,
-          life_area: selectedArea,
-          observation: observation.trim(),
-          constraint_text: constraint.trim(),
-          objective: objective.trim(),
-          options: options.trim(),
+          question: question.trim(),
           delivery_mode: deliveryMode,
           ...(deliveryMode === "appointment" && selectedSlotId ? { slot_id: selectedSlotId } : {}),
         }),
@@ -104,6 +96,9 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
         setError(data.error ?? "Submission failed");
         return;
       }
+      setQuestion("");
+      setSelectedProfiles([]);
+      setSelectedSlotId(null);
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -111,228 +106,223 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
   };
 
   return (
-    <div className="space-y-10">
-      {activeRequest ? (
-        <PendingCard
-          pending={activeRequest}
-          profileNames={resolveProfileNames(activeRequest.profile_ids)}
-          userName={userName}
-          userEmail={userEmail}
-        />
-      ) : (
-        <div className="space-y-8">
-          {/* Step 1: Life area */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              1. Choose a life area
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {LIFE_AREAS.map(area => (
-                <button
-                  key={area}
-                  onClick={() => setSelectedArea(area)}
-                  className={`text-left px-3 py-2.5 rounded-lg border text-sm transition-colors ${
-                    selectedArea === area
-                      ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
-                      : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10 hover:text-foreground"
-                  }`}
-                >
-                  {area}
-                </button>
+    <div className="space-y-8">
+
+      {/* ── New question form ── */}
+      <div style={{ ...glassCard, padding: "28px 24px", boxShadow: "var(--shadow-elevated), inset 0 1px 0 var(--color-border-subtle)" }}>
+
+        {/* Step 1: Profiles */}
+        <div className="space-y-4 mb-6">
+          <p style={textStyles.stepLabel}>Whose chart is this reading for?</p>
+          {profiles.length === 0 ? (
+            <Link href="/dashboard" style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              border: `1.5px dashed ${colors.goldFaint}`,
+              borderRadius: radii.lg,
+              padding: "24px 16px",
+              textDecoration: "none",
+              background: "var(--color-surface-1)",
+            }}>
+              <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" style={{ opacity: 0.2 }}>
+                <circle cx="20" cy="14" r="8" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
+                <path d="M4 38 Q4 26 20 26 Q36 26 36 38" fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span style={{ ...fonts.displayItalic, fontSize: "0.9rem", color: colors.goldDim }}>Add a profile to begin</span>
+            </Link>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "10px" }}>
+              {completeProfiles.map(p => (
+                <ProfileSelectorCard
+                  key={p.id}
+                  name={p.name}
+                  subtitle={p.relationship ?? undefined}
+                  selected={selectedProfiles.includes(p.id)}
+                  onSelect={() => toggleProfile(p.id)}
+                />
+              ))}
+              {incompleteProfiles.map(p => (
+                <ProfileSelectorCard
+                  key={p.id}
+                  name={p.name}
+                  incomplete
+                  incompleteHref={`/profiles/${p.id}/edit`}
+                />
               ))}
             </div>
-          </section>
-
-          {/* Step 2: Profiles */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              2. Select profile(s) this is about
-            </h2>
-            {profiles.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                You have no profiles yet.{" "}
-                <a href="/dashboard" className="underline text-amber-400">Create one first.</a>
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {completeProfiles.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {completeProfiles.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => toggleProfile(p.id)}
-                        className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
-                          selectedProfiles.includes(p.id)
-                            ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
-                            : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10 hover:text-foreground"
-                        }`}
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {incompleteProfiles.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3 text-amber-500/70" />
-                      The following profiles are missing required information and cannot be selected:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {incompleteProfiles.map(p => (
-                        <span
-                          key={p.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/5 bg-white/3 text-sm text-muted-foreground/50"
-                        >
-                          {p.name}
-                          <Link
-                            href={`/profiles/${p.id}/edit`}
-                            className="text-xs text-amber-400/70 hover:text-amber-400 underline"
-                          >
-                            Complete →
-                          </Link>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Step 3: Life Problem Statement */}
-          <section className="space-y-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              3. Describe your situation
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Structure your question as four parts. Be specific — the more precise your input, the more targeted the answer.
-            </p>
-            <div className="space-y-4">
-              <FieldBlock
-                label="What is happening (Observation)"
-                hint="Describe the current situation factually."
-                placeholder={examples?.observation ?? "e.g. I have been passed over for promotion twice despite strong performance reviews"}
-                value={observation}
-                onChange={setObservation}
-              />
-              <FieldBlock
-                label="What is blocking you (Constraint)"
-                hint="Identify the main obstacle or uncertainty."
-                placeholder={examples?.constraint ?? "e.g. I cannot tell if this is a timing issue, the wrong company, or the wrong field entirely"}
-                value={constraint}
-                onChange={setConstraint}
-              />
-              <FieldBlock
-                label="What success looks like (Objective)"
-                hint="State clearly what you want to understand or decide."
-                placeholder={examples?.objective ?? "e.g. I want to know whether to persist here or make a lateral move before year-end"}
-                value={objective}
-                onChange={setObjective}
-              />
-              <FieldBlock
-                label="Options you are considering"
-                hint="List the choices you are weighing. If no specific options have formed yet, describe what you are drawn to or what paths have been suggested."
-                placeholder={examples?.options ?? OPTIONS_GENERIC_PLACEHOLDER}
-                value={options}
-                onChange={setOptions}
-              />
-            </div>
-          </section>
-
-          {/* Live preview */}
-          {assembled.length > 10 && (
-            <section className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-1">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                Preview — your question as submitted
-              </p>
-              <p className="text-sm text-foreground/80 leading-relaxed">{assembled}</p>
-            </section>
           )}
+        </div>
 
-          {/* Step 4: Delivery mode */}
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              4. How would you like your answer?
-            </h2>
+        {/* Divider */}
+        <div className="border-t border-[var(--color-border-subtle)] mb-6" />
+
+        {/* Step 2: Question */}
+        <div className="space-y-2 mb-6">
+          <p style={textStyles.stepLabel}>
+            What would you like to understand?
+          </p>
+          <div className="relative">
+            <textarea
+              rows={5}
+              placeholder="Describe your situation and what you'd like to understand. The more specific you are, the more precisely Dr. Chaganti can address it…"
+              value={question}
+              onChange={e => setQuestion(e.target.value)}
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 text-foreground placeholder:text-muted-foreground/35 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent-dim)] resize-none"
+              style={{ ...fonts.display, fontSize: "1.05rem", lineHeight: 1.75 }}
+            />
+            <span className={`absolute bottom-2.5 right-3 text-[10px] tabular-nums transition-all ${question.trim().length >= MIN_QUESTION_LENGTH ? "text-[var(--color-accent-dim)]" : "text-muted-foreground/30"}`}>
+              {question.trim().length}/{MIN_QUESTION_LENGTH}+
+            </span>
+          </div>
+        </div>
+
+        {/* Step 3: Delivery mode */}
+        <div className="space-y-3 mb-6">
+          <p style={textStyles.stepLabel}>
+            How would you like it answered?
+          </p>
+          {!writtenConsultationEnabled && !liveConsultationEnabled ? (
+            <p style={{
+              fontSize: "0.88rem",
+              color: "var(--color-ink-3)",
+              fontStyle: "italic",
+              border: "var(--border-width) solid var(--color-border-subtle)",
+              borderRadius: radii.md,
+              padding: "14px 18px",
+              background: "var(--color-surface-1)",
+            }}>
+              Consultations are not available at this time.
+            </p>
+          ) : (
             <div className="flex flex-col sm:flex-row gap-3">
-              <DeliveryCard
-                mode="written"
-                selected={deliveryMode === "written"}
-                onClick={() => { setDeliveryMode("written"); setSelectedSlotId(null); }}
-                title="Written Response"
-                price={formatFee(writtenFeePaise)}
-                description="Detailed written answer, typically within a few days."
-              />
+              {writtenConsultationEnabled && (
+                <DeliveryCard
+                  selected={deliveryMode === "written"}
+                  onClick={() => { setDeliveryMode("written"); setSelectedSlotId(null); }}
+                  title="Written Response"
+                  price={PAYMENT_FLOW_ENABLED ? formatFee(writtenFeePaise) : ""}
+                  description="Detailed written answer within a few days"
+                />
+              )}
               {liveConsultationEnabled && (
                 <DeliveryCard
-                  mode="appointment"
                   selected={deliveryMode === "appointment"}
                   onClick={() => setDeliveryMode("appointment")}
-                  title="Live Consultation"
-                  price={formatFee(liveFeePaise)}
-                  description="25-minute live session to discuss in person."
+                  title="Live Session"
+                  price={PAYMENT_FLOW_ENABLED ? formatFee(liveFeePaise) : ""}
+                  description="25-minute live consultation"
                 />
               )}
             </div>
-          </section>
-
-          {/* Step 5: Slot picker — only for live consultation */}
-          {liveConsultationEnabled && deliveryMode === "appointment" && (
-            <section className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                5. Choose a consultation slot
-              </h2>
-              <p className="text-xs text-muted-foreground">All times are in IST (Indian Standard Time).</p>
-              {availableSlots.length === 0 ? (
-                <p className="text-sm text-muted-foreground rounded-lg border border-white/10 bg-white/5 px-4 py-3">
-                  No slots are currently available. Please check back later or reach out to Kalyani on WhatsApp to arrange a time.
-                </p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {availableSlots.map(slot => {
-                    const label = new Date(slot.starts_at).toLocaleString("en-IN", {
-                      timeZone: "Asia/Kolkata",
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    });
-                    return (
-                      <button
-                        key={slot.id}
-                        onClick={() => setSelectedSlotId(slot.id)}
-                        className={`text-left px-4 py-3 rounded-lg border text-sm transition-colors ${
-                          selectedSlotId === slot.id
-                            ? "border-amber-400/60 bg-amber-400/10 text-amber-300"
-                            : "border-white/10 bg-white/5 text-foreground/70 hover:bg-white/10 hover:text-foreground"
-                        }`}
-                      >
-                        {label} IST
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
           )}
-
-          {error && (
-            <p className="text-sm text-red-400 bg-red-950/30 border border-red-900/40 rounded-lg px-4 py-3">
-              {error}
-            </p>
-          )}
-
-          <Button onClick={handleSubmit} disabled={!canSubmit || submitting} className="w-full sm:w-auto">
-            {submitting ? "Submitting…" : "Submit Question"}
-            {!submitting && <ChevronRight className="ml-1.5 h-4 w-4" />}
-          </Button>
         </div>
+
+        {/* Slot picker */}
+        {liveConsultationEnabled && deliveryMode === "appointment" && (
+          <div className="space-y-3 mb-6">
+            <p style={textStyles.stepLabel}>
+              Choose a time (IST)
+            </p>
+            {availableSlots.length === 0 ? (
+              <p style={{
+                ...fonts.display,
+                fontSize: "0.92rem",
+                color: "var(--color-ink-3)",
+                border: "var(--border-width) solid var(--color-border)",
+                borderRadius: radii.md,
+                padding: "14px 18px",
+                background: "var(--color-surface-1)",
+                fontStyle: "italic",
+              }}>
+                No slots available right now — reach out to Kalyani on WhatsApp to arrange a time.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {availableSlots.map(slot => {
+                  const label = new Date(slot.starts_at).toLocaleString("en-IN", {
+                    timeZone: "Asia/Kolkata", weekday: "short", day: "numeric",
+                    month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
+                  });
+                  const isSelected = selectedSlotId === slot.id;
+                  return (
+                    <button
+                      key={slot.id}
+                      onClick={() => setSelectedSlotId(slot.id)}
+                      className={interactive.slotButton}
+                      style={{
+                        textAlign: "left",
+                        padding: "12px 18px",
+                        borderRadius: radii.lg,
+                        border: `var(--border-width) solid ${isSelected ? "var(--color-accent-dim)" : "var(--color-border)"}`,
+                        background: isSelected ? "var(--color-accent-faint)" : "var(--color-surface-1)",
+                        color: isSelected ? "var(--color-accent)" : "var(--color-ink-2)",
+                        ...fonts.display,
+                        fontSize: "1rem",
+                      }}
+                    >
+                      {label} IST
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {error && (
+          <p className="mb-4 text-sm text-[var(--color-danger)] bg-[var(--color-danger-faint)] border border-[var(--color-danger-border)] rounded-xl px-4 py-2.5">
+            {error}
+          </p>
+        )}
+
+        {(writtenConsultationEnabled || liveConsultationEnabled) && <button
+          onClick={handleSubmit}
+          disabled={!canSubmit || submitting}
+          style={{
+            width: "100%",
+            padding: "14px 0",
+            borderRadius: radii.lg,
+            border: "none",
+            cursor: canSubmit && !submitting ? "pointer" : "not-allowed",
+            background: canSubmit && !submitting
+              ? "linear-gradient(105deg, #92400e 0%, #d97706 35%, #fcd34d 50%, #d97706 65%, #92400e 100%)"
+              : "var(--color-border-subtle)",
+            backgroundSize: "200% auto",
+            color: canSubmit && !submitting ? "var(--color-bg)" : "var(--color-ink-4)",
+            ...fonts.displayBold,
+            fontSize: "1.1rem",
+            letterSpacing: "0.04em",
+            boxShadow: canSubmit && !submitting ? "var(--shadow-card)" : "none",
+            transition: `all ${motion.standard}`,
+            opacity: submitting ? 0.7 : 1,
+          }}
+        >
+          {submitting ? "Sending…" : "Ask your question  ✦"}
+        </button>}
+      </div>
+
+      {/* ── Open / pending questions ── */}
+      {openRequests.length > 0 && (
+        <section className="space-y-3">
+          <h2 style={{ ...fonts.display, fontSize: "1.2rem", color: "var(--color-ink-3)", letterSpacing: "0.06em" }}>
+            Open questions
+          </h2>
+          {openRequests.map(req => (
+            <PendingCard
+              key={req.id}
+              pending={req}
+              profileNames={resolveProfileNames(req.profile_ids)}
+              userName={userName}
+              userEmail={userEmail}
+            />
+          ))}
+        </section>
       )}
 
+      {/* ── Answered history ── */}
       {answered.length > 0 && (
         <HistorySection answered={answered} resolveProfileNames={resolveProfileNames} />
       )}
@@ -340,93 +330,81 @@ export function ConsultationForm({ allRequests, profiles, liveConsultationEnable
   );
 }
 
-function PendingCard({
-  pending,
-  profileNames,
-  userName,
-  userEmail,
-}: {
+function PendingCard({ pending, profileNames, userName, userEmail }: {
   pending: ConsultationRequest;
   profileNames: string;
   userName: string;
   userEmail: string;
 }) {
-  // Legacy "pending" rows pre-v6 are treated as pending_payment
-  const awaitingPayment = pending.status === "pending_payment" || pending.status === "pending";
+  // When PAYMENT_FLOW_ENABLED is off, "pending" requests are treated as
+  // queued for the astrologer — no payment step. The Payment Instructions
+  // card and the "Awaiting payment" wording are suppressed.
+  const showPaymentFlow = PAYMENT_FLOW_ENABLED && (pending.status === "pending_payment" || pending.status === "paid");
+  const awaitingPayment = showPaymentFlow && pending.status === "pending_payment";
   const isPaid = pending.status === "paid";
+  const isQueued = !PAYMENT_FLOW_ENABLED && pending.status !== "answered";
 
   return (
-    <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-6 space-y-4">
-      <div className="flex items-center gap-2 text-amber-400">
-        <Clock className="h-5 w-5" />
-        <span className="font-semibold">
-          {isPaid
-            ? "Payment confirmed — your question is in the queue"
-            : "Question submitted — payment required"}
+    <div style={{
+      ...glassCard,
+      padding: "20px",
+      borderColor: (isPaid || isQueued) ? "rgba(52,211,153,0.2)" : "var(--color-accent-dim)",
+      background: (isPaid || isQueued) ? "rgba(4,120,87,0.10)" : "rgba(120,53,15,0.12)",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+    }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Clock className="h-4 w-4 text-[var(--color-warning)]" />
+        <span style={{ ...fonts.display, fontSize: "1rem", color: (isPaid || isQueued) ? "var(--color-success)" : "var(--color-accent)" }}>
+          {isQueued
+            ? "In the queue — Dr. Chaganti will respond shortly"
+            : isPaid
+              ? "Payment confirmed — in the queue"
+              : "Awaiting payment"}
         </span>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-white/10 bg-white/5 p-4 text-sm">
+      <div className="space-y-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-1)] p-4 text-sm mb-4">
         <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Life Area</span>
-          <p className="mt-0.5 font-medium">{pending.life_area}</p>
+          <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-ink-4)" }}>Profile(s)</span>
+          <p style={{ ...fonts.display, fontSize: "1rem", color: "var(--color-accent-dim)" }} className="mt-0.5">{profileNames}</p>
         </div>
         <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Profile(s)</span>
-          <p className="mt-0.5 font-medium text-amber-300/80">{profileNames}</p>
-        </div>
-        <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Your Question</span>
-          <p className="mt-0.5 text-foreground/80 leading-relaxed">
-            {assembleStatement(pending.observation, pending.constraint_text, pending.objective, pending.options)}
+          <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-ink-4)" }}>Question</span>
+          <p style={{ ...fonts.display, fontSize: "1rem", color: "var(--color-ink-2)", lineHeight: 1.65 }} className="mt-0.5">
+            {displayQuestion(pending)}
           </p>
         </div>
-        <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Delivery</span>
-          <p className="mt-0.5">{pending.delivery_mode === "written" ? "Written Response" : "Live Consultation (25 min)"}</p>
-        </div>
-        {pending.delivery_mode === "appointment" && pending.slot_starts_at && (
+        <div className="flex items-center justify-between">
           <div>
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Selected Slot</span>
-            <p className="mt-0.5 font-medium text-amber-300/90">
-              {new Date(pending.slot_starts_at).toLocaleString("en-IN", {
-                timeZone: "Asia/Kolkata",
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              })} IST
-            </p>
+            <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-ink-4)" }}>Mode</span>
+            <p className="text-sm mt-0.5">{pending.delivery_mode === "written" ? "Written Response" : "Live Session"}</p>
           </div>
-        )}
-        <div>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">Submitted</span>
-          <p className="mt-0.5 text-muted-foreground text-xs">
-            {new Date(pending.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
-          </p>
+          {pending.delivery_mode === "appointment" && pending.slot_starts_at && (
+            <div className="text-right">
+              <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-ink-4)" }}>Slot</span>
+              <p style={{ ...fonts.display, fontSize: "0.95rem", color: "var(--color-accent-dim)" }} className="mt-0.5">
+                {new Date(pending.slot_starts_at).toLocaleString("en-IN", {
+                  timeZone: "Asia/Kolkata", weekday: "short", day: "numeric",
+                  month: "short", hour: "2-digit", minute: "2-digit", hour12: true,
+                })} IST
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
       {awaitingPayment && (
-        <PaymentInstructions
-          pending={pending}
-          profileNames={profileNames}
-          userName={userName}
-          userEmail={userEmail}
-        />
+        <PaymentInstructions pending={pending} profileNames={profileNames} userName={userName} userEmail={userEmail} />
       )}
 
-      {isPaid && (
+      {(isPaid || isQueued) && (
         <div className="space-y-3">
-          <div className="rounded-lg border border-green-700/30 bg-green-950/20 px-4 py-3 flex items-center gap-2 text-green-400 text-sm">
+          <div className="rounded-xl border border-[var(--color-success-border)] bg-[var(--color-success-faint)] px-4 py-3 flex items-center gap-2 text-[var(--color-success)] text-sm">
             <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-            <span>
+            <span style={fonts.display}>
               {pending.delivery_mode === "appointment"
-                ? "Payment confirmed. You will receive a Google Meet link for your slot."
-                : "Payment confirmed. Dr. Chaganti will answer your question shortly."}
+                ? "Confirmed. You will receive a Google Meet link for your slot."
+                : "Confirmed. Dr. Chaganti will answer your question shortly. He'll respond by email."}
             </span>
           </div>
           {pending.delivery_mode === "appointment" && pending.slot_starts_at && (
@@ -442,55 +420,55 @@ function SlotActions({ pending }: { pending: ConsultationRequest }) {
   const ref = pending.id.substring(0, 8).toUpperCase();
   const slotLabel = pending.slot_starts_at
     ? new Date(pending.slot_starts_at).toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
+        timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long",
+        year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
       }) + " IST"
     : "";
 
-  const rescheduleMsg = encodeURIComponent(
-    `Hi Kalyani 🙏\n\nI need to reschedule my live consultation.\n\nRef: #${ref}\nSlot: ${slotLabel}\n\nCould you please help me find an alternative slot?`
-  );
-  const cancelMsg = encodeURIComponent(
-    `Hi Kalyani 🙏\n\nI need to cancel my live consultation.\n\nRef: #${ref}\nSlot: ${slotLabel}\n\nPlease process the cancellation and let me know next steps.`
-  );
+  const rescheduleMsg = encodeURIComponent(`Hi Kalyani 🙏\n\nI need to reschedule my live consultation.\n\nRef: #${ref}\nSlot: ${slotLabel}\n\nCould you please help me find an alternative slot?`);
+  const cancelMsg = encodeURIComponent(`Hi Kalyani 🙏\n\nI need to cancel my live consultation.\n\nRef: #${ref}\nSlot: ${slotLabel}\n\nPlease process the cancellation and let me know next steps.`);
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 space-y-2">
-      <p className="text-xs text-muted-foreground">Need to change your slot? Reach out to Kalyani on WhatsApp:</p>
-      <div className="flex flex-wrap gap-2">
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${rescheduleMsg}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs bg-amber-700/20 hover:bg-amber-700/30 border border-amber-700/40 text-amber-400 px-3 py-1.5 rounded-md transition-colors"
-        >
-          <span>💬</span> Request Reschedule
+    <div style={{
+      border: "var(--border-width) solid var(--color-border)",
+      borderRadius: radii.md,
+      background: "var(--color-surface-1)",
+      padding: "14px 16px",
+    }}>
+      <p style={{ fontSize: "0.75rem", color: "var(--color-ink-3)", marginBottom: "10px" }}>Need to change your slot? Reach out to Kalyani on WhatsApp:</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+        <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${rescheduleMsg}`} target="_blank" rel="noopener noreferrer"
+          style={{
+            fontSize: "0.78rem",
+            color: "var(--color-accent)",
+            border: "var(--border-width) solid var(--color-accent-faint)",
+            borderRadius: radii.sm,
+            padding: "6px 14px",
+            textDecoration: "none",
+            background: "var(--color-accent-faint)",
+            letterSpacing: "0.04em",
+          }}>
+          Reschedule via WhatsApp
         </a>
-        <a
-          href={`https://wa.me/${WHATSAPP_NUMBER}?text=${cancelMsg}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-md transition-colors"
-        >
-          <span>💬</span> Request Cancellation
+        <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${cancelMsg}`} target="_blank" rel="noopener noreferrer"
+          style={{
+            fontSize: "0.78rem",
+            color: "var(--color-ink-3)",
+            border: "var(--border-width) solid var(--color-border)",
+            borderRadius: radii.sm,
+            padding: "6px 14px",
+            textDecoration: "none",
+            background: "var(--color-surface-1)",
+            letterSpacing: "0.04em",
+          }}>
+          Cancel
         </a>
       </div>
     </div>
   );
 }
 
-function PaymentInstructions({
-  pending,
-  profileNames,
-  userName,
-  userEmail,
-}: {
+function PaymentInstructions({ pending, profileNames, userName, userEmail }: {
   pending: ConsultationRequest;
   profileNames: string;
   userName: string;
@@ -500,12 +478,10 @@ function PaymentInstructions({
 
   const amountPaise = pending.amount_paise ?? (pending.delivery_mode === "written" ? WRITTEN_FEE_PAISE : LIVE_FEE_PAISE);
   const amountRupees = amountPaise / 100;
-  const modeLabel = pending.delivery_mode === "written" ? "Written Response" : "Live Consultation (25 min)";
+  const modeLabel = pending.delivery_mode === "written" ? "Written Response" : "Live Session";
   const ref = pending.id.substring(0, 8).toUpperCase();
-
   const upiQrValue = `upi://pay?pa=${UPI_ID}&pn=Kalyani+Chaganti&am=${amountRupees}&cu=INR&tn=Astro+Chaganti+Consultation`;
-
-  const question = assembleStatement(pending.observation, pending.constraint_text, pending.objective, pending.options);
+  const question = displayQuestion(pending);
 
   const slotLine = pending.slot_starts_at
     ? `Slot: ${new Date(pending.slot_starts_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })} IST\n`
@@ -513,96 +489,75 @@ function PaymentInstructions({
 
   const waMessage = encodeURIComponent(
     `Hi Kalyani 🙏\n\nPayment pending for a consultation on Astro Chaganti.\n\n` +
-    `Name: ${userName || "Not provided"}\n` +
-    `Email: ${userEmail}\n` +
-    `Profile(s): ${profileNames}\n` +
-    `Life Area: ${pending.life_area}\n` +
-    `Type: ${modeLabel}\n` +
-    slotLine +
-    `Amount: ₹${amountRupees.toLocaleString("en-IN")}\n` +
-    `Ref: #${ref}\n\n` +
-    `Question:\n${question}\n\n` +
-    `Sending the payment now. Please confirm once received.`
+    `Name: ${userName || "Not provided"}\nEmail: ${userEmail}\nProfile(s): ${profileNames}\n` +
+    `Type: ${modeLabel}\n${slotLine}Amount: ₹${amountRupees.toLocaleString("en-IN")}\nRef: #${ref}\n\n` +
+    `Question:\n${question}\n\nSending the payment now. Please confirm once received.`
   );
 
   const copyUpi = () => {
-    navigator.clipboard.writeText(UPI_ID).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard.writeText(UPI_ID).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
 
   return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-amber-700/40 bg-amber-950/30 p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-amber-200">Pay to confirm your question</p>
-          <span className="text-lg font-bold text-amber-300">
-            ₹{amountRupees.toLocaleString("en-IN")}
-          </span>
-        </div>
+    <div className="rounded-xl border border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <p style={{ ...fonts.display, fontSize: "1.1rem", color: "var(--color-accent)" }}>Pay to confirm</p>
+        <span style={{ ...fonts.display, fontSize: "1.5rem", fontWeight: 700, color: "#fbbf24" }}>
+          ₹{amountRupees.toLocaleString("en-IN")}
+        </span>
+      </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-start">
-          {/* QR code */}
-          <div className="rounded-lg bg-white p-2 flex-shrink-0">
-            <QRCodeSVG value={upiQrValue} size={120} />
-          </div>
-          <div className="space-y-3 flex-1">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1.5">UPI ID</p>
-              <div className="flex items-center gap-2">
-                <code className="text-sm font-mono text-foreground/90 bg-white/5 px-2.5 py-1 rounded border border-white/10">
-                  {UPI_ID}
-                </code>
-                <button
-                  onClick={copyUpi}
-                  className="text-xs text-amber-400 hover:text-amber-300 transition-colors px-2 py-1 border border-amber-400/20 rounded"
-                >
-                  {copied ? "Copied!" : "Copy"}
-                </button>
-              </div>
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div className="rounded-lg bg-white p-2 flex-shrink-0">
+          <QRCodeSVG value={upiQrValue} size={110} />
+        </div>
+        <div className="space-y-3 flex-1">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5">UPI ID</p>
+            <div className="flex items-center gap-2">
+              <code className="text-sm font-mono text-foreground/85 bg-[var(--color-surface-1)] px-2.5 py-1 rounded-lg border border-[var(--color-border)]">{UPI_ID}</code>
+              <button onClick={copyUpi} className="text-xs text-[var(--color-warning)] hover:text-[var(--color-accent)] transition-colors px-2 py-1 border border-[var(--color-accent-dim)] rounded-lg">
+                {copied ? "Copied!" : "Copy"}
+              </button>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Scan the QR code with any UPI app (Google Pay, PhonePe, Paytm) or copy the UPI ID to pay manually. The amount is pre-filled.
-            </p>
           </div>
-        </div>
-
-        <div className="border-t border-white/10 pt-3 space-y-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            After paying, send your payment screenshot to Kalyani on WhatsApp. She handles payment confirmation so Dr. Chaganti can stay focused on answering your question.
+            Scan with any UPI app (Google Pay, PhonePe, Paytm) or copy the ID above.
           </p>
-          <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm bg-green-700/20 hover:bg-green-700/30 border border-green-700/40 text-green-400 px-4 py-2 rounded-md transition-colors font-medium"
-          >
-            <span>💬</span>
-            Send payment confirmation on WhatsApp
-          </a>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground/50">
-        Ref: #{ref} · {modeLabel}
-      </p>
+
+      <div className="border-t border-[var(--color-border)] pt-3 space-y-2">
+        <p className="text-xs text-muted-foreground">After paying, send your screenshot to Kalyani on WhatsApp so she can confirm.</p>
+        <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`} target="_blank" rel="noopener noreferrer"
+          style={{
+            display: "inline-block",
+            fontSize: "0.85rem",
+            color: "var(--color-success)",
+            border: "var(--border-width) solid rgba(52,211,153,0.25)",
+            borderRadius: radii.sm,
+            padding: "9px 18px",
+            textDecoration: "none",
+            background: "rgba(4,120,87,0.12)",
+            letterSpacing: "0.03em",
+            ...fonts.display,
+          }}>
+          Confirm payment via WhatsApp
+        </a>
+      </div>
+      <p className="text-[10px] text-muted-foreground/35">Ref: #{ref} · {modeLabel}</p>
     </div>
   );
 }
 
-function HistorySection({
-  answered,
-  resolveProfileNames,
-}: {
+function HistorySection({ answered, resolveProfileNames }: {
   answered: ConsultationRequest[];
   resolveProfileNames: (ids: string) => string;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ratings, setRatings] = useState<Record<string, "helpful" | "not_helpful">>(() => {
     const initial: Record<string, "helpful" | "not_helpful"> = {};
-    for (const req of answered) {
-      if (req.user_rating) initial[req.id] = req.user_rating;
-    }
+    for (const req of answered) { if (req.user_rating) initial[req.id] = req.user_rating; }
     return initial;
   });
   const [ratingNote, setRatingNote] = useState<Record<string, string>>({});
@@ -617,119 +572,109 @@ function HistorySection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rating, note: ratingNote[id] ?? undefined }),
       });
+      posthog.capture("consultation_feedback_submitted", {
+        rating,
+        has_note: !!(ratingNote[id]?.trim()),
+      });
       setRatings(prev => ({ ...prev, [id]: rating }));
       setShowNoteFor(null);
-    } finally {
-      setSubmittingFeedback(null);
-    }
+    } finally { setSubmittingFeedback(null); }
   };
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground border-t border-white/10 pt-6">
-        Past Questions &amp; Answers
+    <section className="space-y-3 border-t border-[var(--color-border-subtle)] pt-8">
+      <h2 style={{ ...fonts.display, fontSize: "1.2rem", color: "var(--color-ink-3)", letterSpacing: "0.06em" }}>
+        Answered questions
       </h2>
       <div className="space-y-2">
         {answered.map(req => {
           const isOpen = expandedId === req.id;
           const currentRating = ratings[req.id] ?? null;
           return (
-            <div key={req.id} className="rounded-lg border border-white/10 bg-white/5 overflow-hidden">
+            <div key={req.id} style={glassCard} className="overflow-hidden">
               <button
-                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/5 transition-colors"
+                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[var(--color-surface-hover)] transition-all"
                 onClick={() => setExpandedId(isOpen ? null : req.id)}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-[var(--color-success)] flex-shrink-0" />
                   <div className="min-w-0">
-                    <span className="text-sm font-medium truncate block">{req.life_area}</span>
+                    <span style={{ ...fonts.display, fontSize: "1rem", color: "var(--color-ink-1)" }} className="truncate block">
+                      {resolveProfileNames(req.profile_ids)}
+                    </span>
                     <span className="text-xs text-muted-foreground">
-                      {resolveProfileNames(req.profile_ids)} · {new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
+                      {new Date(req.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {currentRating === "helpful" && <ThumbsUp className="h-3.5 w-3.5 text-green-400" />}
-                  {currentRating === "not_helpful" && <ThumbsDown className="h-3.5 w-3.5 text-red-400" />}
-                  {isOpen ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  {currentRating === "helpful" && <ThumbsUp className="h-3.5 w-3.5 text-[var(--color-success)]" />}
+                  {currentRating === "not_helpful" && <ThumbsDown className="h-3.5 w-3.5 text-[var(--color-danger)]" />}
+                  {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 </div>
               </button>
 
               {isOpen && (
-                <div className="px-4 pb-4 space-y-4 border-t border-white/10 pt-3">
+                <div className="px-5 pb-5 space-y-4 border-t border-[var(--color-border-subtle)] pt-4">
                   <div>
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">Your Question</span>
-                    <p className="mt-1 text-sm text-foreground/80 leading-relaxed">
-                      {assembleStatement(req.observation, req.constraint_text, req.objective, req.options)}
+                    <span style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-ink-4)" }}>Your Question</span>
+                    <p style={{ ...fonts.display, fontSize: "1.02rem", color: "var(--color-ink-2)", lineHeight: 1.7 }} className="mt-1">
+                      {displayQuestion(req)}
                     </p>
                   </div>
 
                   {req.admin_note ? (
-                    <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4 space-y-1">
-                      <div className="flex items-center gap-1.5 text-green-400 text-xs font-semibold uppercase tracking-wider">
+                    <div className="rounded-xl border border-[var(--color-success-border)] bg-[var(--color-success-faint)] p-4 space-y-1">
+                      <div className="flex items-center gap-1.5 text-[var(--color-success)] text-xs font-semibold uppercase tracking-wider">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Answer
                       </div>
-                      <p className="text-sm text-foreground/80 leading-relaxed">{req.admin_note}</p>
+                      <p style={{ ...fonts.display, fontSize: "1.02rem", color: "var(--color-ink-1)", lineHeight: 1.7 }}>{req.admin_note}</p>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground italic">No written note was added for this answer.</p>
                   )}
 
                   {req.answered_at && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground/50">
                       Answered {new Date(req.answered_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
                     </p>
                   )}
 
                   {!currentRating ? (
-                    <div className="space-y-2 pt-1 border-t border-white/10">
-                      <p className="text-xs text-muted-foreground">Was this answer helpful?</p>
+                    <div className="space-y-2 pt-1 border-t border-[var(--color-border-subtle)]">
+                      <p className="text-xs text-muted-foreground">Was this helpful?</p>
                       <div className="flex gap-2">
-                        <button
-                          disabled={!!submittingFeedback}
+                        <button disabled={!!submittingFeedback}
                           onClick={() => setShowNoteFor(showNoteFor === req.id ? null : req.id)}
-                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                            showNoteFor === req.id
-                              ? "border-green-600/50 bg-green-900/20 text-green-400"
-                              : "border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
-                          }`}
-                        >
-                          <ThumbsUp className="h-3.5 w-3.5" /> Helpful
+                          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                            showNoteFor === req.id ? "border-[var(--color-success-border)] bg-[var(--color-success-faint)] text-[var(--color-success)]" : "border-[var(--color-border)] bg-[var(--color-surface-1)] text-muted-foreground hover:text-foreground"
+                          }`}>
+                          <ThumbsUp className="h-3.5 w-3.5" /> Yes
                         </button>
-                        <button
-                          disabled={!!submittingFeedback}
+                        <button disabled={!!submittingFeedback}
                           onClick={() => submitFeedback(req.id, "not_helpful")}
-                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-white/10 bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors disabled:opacity-50"
-                        >
-                          <ThumbsDown className="h-3.5 w-3.5" /> Not helpful
+                          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] text-muted-foreground hover:text-foreground transition-all disabled:opacity-50">
+                          <ThumbsDown className="h-3.5 w-3.5" /> Not really
                         </button>
                       </div>
                       {showNoteFor === req.id && (
                         <div className="space-y-2">
-                          <textarea
-                            rows={2}
-                            placeholder="Optional: what was most useful? (helps improve future answers)"
+                          <textarea rows={2} placeholder="Optional: what was most useful?"
                             value={ratingNote[req.id] ?? ""}
                             onChange={e => setRatingNote(prev => ({ ...prev, [req.id]: e.target.value }))}
-                            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-green-400/50 resize-none"
+                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[var(--color-success)]/40 resize-none"
                           />
-                          <button
-                            disabled={submittingFeedback === req.id}
+                          <button disabled={submittingFeedback === req.id}
                             onClick={() => submitFeedback(req.id, "helpful")}
-                            className="text-xs bg-green-700/20 hover:bg-green-700/30 border border-green-700/40 text-green-400 px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
-                          >
+                            className="text-xs bg-[var(--color-success-faint)] hover:bg-[var(--color-success-faint)] border border-[var(--color-success-border)] text-[var(--color-success)] px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                             {submittingFeedback === req.id ? "Submitting…" : "Submit"}
                           </button>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground pt-1 border-t border-white/10">
-                      {currentRating === "helpful" ? "You marked this answer as helpful." : "You marked this answer as not helpful."}
+                    <p className="text-xs text-muted-foreground/50 pt-1 border-t border-[var(--color-border-subtle)]">
+                      {currentRating === "helpful" ? "You found this answer helpful." : "You marked this as not helpful."}
                     </p>
                   )}
                 </div>
@@ -742,49 +687,7 @@ function HistorySection({
   );
 }
 
-function FieldBlock({
-  label,
-  hint,
-  placeholder,
-  value,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const ok = value.trim().length >= MIN_FIELD_LENGTH;
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between">
-        <label className="text-sm font-medium">{label}</label>
-        <span className={`text-xs ${ok ? "text-green-400" : "text-muted-foreground"}`}>
-          {value.trim().length}/{MIN_FIELD_LENGTH}+ chars
-        </span>
-      </div>
-      <p className="text-xs text-muted-foreground">{hint}</p>
-      <textarea
-        rows={3}
-        placeholder={placeholder}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-400/50 resize-none"
-      />
-    </div>
-  );
-}
-
-function DeliveryCard({
-  mode,
-  selected,
-  onClick,
-  title,
-  price,
-  description,
-}: {
-  mode: DeliveryMode;
+function DeliveryCard({ selected, onClick, title, price, description }: {
   selected: boolean;
   onClick: () => void;
   title: string;
@@ -792,19 +695,26 @@ function DeliveryCard({
   description: string;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`flex-1 text-left rounded-lg border p-4 transition-colors ${
-        selected
-          ? "border-amber-400/60 bg-amber-400/10"
-          : "border-white/10 bg-white/5 hover:bg-white/10"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className={`text-sm font-semibold ${selected ? "text-amber-300" : "text-foreground"}`}>{title}</div>
-        <div className={`text-sm font-bold flex-shrink-0 ${selected ? "text-amber-400" : "text-amber-400/60"}`}>{price}</div>
+    <button onClick={onClick} style={{
+      flex: 1,
+      textAlign: "left",
+      borderRadius: radii.lg,
+      border: `var(--border-width) solid ${selected ? "var(--color-accent-dim)" : "var(--color-border)"}`,
+      background: selected ? "var(--color-accent-faint)" : "var(--color-surface-1)",
+      padding: "16px 18px",
+      transition: `all ${motion.standard}`,
+      boxShadow: selected ? "var(--shadow-card)" : "none",
+      cursor: "pointer",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "5px" }}>
+        <span style={{ ...fonts.display, fontSize: "1.1rem", color: selected ? "var(--color-accent)" : "var(--color-ink-2)" }}>
+          {title}
+        </span>
+        <span style={{ ...fonts.displayBold, fontSize: "1rem", color: selected ? colors.gold : colors.goldFaint }}>
+          {price}
+        </span>
       </div>
-      <div className="text-xs text-muted-foreground mt-1">{description}</div>
+      <div style={{ fontSize: "0.75rem", color: "var(--color-ink-4)", letterSpacing: "0.02em" }}>{description}</div>
     </button>
   );
 }

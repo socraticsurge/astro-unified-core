@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 import { fetchTransit } from "@/lib/engines/transit";
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
   const admin = isAdmin(session);
 
   const { success } = rateLimit(`tarabalam:${userId}`, 20, 60_000);
@@ -41,6 +41,9 @@ export async function POST(req: NextRequest) {
   const endMs = new Date(end_date + "T00:00:00Z").getTime();
   if (isNaN(startMs) || isNaN(endMs)) {
     return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+  }
+  if (endMs <= startMs) {
+    return NextResponse.json({ error: "end_date must be after start_date" }, { status: 400 });
   }
   const daysDiff = (endMs - startMs) / 86_400_000;
   if (daysDiff > MAX_DAYS) {

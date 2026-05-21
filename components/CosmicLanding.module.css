@@ -1,0 +1,293 @@
+/* ── Zodiac wheel ── */
+.zodiacWrap {
+  position: fixed;
+  left: -62.5vh; top: calc(50vh - 62.5vh);
+  width: 125vh; height: 125vh;
+  z-index: 5; pointer-events: none;
+  overflow: hidden;
+}
+
+/* ── Mobile gradient bridge ── */
+.mobileFade {
+  display: none;
+  position: fixed;
+  left: 0; right: 0;
+  pointer-events: none;
+  z-index: 8;
+}
+
+/* ── Glass panel ── */
+.panel {
+  position: fixed;
+  right: 2.5vw; top: 4vh; bottom: 4vh;
+  width: min(560px, 50vw);
+  z-index: 10;
+  display: flex; flex-direction: column;
+  background: rgba(255,255,255,0.055);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 24px;
+  backdrop-filter: blur(32px) saturate(1.8) brightness(1.04);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.04);
+  box-shadow: 0 32px 100px rgba(0,0,0,0.6), inset 0 1.5px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(255,255,255,0.03);
+  padding: 48px 40px 40px;
+  animation: fadeUp 0.9s ease-out both;
+}
+
+.todaySection {
+  flex: 1;
+  display: flex; flex-direction: column;
+  /* Anchor the today section near the top of its flex slot so the eyebrow
+     + snippet sit visually higher in the glass panel. A bit of breathing
+     room below absorbs taller snippets without pushing the brand row
+     to the edge. */
+  justify-content: flex-start;
+  gap: 22px;
+  padding-top: 4px;
+  padding-bottom: 12px;
+  min-height: 0;
+}
+
+/* Today's transits — a small, scannable row above "The cosmos speaks".
+   Two tiles (Moon, Sun) always; a third (Retrograde) appears only when at
+   least one planet is retrograde. Em-dashes hold the slots before /api/landing
+   resolves so the layout doesn't shift on data arrival. */
+.skyRow {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.skyDayLabel {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
+  color: rgba(251,191,36,0.85);
+}
+.skyTiles {
+  display: flex; align-items: stretch; gap: 18px;
+  flex-wrap: wrap;
+}
+.skyTile {
+  display: flex; flex-direction: column; gap: 4px;
+  /* Subtle vertical divider between tiles via padding + border on the next.
+     Skipped on the first via :first-child reset below. */
+  padding-left: 18px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+.skyTile:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+.skyTileLabel {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+.skyTileValue {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 18px; font-weight: 400; font-style: italic;
+  color: rgba(255,255,255,0.92);
+  line-height: 1.2;
+}
+
+.snippetText {
+  display: flex; flex-direction: column; gap: 14px;
+  /* Fixed visual area so the eyebrow doesn't jump when snippet lengths
+     change. Sized to hold ~7 lines at the new smaller font plus
+     breathing room for descenders so line-clamp doesn't visually clip
+     the last line. */
+  height: 13em;
+}
+.cosmosEyebrow {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
+  color: rgba(255,255,255,0.32);
+  /* Eyebrow is anchored — no per-sign animation, doesn't move with snippet
+     transitions. */
+}
+.snippetText p {
+  font-family: var(--font-display), Georgia, serif;
+  /* Smaller than before so we can fit ~320 chars without clipping.
+     Previously clamp(20px, 2.3vw, 28px). */
+  font-size: clamp(17px, 1.9vw, 22px);
+  font-weight: 400; font-style: italic;
+  color: rgba(255,255,255,0.92);
+  line-height: 1.6;
+  margin: 0;
+  /* Extra bottom padding so the line-clamp + overflow:hidden combo
+     doesn't visually shear the descenders (g, y, p) of the last line. */
+  padding-bottom: 0.35em;
+  flex: 1; min-height: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 7;
+  -webkit-box-orient: vertical;
+}
+/* Wind-stroke cross-fade between snippets. Single element, two phases —
+   the paragraph fades out with a slight upward drift + blur, swaps content,
+   then drifts back in. transition-duration comes inline from React state. */
+.snippetCopyIn,
+.snippetCopyOut {
+  transition-property: opacity, transform, filter;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform, filter;
+}
+.snippetCopyIn {
+  opacity: 1; transform: translateY(0); filter: blur(0);
+}
+.snippetCopyOut {
+  opacity: 0; transform: translateY(-6px); filter: blur(4px);
+}
+
+.pillStrip {
+  /* Hidden on desktop — wheel is the picker. Mobile media query enables. */
+  display: none;
+}
+
+.srOnly {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+.panelDivider { height: 1px; background: rgba(255,255,255,0.07); margin: 28px 0; }
+
+.brandRow {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+}
+.glyphWrap {
+  position: relative; display: flex; align-items: center; justify-content: center;
+}
+.brandName {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 40px; font-weight: 400; letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.92); line-height: 1;
+}
+.brandName em {
+  font-style: italic; font-weight: 400;
+  background: linear-gradient(135deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 0 14px rgba(251,191,36,0.3));
+}
+.brandSub {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 16px; font-weight: 400; font-style: italic;
+  color: rgba(255,255,255,0.42);
+  letter-spacing: 0.16em; margin-top: 6px;
+}
+
+.features { display: flex; justify-content: space-between; align-items: stretch; margin-bottom: 22px; }
+.featureItem { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; padding: 4px 0; }
+.featureSep { width: 1px; background: rgba(255,255,255,0.07); align-self: stretch; margin: 2px 0; flex-shrink: 0; }
+.featureName { font-size: 11px; color: rgba(255,255,255,0.48); letter-spacing: 0.04em; text-align: center; line-height: 1.5; }
+
+.siderealRow { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.siderealLine { flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
+.siderealRow span { font-size: 10px; color: rgba(255,255,255,0.15); letter-spacing: 0.16em; text-transform: uppercase; white-space: nowrap; }
+
+.ctaBtn {
+  width: 100%; padding: 13px 0; border-radius: 16px; border: none; cursor: pointer;
+  color: #3b1a00; font-weight: 600; font-size: 16px; letter-spacing: 0.02em;
+  box-shadow: 0 4px 28px rgba(217,119,6,0.4);
+  background: linear-gradient(105deg, #92400e 0%, #d97706 35%, #fcd34d 50%, #d97706 65%, #92400e 100%);
+  background-size: 200% auto;
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+.ctaBtn:hover {
+  animation: shimmerBtn 1.8s linear infinite;
+  filter: brightness(1.08);
+}
+.ctaBtn:active {
+  transform: scale(0.985);
+  filter: brightness(0.95);
+  animation: none;
+}
+/* Pill dock — a fixed-positioned container sitting above the mobile panel.
+   On desktop the wheel is the picker, so the dock is hidden. */
+.pillDock {
+  display: none;
+}
+
+/* ── Mobile ── */
+@media (max-width: 700px) {
+  .mobileFade {
+    display: block;
+    bottom: 54vh;
+    height: 28vh;
+    background: linear-gradient(to bottom, transparent 0%, rgba(6,3,24,0.6) 50%, rgba(6,3,24,0.95) 100%);
+  }
+  .zodiacWrap { left: -28vw; top: -46vw; width: 156vw; height: 156vw; }
+  /* On mobile, the wheel is decorative — disable click targets so the
+     pill strip below the snippet is the only picker. */
+  .zodiacWrap path { pointer-events: none !important; cursor: default !important; }
+  .panel {
+    right: 0; left: 0; bottom: 0; top: auto;
+    width: 100%; border-radius: 22px 22px 0 0;
+    /* Stronger backdrop on mobile so the spinning wheel doesn't bleed
+       through the glass and compete with the snippet copy. */
+    background: rgba(8, 4, 24, 0.78);
+    backdrop-filter: blur(42px) saturate(1.8) brightness(1.04);
+    -webkit-backdrop-filter: blur(42px) saturate(1.8) brightness(1.04);
+    padding: 24px 22px 28px; height: 62vh; overflow: hidden;
+  }
+  .todaySection { gap: 12px; padding-top: 2px; padding-bottom: 8px; }
+  .cosmosEyebrow { font-size: 9px; letter-spacing: 0.28em; }
+  .snippetText {
+    /* Mobile fits ~5 lines at the new smaller font, plenty for ≤300 chars. */
+    height: 10em;
+  }
+  .snippetText p { font-size: 15px; line-height: 1.6; -webkit-line-clamp: 5; padding-bottom: 0.3em; }
+  .skyRow { gap: 6px; padding-bottom: 10px; }
+  .skyDayLabel { font-size: 9px; letter-spacing: 0.28em; }
+  .skyTiles { gap: 12px; }
+  .skyTile { padding-left: 12px; }
+  .skyTileLabel { font-size: 9px; letter-spacing: 0.22em; }
+  .skyTileValue { font-size: 15px; }
+
+  /* Pill dock sits ABOVE the panel against the night sky — not behind the
+     glass. Positioned just above the panel's top edge so the wheel still
+     breathes above it. */
+  .pillDock {
+    display: block;
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(62vh + 8px);
+    z-index: 9; /* below panel (10) so any tall pill never floats over the
+                  panel's edge, but above the wheel (5). */
+    pointer-events: none; /* re-enabled on the strip itself */
+  }
+  .pillStrip {
+    pointer-events: auto;
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    padding: 6px 16px;
+    -ms-overflow-style: none; scrollbar-width: none;
+  }
+  .pillStrip::-webkit-scrollbar { display: none; }
+  .pill {
+    flex: 0 0 auto;
+    width: 34px; height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px;
+    /* Slightly opaque so a glyph stays legible over the starfield */
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(8, 4, 24, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(255,255,255,0.65);
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .pillActive {
+    background: rgba(251,191,36,0.18);
+    border-color: rgba(251,191,36,0.55);
+    color: rgba(251,191,36,0.98);
+  }
+  .panelDivider { margin: 14px 0; }
+  .brandName { font-size: 28px; }
+  .brandRow { margin-bottom: 14px; }
+  .features { margin-bottom: 14px; }
+  .featureName { font-size: 10px; }
+  .siderealRow { margin-bottom: 16px; }
+  .ctaBtn { font-size: 15px; padding: 12px 0; }
+  .ctaFootnote { font-size: 12px; margin-top: 8px; }
+}

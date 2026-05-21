@@ -65,7 +65,8 @@ Full detail in [`docs/STANDARDS.md §1`](docs/STANDARDS.md).
 | `AGENTS.md` | Jules/Gemini-specific rules and pre-flight checklist |
 | **`docs/STANDARDS.md`** | **Cross-agent coding standards — the source of truth** |
 | `docs/ARCHITECTURE.md` | Server/client boundary, all modules, user journey traces |
-| `docs/PROJECT.md` | Env vars, deployment gotchas, auth model, runbook |
+| `docs/PROJECT.md` | Env vars, deployment gotchas, auth model |
+| `docs/RUNBOOK.md` | Health checks, DB backup/restore, incident playbook |
 | `docs/BACKLOG.md` | Bugs, deferred features, tech debt, session decisions |
 | `docs/PRODUCT.md` | Product story, personas, feature map, journeys (plain language) |
 | `docs/TESTING.md` | Coverage status, test plans per journey, QA log |

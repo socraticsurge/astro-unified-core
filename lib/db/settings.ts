@@ -1,6 +1,7 @@
 import { getClient, ensureSchema } from "./client";
 
 export type AppSettings = {
+  written_consultation_enabled: boolean;
   live_consultation_enabled: boolean;
   written_fee_paise: number;
   live_fee_paise: number;
@@ -25,6 +26,12 @@ export type DraftLlmConfig = {
   custom_instructions: string;
 };
 
+export type TodayReadingLlmConfig = {
+  temperature: number;
+  max_tokens: number;
+  custom_instructions: string;
+};
+
 const AI_INSIGHTS_LLM_DEFAULTS: AiInsightsLlmConfig = {
   temperature: 0.5,
   max_tokens: 4096,
@@ -44,6 +51,12 @@ const DRAFT_LLM_DEFAULTS: DraftLlmConfig = {
   custom_instructions: "",
 };
 
+const TODAY_READING_LLM_DEFAULTS: TodayReadingLlmConfig = {
+  temperature: 0.55,
+  max_tokens: 1024,
+  custom_instructions: "",
+};
+
 export const settings = {
   async getAll(): Promise<AppSettings> {
     await ensureSchema();
@@ -53,6 +66,7 @@ export const settings = {
       map[row[0] as string] = row[1] as string;
     }
     return {
+      written_consultation_enabled: map["written_consultation_enabled"] !== "false",
       live_consultation_enabled: map["live_consultation_enabled"] === "true",
       written_fee_paise: parseInt(map["written_fee_paise"] ?? "120000", 10),
       live_fee_paise: parseInt(map["live_fee_paise"] ?? "500000", 10),
@@ -138,6 +152,31 @@ export const settings = {
     await getClient().execute({
       sql: "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
       args: ["draft_llm", JSON.stringify(next), new Date().toISOString()],
+    });
+    return next;
+  },
+
+  async getTodayReadingLlm(): Promise<TodayReadingLlmConfig> {
+    await ensureSchema();
+    const rs = await getClient().execute({
+      sql: "SELECT value FROM settings WHERE key = ?",
+      args: ["today_reading_llm"],
+    });
+    if (!rs.rows.length) return { ...TODAY_READING_LLM_DEFAULTS };
+    try {
+      return { ...TODAY_READING_LLM_DEFAULTS, ...JSON.parse(rs.rows[0][0] as string) };
+    } catch {
+      return { ...TODAY_READING_LLM_DEFAULTS };
+    }
+  },
+
+  async setTodayReadingLlm(config: Partial<TodayReadingLlmConfig>): Promise<TodayReadingLlmConfig> {
+    await ensureSchema();
+    const current = await this.getTodayReadingLlm();
+    const next = { ...current, ...config };
+    await getClient().execute({
+      sql: "INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
+      args: ["today_reading_llm", JSON.stringify(next), new Date().toISOString()],
     });
     return next;
   },

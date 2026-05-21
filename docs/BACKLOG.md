@@ -1,6 +1,6 @@
 # Backlog
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-05-19 -->
 
 Tracks known bugs, deferred features, tech debt, and session decisions.
 
@@ -45,10 +45,17 @@ Things that work but are suboptimal. Prioritise when there is slack.
 
 | # | Description | File(s) | Effort |
 |---|---|---|---|
-| T2 | `proxy.ts` is the NextAuth middleware but uses a non-standard name. Next.js convention is `middleware.ts`. | `proxy.ts` | Small — rename + update any references |
 | T3 | `db.users.list()` and `db.feedback.list()` cast rows via `as unknown as T[]`. A Zod schema parse would catch DB/schema drift at runtime. | `lib/db/users.ts`, `lib/db/feedback.ts` | Medium |
 | T4 | Admin panel `AdminTables.tsx` sort uses string-indexed sort with `Record<string, unknown>` cast. | `app/admin/AdminTables.tsx` | Small |
 | T5 | `lib/content/loader.ts` caches markdown in memory per Lambda instance. Cold starts re-parse all 538 files. Pre-building a static JSON bundle at build time would eliminate this. | `lib/content/loader.ts` | Medium |
+| T6 | ~~Five reading routes each independently implement session→profile→cache→engine→save. Extracted to `lib/engines/reading-handler.ts` `resolveProfile()` helper. Done 2026-05-19.~~ | `lib/engines/reading-handler.ts` | Done |
+| T7 | All DB row casts use `as unknown as T[]` with no runtime validation. If the sidecar schema drifts, these silently return undefined fields. Add typed row-mapper functions per table. | `lib/db/*.ts` | Medium |
+| T8 | Schema migrations use `try { ALTER TABLE } catch {}` — no record of which columns are applied on which DB. Add a `schema_migrations` table to track applied versions. | `lib/db/client.ts` | Medium |
+| T9 | ~~Magic numbers consolidated into `lib/constants.ts`. Done 2026-05-19.~~ | `lib/constants.ts` | Done |
+| T10 | ~~Error states added to TransitsTab and CareerTab with inline retry button. Done 2026-05-19.~~ | `components/unified/tabs/TransitsTab.tsx`, `CareerTab.tsx` | Done |
+| T11 | ~~API documentation written to `docs/api.md`. Done 2026-05-19.~~ | `docs/api.md` | Done |
+| T12 | ~~Batch-fetch profiles in compatibility route via `Promise.all`. Done 2026-05-19.~~ | `app/api/compatibility/route.ts` | Done |
+| T13 | `AIAdminPanel` swallows AI insight fetch failures with `catch { /* silently ignore */ }` — admin sees a blank panel with no signal. Wrap in `Sentry.captureException` and surface an inline error state. Found in 2026-05-21 production audit. | `components/panels/AIAdminPanel.tsx:119` | Small |
 
 ---
 
@@ -90,4 +97,4 @@ Near-term and medium-term feature intentions. For full context see `PRODUCT.md �
 
 ---
 
-*Last updated: 2026-05-14*
+*Last updated: 2026-05-19*

@@ -1,18 +1,8 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
-import { LandingPage } from "@/components/LandingPage";
+import { CosmicLanding } from "@/components/CosmicLanding";
 
-// Server-rendered landing page.
-// - Authenticated visitors are redirected to /dashboard server-side.
-// - Unauthenticated visitors get the marketing markup in the initial
-//   HTML response — no React hydration cost, no JS to download for
-//   the page itself (just the small <Analytics />/<SpeedInsights />
-//   client islands and the auth provider).
-export default async function HomePage() {
-  const session = await getServerSession(authOptions);
-  if (session?.user) {
-    redirect("/dashboard");
-  }
-  return <LandingPage />;
+// No force-dynamic + no session call → Next.js prerenders this as static HTML
+// and Vercel's CDN serves it. The authed-user → /dashboard redirect lives in
+// proxy.ts (NextAuth middleware) so the page can stay cacheable.
+export default function HomePage() {
+  return <CosmicLanding />;
 }

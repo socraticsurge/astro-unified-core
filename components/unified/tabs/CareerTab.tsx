@@ -1,0 +1,200 @@
+"use client";
+import { useEffect } from "react";
+import { RefreshCw } from "lucide-react";
+import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
+import type { Planet, SignName } from "@/components/unified/types";
+import { PLANET_ORDER, dignityTone } from "@/components/unified/types";
+import { SectionHeading } from "@/components/unified/SectionHeading";
+import { TwoColumnTabGrid, TabColumn, TabSection } from "@/components/unified/TabGrid";
+import { TabLoadingSkeleton } from "@/components/unified/TabLoadingSkeleton";
+
+type TenthHouse = {
+  sign?: string;
+  lord?: string;
+  lord_house?: number;
+  lord_sign?: string;
+  lord_d10?: string;
+  lord_dignity?: string;
+  occupants?: string[];
+};
+
+type D10Indicator = {
+  d10_sign?: string;
+  d10_lord?: string;
+  d10_strong?: boolean;
+};
+
+type CareerData = {
+  tenth_house?: TenthHouse;
+  d10_indicators?: Record<string, D10Indicator>;
+  career_themes?: string[];
+  primary_planets?: string[];
+  strength_factors?: string[];
+  d10_strong_planets?: string[];
+};
+
+export function CareerTab({
+  chartOutput,
+  careerOutput,
+  isCareerLoading,
+  careerError,
+  onFetchCareer,
+}: {
+  chartOutput: Record<string, unknown>;
+  careerOutput: Record<string, unknown> | null;
+  isCareerLoading: boolean;
+  careerError?: string | null;
+  onFetchCareer: (force?: boolean) => void;
+}) {
+  useEffect(() => {
+    if (!careerOutput && !isCareerLoading) onFetchCareer();
+  }, [careerOutput, isCareerLoading, onFetchCareer]);
+
+  const chartData = chartOutput?.data as Record<string, unknown> | undefined;
+  const planets   = chartData?.planets as Record<string, Planet> | undefined;
+  const lagna     = chartData?.lagna   as Record<string, unknown> | undefined;
+  const lagnaD10  = lagna?.d10_sign as SignName | undefined;
+
+  const career     = ((careerOutput as Record<string, unknown> | null)?.data ?? careerOutput) as CareerData | null;
+  const tenth      = career?.tenth_house;
+  const indicators = career?.d10_indicators ?? {};
+  const primary    = new Set(career?.primary_planets ?? []);
+  const significators = PLANET_ORDER.filter((p) => primary.has(p) || indicators[p]?.d10_strong);
+
+  return (
+    <div className="space-y-4">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <SectionHeading>Career Analysis</SectionHeading>
+        <button
+          type="button"
+          onClick={() => onFetchCareer(true)}
+          disabled={isCareerLoading}
+          style={{
+            display: "flex", alignItems: "center", gap: 4,
+            fontSize: 11, color: "var(--color-ink-3)",
+            background: "none", border: "none", cursor: "pointer", padding: "4px 8px",
+          }}
+        >
+          <RefreshCw style={{ width: 11, height: 11, animation: isCareerLoading ? "spin 1s linear infinite" : "none" }} />
+          Refresh
+        </button>
+      </div>
+
+      {isCareerLoading && <TabLoadingSkeleton lines={5} cards={2} />}
+
+      {!isCareerLoading && careerError && (
+        <div style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-danger)" }}>
+          <span>Couldn&apos;t load career analysis — {careerError}</span>
+          <button type="button" onClick={() => onFetchCareer(true)} style={{ textDecoration: "underline", background: "none", border: "none", cursor: "pointer", color: "inherit" }}>Retry</button>
+        </div>
+      )}
+
+      {career && (
+        <TwoColumnTabGrid>
+          {/* Column 1 — D10 chart, themes, indicators */}
+          <TabColumn>
+            <TabSection when={!!planets} title="D10 — Dashamsha">
+              {planets && (
+                <NatalChartGrid planets={planets} lagnaSign={lagnaD10} signKey="d10_sign" label="" />
+              )}
+            </TabSection>
+
+            <TabSection
+              when={!!career.career_themes && career.career_themes.length > 0}
+              title="Career themes"
+            >
+              <div className="ac-pills">
+                {career.career_themes?.map((t) => (
+                  <span key={t} className="ac-pill cool">{t.replace(/_/g, " ")}</span>
+                ))}
+              </div>
+            </TabSection>
+
+            <TabSection
+              when={!!career.strength_factors && career.strength_factors.length > 0}
+              title="Astrological indicators"
+            >
+              <ul style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {career.strength_factors?.map((f) => (
+                  <li key={f} style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-ink-3)" }}>
+                    <span style={{ color: "var(--color-ink-4)", flexShrink: 0 }}>·</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </TabSection>
+          </TabColumn>
+
+          {/* Column 2 — 10th house, significators */}
+          <TabColumn>
+            <TabSection when={!!tenth} title="10th house — Karma Bhava">
+              <div className="ac-card ac-card-pad">
+                <div className="ac-kv">
+                  <div className="k">Sign</div><div className="v">{tenth?.sign ?? "—"}</div>
+                  {tenth?.occupants && tenth.occupants.length > 0 && (
+                    <>
+                      <div className="k">Occupants</div><div className="v cool">{tenth.occupants.join(", ")}</div>
+                    </>
+                  )}
+                  <div className="k">Lord</div><div className="v cool">{tenth?.lord ?? "—"}</div>
+                  <div className="k">Lord placed in</div>
+                  <div className="v">H{tenth?.lord_house ?? "—"}{tenth?.lord_sign ? ` · ${tenth.lord_sign}` : ""}</div>
+                  {tenth?.lord_dignity && (
+                    <>
+                      <div className="k">Lord dignity</div>
+                      <div className="v">
+                        <span className={`ac-tag ${dignityTone(tenth.lord_dignity)}`}>
+                          {tenth.lord_dignity.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  <div className="k">Lord in D10</div><div className="v">{tenth?.lord_d10 ?? "—"}</div>
+                </div>
+              </div>
+            </TabSection>
+
+            <TabSection when={significators.length > 0} title="Key professional significators">
+              <div className="ac-card overflow-x-auto">
+                <table className="ac-table">
+                  <thead>
+                    <tr>
+                      <th>Planet</th>
+                      <th className="right">Primary</th>
+                      <th>D10 Sign</th>
+                      <th>D10 Lord</th>
+                      <th className="right">Strong in D10</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {significators.map((p) => {
+                      const ind = indicators[p];
+                      const isPrimary = primary.has(p);
+                      return (
+                        <tr key={p}>
+                          <td className="planet">{p}</td>
+                          <td className="right">
+                            {isPrimary
+                              ? <span style={{ color: "var(--color-accent)", fontWeight: 600 }}>✓</span>
+                              : <span className="ac-dash">—</span>}
+                          </td>
+                          <td>{ind?.d10_sign ?? "—"}</td>
+                          <td className="planet">{ind?.d10_lord ?? "—"}</td>
+                          <td className="right">
+                            {ind?.d10_strong
+                              ? <span style={{ color: "var(--color-success)", fontWeight: 600 }}>✓</span>
+                              : <span className="ac-dash">—</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </TabSection>
+          </TabColumn>
+        </TwoColumnTabGrid>
+      )}
+    </div>
+  );
+}

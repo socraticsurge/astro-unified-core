@@ -6,6 +6,18 @@ function safeJson(text: string): { id?: string; error?: string } | null {
   try { return JSON.parse(text); } catch { return null; }
 }
 
+// Today's date in YYYY-MM-DD format. Used as the `max` attribute on the
+// DOB input so the browser blocks future dates at the picker level. The
+// server should still validate independently — clients can bypass `max`
+// by editing the input directly.
+function todayIsoDate(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +65,8 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
         throw new Error(data?.error ?? `Failed (${res.status} ${res.statusText})`);
       }
       if (!data?.id) throw new Error("Server returned unexpected response");
-      router.push(`/profiles/${data.id}`);
+      // New profiles: ?new=1 triggers the loading screen in DashboardClient
+      router.push(isEdit ? `/dashboard?profile=${data.id}` : `/dashboard?profile=${data.id}&new=1`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unknown error");
     } finally {
@@ -105,13 +118,12 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
                 <option value="" disabled>Select...</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
-                <option value="Other">Other</option>
               </select>
             </div>
           </div>
           <div className="space-y-1">
             <Label htmlFor="date_of_birth">Date of Birth <span className="text-destructive">*</span></Label>
-            <Input id="date_of_birth" name="date_of_birth" type="date" value={form.date_of_birth} onChange={handleChange} required />
+            <Input id="date_of_birth" name="date_of_birth" type="date" value={form.date_of_birth} onChange={handleChange} max={todayIsoDate()} required />
           </div>
           <div className="space-y-1">
             <Label htmlFor="time_of_birth">Time of Birth <span className="text-destructive">*</span></Label>
@@ -121,7 +133,7 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
               time you have; even a 5-minute difference can shift the Lagna.
             </p>
           </div>
-          <div className="space-y-4 pt-2 border-t border-white/10">
+          <div className="space-y-4 pt-2 border-t border-[var(--color-border)]">
             <div className="space-y-1">
               <Label htmlFor="place_of_birth">Place of Birth <span className="text-destructive">*</span></Label>
               <Input id="place_of_birth" name="place_of_birth" value={form.place_of_birth} onChange={handleChange} required maxLength={100} placeholder="e.g. Erode, Tamil Nadu, India" />

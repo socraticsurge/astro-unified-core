@@ -129,16 +129,19 @@ describe("astro-utils", () => {
   });
 
   describe("dignityBadgeColor", () => {
-    it("returns correct color classes for each dignity", () => {
-      expect(dignityBadgeColor("Exalted")).toContain("emerald");
-      expect(dignityBadgeColor("OwnSign")).toContain("blue");
-      expect(dignityBadgeColor("Debilitated")).toContain("red");
-      expect(dignityBadgeColor("Friend")).toContain("teal");
-      expect(dignityBadgeColor("Enemy")).toContain("orange");
+    // Migrated 2026-05-21 from raw Tailwind palette (emerald / blue / red /
+    // teal / orange / gray) to theme tokens so the badges adapt to the
+    // Vellum light theme. See scripts/check-no-raw-palette.sh.
+    it("returns theme-token classes for each dignity", () => {
+      expect(dignityBadgeColor("Exalted")).toContain("var(--color-success");
+      expect(dignityBadgeColor("OwnSign")).toContain("var(--color-accent");
+      expect(dignityBadgeColor("Debilitated")).toContain("var(--color-danger");
+      expect(dignityBadgeColor("Friend")).toContain("var(--color-cool");
+      expect(dignityBadgeColor("Enemy")).toContain("var(--color-warning");
     });
 
-    it("returns fallback color for unknown dignity", () => {
-      expect(dignityBadgeColor("Unknown")).toContain("gray");
+    it("returns muted token for unknown dignity", () => {
+      expect(dignityBadgeColor("Unknown")).toContain("var(--color-ink-4");
     });
   });
 });

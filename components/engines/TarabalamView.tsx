@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Users, RefreshCw } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { taraColor, type Tara, type Tithi } from "@/lib/tarabalam";
+import { EngineError } from "@/components/ui/EngineError";
 
 type SectionExplainer = {
   title: string;
@@ -79,6 +80,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
 
   // Auto-fetch on mount for the default selection
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTaras([profileId], startDate, endDate);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -111,22 +113,20 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
     return loaded.every(p => row.profile_taras[p.id]?.quality === "auspicious");
   }
 
-  const currentProfile = profiles.find(p => p.id === profileId);
-
   return (
     <SectionShell sectionInView="Tarabalam" explainer={explainer ?? null}>
       <div className="space-y-6">
 
         {/* Controls */}
-        <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/10">
+        <div className="ac-card ac-card-pad space-y-4">
           {/* Profile selector */}
           {profiles.length > 1 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide">
+              <div className="ac-eyebrow" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <Users className="h-3.5 w-3.5" />
                 Profiles
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="ac-pills">
                 {profiles.map(p => {
                   const checked = selectedIds.has(p.id);
                   const isCurrent = p.id === profileId;
@@ -134,17 +134,19 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                     <button
                       key={p.id}
                       onClick={() => toggleProfile(p.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        checked
-                          ? "bg-violet-900/40 border-violet-600/60 text-violet-200"
-                          : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground"
-                      }`}
+                      className={`ac-pill ${checked ? "cool" : ""}`}
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
-                      <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${checked ? "bg-violet-500 border-violet-500" : "border-white/30"}`}>
-                        {checked && <span className="text-white text-[8px] leading-none">✓</span>}
+                      <span style={{
+                        width: 14, height: 14, borderRadius: 3,
+                        border: `1px solid ${checked ? "var(--color-cool)" : "var(--color-ink-3)"}`,
+                        background: checked ? "var(--color-cool)" : "transparent",
+                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                      }}>
+                        {checked && <span style={{ color: "var(--color-bg)", fontSize: 8, lineHeight: 1 }}>✓</span>}
                       </span>
                       {p.name}
-                      {isCurrent && <span className="text-violet-400/70 text-[10px]">(you)</span>}
+                      {isCurrent && <span style={{ opacity: 0.6, fontSize: 10 }}>(you)</span>}
                     </button>
                   );
                 })}
@@ -160,7 +162,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 h-9 text-sm w-40"
+                className="bg-[var(--color-surface-1)] border-[var(--color-border)] h-9 text-sm w-40"
               />
             </div>
             <div className="space-y-1">
@@ -169,14 +171,14 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 h-9 text-sm w-40"
+                className="bg-[var(--color-surface-1)] border-[var(--color-border)] h-9 text-sm w-40"
               />
             </div>
             <Button
               onClick={handleSearch}
               disabled={loading}
               size="sm"
-              className="h-9 bg-violet-600 hover:bg-violet-700 gap-1.5"
+              className="h-9 bg-[var(--color-accent)] hover:opacity-90 text-[var(--color-button-fg)] gap-1.5"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               {loading ? "Calculating…" : "Calculate"}
@@ -185,11 +187,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
         </div>
 
         {/* Error state */}
-        {error && (
-          <div className="p-4 rounded-lg bg-red-950/20 border border-red-800/40 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
+        <EngineError error={error} onRetry={handleSearch} />
 
         {/* Results */}
         {result && !loading && (
@@ -197,43 +195,43 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
             {/* Legend */}
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded bg-emerald-800/60 border border-emerald-700/40" />
+                <span className="inline-block w-3 h-3 rounded bg-[var(--color-success-faint)] border border-[var(--color-success-border)]" />
                 Auspicious (2,4,6,8,9 — Sampat, Kshema, Sadhana, Mitra, Parama Mitra)
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded bg-red-900/40 border border-red-700/30" />
+                <span className="inline-block w-3 h-3 rounded bg-[var(--color-danger-faint)] border border-[var(--color-danger-border)]" />
                 Inauspicious (1,3,5,7 — Janma, Vipat, Pratyak, Naidana)
               </span>
             </div>
 
             {/* Missing chart notice */}
             {result.profiles.some(p => p.birth_moon_nakshatra === null) && (
-              <div className="text-xs text-amber-400/80 bg-amber-950/20 border border-amber-800/30 rounded-lg px-3 py-2">
+              <div className="ac-banner accent">
                 Some profiles have no chart yet — open their profile page to generate a chart, then return here.
               </div>
             )}
 
             {/* Grid */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
+            <div className="ac-card overflow-x-auto">
+              <table className="ac-table">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium whitespace-nowrap">Date</th>
-                    <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium whitespace-nowrap">Moon in</th>
-                    <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium whitespace-nowrap">Tithi</th>
+                  <tr>
+                    <th style={{ whiteSpace: "nowrap" }}>Date</th>
+                    <th style={{ whiteSpace: "nowrap" }}>Moon in</th>
+                    <th style={{ whiteSpace: "nowrap" }}>Tithi</th>
                     {resultProfiles.map(p => (
-                      <th key={p.id} className="text-left py-2 pr-3 text-xs text-muted-foreground font-medium whitespace-nowrap">
+                      <th key={p.id} style={{ whiteSpace: "nowrap" }}>
                         {p.name}
-                        {p.id === profileId && <span className="text-violet-400/70 text-[10px] ml-1">(you)</span>}
+                        {p.id === profileId && <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.6 }}>(you)</span>}
                         {p.birth_moon_nakshatra && (
-                          <div className="font-normal text-[10px] text-muted-foreground/60">
+                          <div style={{ fontWeight: 400, fontSize: 10, opacity: 0.6 }}>
                             born: {p.birth_moon_nakshatra}
                           </div>
                         )}
                       </th>
                     ))}
                     {resultProfiles.length > 1 && (
-                      <th className="text-left py-2 text-xs text-muted-foreground font-medium whitespace-nowrap">All ✦</th>
+                      <th style={{ whiteSpace: "nowrap" }}>All ✦</th>
                     )}
                   </tr>
                 </thead>
@@ -243,28 +241,25 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                     return (
                       <tr
                         key={row.date}
-                        className={`border-b border-white/5 hover:bg-white/[0.02] ${allGood ? "bg-emerald-950/10" : ""}`}
+                        style={allGood ? { background: "var(--color-success-faint)" } : {}}
                       >
-                        <td className="py-2 pr-4 whitespace-nowrap text-foreground/80 text-xs">
-                          {formatDate(row.date)}
-                        </td>
-                        <td className="py-2 pr-4 whitespace-nowrap text-xs text-muted-foreground">
-                          {row.transit_moon_nakshatra}
-                        </td>
-                        <td className="py-2 pr-4 whitespace-nowrap">
+                        <td style={{ whiteSpace: "nowrap" }}>{formatDate(row.date)}</td>
+                        <td className="muted" style={{ whiteSpace: "nowrap" }}>{row.transit_moon_nakshatra}</td>
+                        <td style={{ whiteSpace: "nowrap" }}>
                           {row.tithi ? (
                             <span
                               title={`Tithi ${row.tithi.number} — ${row.tithi.paksha ? row.tithi.paksha + " " : ""}${row.tithi.name}`}
-                              className={`text-[11px] font-medium ${
-                                row.tithi.number === 15 ? "text-amber-300" :
-                                row.tithi.number === 30 ? "text-zinc-400" :
-                                "text-sky-300/80"
-                              }`}
+                              style={{
+                                fontSize: 11, fontWeight: 500,
+                                color: row.tithi.number === 15 ? "var(--color-warning)"
+                                  : row.tithi.number === 30 ? "var(--color-ink-4)"
+                                  : "var(--color-cool)",
+                              }}
                             >
                               {row.tithi.label}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground/30 text-[10px]">–</span>
+                            <span className="ac-dash" style={{ fontSize: 10 }}>–</span>
                           )}
                         </td>
                         {resultProfiles.map(p => {
@@ -291,7 +286,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                         {resultProfiles.length > 1 && (
                           <td className="py-2">
                             {allGood ? (
-                              <span className="text-emerald-400 text-sm">✦</span>
+                              <span className="text-[var(--color-success)] text-sm">✦</span>
                             ) : (
                               <span className="text-muted-foreground/20 text-sm">·</span>
                             )}
@@ -311,7 +306,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
         )}
 
         {!result && !loading && !error && (
-          <div className="py-10 text-center text-sm text-muted-foreground italic border border-dashed border-white/10 rounded-lg">
+          <div style={{ padding: "40px 16px", textAlign: "center", fontSize: 13, fontStyle: "italic", color: "var(--color-ink-3)", border: "1px dashed var(--color-border)", borderRadius: 10 }}>
             Select profiles and a date range, then click Calculate.
           </div>
         )}

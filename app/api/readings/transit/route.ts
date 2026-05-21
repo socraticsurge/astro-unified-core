@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { fetchTransit } from "@/lib/engines/transit";
 import { extractEngineError } from "@/lib/engine-error";
 import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { resolveProfile } from "@/lib/engines/reading-handler";
 
 // Transit cache is keyed by date so it auto-invalidates daily.
 // Format: "transit:YYYY-MM-DD"
@@ -19,22 +20,9 @@ function todayStr() {
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = (session.user as { id: string }).id;
-
-  const profile_id = req.nextUrl.searchParams.get("profile_id");
-  if (!profile_id) {
-    return NextResponse.json({ error: "profile_id is required" }, { status: 400 });
-  }
-
-  const profile = isAdmin(session)
-    ? await db.profiles.getAny(profile_id)
-    : await db.profiles.get(profile_id, userId);
-  if (!profile) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-  }
+  const r = await resolveProfile(req.nextUrl.searchParams.get("profile_id"), session);
+  if (!r.ok) return r.response;
+  const { profile_id, input: birthInput } = r;
 
   const today = todayStr();
   const ENGINE = transitEngine(today);
@@ -52,14 +40,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const input = {
-    date_of_birth: profile.date_of_birth,
-    time_of_birth: profile.time_of_birth,
-    latitude: profile.latitude,
-    longitude: profile.longitude,
-    timezone: profile.timezone,
-    transit_date: today,
-  };
+  const input = { ...birthInput, transit_date: today };
 
   const output = await fetchTransit(input);
   const errMsg = extractEngineError(output);
@@ -80,7 +61,6 @@ export async function POST(req: NextRequest) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = (session.user as { id: string }).id;
 
   const { profile_id, transit_date } = await req.json();
 
@@ -88,28 +68,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "transit_date must be in YYYY-MM-DD format" }, { status: 400 });
   }
 
-  if (!rateLimit(`refresh_transit_${profile_id}`, 5, 60_000).success) {
+  if (!rateLimit(`refresh_transit_${profile_id}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS).success) {
     return NextResponse.json({ error: "Too many requests. Please wait a minute." }, { status: 429 });
   }
 
-  const profile = isAdmin(session)
-    ? await db.profiles.getAny(profile_id)
-    : await db.profiles.get(profile_id, userId);
-  if (!profile) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-  }
+  const r = await resolveProfile(profile_id, session);
+  if (!r.ok) return r.response;
+  const { input: birthInput } = r;
 
   const date = transit_date ?? todayStr();
   const ENGINE = transitEngine(date);
-
-  const input = {
-    date_of_birth: profile.date_of_birth,
-    time_of_birth: profile.time_of_birth,
-    latitude: profile.latitude,
-    longitude: profile.longitude,
-    timezone: profile.timezone,
-    transit_date: date,
-  };
+  const input = { ...birthInput, transit_date: date };
 
   const output = await fetchTransit(input);
   const errMsg = extractEngineError(output);
