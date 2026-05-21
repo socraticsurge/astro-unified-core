@@ -143,15 +143,14 @@ interface ProfileSidebarProps {
   chartOutput: Record<string, unknown> | null;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
-  mobileEditMode?: boolean;
 }
 
-export function ProfileSidebar({ profile, chartOutput, mobileOpen = false, onMobileClose, mobileEditMode = false }: ProfileSidebarProps) {
+export function ProfileSidebar({ profile, chartOutput, mobileOpen = false, onMobileClose }: ProfileSidebarProps) {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    if (mobileOpen) setIsEditing(mobileEditMode);
-  }, [mobileOpen, mobileEditMode]);
+    if (!mobileOpen) setIsEditing(false);
+  }, [mobileOpen]);
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete ${formatName(profile.name)}? This cannot be undone.`)) return;
