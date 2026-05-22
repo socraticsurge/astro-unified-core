@@ -8,6 +8,25 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Always-visible birth charts in Natal tab; Career tab redesign
+
+### Changed
+- **Natal Chart tab** — D1 and D9 charts now always visible below the reading
+  (removed collapsible toggle). Charts render under a "Birth charts" section
+  heading on both mobile and desktop.
+- **Career tab redesigned** — single-column layout replacing the previous
+  two-column grid. New order:
+  1. **Key professional significators** — planet cards (auto-fill grid) with
+     name, Primary badge, D10 sign/lord, and "Strong in D10" indicator.
+     Replaces the horizontal-scroll table; works on mobile without scrolling.
+  2. **Career themes** — pill tags (unchanged).
+  3. **Astrological indicators** — bullet list (unchanged).
+  4. **10th house — Karma Bhava** — key-value card (unchanged).
+  D10 chart and `TwoColumnTabGrid` removed from this view; unused imports
+  (`NatalChartGrid`, `Planet`, `SignName`) cleaned up.
+
+---
+
 ## [2026-05-22] — Shadbala admin tab; collapsible birth charts in Natal tab (mobile)
 
 ### Added
