@@ -15,6 +15,7 @@ import { AshtakavargaTab }   from '@/components/unified/tabs/AshtakavargaTab'
 import { DashaTab }          from '@/components/unified/tabs/DashaTab'
 import { TransitsTab }       from '@/components/unified/tabs/TransitsTab'
 import { CareerTab }         from '@/components/unified/tabs/CareerTab'
+import { ShadabalaTab }      from '@/components/unified/tabs/ShadabalaTab'
 import { NatalTab }          from '@/components/tabs/NatalTab'
 import { MuhurthaView }      from '@/components/engines/MuhurthaView'
 import { TarabalamView }     from '@/components/engines/TarabalamView'
@@ -24,7 +25,7 @@ export type ChartTabId =
   | 'today' | 'natal' | 'planets' | 'divisional'
   | 'yogas' | 'jaimini' | 'ashtakavarga'
   | 'dasha' | 'transits' | 'career' | 'compare'
-  | 'muhurtha' | 'tarabalam'
+  | 'muhurtha' | 'tarabalam' | 'shadbala'
 
 
 const CHART_TABS: { id: ChartTabId; label: string; adminOnly?: boolean }[] = [
@@ -39,6 +40,7 @@ const CHART_TABS: { id: ChartTabId; label: string; adminOnly?: boolean }[] = [
   { id: 'transits',     label: 'Transits',      adminOnly: true },
   { id: 'career',       label: 'Career'         },
   { id: 'compare',      label: 'Marriage Compatibility' },
+  { id: 'shadbala',     label: 'Shadbala',      adminOnly: true },
   { id: 'muhurtha',     label: 'Muhurtha',      adminOnly: true },
   { id: 'tarabalam',    label: 'Tarabalam',     adminOnly: true },
 ]
@@ -239,6 +241,7 @@ export function ProfileView({
             <NatalTab
               todayReadingOutput={todayReadingOutput ?? null}
               isTodayReadingLoading={isTodayReadingLoading}
+              chartOutput={chartOutput}
             />
           </div>
         )}
@@ -292,6 +295,11 @@ export function ProfileView({
               careerError={careerError}
               onFetchCareer={onFetchCareer}
             />
+          </div>
+        )}
+        {activeTab === 'shadbala' && isAdmin && chartOutput && (
+          <div id="profileview-panel-shadbala" role="tabpanel" aria-labelledby="profileview-tab-shadbala">
+            <ShadabalaTab chartOutput={chartOutput} />
           </div>
         )}
         {activeTab === 'muhurtha' && isAdmin && (

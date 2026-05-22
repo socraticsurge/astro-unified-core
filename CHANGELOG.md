@@ -8,6 +8,33 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Shadbala admin tab; collapsible birth charts in Natal tab (mobile)
+
+### Added
+- **Shadbala tab (admin-only).** Shadbala · Rupas table and Bhava Chalit ·
+  House Shifts grid extracted from the Planets tab into a dedicated
+  `ShadabalaTab` component. Visible on both mobile and desktop for admins.
+  Planets tab now contains only the Positions table.
+- **Collapsible D1 + D9 charts in Natal Chart tab (mobile only).** On small
+  screens the Natal Chart tab now shows a "Birth charts" toggle below the
+  reading. Tapping it expands D1 — Rasi and D9 — Navamsa grids as reference.
+  Hidden on `md` and above (sidebar already shows the charts on desktop).
+  `NatalTab` accepts a new `chartOutput` prop; `ProfileView` threads it
+  through.
+
+### Changed
+- `components/unified/tabs/PlanetsTab.tsx` — Shadbala and Bhava Chalit
+  sections removed; `ShadbalaPlanet` type and helper constants moved to
+  `ShadabalaTab`.
+- `components/unified/tabs/ShadabalaTab.tsx` — new component.
+- `components/tabs/NatalTab.tsx` — collapsible charts section added; new
+  `chartOutput` prop.
+- `components/profiles/ProfileView.tsx` — `'shadbala'` added to `ChartTabId`
+  and `CHART_TABS` (adminOnly); content section wired; `chartOutput` passed
+  to `NatalTab`.
+
+---
+
 ## [2026-05-22] — Natal Chart tab; remove mobile nudge; suppress success toast
 
 ### Added
