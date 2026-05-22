@@ -8,6 +8,23 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Add missing AI chat API routes
+
+### Fixed
+- **AI Panel chat** was throwing "Unexpected token '<'" (HTML 404 returned instead
+  of JSON) because `/api/readings/chat` and `/api/readings/chat/compatibility`
+  did not exist.
+- Created `app/api/readings/chat/route.ts` — POST handler for per-profile chat.
+  Loads profile name/DOB/place, enriches system prompt with the latest cached
+  natal insight if available, then calls `callAIForText` and returns
+  `{ response: string }`.
+- Created `app/api/readings/chat/compatibility/route.ts` — POST handler for
+  compatibility chat. Same pattern using the latest compat insight as context.
+  Both routes are admin-only, `force-dynamic`, and use `private, no-store`
+  Cache-Control.
+
+---
+
 ## [2026-05-22] — Update site meta title and description
 
 ### Changed
