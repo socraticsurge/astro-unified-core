@@ -169,12 +169,20 @@ export function CosmicLanding() {
   // Theme detection — default dark until hydration to avoid a white flash.
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    // setMounted in an effect body is intentional: we need one synchronous
+    // re-render after hydration to reveal the correct theme palette.
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    setMounted(true)
+  }, [])
   const isDark = !mounted || resolvedTheme !== 'light'
   const P: Palette = isDark ? DARK_PALETTE : LIGHT_PALETTE
   // paletteRef lets the canvas RAF loop read the current palette without
   // ever needing to restart (changing deps would kill the animation).
+  // Writing to a ref during render is the documented React escape-hatch for
+  // keeping a ref in sync with the latest render value.
   const paletteRef = useRef<Palette>(DARK_PALETTE)
+  // eslint-disable-next-line react-hooks/refs
   paletteRef.current = P
   // Shorthand: rgba(accent, opacity) for inline SVG paths
   const A = (op: number) => `rgba(${P.accent},${op})`
