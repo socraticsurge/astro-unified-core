@@ -1,6 +1,6 @@
 "use client"
 import { useState } from 'react'
-import { Sparkles, Monitor, PanelLeft } from 'lucide-react'
+import { Sparkles, PanelLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatName } from '@/lib/display'
 import type { Profile, CompatibilityCheck } from '@/lib/db'
@@ -15,20 +15,21 @@ import { AshtakavargaTab }   from '@/components/unified/tabs/AshtakavargaTab'
 import { DashaTab }          from '@/components/unified/tabs/DashaTab'
 import { TransitsTab }       from '@/components/unified/tabs/TransitsTab'
 import { CareerTab }         from '@/components/unified/tabs/CareerTab'
+import { NatalTab }          from '@/components/tabs/NatalTab'
 import { MuhurthaView }      from '@/components/engines/MuhurthaView'
 import { TarabalamView }     from '@/components/engines/TarabalamView'
 import type { AskContext }   from '@/components/panels/AskPanel'
 
 export type ChartTabId =
-  | 'today' | 'planets' | 'divisional'
+  | 'today' | 'natal' | 'planets' | 'divisional'
   | 'yogas' | 'jaimini' | 'ashtakavarga'
   | 'dasha' | 'transits' | 'career' | 'compare'
   | 'muhurtha' | 'tarabalam'
 
-const DESKTOP_ONLY_TABS = new Set<ChartTabId>(['planets', 'divisional', 'yogas', 'jaimini', 'ashtakavarga', 'dasha'])
 
 const CHART_TABS: { id: ChartTabId; label: string; adminOnly?: boolean }[] = [
   { id: 'today',        label: 'Current Period' },
+  { id: 'natal',        label: 'Natal Chart'    },
   { id: 'planets',      label: 'Planets'        },
   { id: 'divisional',   label: 'Divisional',    adminOnly: true },
   { id: 'yogas',        label: 'Yogas',         adminOnly: true },
@@ -133,7 +134,7 @@ export function ProfileView({
     })
   }
 
-  const needsChart = activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare' && activeTab !== 'muhurtha' && activeTab !== 'tarabalam'
+  const needsChart = activeTab !== 'today' && activeTab !== 'natal' && activeTab !== 'transits' && activeTab !== 'compare' && activeTab !== 'muhurtha' && activeTab !== 'tarabalam'
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -233,6 +234,14 @@ export function ProfileView({
             />
           </div>
         )}
+        {activeTab === 'natal' && (
+          <div id="profileview-panel-natal" role="tabpanel" aria-labelledby="profileview-tab-natal">
+            <NatalTab
+              todayReadingOutput={todayReadingOutput ?? null}
+              isTodayReadingLoading={isTodayReadingLoading}
+            />
+          </div>
+        )}
         {activeTab === 'planets' && chartOutput && (
           <div id="profileview-panel-planets" role="tabpanel" aria-labelledby="profileview-tab-planets">
             <PlanetsTab chartOutput={chartOutput} />
@@ -307,15 +316,7 @@ export function ProfileView({
           />
           </div>
         )}
-        {/* Desktop nudge for data-heavy tabs */}
-        {DESKTOP_ONLY_TABS.has(activeTab) && (
-          <div className="md:hidden mb-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs text-muted-foreground">
-            <Monitor className="h-3.5 w-3.5 shrink-0" />
-            Best explored on a desktop for full detail and interactivity.
-          </div>
-        )}
-
-        {needsChart && !chartOutput && (
+{needsChart && !chartOutput && (
           <div className="flex items-center justify-center h-40">
             <p className="text-sm text-muted-foreground">Loading chart data…</p>
           </div>

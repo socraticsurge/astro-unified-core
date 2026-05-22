@@ -88,7 +88,6 @@ export function AskPanel({
     try {
       await onSubmit(question.trim())
       setSent(true)
-      toast("Your question is on its way — we'll respond within 2 days.", "success")
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to submit. Please try again."
       setError(msg)
