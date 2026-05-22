@@ -152,29 +152,35 @@ export function CareerTab({
 
           {/* 4 — Karma Bhava (10th house) */}
           <TabSection when={!!tenth} title="10th house — Karma Bhava">
-            <div className="ac-card ac-card-pad">
-              <div className="ac-kv">
-                <div className="k">Sign</div><div className="v">{tenth?.sign ?? "—"}</div>
-                {tenth?.occupants && tenth.occupants.length > 0 && (
-                  <>
-                    <div className="k">Occupants</div><div className="v cool">{tenth.occupants.join(", ")}</div>
-                  </>
-                )}
-                <div className="k">Lord</div><div className="v cool">{tenth?.lord ?? "—"}</div>
-                <div className="k">Lord placed in</div>
-                <div className="v">H{tenth?.lord_house ?? "—"}{tenth?.lord_sign ? ` · ${tenth.lord_sign}` : ""}</div>
+            <div className="ac-card ac-card-pad" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {/* Sign — headline */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink-1)" }}>
+                  {tenth?.sign ?? "—"}
+                </span>
                 {tenth?.lord_dignity && (
-                  <>
-                    <div className="k">Lord dignity</div>
-                    <div className="v">
-                      <span className={`ac-tag ${dignityTone(tenth.lord_dignity)}`}>
-                        {tenth.lord_dignity.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                  </>
+                  <span className={`ac-tag ${dignityTone(tenth.lord_dignity)}`}>
+                    {tenth.lord_dignity.replace(/_/g, " ")}
+                  </span>
                 )}
-                <div className="k">Lord in D10</div><div className="v">{tenth?.lord_d10 ?? "—"}</div>
               </div>
+              {/* Occupants */}
+              {tenth?.occupants && tenth.occupants.length > 0 && (
+                <div style={{ fontSize: 11, color: "var(--color-ink-3)" }}>
+                  Occupants · <span style={{ color: "var(--color-cool)", fontWeight: 600 }}>{tenth.occupants.join(", ")}</span>
+                </div>
+              )}
+              {/* Lord row */}
+              <div style={{ fontSize: 11, color: "var(--color-ink-3)" }}>
+                Lord · <span className="planet" style={{ color: "var(--color-cool)", fontWeight: 600 }}>{tenth?.lord ?? "—"}</span>
+                {" "}in H{tenth?.lord_house ?? "—"}{tenth?.lord_sign ? ` · ${tenth.lord_sign}` : ""}
+              </div>
+              {/* Lord in D10 */}
+              {tenth?.lord_d10 && (
+                <div style={{ fontSize: 11, color: "var(--color-ink-3)" }}>
+                  Lord in D10 · <span style={{ color: "var(--color-ink-2)" }}>{tenth.lord_d10}</span>
+                </div>
+              )}
             </div>
           </TabSection>
 
