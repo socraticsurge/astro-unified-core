@@ -41,9 +41,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Astro Chaganti — Vedic birth charts by Dr. Vinay Kumar Chaganti",
+  title: "Astro Chaganti - Vedic Astrology Readings by Dr Chaganti",
   description:
-    "Detailed Vedic birth charts: Lagna, divisional charts, 5-level Vimshottari Dasha, Yogas, Shadbala, Karakamsha, and more. By Dr. Vinay Kumar Chaganti.",
+    "Personal consultations and simplified readings of your current period, natal charts, career themes, and marriage compatibility.",
 };
 
 export const viewport: Viewport = {
