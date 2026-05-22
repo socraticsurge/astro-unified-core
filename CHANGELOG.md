@@ -8,6 +8,14 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Constrain Karma Bhava card width on desktop
+
+### Fixed
+- Career tab — Karma Bhava card was stretching to full column width on desktop.
+  Added `maxWidth: 360px` to match the natural width of its content.
+
+---
+
 ## [2026-05-22] — Karma Bhava as simple card in Career tab
 
 ### Changed
