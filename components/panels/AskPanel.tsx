@@ -110,7 +110,14 @@ export function AskPanel({
             <div>
               <p className="text-sm font-semibold text-[var(--color-ink-1)] mb-1">Question submitted</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Dr. Chaganti will review your question and respond within 2 days.
+                You&apos;ll receive a response at your email address within 2 days.
+                If you need to reach Dr. Chaganti sooner, write directly to{" "}
+                <a
+                  href="mailto:astrochaganti@gmail.com"
+                  className="underline underline-offset-2 hover:text-[var(--color-ink-1)] transition-colors"
+                >
+                  astrochaganti@gmail.com
+                </a>
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="mt-2">
