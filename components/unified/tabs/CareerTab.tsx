@@ -1,7 +1,9 @@
 "use client";
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
+import type { Planet, SignName } from "@/components/unified/types";
 import { PLANET_ORDER, dignityTone } from "@/components/unified/types";
+import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import { SectionHeading } from "@/components/unified/SectionHeading";
 import { TabSection } from "@/components/unified/TabGrid";
 import { TabLoadingSkeleton } from "@/components/unified/TabLoadingSkeleton";
@@ -49,7 +51,11 @@ export function CareerTab({
     if (!careerOutput && !isCareerLoading) onFetchCareer();
   }, [careerOutput, isCareerLoading, onFetchCareer]);
 
-  // chartOutput retained for future D10 chart rendering
+  const chartData = chartOutput?.data as Record<string, unknown> | undefined;
+  const planets   = chartData?.planets as Record<string, Planet> | undefined;
+  const lagna     = chartData?.lagna   as Record<string, unknown> | undefined;
+  const lagnaD10  = lagna?.d10_sign as SignName | undefined;
+
   const career     = ((careerOutput as Record<string, unknown> | null)?.data ?? careerOutput) as CareerData | null;
   const tenth      = career?.tenth_house;
   const indicators = career?.d10_indicators ?? {};
@@ -170,6 +176,13 @@ export function CareerTab({
                 <div className="k">Lord in D10</div><div className="v">{tenth?.lord_d10 ?? "—"}</div>
               </div>
             </div>
+          </TabSection>
+
+          {/* 5 — D10 chart */}
+          <TabSection when={!!planets} title="D10 — Dashamsha">
+            {planets && (
+              <NatalChartGrid planets={planets} lagnaSign={lagnaD10} signKey="d10_sign" label="" />
+            )}
           </TabSection>
         </>
       )}
