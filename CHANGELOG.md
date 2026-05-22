@@ -8,6 +8,15 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Clarify email response in Ask panel confirmation
+
+### Changed
+- **AskPanel success state** — confirmation text now tells users the response
+  arrives at their email address (not the app), and provides
+  astrochaganti@gmail.com as a clickable mailto link for urgent queries.
+
+---
+
 ## [2026-05-22] — Restore D10 chart as last item in Career tab
 
 ### Fixed
