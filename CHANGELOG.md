@@ -8,6 +8,15 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Default theme changed to light (Vellum)
+
+### Changed
+- New visitors now land on the light "Vellum" theme instead of dark "Cosmic".
+  Single-line change in `ThemeProvider.tsx` (`defaultTheme="light"`).
+  Existing users with a stored `localStorage` preference are unaffected.
+
+---
+
 ## [2026-05-22] — Constrain Karma Bhava card width on desktop
 
 ### Fixed
