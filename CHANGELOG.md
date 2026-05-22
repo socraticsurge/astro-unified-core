@@ -8,6 +8,17 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Karma Bhava as simple card in Career tab
+
+### Changed
+- **Career tab — Karma Bhava section** converted from a label-value (`ac-kv`) grid
+  to a compact card: sign name as bold headline with dignity tag, occupants row,
+  lord row (house + sign), and lord-in-D10 row — consistent with the significator
+  planet cards above it.
+- **PlanetsTab test** updated to reflect Shadbala data now living in ShadabalaTab.
+
+---
+
 ## [2026-05-22] — Clarify email response in Ask panel confirmation
 
 ### Changed
