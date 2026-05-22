@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Restore D10 chart as last item in Career tab
+
+### Fixed
+- D10 — Dashamsha chart restored to Career tab as the fifth and final section
+  (was inadvertently dropped in the previous redesign). Order is now:
+  significator cards → career themes → astrological indicators →
+  Karma Bhava → D10 chart.
+
+---
+
 ## [2026-05-22] — Always-visible birth charts in Natal tab; Career tab redesign
 
 ### Changed
