@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Update site meta title and description
+
+### Changed
+- **`app/layout.tsx`** — title updated to "Astro Chaganti - Vedic Astrology
+  Readings by Dr Chaganti"; description rewritten from a technical feature list
+  to benefit-led copy: "Personal consultations and simplified readings of your
+  current period, natal charts, career themes, and marriage compatibility."
+
+---
+
 ## [2026-05-22] — CosmicLanding now theme-aware (dark ↔ light)
 
 ### Changed
