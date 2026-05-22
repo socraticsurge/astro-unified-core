@@ -316,3 +316,102 @@
   .ctaBtn { font-size: 15px; padding: 12px 0; }
   .ctaFootnote { font-size: 12px; margin-top: 6px; }
 }
+
+/* ── Light theme (Vellum) overrides ─────────────────────────────────────────
+   These selectors use :global() so the ancestor [data-theme="light"] escapes
+   the CSS-module hash while the class name stays scoped. */
+
+:global([data-theme="light"]) .panel {
+  background: rgba(31,26,23,0.07);
+  border: 1px solid rgba(31,26,23,0.13);
+  box-shadow: 0 32px 100px rgba(31,26,23,0.12),
+              inset 0 1.5px 0 rgba(255,255,255,0.6),
+              inset 0 -1px 0 rgba(31,26,23,0.04);
+}
+
+:global([data-theme="light"]) .skyRow {
+  border-bottom-color: rgba(31,26,23,0.1);
+}
+:global([data-theme="light"]) .skyTile {
+  border-left-color: rgba(31,26,23,0.1);
+}
+:global([data-theme="light"]) .skyDayLabel {
+  color: rgba(142,42,31,0.85);
+}
+:global([data-theme="light"]) .skyTileLabel {
+  color: rgba(31,26,23,0.5);
+}
+:global([data-theme="light"]) .skyTileValue {
+  color: rgba(31,26,23,0.9);
+}
+
+:global([data-theme="light"]) .cosmosEyebrow {
+  color: rgba(31,26,23,0.4);
+}
+:global([data-theme="light"]) .cosmosEyebrowSign {
+  color: rgba(142,42,31,0.9);
+}
+:global([data-theme="light"]) .snippetText p {
+  color: rgba(31,26,23,0.88);
+}
+
+:global([data-theme="light"]) .panelDivider {
+  background: rgba(31,26,23,0.1);
+}
+:global([data-theme="light"]) .featureSep {
+  background: rgba(31,26,23,0.1);
+}
+:global([data-theme="light"]) .featureName {
+  color: rgba(31,26,23,0.5);
+}
+
+:global([data-theme="light"]) .brandName {
+  color: rgba(31,26,23,0.92);
+}
+:global([data-theme="light"]) .brandName em {
+  background: linear-gradient(135deg, #b83a2a 0%, #8E2A1F 50%, #6d1f16 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 0 14px rgba(142,42,31,0.2));
+}
+:global([data-theme="light"]) .brandSub {
+  color: rgba(31,26,23,0.45);
+}
+
+:global([data-theme="light"]) .siderealLine {
+  background: rgba(31,26,23,0.15);
+}
+:global([data-theme="light"]) .siderealRow span {
+  color: rgba(31,26,23,0.45);
+}
+
+:global([data-theme="light"]) .ctaBtn {
+  color: #F2ECDF;
+  background: linear-gradient(105deg, #6d1f16 0%, #8E2A1F 35%, #c44030 50%, #8E2A1F 65%, #6d1f16 100%);
+  background-size: 200% auto;
+  box-shadow: 0 4px 28px rgba(142,42,31,0.3);
+}
+
+/* Mobile overrides — parchment-toned to match the light background */
+@media (max-width: 700px) {
+  :global([data-theme="light"]) .mobileFade {
+    background: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(242,236,223,0.7) 50%,
+      rgba(242,236,223,0.97) 100%);
+  }
+  :global([data-theme="light"]) .panel {
+    background: rgba(242,236,223,0.9);
+    backdrop-filter: blur(42px) saturate(1.4) brightness(1.02);
+    -webkit-backdrop-filter: blur(42px) saturate(1.4) brightness(1.02);
+  }
+  :global([data-theme="light"]) .pill {
+    background: rgba(242,236,223,0.75);
+    border-color: rgba(31,26,23,0.18);
+    color: rgba(31,26,23,0.65);
+  }
+  :global([data-theme="light"]) .pillActive {
+    background: rgba(142,42,31,0.12);
+    border-color: rgba(142,42,31,0.5);
+    color: rgba(142,42,31,0.95);
+  }
+}
