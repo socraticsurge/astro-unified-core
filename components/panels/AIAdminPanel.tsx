@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useTheme } from "next-themes"
 import { marked } from "marked"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
@@ -13,9 +14,12 @@ import type { ChartTabId } from "@/components/profiles/ProfileView"
 
 function MarkdownMessage({ content }: { content: string }) {
   const html = useMemo(() => sanitizeHtml(marked(content) as string), [content])
+  const { resolvedTheme } = useTheme()
+  // prose-invert forces light text — only apply it in dark mode
+  const invertClass = resolvedTheme === "dark" ? "prose-invert" : ""
   return (
     <div
-      className="prose prose-sm prose-invert max-w-none text-[var(--color-ink-2)] [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>ul]:pl-4 [&>ol]:pl-4 [&>li]:mb-0.5 [&>h1,h2,h3,h4]:font-semibold [&>h3,h4]:text-xs [&>h3,h4]:uppercase [&>h3,h4]:tracking-wide [&>h3,h4]:text-[var(--color-ink-3)] [&>blockquote]:border-l-2 [&>blockquote]:border-[var(--color-border)] [&>blockquote]:pl-3 [&>blockquote]:text-[var(--color-ink-3)] [&>code]:bg-[var(--color-surface-2)] [&>code]:px-1 [&>code]:rounded"
+      className={`prose prose-sm ${invertClass} max-w-none text-[var(--color-ink-2)] [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2 [&>ul]:pl-4 [&>ol]:pl-4 [&>li]:mb-0.5 [&>h1,h2,h3,h4]:font-semibold [&>h3,h4]:text-xs [&>h3,h4]:uppercase [&>h3,h4]:tracking-wide [&>h3,h4]:text-[var(--color-ink-3)] [&>blockquote]:border-l-2 [&>blockquote]:border-[var(--color-border)] [&>blockquote]:pl-3 [&>blockquote]:text-[var(--color-ink-3)] [&>code]:bg-[var(--color-surface-2)] [&>code]:px-1 [&>code]:rounded`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   )
