@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Fix unreadable chat text in light theme
+
+### Fixed
+- **AI Panel chat responses** were unreadable in the light (Vellum) theme: planet
+  names, dasha timings, and other markdown-rendered text appeared in light colours
+  against the parchment background.
+- Root cause: `MarkdownMessage` in `AIAdminPanel.tsx` had `prose-invert` hardcoded,
+  which forces all Tailwind Typography text to light variants regardless of theme.
+- Fix: import `useTheme` from `next-themes` and apply `prose-invert` only when
+  `resolvedTheme === "dark"`. Light theme now renders dark ink text correctly via
+  the existing `var(--color-ink-*)` CSS tokens.
+
+---
+
 ## [2026-05-22] — Add missing AI chat API routes
 
 ### Fixed
