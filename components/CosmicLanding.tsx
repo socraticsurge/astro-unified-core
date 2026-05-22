@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { useTheme } from 'next-themes'
 import posthog from 'posthog-js'
 import { signIn } from 'next-auth/react'
 import styles from './CosmicLanding.module.css'
@@ -94,9 +95,89 @@ function buildSkyTiles(d: LandingData | null): SkyTile[] {
   return tiles
 }
 
+// ── Theme palettes ────────────────────────────────────────────────────────────
+// All colors that need to flip between dark ("Cosmic") and light ("Vellum").
+// The canvas draw loop reads from paletteRef.current so it never needs a restart.
+const DARK_PALETTE = {
+  bg:             'radial-gradient(ellipse 100% 80% at 50% -5%, #0e0730 0%, #060318 55%, #020110 100%)',
+  blobTL:         'radial-gradient(circle, rgba(70,40,180,0.22) 0%, transparent 70%)',
+  blobBR:         'radial-gradient(circle, rgba(100,40,200,0.15) 0%, transparent 70%)',
+  tickRing:       'rgba(251,191,36,0.15)',
+  majorTick:      'rgba(251,191,36,0.6)',
+  minorTick:      'rgba(180,160,255,0.22)',
+  outerRing:      'rgba(180,160,255,0.32)',
+  wedgeOutEven:   'rgba(255,255,255,0.025)',
+  wedgeOutOdd:    'rgba(140,100,255,0.05)',
+  wedgeOutStroke: 'rgba(180,160,255,0.22)',
+  wedgeInEven:    'rgba(10,5,28,0.78)',
+  wedgeInOdd:     'rgba(18,9,40,0.78)',
+  wedgeInStroke:  'rgba(180,160,255,0.15)',
+  zodiacText:     'rgba(255,255,255,0.4)',
+  ring1:          'rgba(180,160,255,0.35)',
+  ring2:          'rgba(251,191,36,0.22)',
+  ring3:          'rgba(180,160,255,0.12)',
+  rimGlow0:       'rgba(100,60,200,0)',
+  rimGlow1:       'rgba(100,60,200,0.18)',
+  // milky way gradient stops
+  mwA:            'rgba(80,60,140,0)',
+  mwB:            'rgba(80,60,140,0.05)',
+  mwC:            'rgba(100,80,160,0.08)',
+  // canvas particle prefixes (opacity appended in draw loop)
+  starWarm:       'rgba(255,230,180,',
+  starCool:       'rgba(210,225,255,',
+  meteor:         'rgba(255,255,255,',
+  // SVG accent (amber gold → sindoor brick)
+  accent:         '251,191,36',
+  // Google "G" icon fill
+  googleIcon:     '#1a0800',
+}
+const LIGHT_PALETTE = {
+  bg:             '#F2ECDF',
+  blobTL:         'radial-gradient(circle, rgba(142,42,31,0.07) 0%, transparent 70%)',
+  blobBR:         'radial-gradient(circle, rgba(142,42,31,0.05) 0%, transparent 70%)',
+  tickRing:       'rgba(142,42,31,0.15)',
+  majorTick:      'rgba(142,42,31,0.5)',
+  minorTick:      'rgba(180,100,80,0.3)',
+  outerRing:      'rgba(180,100,80,0.35)',
+  wedgeOutEven:   'rgba(31,26,23,0.02)',
+  wedgeOutOdd:    'rgba(142,42,31,0.04)',
+  wedgeOutStroke: 'rgba(180,100,80,0.25)',
+  wedgeInEven:    'rgba(242,236,223,0.85)',
+  wedgeInOdd:     'rgba(240,232,218,0.85)',
+  wedgeInStroke:  'rgba(180,100,80,0.15)',
+  zodiacText:     'rgba(31,26,23,0.45)',
+  ring1:          'rgba(180,100,80,0.3)',
+  ring2:          'rgba(142,42,31,0.2)',
+  ring3:          'rgba(180,100,80,0.12)',
+  rimGlow0:       'rgba(142,42,31,0)',
+  rimGlow1:       'rgba(142,42,31,0.12)',
+  mwA:            'rgba(180,100,80,0)',
+  mwB:            'rgba(180,100,80,0.02)',
+  mwC:            'rgba(180,100,80,0.03)',
+  starWarm:       'rgba(142,42,31,',
+  starCool:       'rgba(100,60,40,',
+  meteor:         'rgba(31,26,23,',
+  accent:         '142,42,31',
+  googleIcon:     '#F2ECDF',
+}
+type Palette = typeof DARK_PALETTE
+
 export function CosmicLanding() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const zodiacGRef = useRef<SVGGElement>(null)
+
+  // Theme detection — default dark until hydration to avoid a white flash.
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  const isDark = !mounted || resolvedTheme !== 'light'
+  const P: Palette = isDark ? DARK_PALETTE : LIGHT_PALETTE
+  // paletteRef lets the canvas RAF loop read the current palette without
+  // ever needing to restart (changing deps would kill the animation).
+  const paletteRef = useRef<Palette>(DARK_PALETTE)
+  paletteRef.current = P
+  // Shorthand: rgba(accent, opacity) for inline SVG paths
+  const A = (op: number) => `rgba(${P.accent},${op})`
 
   const [data, setData] = useState<LandingData | null>(null)
 
@@ -185,6 +266,7 @@ export function CosmicLanding() {
   useEffect(() => {
     const g = zodiacGRef.current
     if (!g) return
+    const pal = isDark ? DARK_PALETTE : LIGHT_PALETTE
     const ns = 'http://www.w3.org/2000/svg'
     const R = 300, r1 = 262, r2 = 228
     const SYM = (R + r1) / 2, NAM = (r1 + r2) / 2
@@ -192,7 +274,7 @@ export function CosmicLanding() {
     const tickRing = document.createElementNS(ns, 'circle')
     tickRing.setAttribute('r', String(R + 17))
     tickRing.setAttribute('fill', 'none')
-    tickRing.setAttribute('stroke', 'rgba(251,191,36,0.15)')
+    tickRing.setAttribute('stroke', pal.tickRing)
     tickRing.setAttribute('stroke-width', '1')
     g.appendChild(tickRing)
 
@@ -204,7 +286,7 @@ export function CosmicLanding() {
       l.setAttribute('y1', String(Math.sin(a) * (major ? R + 2 : R + 6)))
       l.setAttribute('x2', String(Math.cos(a) * (R + 16)))
       l.setAttribute('y2', String(Math.sin(a) * (R + 16)))
-      l.setAttribute('stroke', major ? 'rgba(251,191,36,0.6)' : 'rgba(180,160,255,0.22)')
+      l.setAttribute('stroke', major ? pal.majorTick : pal.minorTick)
       l.setAttribute('stroke-width', major ? '1.3' : '0.5')
       g.appendChild(l)
     }
@@ -212,7 +294,7 @@ export function CosmicLanding() {
     const outerRing = document.createElementNS(ns, 'circle')
     outerRing.setAttribute('r', String(R))
     outerRing.setAttribute('fill', 'none')
-    outerRing.setAttribute('stroke', 'rgba(180,160,255,0.32)')
+    outerRing.setAttribute('stroke', pal.outerRing)
     outerRing.setAttribute('stroke-width', '0.8')
     g.appendChild(outerRing)
 
@@ -232,8 +314,8 @@ export function CosmicLanding() {
 
       const outerPath = document.createElementNS(ns, 'path')
       outerPath.setAttribute('d', outer)
-      outerPath.setAttribute('fill', i % 2 === 0 ? 'rgba(255,255,255,0.025)' : 'rgba(140,100,255,0.05)')
-      outerPath.setAttribute('stroke', 'rgba(180,160,255,0.22)')
+      outerPath.setAttribute('fill', i % 2 === 0 ? pal.wedgeOutEven : pal.wedgeOutOdd)
+      outerPath.setAttribute('stroke', pal.wedgeOutStroke)
       outerPath.setAttribute('stroke-width', '0.8')
       // Make the wedge a click target. Parent .zodiacWrap has pointer-events:
       // none; re-enable here. Use setAttribute since SVGElement.style is
@@ -244,15 +326,15 @@ export function CosmicLanding() {
 
       const innerPath = document.createElementNS(ns, 'path')
       innerPath.setAttribute('d', inner)
-      innerPath.setAttribute('fill', i % 2 === 0 ? 'rgba(10,5,28,0.78)' : 'rgba(18,9,40,0.78)')
-      innerPath.setAttribute('stroke', 'rgba(180,160,255,0.15)')
+      innerPath.setAttribute('fill', i % 2 === 0 ? pal.wedgeInEven : pal.wedgeInOdd)
+      innerPath.setAttribute('stroke', pal.wedgeInStroke)
       innerPath.setAttribute('stroke-width', '0.5')
       g.appendChild(innerPath)
 
       const sym = document.createElementNS(ns, 'text')
       sym.setAttribute('x', String(sx)); sym.setAttribute('y', String(sy))
       sym.setAttribute('text-anchor', 'middle'); sym.setAttribute('dominant-baseline', 'central')
-      sym.setAttribute('font-size', '22'); sym.setAttribute('fill', 'rgba(255,255,255,0.4)')
+      sym.setAttribute('font-size', '22'); sym.setAttribute('fill', pal.zodiacText)
       sym.setAttribute('transform', `rotate(${deg},${sx},${sy})`)
       sym.textContent = z.symbol
       g.appendChild(sym)
@@ -260,7 +342,7 @@ export function CosmicLanding() {
       const nam = document.createElementNS(ns, 'text')
       nam.setAttribute('x', String(nx)); nam.setAttribute('y', String(ny))
       nam.setAttribute('text-anchor', 'middle'); nam.setAttribute('dominant-baseline', 'central')
-      nam.setAttribute('font-size', '7'); nam.setAttribute('fill', 'rgba(255,255,255,0.4)')
+      nam.setAttribute('font-size', '7'); nam.setAttribute('fill', pal.zodiacText)
       nam.setAttribute('letter-spacing', '0.1em')
       nam.setAttribute('transform', `rotate(${deg + 90},${nx},${ny})`)
       nam.textContent = z.name.toUpperCase()
@@ -268,9 +350,9 @@ export function CosmicLanding() {
     })
 
     ;([
-      [r2, 'rgba(180,160,255,0.35)', '1.2'],
-      [r2 - 10, 'rgba(251,191,36,0.22)', '0.7'],
-      [r2 - 22, 'rgba(180,160,255,0.12)', '0.4'],
+      [r2,      pal.ring1, '1.2'],
+      [r2 - 10, pal.ring2, '0.7'],
+      [r2 - 22, pal.ring3, '0.4'],
     ] as [number, string, string][]).forEach(([r, stroke, sw]) => {
       const c = document.createElementNS(ns, 'circle')
       c.setAttribute('r', String(r)); c.setAttribute('fill', 'none')
@@ -279,7 +361,7 @@ export function CosmicLanding() {
     })
 
     return () => { while (g.firstChild) g.removeChild(g.firstChild) }
-  }, [])
+  }, [isDark])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -297,7 +379,11 @@ export function CosmicLanding() {
     let nextMeteor = 0
     let rafId: number | null = null
     let paused = false
-    let milkyWay: CanvasGradient | null = null
+    // Two milky-way gradients — dark and light. Built once per resize, both
+    // kept alive so the draw loop can switch between them instantly on theme
+    // change without recreating the gradient every frame.
+    let milkyWayDark: CanvasGradient | null = null
+    let milkyWayLight: CanvasGradient | null = null
     let resizeTimer: ReturnType<typeof setTimeout> | null = null
 
     function buildStars() {
@@ -313,12 +399,18 @@ export function CosmicLanding() {
           vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
         }
       })
-      milkyWay = ctx.createLinearGradient(0, 0, cv.width, cv.height)
-      milkyWay.addColorStop(0, 'rgba(80,60,140,0)')
-      milkyWay.addColorStop(0.4, 'rgba(80,60,140,0.05)')
-      milkyWay.addColorStop(0.5, 'rgba(100,80,160,0.08)')
-      milkyWay.addColorStop(0.6, 'rgba(80,60,140,0.05)')
-      milkyWay.addColorStop(1, 'rgba(80,60,140,0)')
+      milkyWayDark = ctx.createLinearGradient(0, 0, cv.width, cv.height)
+      milkyWayDark.addColorStop(0,   DARK_PALETTE.mwA)
+      milkyWayDark.addColorStop(0.4, DARK_PALETTE.mwB)
+      milkyWayDark.addColorStop(0.5, DARK_PALETTE.mwC)
+      milkyWayDark.addColorStop(0.6, DARK_PALETTE.mwB)
+      milkyWayDark.addColorStop(1,   DARK_PALETTE.mwA)
+      milkyWayLight = ctx.createLinearGradient(0, 0, cv.width, cv.height)
+      milkyWayLight.addColorStop(0,   LIGHT_PALETTE.mwA)
+      milkyWayLight.addColorStop(0.4, LIGHT_PALETTE.mwB)
+      milkyWayLight.addColorStop(0.5, LIGHT_PALETTE.mwC)
+      milkyWayLight.addColorStop(0.6, LIGHT_PALETTE.mwB)
+      milkyWayLight.addColorStop(1,   LIGHT_PALETTE.mwA)
     }
 
     function resize() {
@@ -342,7 +434,10 @@ export function CosmicLanding() {
       rafId = requestAnimationFrame(draw)
       t += 0.008
       const W = cv.width, H = cv.height
+      const cp = paletteRef.current
+      const isDarkNow = cp === DARK_PALETTE
       ctx.clearRect(0, 0, W, H)
+      const milkyWay = isDarkNow ? milkyWayDark : milkyWayLight
       if (milkyWay) { ctx.fillStyle = milkyWay; ctx.fillRect(0, 0, W, H) }
 
       for (const s of stars) {
@@ -350,10 +445,10 @@ export function CosmicLanding() {
         const op = Math.min(s.baseOp * burst * (0.3 + 0.7 * Math.abs(Math.sin(t * s.sp + s.ph))), 0.92)
         ctx.beginPath()
         ctx.arc(s.x, s.y, s.r * (burst > 1 ? 1.5 : 1), 0, Math.PI * 2)
-        ctx.fillStyle = s.warm ? `rgba(255,230,180,${op.toFixed(3)})` : `rgba(210,225,255,${op.toFixed(3)})`
+        ctx.fillStyle = s.warm ? `${cp.starWarm}${op.toFixed(3)})` : `${cp.starCool}${op.toFixed(3)})`
         ctx.fill()
         if (burst > 1 && s.r > 0.8) {
-          ctx.strokeStyle = s.warm ? `rgba(255,230,180,${op.toFixed(3)})` : `rgba(210,225,255,${op.toFixed(3)})`
+          ctx.strokeStyle = s.warm ? `${cp.starWarm}${op.toFixed(3)})` : `${cp.starCool}${op.toFixed(3)})`
           ctx.lineWidth = 0.4
           ctx.beginPath(); ctx.moveTo(s.x - 5, s.y); ctx.lineTo(s.x + 5, s.y); ctx.stroke()
           ctx.beginPath(); ctx.moveTo(s.x, s.y - 5); ctx.lineTo(s.x, s.y + 5); ctx.stroke()
@@ -370,8 +465,8 @@ export function CosmicLanding() {
         const mag = Math.hypot(m.vx, m.vy)
         const nx = m.vx / mag, ny = m.vy / mag
         const grad = ctx.createLinearGradient(m.x - nx * m.len, m.y - ny * m.len, m.x, m.y)
-        grad.addColorStop(0, 'rgba(255,255,255,0)')
-        grad.addColorStop(1, `rgba(255,255,255,${(a * 0.85).toFixed(3)})`)
+        grad.addColorStop(0, `${cp.meteor}0)`)
+        grad.addColorStop(1, `${cp.meteor}${(a * 0.85).toFixed(3)})`)
         ctx.beginPath(); ctx.moveTo(m.x - nx * m.len, m.y - ny * m.len); ctx.lineTo(m.x, m.y)
         ctx.strokeStyle = grad; ctx.lineWidth = 1.4; ctx.stroke()
         m.x += m.vx; m.y += m.vy; m.life++
@@ -456,14 +551,14 @@ export function CosmicLanding() {
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      background: 'radial-gradient(ellipse 100% 80% at 50% -5%, #0e0730 0%, #060318 55%, #020110 100%)',
+      background: P.bg,
       overflow: 'hidden',
     }}>
       <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }} />
 
       {/* Ambient blobs */}
-      <div style={{ position: 'fixed', top: '-20%', left: '0%', width: 560, height: 440, borderRadius: '50%', pointerEvents: 'none', filter: 'blur(50px)', zIndex: 1, background: 'radial-gradient(circle, rgba(70,40,180,0.22) 0%, transparent 70%)' }} />
-      <div style={{ position: 'fixed', bottom: '-15%', right: '0%', width: 480, height: 480, borderRadius: '50%', pointerEvents: 'none', filter: 'blur(55px)', zIndex: 1, background: 'radial-gradient(circle, rgba(100,40,200,0.15) 0%, transparent 70%)' }} />
+      <div style={{ position: 'fixed', top: '-20%', left: '0%', width: 560, height: 440, borderRadius: '50%', pointerEvents: 'none', filter: 'blur(50px)', zIndex: 1, background: P.blobTL }} />
+      <div style={{ position: 'fixed', bottom: '-15%', right: '0%', width: 480, height: 480, borderRadius: '50%', pointerEvents: 'none', filter: 'blur(55px)', zIndex: 1, background: P.blobBR }} />
 
       <div className={styles.mobileFade} />
 
@@ -476,8 +571,8 @@ export function CosmicLanding() {
               <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
             </filter>
             <radialGradient id="rimGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="60%" stopColor="rgba(100,60,200,0)" />
-              <stop offset="100%" stopColor="rgba(100,60,200,0.18)" />
+              <stop offset="60%" stopColor={P.rimGlow0} />
+              <stop offset="100%" stopColor={P.rimGlow1} />
             </radialGradient>
           </defs>
           <circle r={320} fill="url(#rimGlow)" />
@@ -539,11 +634,11 @@ export function CosmicLanding() {
         <div className={styles.brandRow}>
           <div className={styles.glyphWrap}>
             <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style={{ position: 'relative', zIndex: 1 }}>
-              <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)" stroke="rgba(251,191,36,0.82)" strokeWidth="1.4" fill="none" />
-              <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)" stroke="rgba(251,191,36,0.6)" strokeWidth="1.1" fill="none" />
-              <circle cx="13.5" cy="16" r="1.5" fill="rgba(251,191,36,0.8)" />
-              <circle cx="34.5" cy="32" r="1.5" fill="rgba(251,191,36,0.8)" />
-              <circle cx="24" cy="24" r="2.6" fill="rgba(251,191,36,1)" />
+              <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)" stroke={A(0.82)} strokeWidth="1.4" fill="none" />
+              <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)" stroke={A(0.6)} strokeWidth="1.1" fill="none" />
+              <circle cx="13.5" cy="16" r="1.5" fill={A(0.8)} />
+              <circle cx="34.5" cy="32" r="1.5" fill={A(0.8)} />
+              <circle cx="24" cy="24" r="2.6" fill={A(1)} />
             </svg>
           </div>
           <div>
@@ -555,35 +650,35 @@ export function CosmicLanding() {
         <div className={styles.features}>
           <div className={styles.featureItem}>
             <svg width="32" height="32" viewBox="0 0 28 28" fill="none" style={{ opacity: 0.65 }}>
-              <circle cx="14" cy="14" r="12" stroke="rgba(251,191,36,0.8)" strokeWidth="0.8" />
-              <circle cx="14" cy="14" r="6" stroke="rgba(251,191,36,0.5)" strokeWidth="0.6" />
-              <circle cx="14" cy="14" r="1.5" fill="rgba(251,191,36,0.9)" />
-              <line x1="14" y1="2" x2="14" y2="8" stroke="rgba(251,191,36,0.55)" strokeWidth="0.7" />
-              <line x1="14" y1="20" x2="14" y2="26" stroke="rgba(251,191,36,0.55)" strokeWidth="0.7" />
-              <line x1="2" y1="14" x2="8" y2="14" stroke="rgba(251,191,36,0.55)" strokeWidth="0.7" />
-              <line x1="20" y1="14" x2="26" y2="14" stroke="rgba(251,191,36,0.55)" strokeWidth="0.7" />
-              <line x1="5.5" y1="5.5" x2="9.3" y2="9.3" stroke="rgba(251,191,36,0.28)" strokeWidth="0.6" />
-              <line x1="18.7" y1="18.7" x2="22.5" y2="22.5" stroke="rgba(251,191,36,0.28)" strokeWidth="0.6" />
-              <line x1="22.5" y1="5.5" x2="18.7" y2="9.3" stroke="rgba(251,191,36,0.28)" strokeWidth="0.6" />
-              <line x1="9.3" y1="18.7" x2="5.5" y2="22.5" stroke="rgba(251,191,36,0.28)" strokeWidth="0.6" />
+              <circle cx="14" cy="14" r="12" stroke={A(0.8)} strokeWidth="0.8" />
+              <circle cx="14" cy="14" r="6" stroke={A(0.5)} strokeWidth="0.6" />
+              <circle cx="14" cy="14" r="1.5" fill={A(0.9)} />
+              <line x1="14" y1="2" x2="14" y2="8" stroke={A(0.55)} strokeWidth="0.7" />
+              <line x1="14" y1="20" x2="14" y2="26" stroke={A(0.55)} strokeWidth="0.7" />
+              <line x1="2" y1="14" x2="8" y2="14" stroke={A(0.55)} strokeWidth="0.7" />
+              <line x1="20" y1="14" x2="26" y2="14" stroke={A(0.55)} strokeWidth="0.7" />
+              <line x1="5.5" y1="5.5" x2="9.3" y2="9.3" stroke={A(0.28)} strokeWidth="0.6" />
+              <line x1="18.7" y1="18.7" x2="22.5" y2="22.5" stroke={A(0.28)} strokeWidth="0.6" />
+              <line x1="22.5" y1="5.5" x2="18.7" y2="9.3" stroke={A(0.28)} strokeWidth="0.6" />
+              <line x1="9.3" y1="18.7" x2="5.5" y2="22.5" stroke={A(0.28)} strokeWidth="0.6" />
             </svg>
             <div className={styles.featureName}>Natal<br />Charts</div>
           </div>
           <div className={styles.featureSep} />
           <div className={styles.featureItem}>
             <svg width="32" height="32" viewBox="0 0 28 28" fill="none" style={{ opacity: 0.65 }}>
-              <circle cx="10" cy="14" r="9" stroke="rgba(251,191,36,0.8)" strokeWidth="0.8" fill="rgba(251,191,36,0.03)" />
-              <circle cx="18" cy="14" r="9" stroke="rgba(251,191,36,0.8)" strokeWidth="0.8" fill="rgba(251,191,36,0.03)" />
-              <path d="M14 6.6 C16.5 8.8 16.5 19.2 14 21.4 C11.5 19.2 11.5 8.8 14 6.6Z" fill="rgba(251,191,36,0.22)" />
+              <circle cx="10" cy="14" r="9" stroke={A(0.8)} strokeWidth="0.8" fill={A(0.03)} />
+              <circle cx="18" cy="14" r="9" stroke={A(0.8)} strokeWidth="0.8" fill={A(0.03)} />
+              <path d="M14 6.6 C16.5 8.8 16.5 19.2 14 21.4 C11.5 19.2 11.5 8.8 14 6.6Z" fill={A(0.22)} />
             </svg>
             <div className={styles.featureName}>Kundali<br />Matching</div>
           </div>
           <div className={styles.featureSep} />
           <div className={styles.featureItem}>
             <svg width="32" height="32" viewBox="0 0 28 28" fill="none" style={{ opacity: 0.65 }}>
-              <circle cx="14" cy="9" r="4.5" stroke="rgba(251,191,36,0.8)" strokeWidth="0.8" />
-              <path d="M5 24 C5 18.5 8.5 15 14 15 C19.5 15 23 18.5 23 24" stroke="rgba(251,191,36,0.8)" strokeWidth="0.8" strokeLinecap="round" fill="none" />
-              <circle cx="14" cy="9" r="1.5" fill="rgba(251,191,36,0.7)" />
+              <circle cx="14" cy="9" r="4.5" stroke={A(0.8)} strokeWidth="0.8" />
+              <path d="M5 24 C5 18.5 8.5 15 14 15 C19.5 15 23 18.5 23 24" stroke={A(0.8)} strokeWidth="0.8" strokeLinecap="round" fill="none" />
+              <circle cx="14" cy="9" r="1.5" fill={A(0.7)} />
             </svg>
             <div className={styles.featureName}>Personal<br />Consultations</div>
           </div>
@@ -601,10 +696,10 @@ export function CosmicLanding() {
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
         >
           <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#1a0800" />
-            <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#1a0800" />
-            <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#1a0800" />
-            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#1a0800" />
+            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill={P.googleIcon} />
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill={P.googleIcon} />
+            <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill={P.googleIcon} />
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill={P.googleIcon} />
           </svg>
           Continue with Google
         </button>

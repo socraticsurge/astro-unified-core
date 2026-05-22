@@ -8,6 +8,23 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — CosmicLanding now theme-aware (dark ↔ light)
+
+### Changed
+- **`components/CosmicLanding.tsx`** — fully theme-aware via `useTheme()`.
+  Added `DARK_PALETTE` and `LIGHT_PALETTE` constants covering every hardcoded
+  color in the component. Background, ambient blobs, zodiac wheel (rebuilt on
+  theme change via `isDark` in its `useEffect` dep array), canvas star/meteor
+  colors (read from a `paletteRef` on every RAF frame without restarting the
+  loop), inline SVG glyphs, and the Google sign-in icon all switch between the
+  cosmic dark and warm parchment Vellum palettes.
+- **`components/CosmicLanding.module.css`** — added `:global([data-theme="light"])`
+  overrides for every color-bearing class: panel glass, text hierarchy, brand
+  gradient (amber → sindoor brick), CTA button (amber → brick red), dividers,
+  and mobile pill strip / fade overlay.
+
+---
+
 ## [2026-05-22] — Default theme changed to light (Vellum)
 
 ### Changed
