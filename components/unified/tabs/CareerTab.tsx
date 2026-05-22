@@ -152,7 +152,7 @@ export function CareerTab({
 
           {/* 4 — Karma Bhava (10th house) */}
           <TabSection when={!!tenth} title="10th house — Karma Bhava">
-            <div className="ac-card ac-card-pad" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="ac-card ac-card-pad" style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 360 }}>
               {/* Sign — headline */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--color-ink-1)" }}>
