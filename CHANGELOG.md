@@ -8,6 +8,31 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Natal Chart tab; remove mobile nudge; suppress success toast
+
+### Added
+- **Natal Chart tab.** The natal chart reading (`chart_reading` from the
+  today-reading engine) now lives in its own dedicated tab between Current
+  Period and Planets. No new data fetching — the payload was already present.
+  The Current Period tab is now single-column, focused purely on what's
+  happening now (insight cards, dasha period, dasha reading).
+- `components/tabs/NatalTab.tsx` — new component rendering the natal reading
+  with loading and empty states.
+
+### Changed
+- `components/tabs/TodayTab.tsx` — right column (natal reading) removed;
+  layout simplified from `TwoColumnTabGrid` to a single `div.space-y-6`.
+- `components/profiles/ProfileView.tsx` — `'natal'` added to `ChartTabId`;
+  Natal Chart entry added to `CHART_TABS`; content section wired;
+  `needsChart` excludes `'natal'` since it uses `todayReadingOutput` not
+  sidecar data; `DESKTOP_ONLY_TABS` set and mobile nudge block removed;
+  `Monitor` import removed.
+- `components/panels/AskPanel.tsx` — success toast suppressed after question
+  submission. The inline panel confirmation ("Dr. Chaganti will respond within
+  2 days") is sufficient; the toast was redundant. Error toast is preserved.
+
+---
+
 ## [2026-05-22] — Admin-only tabs; rename Today → Current Period
 
 ### Changed
