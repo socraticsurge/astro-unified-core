@@ -57,12 +57,12 @@ export function summarizeDashaflow(out: Output): string {
   const planets = data.planets as
     | Record<
         string,
-        { sign?: string; degree?: number; house?: number; nakshatra?: string; dignity?: string; is_retrograde?: boolean }
+        { sign?: string; degree?: number; house?: number; nakshatra?: string; dignity?: string; is_retrograde?: boolean; d9_sign?: string }
       >
     | undefined;
   if (planets) {
     lines.push("");
-    lines.push("Planets (sidereal):");
+    lines.push("Planets (sidereal D1):");
     for (const [name, p] of Object.entries(planets)) {
       const seg = [
         `  ${name}: ${p.sign ?? "—"} ${typeof p.degree === "number" ? `${p.degree.toFixed(2)}°` : ""}`,
@@ -74,6 +74,19 @@ export function summarizeDashaflow(out: Output): string {
         .filter(Boolean)
         .join(" — ");
       lines.push(seg);
+    }
+
+    // D9 (Navamsa) signs — one line per planet
+    const lagnaD9 = pick<string>(data, "lagna", "d9_sign");
+    const d9Lines: string[] = [];
+    if (lagnaD9) d9Lines.push(`  Lagna: ${lagnaD9}`);
+    for (const [name, p] of Object.entries(planets)) {
+      if (p.d9_sign) d9Lines.push(`  ${name}: ${p.d9_sign}`);
+    }
+    if (d9Lines.length) {
+      lines.push("");
+      lines.push("D9 (Navamsa) signs:");
+      lines.push(...d9Lines);
     }
   }
 

@@ -39,7 +39,7 @@ export function generateInsights(
         categoryColor: CATEGORY_COLORS.dasha,
         title: `${dashas.antar.planet} antardasha shift in ~${weeksDisplay} week${weeksDisplay === 1 ? '' : 's'}`,
         body: `A new antardasha period begins within the ${dashas.maha.planet} mahadasha. Transitions are important moments for reflection and intention.`,
-        cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
+        cta: { label: 'Ask an expert about this →', action: 'ask' },
       })
     }
   }
@@ -55,7 +55,7 @@ export function generateInsights(
         categoryColor: CATEGORY_COLORS.dasha,
         title: `${dashas.pratyantar.planet} pratyantar shift in ~${weeksDisplay} week${weeksDisplay === 1 ? '' : 's'}`,
         body: `A short sub-period transition is approaching within your current dasha. A good time to notice subtle shifts in energy and focus.`,
-        cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
+        cta: { label: 'Ask an expert about this →', action: 'ask' },
       })
     }
   }
@@ -69,7 +69,7 @@ export function generateInsights(
       categoryColor: CATEGORY_COLORS.dosha,
       title: `Sade Sati active — ${sadeSati.phase ?? ''} phase`.trim(),
       body: 'Saturn transits the sign before, on, or after your natal Moon. A 7.5-year period of lessons, restructuring, and spiritual growth.',
-      cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
+      cta: { label: 'Ask an expert about this →', action: 'ask' },
     })
   }
 
@@ -88,22 +88,42 @@ export function generateInsights(
   // Jupiter transit and major yogas are surfaced via the AI reading on the Today tab.
   // Keeping the data available here for future re-enablement if needed.
 
-  // Fallback — when none of the urgent checks above fired, surface the
-  // upcoming pratyantar shift regardless of distance, so the "What's
-  // active now" section is never empty. Lower urgency than the imminent
-  // shift above (still uses the dasha category color).
-  if (results.length === 0 && dashas?.pratyantar?.end) {
-    const weeksLeft = weeksUntil(dashas.pratyantar.end, today)
-    if (weeksLeft > 4 && weeksLeft !== Infinity) {
-      const label = formatLeadTime(weeksLeft)
-      results.push({
-        id: 'pratyantar-upcoming',
-        category: 'dasha',
-        categoryColor: CATEGORY_COLORS.dasha,
-        title: `Next: ${dashas.pratyantar.planet} pratyantar in ~${label}`,
-        body: `Your current ${dashas.pratyantar.planet} sub-period within the ${dashas.maha.planet} mahadasha. The next sub-period shift is roughly ${label} away — plenty of room to settle into this energy.`,
-        cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
-      })
+  // Fallback — when none of the urgent checks above fired, surface either
+  // the currently active pratyantar or the upcoming one, so the "What's
+  // active now" section is never empty.
+  if (results.length === 0 && dashas?.pratyantar) {
+    const todayStr = today.toISOString().slice(0, 10)
+    const { planet, start, end } = dashas.pratyantar
+    const isAlreadyActive = start ? todayStr >= start && todayStr < end : false
+
+    if (isAlreadyActive) {
+      // Person is already in this pratyantar — label it as active with time remaining
+      const weeksLeft = weeksUntil(end, today)
+      if (weeksLeft > 0 && weeksLeft !== Infinity) {
+        const label = formatLeadTime(weeksLeft)
+        results.push({
+          id: 'pratyantar-active',
+          category: 'dasha',
+          categoryColor: CATEGORY_COLORS.dasha,
+          title: `Active: ${planet} pratyantar`,
+          body: `You are in the ${planet} sub-period within the ${dashas.maha.planet} mahadasha. This period continues for roughly ${label}.`,
+          cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
+        })
+      }
+    } else if (start) {
+      // Not yet started — lead time is computed from the START date, not end
+      const weeksToStart = weeksUntil(start, today)
+      if (weeksToStart > 4 && weeksToStart !== Infinity) {
+        const label = formatLeadTime(weeksToStart)
+        results.push({
+          id: 'pratyantar-upcoming',
+          category: 'dasha',
+          categoryColor: CATEGORY_COLORS.dasha,
+          title: `Next: ${planet} pratyantar in ~${label}`,
+          body: `Your current ${dashas.antar.planet} antardasha continues within the ${dashas.maha.planet} mahadasha. The next sub-period shift is roughly ${label} away — plenty of room to settle into this energy.`,
+          cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
+        })
+      }
     }
   }
 

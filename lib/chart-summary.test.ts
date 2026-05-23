@@ -131,7 +131,7 @@ describe("summarizeDashaflow", () => {
     };
     const expected = [
       "",
-      "Planets (sidereal):",
+      "Planets (sidereal D1):",
       "  Sun: Aries 10.50° — H1 — Nak Ashwini — Exalted",
       "  Moon: —  — retro",
       "  Mars: — ",
@@ -254,7 +254,7 @@ describe("summarizeDashaflow", () => {
       "Ayanamsha: Lahiri (24.1000°)",
       "Lagna: Aries 10.00°",
       "",
-      "Planets (sidereal):",
+      "Planets (sidereal D1):",
       "  Sun: Aries ",
       "",
       "Vimshottari current: maha=Sun (?→?)",
