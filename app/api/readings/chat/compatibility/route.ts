@@ -110,12 +110,14 @@ HOW TO RESPOND:
 
 === ${profile1.name.toUpperCase()} ===
 DOB: ${profile1.date_of_birth} ${profile1.time_of_birth} (${profile1.timezone})
+Place of birth: ${profile1.place_of_birth}
 Lagna: ${ctx1.lagna} | Moon Nakshatra: ${ctx1.moonNak} | Dasha: ${ctx1.maha}/${ctx1.antar}
 
 ${ctx1.summary}
 
 === ${profile2.name.toUpperCase()} ===
 DOB: ${profile2.date_of_birth} ${profile2.time_of_birth} (${profile2.timezone})
+Place of birth: ${profile2.place_of_birth}
 Lagna: ${ctx2.lagna} | Moon Nakshatra: ${ctx2.moonNak} | Dasha: ${ctx2.maha}/${ctx2.antar}
 
 ${ctx2.summary}

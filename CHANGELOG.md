@@ -8,6 +8,30 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-23] — Enrich AI chat with full chart context, D9, and content library
+
+### Changed
+- **`lib/chart-summary.ts`** — `summarizeDashaflow()` now emits a D9 (Navamsa)
+  signs block (lagna + all planets) immediately after the D1 planets section.
+  Both the summary and chat routes benefit automatically.
+- **`app/api/readings/chat/route.ts`** — Completely rebuilt context packaging:
+  - Profile header now includes `time_of_birth` and `timezone`.
+  - Raw DashaFlow chart data (panchang, D1 planets, D9 signs, current dasha at
+    all 5 levels) replaces the previous AI insight summary as the chart source.
+  - Full content library included: ascendant, all planets in house (kendra/trikona
+    prioritised), moon nakshatra, and current dasha pair.
+  - Accepts optional `tab` parameter — when present, appends the cached AI insight
+    sections for that tab as additional grounded context.
+  - Uses `DEFAULT_CHAT_MODEL` (Groq Llama 4 Scout) and chat-specific LLM settings.
+  - Added `export const dynamic = "force-dynamic"`.
+- **`app/api/readings/chat/compatibility/route.ts`** — Same treatment for both
+  profiles: full chart summary, D9, content library for houses 1/5/7, Ashtakoot
+  scores, and `place_of_birth` added to both profile headers.
+- **`components/panels/AIAdminPanel.tsx`** — Chat requests now pass
+  `tab: insightTab` so the route includes tab-specific AI insight context.
+
+---
+
 ## [2026-05-23] — Fix "WHAT'S ACTIVE NOW" showing wrong pratyantar label
 
 ### Fixed

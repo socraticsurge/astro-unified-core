@@ -159,7 +159,7 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
     try {
       const [url, body] = isCompare
         ? ["/api/readings/chat/compatibility", { check_id: context.compareCheckId, messages: next, model }] as const
-        : ["/api/readings/chat",               { profile_id: context.profileId, messages: next, model }] as const
+        : ["/api/readings/chat",               { profile_id: context.profileId, messages: next, model, tab: insightTab ?? undefined }] as const
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

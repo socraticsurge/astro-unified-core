@@ -18,15 +18,22 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+export const dynamic = "force-dynamic";
+
 // POST /api/readings/chat
-// Body: { profile_id, messages: [{role, content}] }
+// Body: { profile_id, messages: [{role, content}], model?, tab? }
 // Stateless — caller owns conversation history; we only build the system prompt server-side.
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
-  const { profile_id, messages, model } = body as { profile_id?: string; messages?: ChatMessage[]; model?: AiModelKey };
+  const { profile_id, messages, model, tab } = body as {
+    profile_id?: string;
+    messages?: ChatMessage[];
+    model?: AiModelKey;
+    tab?: string;  // InsightTab value ("natal", "dashas", "career", etc.)
+  };
 
   if (!profile_id || !messages?.length) {
     return NextResponse.json({ error: "profile_id and messages required" }, { status: 400 });
@@ -86,6 +93,28 @@ export async function POST(req: NextRequest) {
     .map((b) => `--- ${b.key} ---\n${b.text}`)
     .join("\n\n");
 
+  // Tab-specific context: cached AI insight sections for the currently active tab.
+  // This grounds the chat in the same interpretive layer the summary already shows.
+  let tabContext = "";
+  if (tab) {
+    const tabInsight = await db.readings.latestByEngine(profile_id, `ai-${tab}`);
+    if (tabInsight) {
+      try {
+        const insight = JSON.parse(tabInsight.output_data) as {
+          sections?: { title: string; interpretation: string }[];
+          key_themes?: string[];
+        };
+        const themes = insight.key_themes?.join(", ") ?? "";
+        const sections = (insight.sections ?? [])
+          .map((s) => `${s.title}: ${s.interpretation}`)
+          .join("\n");
+        if (themes || sections) {
+          tabContext = `\n\n=== ${tab.toUpperCase()} SUMMARY (AI) ===\nKey themes: ${themes}\n${sections}`;
+        }
+      } catch { /* leave empty */ }
+    }
+  }
+
   const systemPrompt = `You are an expert Vedic astrologer with deep knowledge of Jyotisha. You know ${profile.name}'s chart intimately and are having a direct, intelligent conversation about it.
 
 Your job is to interpret, reason, and give real insight — not to summarise what texts say. Think like an experienced practitioner: take the chart data and the interpretation texts as your foundation, then apply your own astrological reasoning to answer the question practically and situationally.
@@ -109,7 +138,7 @@ Place of birth: ${profile.place_of_birth}
 ${chartSummary}
 
 === INTERPRETATION TEXTS (${contentBlocks.length} sources) ===
-${contentSection}`;
+${contentSection}${tabContext}`;
 
   try {
     const chatConfig = await db.settings.getChatLlm();
