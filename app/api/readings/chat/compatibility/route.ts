@@ -4,25 +4,24 @@ import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { callAIForText } from "@/lib/engines/ai-caller";
-import { resolveModel, DEFAULT_INSIGHT_MODEL, type AiModelKey } from "@/lib/engines/models";
-import { COMPAT_ENGINE } from "@/lib/ai-insight-compat";
+import { summarizeDashaflow } from "@/lib/chart-summary";
+import {
+  lookupAscendant,
+  lookupNakshatra,
+  lookupDashaPair,
+  lookupPlanetInHouse,
+} from "@/lib/content/lookup";
+import { resolveModel, DEFAULT_CHAT_MODEL, type AiModelKey } from "@/lib/engines/models";
 import type { ChatMessage } from "@/lib/engines/groq";
 
 export const dynamic = "force-dynamic";
 
-const SYSTEM_PROMPT = `You are an expert Vedic astrology assistant working with Dr. Vinay Kumar Chaganti's practice. You answer questions about marriage compatibility (Kundali Milan) between two people.
-
-Guidelines:
-- Be concise and practical; avoid lengthy preambles.
-- Ground every statement in Vedic (Jyotish) principles — Ashtakoot Milan, Nadi dosha, Mangal dosha, and synastry as appropriate.
-- When compatibility data is provided below, refer to it directly and precisely.
-- If you are uncertain, say so rather than speculating.
-- Do not make absolute predictions or guarantees about marriage outcomes.
-- Keep responses conversational and accessible to a non-specialist user.`;
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
 
 // POST /api/readings/chat/compatibility
-// Body: { check_id, messages: ChatMessage[], model? }
-// Returns: { response: string }
+// Body: { check_id, messages, model? }
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -34,7 +33,7 @@ export async function POST(req: NextRequest) {
     model?: AiModelKey;
   };
 
-  if (!check_id || !Array.isArray(messages) || messages.length === 0) {
+  if (!check_id || !messages?.length) {
     return NextResponse.json({ error: "check_id and messages required" }, { status: 400 });
   }
 
@@ -49,37 +48,93 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "One or both profiles not found" }, { status: 404 });
   }
 
-  const chosenModel: AiModelKey = resolveModel(model, DEFAULT_INSIGHT_MODEL);
-
-  // Build compatibility context from the most recent compat insight if available.
-  let compatContext = "";
-  const latestInsight = await db.readings.latestByEngine(check_id, COMPAT_ENGINE);
-  if (latestInsight) {
-    try {
-      const insight = JSON.parse(latestInsight.output_data) as {
-        sections?: { title: string; interpretation: string }[];
-        key_themes?: string[];
-      };
-      const themes = insight.key_themes?.join(", ") ?? "";
-      const sections = (insight.sections ?? [])
-        .map(s => `${s.title}: ${s.interpretation}`)
-        .join("\n");
-      compatContext = `\n\nCompatibility context:\nKey themes: ${themes}\n${sections}`;
-    } catch { /* use no context */ }
-  }
-
-  const systemPrompt = `${SYSTEM_PROMPT}\n\nProfiles: ${profile1.name}` +
-    (profile1.date_of_birth ? ` (born ${profile1.date_of_birth})` : "") +
-    ` and ${profile2.name}` +
-    (profile2.date_of_birth ? ` (born ${profile2.date_of_birth})` : "") +
-    compatContext;
-
   try {
+    let compatResult: Record<string, unknown> = {};
+    try { compatResult = JSON.parse(check.result_json) as Record<string, unknown>; } catch { /* empty */ }
+
+    const scores = compatResult?.scores as Record<string, number> | undefined;
+    const totalScore = compatResult?.total_score as number ?? check.score;
+    const isApproved = compatResult?.is_match_approved as boolean ?? false;
+
+    // Build context for both profiles
+    async function buildProfileContext(p: typeof profile1) {
+      const reading = await db.readings.latestByEngine(p!.id, "dashaflow");
+      if (!reading) return { summary: "(no chart data)", blocks: [] as { key: string; text: string }[], lagna: "", moonNak: "", maha: "", antar: "" };
+
+      const output = JSON.parse(reading.output_data) as Record<string, unknown>;
+      const summary = summarizeDashaflow(output);
+      const data = output?.data as Record<string, unknown> | undefined;
+      const lagnaSign = (data?.lagna as Record<string, unknown> | undefined)?.sign as string ?? "";
+      const planets = data?.planets as Record<string, { sign?: string; house?: number; nakshatra?: string }> | undefined;
+      const dashas = data?.dashas as Record<string, { planet?: string }> | undefined;
+      const moonNak = planets?.Moon?.nakshatra ?? planets?.moon?.nakshatra ?? "";
+      const maha = dashas?.maha?.planet ?? "";
+      const antar = dashas?.antar?.planet ?? "";
+
+      const blocks: { key: string; text: string }[] = [];
+      if (lagnaSign) { const e = lookupAscendant(lagnaSign); if (e) blocks.push({ key: `ascendant/${lagnaSign.toLowerCase()}`, text: stripHtml(e.body) }); }
+      if (moonNak) { const e = lookupNakshatra(moonNak); if (e) blocks.push({ key: `nakshatra/${moonNak.toLowerCase()}`, text: stripHtml(e.body) }); }
+      if (maha && antar) { const e = lookupDashaPair(maha, antar); if (e) blocks.push({ key: `dasha/${maha.toLowerCase()}-${antar.toLowerCase()}`, text: stripHtml(e.body) }); }
+      if (planets) {
+        for (const [name, pl] of Object.entries(planets)) {
+          if (pl.house === 7 || pl.house === 1 || pl.house === 5) {
+            const e = lookupPlanetInHouse(name, pl.house);
+            if (e) blocks.push({ key: `planet-in-house/${name.toLowerCase()}-${pl.house}`, text: stripHtml(e.body) });
+          }
+        }
+      }
+      return { summary, blocks, lagna: lagnaSign, moonNak, maha, antar };
+    }
+
+    const [ctx1, ctx2] = await Promise.all([buildProfileContext(profile1), buildProfileContext(profile2)]);
+
+    const contentSection = [...ctx1.blocks.map(b => `[${profile1.name}] ${b.key}\n${b.text}`), ...ctx2.blocks.map(b => `[${profile2.name}] ${b.key}\n${b.text}`)].join("\n\n---\n\n");
+
+    const scoreSummary = scores
+      ? Object.entries(scores).map(([k, v]) => `${k}: ${v}`).join(" | ")
+      : "";
+
+    const chatConfig = await db.settings.getChatLlm();
+    const chosenModel: AiModelKey = resolveModel(model, DEFAULT_CHAT_MODEL);
+
+    const systemPrompt = `You are an expert Vedic astrologer analysing the compatibility between ${profile1.name} and ${profile2.name}.
+
+You have both their complete charts and the Ashtakoota Milan scores. Your role: give real, grounded insight — not a recitation of texts. Apply astrological reasoning to help understand this pairing as two specific people with specific placements.
+
+HOW TO RESPOND:
+- Always refer to them by name, not as "Person A/B" or generic terms.
+- Weave in placements naturally: "with ${profile1.name}'s Moon in Rohini and ${profile2.name}'s Mars in the 7th..."
+- Be direct and confident where the chart supports it. Don't hedge every sentence.
+- Keep tone conversational, intelligent, practical.
+- Short paragraphs, avoid heavy bullet lists unless genuinely listing things.
+
+=== ${profile1.name.toUpperCase()} ===
+DOB: ${profile1.date_of_birth} ${profile1.time_of_birth} (${profile1.timezone})
+Place of birth: ${profile1.place_of_birth}
+Lagna: ${ctx1.lagna} | Moon Nakshatra: ${ctx1.moonNak} | Dasha: ${ctx1.maha}/${ctx1.antar}
+
+${ctx1.summary}
+
+=== ${profile2.name.toUpperCase()} ===
+DOB: ${profile2.date_of_birth} ${profile2.time_of_birth} (${profile2.timezone})
+Place of birth: ${profile2.place_of_birth}
+Lagna: ${ctx2.lagna} | Moon Nakshatra: ${ctx2.moonNak} | Dasha: ${ctx2.maha}/${ctx2.antar}
+
+${ctx2.summary}
+
+=== ASHTAKOOTA SCORES ===
+Total: ${totalScore}/36 — ${isApproved ? "Match Approved" : "Match Not Approved"}
+${scoreSummary}
+
+=== INTERPRETATION TEXTS ===
+${contentSection}${chatConfig.custom_instructions ? `\n\n=== ADDITIONAL INSTRUCTIONS ===\n${chatConfig.custom_instructions}` : ""}`;
+
     const response = await callAIForText(chosenModel, systemPrompt, messages, {
-      temperature: 0.7,
-      maxTokens: 1024,
+      temperature: chatConfig.temperature,
+      maxTokens: chatConfig.max_tokens,
+      topP: chatConfig.top_p,
     });
-    return NextResponse.json({ response }, { headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json({ response }, { headers: { "Cache-Control": "private, max-age=0" } });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to get response";
     return NextResponse.json({ error: message }, { status: 500 });

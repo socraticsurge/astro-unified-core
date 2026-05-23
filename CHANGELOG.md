@@ -8,6 +8,50 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-23] — Enrich AI chat with full chart context, D9, and content library
+
+### Changed
+- **`lib/chart-summary.ts`** — `summarizeDashaflow()` now emits a D9 (Navamsa)
+  signs block (lagna + all planets) immediately after the D1 planets section.
+  Both the summary and chat routes benefit automatically.
+- **`app/api/readings/chat/route.ts`** — Completely rebuilt context packaging:
+  - Profile header now includes `time_of_birth` and `timezone`.
+  - Raw DashaFlow chart data (panchang, D1 planets, D9 signs, current dasha at
+    all 5 levels) replaces the previous AI insight summary as the chart source.
+  - Full content library included: ascendant, all planets in house (kendra/trikona
+    prioritised), moon nakshatra, and current dasha pair.
+  - Accepts optional `tab` parameter — when present, appends the cached AI insight
+    sections for that tab as additional grounded context.
+  - Uses `DEFAULT_CHAT_MODEL` (Groq Llama 4 Scout) and chat-specific LLM settings.
+  - Added `export const dynamic = "force-dynamic"`.
+- **`app/api/readings/chat/compatibility/route.ts`** — Same treatment for both
+  profiles: full chart summary, D9, content library for houses 1/5/7, Ashtakoot
+  scores, and `place_of_birth` added to both profile headers.
+- **`components/panels/AIAdminPanel.tsx`** — Chat requests now pass
+  `tab: insightTab` so the route includes tab-specific AI insight context.
+
+---
+
+## [2026-05-23] — Fix "WHAT'S ACTIVE NOW" showing wrong pratyantar label
+
+### Fixed
+- **Current Period tab** was displaying "Next: Saturn pratyantar in ~3 months"
+  even when the person was already in Saturn Pratyantar. Two bugs in the
+  `generateInsights` fallback (`lib/insights.ts`):
+  1. No check for whether the pratyantar had already started — it only checked
+     whether the end date was in the future, so it called active periods "Next".
+  2. The "in ~X" lead time was computed from the **end** date, not the **start**,
+     so the countdown showed time remaining, not time until it begins.
+- Fixed by splitting the fallback into two branches:
+  - **Active** (`today >= start && today < end`): shows "Active: X pratyantar"
+    with time remaining.
+  - **Upcoming** (`today < start`): shows "Next: X pratyantar in ~Y" with lead
+    time computed from the start date.
+- Added three new tests covering the active, upcoming, and imminent-already-fired
+  cases.
+
+---
+
 ## [2026-05-22] — Fix unreadable chat text in light theme
 
 ### Fixed
@@ -1731,7 +1775,6 @@ is in shape to merge to `main`.
 - `today-reading` cache key omits prompt version + `custom_instructions` hash — admin prompt edits silently serve stale cached readings.
 - Hardcoded Tailwind colors remain in 9 files (worst: `ConsultationForm.tsx`, `LandingPage.tsx`, `FeedbackWidget.tsx`).
 - 3 orphan components (~684 lines): `components/LandingPage.tsx`, `components/dashboard/ProfileList.tsx`, `components/profile-ui.tsx`.
-
 ---
 
 ## [2026-05-19] — Remove dead basic/professional views and all orphaned engine components
