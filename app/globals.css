@@ -753,6 +753,7 @@
 }
 .ac-banner.accent { background: var(--color-accent-faint); border-color: var(--color-accent-dim); color: var(--color-accent); }
 .ac-banner.warn   { background: var(--color-warning-faint); border-color: var(--color-warning-border); color: var(--color-warning); }
+.ac-banner.danger { background: var(--color-danger-faint);  border-color: var(--color-danger-border);  color: var(--color-danger);  }
 
 /* ── Dasha row ── */
 .ac-dasha-row {
@@ -783,6 +784,51 @@
 }
 .ac-dasha-row.current { background: var(--color-accent-faint); }
 .ac-dasha-row.current .planet-name { color: var(--color-accent); }
+
+/* On narrow screens, the planet-name (1fr) + auto date column collapses the
+   date into a 2-line superscript next to a giant planet name. Stack as two
+   rows so the date sits on its own line, left-aligned under the planet.
+   Level column is a FIXED 92px (just wider than "PRATYANTAR" at the
+   tracked 10.5px size) with text right-aligned, so the level labels end
+   flush against the planet column. With the previous `auto`+default-left
+   alignment, short labels (ANTAR, PRANA) left a ragged gap before the
+   planet — testers called it out as "disorganized". Right-aligning
+   inside a fixed column gives every row the same clean edge. */
+@media (max-width: 640px) {
+  .ac-dasha-row {
+    grid-template-columns: 92px 1fr;
+    grid-template-areas:
+      "level planet"
+      "level range";
+    column-gap: 14px;
+    row-gap: 3px;
+    padding: 12px 14px;
+  }
+  .ac-dasha-row .level       { grid-area: level; align-self: center; text-align: right; }
+  .ac-dasha-row .planet-name { grid-area: planet; font-size: 15px; line-height: 1.15; }
+  .ac-dasha-row .range       { grid-area: range; font-size: 11px; white-space: nowrap; line-height: 1.25; }
+}
+
+/* ── Upapada (Jaimini) ── */
+.ac-upapada-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-6);
+  align-items: baseline;
+}
+.ac-upapada-cell { min-width: 0; }
+.ac-upapada-desc {
+  color: var(--color-ink-2);
+  line-height: 1.55;
+  font-size: 13px;
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+@media (max-width: 640px) {
+  .ac-upapada-row { gap: var(--sp-4); }
+  .ac-upapada-cell > div:last-child { font-size: 16px; }
+}
 
 /* ── Long-form reading text ── */
 .ac-reading {
@@ -940,6 +986,10 @@
 }
 @keyframes profileEnter {
   from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes landingSnippetFade {
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-profile-enter {

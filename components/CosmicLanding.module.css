@@ -7,31 +7,6 @@
   overflow: hidden;
 }
 
-/* ── Earth video ── */
-.earthWrap {
-  position: fixed;
-  left: -38vh; top: calc(50vh - 38vh);
-  width: 76vh; height: 76vh;
-  z-index: 6; pointer-events: none;
-}
-.earthAtmo {
-  position: absolute; inset: -10%; border-radius: 50%;
-  background: radial-gradient(circle, transparent 52%, rgba(70,160,255,0.55) 78%, rgba(70,160,255,0) 100%);
-  filter: blur(4px);
-}
-.earthClip {
-  position: absolute; inset: 0;
-  border-radius: 50%; overflow: hidden;
-  background: radial-gradient(circle at 35% 30%, #2a6b8a 0%, #1a4f6e 25%, #0f3a5a 50%, #083048 70%, #051e30 100%);
-}
-.earthLight {
-  position: absolute; inset: 0; border-radius: 50%;
-  background:
-    radial-gradient(circle at 34% 28%, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 46%),
-    radial-gradient(circle at 50% 50%, transparent 50%, rgba(0,0,18,0.75) 100%);
-  pointer-events: none;
-}
-
 /* ── Mobile gradient bridge ── */
 .mobileFade {
   display: none;
@@ -58,23 +33,126 @@
   animation: fadeUp 0.9s ease-out both;
 }
 
-.quoteSection {
+.todaySection {
   flex: 1;
-  display: flex; flex-direction: column; justify-content: center;
-  gap: 20px;
+  display: flex; flex-direction: column;
+  /* Anchor the today section near the top of its flex slot so the eyebrow
+     + snippet sit visually higher in the glass panel. A bit of breathing
+     room below absorbs taller snippets without pushing the brand row
+     to the edge. */
+  justify-content: flex-start;
+  gap: 22px;
+  padding-top: 4px;
+  padding-bottom: 12px;
+  min-height: 0;
 }
-.quoteEyebrow {
-  font-size: 13px; color: rgba(255,255,255,0.25);
-  letter-spacing: 0.26em; text-transform: uppercase;
+
+/* Today's transits — a small, scannable row above "The cosmos speaks".
+   Two tiles (Moon, Sun) always; a third (Retrograde) appears only when at
+   least one planet is retrograde. Em-dashes hold the slots before /api/landing
+   resolves so the layout doesn't shift on data arrival. */
+.skyRow {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
-.quoteText {
-  font-family: var(--font-cormorant), Georgia, serif;
-  font-size: clamp(28px, 3.2vw, 44px);
+.skyDayLabel {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
+  color: rgba(251,191,36,0.85);
+}
+.skyTiles {
+  display: flex; align-items: stretch; gap: 18px;
+  flex-wrap: wrap;
+}
+.skyTile {
+  display: flex; flex-direction: column; gap: 4px;
+  /* Subtle vertical divider between tiles via padding + border on the next.
+     Skipped on the first via :first-child reset below. */
+  padding-left: 18px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+.skyTile:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+.skyTileLabel {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+.skyTileValue {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 18px; font-weight: 400; font-style: italic;
+  color: rgba(255,255,255,0.92);
+  line-height: 1.2;
+}
+
+.snippetText {
+  display: flex; flex-direction: column; gap: 14px;
+  /* Fixed visual area sized to fit a full 320-char snippet with breathing
+     room for descenders. Sized against the new font (clamp 15→18px).
+     ~9 lines × 1.5 line-height = generous fit. */
+  height: 16em;
+}
+.cosmosEyebrow {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
+  color: rgba(255,255,255,0.32);
+  /* "The cosmos speaks for" stays anchored; only the sign name (below)
+     cross-fades with the snippet. */
+}
+/* The sign name within the eyebrow. Brighter than the surrounding text so
+   the active ascendant is unambiguous, and it inherits the same cross-fade
+   transition classes (snippetCopyIn / snippetCopyOut) as the snippet
+   paragraph so the swap feels like one coherent transition. */
+.cosmosEyebrowSign {
+  color: rgba(251,191,36,0.85);
+  display: inline-block;
+}
+.snippetText p {
+  font-family: var(--font-display), Georgia, serif;
+  /* Reduced further (previously clamp(17px, 1.9vw, 22px) → now smaller)
+     so a full 320-char snippet fits inside the visible box without the
+     line-clamp clipping the tail of the text. At this size we get
+     ~50 chars per line, so 9 lines hold ~450 chars — well above the
+     Zod cap of 320. */
+  font-size: clamp(15px, 1.6vw, 18px);
   font-weight: 400; font-style: italic;
-  color: rgba(255,255,255,0.88);
-  line-height: 1.72;
-  min-height: 7em;
-  transition: opacity 1.2s ease, transform 1.2s ease;
+  color: rgba(255,255,255,0.92);
+  line-height: 1.55;
+  margin: 0;
+  padding-bottom: 0.35em;
+  flex: 1; min-height: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 9;
+  -webkit-box-orient: vertical;
+}
+/* Wind-stroke cross-fade between snippets. Single element, two phases —
+   the paragraph fades out with a slight upward drift + blur, swaps content,
+   then drifts back in. transition-duration comes inline from React state. */
+.snippetCopyIn,
+.snippetCopyOut {
+  transition-property: opacity, transform, filter;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform, filter;
+}
+.snippetCopyIn {
+  opacity: 1; transform: translateY(0); filter: blur(0);
+}
+.snippetCopyOut {
+  opacity: 0; transform: translateY(-6px); filter: blur(4px);
+}
+
+.pillStrip {
+  /* Hidden on desktop — wheel is the picker. Mobile media query enables. */
+  display: none;
+}
+
+.srOnly {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 }
 
 .panelDivider { height: 1px; background: rgba(255,255,255,0.07); margin: 28px 0; }
@@ -86,7 +164,7 @@
   position: relative; display: flex; align-items: center; justify-content: center;
 }
 .brandName {
-  font-family: var(--font-cormorant), Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 40px; font-weight: 400; letter-spacing: 0.04em;
   color: rgba(255,255,255,0.92); line-height: 1;
 }
@@ -97,7 +175,7 @@
   filter: drop-shadow(0 0 14px rgba(251,191,36,0.3));
 }
 .brandSub {
-  font-family: var(--font-cormorant), Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 16px; font-weight: 400; font-style: italic;
   color: rgba(255,255,255,0.42);
   letter-spacing: 0.16em; margin-top: 6px;
@@ -109,8 +187,8 @@
 .featureName { font-size: 11px; color: rgba(255,255,255,0.48); letter-spacing: 0.04em; text-align: center; line-height: 1.5; }
 
 .siderealRow { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.siderealLine { flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
-.siderealRow span { font-size: 10px; color: rgba(255,255,255,0.15); letter-spacing: 0.16em; text-transform: uppercase; white-space: nowrap; }
+.siderealLine { flex: 1; height: 1px; background: rgba(255,255,255,0.15); }
+.siderealRow span { font-size: 10px; color: rgba(255,255,255,0.45); letter-spacing: 0.16em; text-transform: uppercase; white-space: nowrap; }
 
 .ctaBtn {
   width: 100%; padding: 13px 0; border-radius: 16px; border: none; cursor: pointer;
@@ -129,30 +207,211 @@
   filter: brightness(0.95);
   animation: none;
 }
-.ctaFootnote { margin-top: 12px; font-size: 13px; color: rgba(255,255,255,0.2); letter-spacing: 0.04em; text-align: center; }
+/* Pill dock — a fixed-positioned container sitting above the mobile panel.
+   On desktop the wheel is the picker, so the dock is hidden. */
+.pillDock {
+  display: none;
+}
 
 /* ── Mobile ── */
 @media (max-width: 700px) {
   .mobileFade {
     display: block;
-    bottom: 54vh;
-    height: 28vh;
+    /* Bottom edge of the gradient sits flush against the new 68vh panel
+       (was 54vh + 28vh = 82vh; now 60vh + 22vh = 82vh — same total span
+       so the gradient still reaches the panel top). */
+    bottom: 60vh;
+    height: 22vh;
     background: linear-gradient(to bottom, transparent 0%, rgba(6,3,24,0.6) 50%, rgba(6,3,24,0.95) 100%);
   }
-  .earthWrap { left: 50%; top: -12vw; transform: translateX(-50%); width: 88vw; height: 88vw; }
   .zodiacWrap { left: -28vw; top: -46vw; width: 156vw; height: 156vw; }
+  /* On mobile, the wheel is decorative — disable click targets so the
+     pill strip below the snippet is the only picker. */
+  .zodiacWrap path { pointer-events: none !important; cursor: default !important; }
   .panel {
     right: 0; left: 0; bottom: 0; top: auto;
     width: 100%; border-radius: 22px 22px 0 0;
-    padding: 28px 28px 32px; height: 54vh; overflow: hidden;
+    /* Stronger backdrop on mobile so the spinning wheel doesn't bleed
+       through the glass and compete with the snippet copy. */
+    background: rgba(8, 4, 24, 0.78);
+    backdrop-filter: blur(42px) saturate(1.8) brightness(1.04);
+    -webkit-backdrop-filter: blur(42px) saturate(1.8) brightness(1.04);
+    /* Panel grew from 62vh → 68vh. Reason: the fixed-height snippet
+       box (13em) plus the brand chrome (Astro Chaganti + features +
+       sidereal + CTA) summed to more than 62vh of vertical space on
+       720-px phones, so the snippet was overflowing its flex slot and
+       visually colliding with the brand row. 68vh + tighter chrome
+       (below) restores the gap. */
+    padding: 20px 22px 24px; height: 68vh; overflow: hidden;
   }
-  .quoteText { font-size: 22px; min-height: auto; }
-  .panelDivider { margin: 14px 0; }
-  .brandName { font-size: 28px; }
-  .brandRow { margin-bottom: 14px; }
-  .features { margin-bottom: 14px; }
+  .todaySection { gap: 10px; padding-top: 2px; padding-bottom: 6px; }
+  .cosmosEyebrow { font-size: 9px; letter-spacing: 0.28em; }
+  .snippetText {
+    /* Trimmed from 13em → 12em. With 13.5px font × 1.55 line-height
+       ≈ 21px/line, 12em is ~7 visible lines + eyebrow row — still
+       enough for a ~320-char snippet (50-ish chars × 7). */
+    height: 12em;
+  }
+  .snippetText p { font-size: 13.5px; line-height: 1.55; -webkit-line-clamp: 7; padding-bottom: 0.3em; }
+  .skyRow { gap: 6px; padding-bottom: 10px; }
+  .skyDayLabel { font-size: 9px; letter-spacing: 0.28em; }
+  .skyTiles { gap: 12px; }
+  .skyTile { padding-left: 12px; }
+  .skyTileLabel { font-size: 9px; letter-spacing: 0.22em; }
+  .skyTileValue { font-size: 15px; }
+
+  /* Pill dock sits ABOVE the panel against the night sky — not behind the
+     glass. Positioned just above the panel's top edge so the wheel still
+     breathes above it. */
+  .pillDock {
+    display: block;
+    position: fixed;
+    left: 0; right: 0;
+    /* Matches the new 68vh panel height (was 62vh). Keeps the pill
+       strip floating ~8px above the panel's top edge. */
+    bottom: calc(68vh + 8px);
+    z-index: 9; /* below panel (10) so any tall pill never floats over the
+                  panel's edge, but above the wheel (5). */
+    pointer-events: none; /* re-enabled on the strip itself */
+  }
+  .pillStrip {
+    pointer-events: auto;
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    padding: 6px 16px;
+    -ms-overflow-style: none; scrollbar-width: none;
+  }
+  .pillStrip::-webkit-scrollbar { display: none; }
+  .pill {
+    flex: 0 0 auto;
+    width: 34px; height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px;
+    /* Slightly opaque so a glyph stays legible over the starfield */
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(8, 4, 24, 0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(255,255,255,0.65);
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .pillActive {
+    background: rgba(251,191,36,0.18);
+    border-color: rgba(251,191,36,0.55);
+    color: rgba(251,191,36,0.98);
+  }
+  /* Tighter mobile chrome below the snippet. Each margin trim recovers
+     ~6-8px vertical space, totaling ~30px that prevented the snippet box
+     from colliding with the brand row. Visual rhythm still readable. */
+  .panelDivider { margin: 8px 0; }
+  .brandName { font-size: 26px; }
+  .brandSub { font-size: 12px; margin-top: 3px; }
+  .brandRow { margin-bottom: 8px; gap: 12px; }
+  .features { margin-bottom: 8px; }
   .featureName { font-size: 10px; }
-  .siderealRow { margin-bottom: 16px; }
+  .siderealRow { margin-bottom: 8px; }
   .ctaBtn { font-size: 15px; padding: 12px 0; }
-  .ctaFootnote { font-size: 12px; margin-top: 8px; }
+  .ctaFootnote { font-size: 12px; margin-top: 6px; }
+}
+
+/* ── Light theme (Vellum) overrides ─────────────────────────────────────────
+   These selectors use :global() so the ancestor [data-theme="light"] escapes
+   the CSS-module hash while the class name stays scoped. */
+
+:global([data-theme="light"]) .panel {
+  background: rgba(31,26,23,0.07);
+  border: 1px solid rgba(31,26,23,0.13);
+  box-shadow: 0 32px 100px rgba(31,26,23,0.12),
+              inset 0 1.5px 0 rgba(255,255,255,0.6),
+              inset 0 -1px 0 rgba(31,26,23,0.04);
+}
+
+:global([data-theme="light"]) .skyRow {
+  border-bottom-color: rgba(31,26,23,0.1);
+}
+:global([data-theme="light"]) .skyTile {
+  border-left-color: rgba(31,26,23,0.1);
+}
+:global([data-theme="light"]) .skyDayLabel {
+  color: rgba(142,42,31,0.85);
+}
+:global([data-theme="light"]) .skyTileLabel {
+  color: rgba(31,26,23,0.5);
+}
+:global([data-theme="light"]) .skyTileValue {
+  color: rgba(31,26,23,0.9);
+}
+
+:global([data-theme="light"]) .cosmosEyebrow {
+  color: rgba(31,26,23,0.4);
+}
+:global([data-theme="light"]) .cosmosEyebrowSign {
+  color: rgba(142,42,31,0.9);
+}
+:global([data-theme="light"]) .snippetText p {
+  color: rgba(31,26,23,0.88);
+}
+
+:global([data-theme="light"]) .panelDivider {
+  background: rgba(31,26,23,0.1);
+}
+:global([data-theme="light"]) .featureSep {
+  background: rgba(31,26,23,0.1);
+}
+:global([data-theme="light"]) .featureName {
+  color: rgba(31,26,23,0.5);
+}
+
+:global([data-theme="light"]) .brandName {
+  color: rgba(31,26,23,0.92);
+}
+:global([data-theme="light"]) .brandName em {
+  background: linear-gradient(135deg, #b83a2a 0%, #8E2A1F 50%, #6d1f16 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 0 14px rgba(142,42,31,0.2));
+}
+:global([data-theme="light"]) .brandSub {
+  color: rgba(31,26,23,0.45);
+}
+
+:global([data-theme="light"]) .siderealLine {
+  background: rgba(31,26,23,0.15);
+}
+:global([data-theme="light"]) .siderealRow span {
+  color: rgba(31,26,23,0.45);
+}
+
+:global([data-theme="light"]) .ctaBtn {
+  color: #F2ECDF;
+  background: linear-gradient(105deg, #6d1f16 0%, #8E2A1F 35%, #c44030 50%, #8E2A1F 65%, #6d1f16 100%);
+  background-size: 200% auto;
+  box-shadow: 0 4px 28px rgba(142,42,31,0.3);
+}
+
+/* Mobile overrides — parchment-toned to match the light background */
+@media (max-width: 700px) {
+  :global([data-theme="light"]) .mobileFade {
+    background: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(242,236,223,0.7) 50%,
+      rgba(242,236,223,0.97) 100%);
+  }
+  :global([data-theme="light"]) .panel {
+    background: rgba(242,236,223,0.9);
+    backdrop-filter: blur(42px) saturate(1.4) brightness(1.02);
+    -webkit-backdrop-filter: blur(42px) saturate(1.4) brightness(1.02);
+  }
+  :global([data-theme="light"]) .pill {
+    background: rgba(242,236,223,0.75);
+    border-color: rgba(31,26,23,0.18);
+    color: rgba(31,26,23,0.65);
+  }
+  :global([data-theme="light"]) .pillActive {
+    background: rgba(142,42,31,0.12);
+    border-color: rgba(142,42,31,0.5);
+    color: rgba(142,42,31,0.95);
+  }
 }

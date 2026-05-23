@@ -23,7 +23,7 @@ export default function CreditsPage() {
       className="prose prose-invert max-w-2xl mx-auto py-12
         prose-headings:font-heading prose-headings:font-medium
         prose-p:leading-relaxed
-        prose-a:text-blue-300 prose-a:no-underline hover:prose-a:underline"
+        prose-a:text-[var(--color-cool)] prose-a:no-underline hover:prose-a:underline"
       dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
     />
   );

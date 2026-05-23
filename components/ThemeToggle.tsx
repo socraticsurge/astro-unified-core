@@ -13,6 +13,10 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  // Canonical SSR-hydration pattern: render nothing until mounted on the
+  // client to avoid mismatch with next-themes. setState-in-effect is the
+  // correct shape here per the next-themes README.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true); }, []);
 
   // Render nothing until mounted — avoids hydration mismatch

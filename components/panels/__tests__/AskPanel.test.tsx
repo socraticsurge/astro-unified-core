@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { AskPanel } from '../AskPanel'
 
 const ctx = {
@@ -14,7 +13,7 @@ const ctx = {
 describe('AskPanel', () => {
   it('does not render panel content when closed', () => {
     render(<AskPanel open={false} onClose={() => {}} context={ctx} />)
-    expect(screen.queryByText('Ask an expert')).not.toBeInTheDocument()
+    expect(screen.queryByText('Ask Dr Chaganti')).not.toBeInTheDocument()
   })
 
   it('shows profile name and dasha context when open', () => {
@@ -30,6 +29,6 @@ describe('AskPanel', () => {
 
   it('renders the submit button disabled when question is empty', () => {
     render(<AskPanel open={true} onClose={() => {}} context={ctx} />)
-    expect(screen.getByRole('button', { name: /request consultation/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
   })
 })

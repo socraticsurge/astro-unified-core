@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Users, RefreshCw } from "lucide-react";
 import type { Profile } from "@/lib/db";
 import { taraColor, type Tara, type Tithi } from "@/lib/tarabalam";
+import { EngineError } from "@/components/ui/EngineError";
 
 type SectionExplainer = {
   title: string;
@@ -79,6 +80,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
 
   // Auto-fetch on mount for the default selection
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTaras([profileId], startDate, endDate);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -110,8 +112,6 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
     if (loaded.length === 0) return false;
     return loaded.every(p => row.profile_taras[p.id]?.quality === "auspicious");
   }
-
-  const currentProfile = profiles.find(p => p.id === profileId);
 
   return (
     <SectionShell sectionInView="Tarabalam" explainer={explainer ?? null}>
@@ -187,9 +187,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
         </div>
 
         {/* Error state */}
-        {error && (
-          <div className="ac-banner warn">{error}</div>
-        )}
+        <EngineError error={error} onRetry={handleSearch} />
 
         {/* Results */}
         {result && !loading && (
@@ -197,11 +195,11 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
             {/* Legend */}
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded bg-emerald-800/60 border border-emerald-700/40" />
+                <span className="inline-block w-3 h-3 rounded bg-[var(--color-success-faint)] border border-[var(--color-success-border)]" />
                 Auspicious (2,4,6,8,9 — Sampat, Kshema, Sadhana, Mitra, Parama Mitra)
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded bg-red-900/40 border border-red-700/30" />
+                <span className="inline-block w-3 h-3 rounded bg-[var(--color-danger-faint)] border border-[var(--color-danger-border)]" />
                 Inauspicious (1,3,5,7 — Janma, Vipat, Pratyak, Naidana)
               </span>
             </div>
@@ -288,7 +286,7 @@ export function TarabalamView({ profileId, profiles, explainer }: Props) {
                         {resultProfiles.length > 1 && (
                           <td className="py-2">
                             {allGood ? (
-                              <span className="text-emerald-400 text-sm">✦</span>
+                              <span className="text-[var(--color-success)] text-sm">✦</span>
                             ) : (
                               <span className="text-muted-foreground/20 text-sm">·</span>
                             )}

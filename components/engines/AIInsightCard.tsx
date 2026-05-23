@@ -28,7 +28,8 @@ export function AIInsightCard({ insight, readingId, initialRating }: Props) {
   const toggleSection = (id: string) =>
     setExpandedSections((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
 
@@ -51,7 +52,7 @@ export function AIInsightCard({ insight, readingId, initialRating }: Props) {
             key={k}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[11px] text-[var(--color-ink-2)]"
           >
-            <span className="text-violet-500 capitalize">{k.replace(/_/g, " ")}:</span>
+            <span className="text-[var(--color-accent)] capitalize">{k.replace(/_/g, " ")}:</span>
             <span className="font-medium">{v}</span>
           </span>
         ))}
@@ -84,7 +85,7 @@ export function AIInsightCard({ insight, readingId, initialRating }: Props) {
                     <div className="px-4 pb-3 space-y-1">
                       {section.technical_basis!.map((f, i) => (
                         <div key={i} className="flex gap-2 text-[11px]">
-                          <span className="text-violet-400/80 font-medium min-w-[80px]">{f.factor}</span>
+                          <span className="text-[var(--color-accent)]/80 font-medium min-w-[80px]">{f.factor}</span>
                           <span className="text-muted-foreground">{f.value}{f.nakshatra ? ` · ${f.nakshatra}` : ""}</span>
                         </div>
                       ))}

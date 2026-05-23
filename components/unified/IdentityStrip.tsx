@@ -48,7 +48,7 @@ export function IdentityStrip({
       {sun && (
         <div className="flex flex-col" data-testid="identity-sun">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Sun</span>
-          <span className="font-semibold text-amber-300">{sun.sign}</span>
+          <span className="font-semibold text-[var(--color-accent)]">{sun.sign}</span>
         </div>
       )}
 

@@ -21,24 +21,24 @@ const SEQUENCE = ["Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury",
 type RawEntry = { planet?: string; start?: string; end?: string };
 type SubDasha = { planet: string; start: string; end: string; years: number };
 
-function addYears(dateStr: string, years: number): string {
-  try {
-    return new Date(new Date(dateStr).getTime() + years * 365.25 * 86400000)
-      .toISOString().slice(0, 10);
-  } catch { return "?"; }
-}
-
-function computeSubDashas(parentStart: string, parentPlanet: string, parentYears: number): SubDasha[] {
+// Compute sub-dashas by proportioning the parent's exact day count rather than
+// using a fixed year constant. This eliminates floating-point drift across
+// nested levels — each sub-period sums to exactly the parent duration so there
+// are no gaps or overlaps in the timeline at any depth.
+function computeSubDashas(parentStart: string, parentEnd: string, parentPlanet: string): SubDasha[] {
   const seqIdx = SEQUENCE.indexOf(parentPlanet);
-  if (seqIdx === -1 || !parentStart || parentStart === "?") return [];
-  let cursor = parentStart;
+  if (seqIdx === -1 || !parentStart || parentStart === "?" || !parentEnd || parentEnd === "?") return [];
+  const parentMs = Date.parse(parentEnd) - Date.parse(parentStart);
+  if (parentMs <= 0) return [];
+  let cursor = Date.parse(parentStart);
   return SEQUENCE.map((_, i) => {
-    const planet = SEQUENCE[(seqIdx + i) % 9];
-    const years  = (parentYears * VIMSHOTTARI_YEARS[planet]) / 120;
-    const end    = addYears(cursor, years);
-    const entry: SubDasha = { planet, start: cursor, end, years };
-    cursor = end;
-    return entry;
+    const planet     = SEQUENCE[(seqIdx + i) % 9];
+    const durationMs = (VIMSHOTTARI_YEARS[planet] / 120) * parentMs;
+    const start      = new Date(cursor).toISOString().slice(0, 10);
+    const end        = new Date(cursor + durationMs).toISOString().slice(0, 10);
+    const years      = durationMs / (365.25 * 86400000); // display only
+    cursor          += durationMs;
+    return { planet, start, end, years };
   });
 }
 
@@ -75,7 +75,7 @@ function DashaRows({ entries, depth, expanded, onToggle }: RowsProps) {
         const key    = dkey(e.planet, e.start);
         const isOpen = !isLeaf && expanded[depth] === key;
         const active = isNow(e.start, e.end);
-        const sub    = isOpen ? computeSubDashas(e.start, e.planet, e.years) : [];
+        const sub    = isOpen ? computeSubDashas(e.start, e.end, e.planet) : [];
 
         return (
           <div key={key}>
@@ -85,7 +85,10 @@ function DashaRows({ entries, depth, expanded, onToggle }: RowsProps) {
               onClick={() => !isLeaf && onToggle(depth, key)}
               className={cn(
                 ROWS_PL[depth],
-                "w-full flex items-center gap-2 py-1 pr-3 text-left border-b border-[var(--color-border)] transition-colors",
+                // CSS grid prevents the "PRATYANTARRahu" overlap — each column has
+                // its own track and can't bleed into the next.
+                "w-full grid items-center gap-2 py-1 pr-3 text-left border-b border-[var(--color-border)] transition-colors",
+                "grid-cols-[16px_104px_1fr_96px_96px_auto]",
                 active
                   ? "bg-[var(--color-accent-faint)]"
                   : depth === 0
@@ -94,19 +97,17 @@ function DashaRows({ entries, depth, expanded, onToggle }: RowsProps) {
                 isLeaf && "cursor-default"
               )}
             >
-              <span className="w-3 shrink-0" style={{ color: "var(--color-ink-4)" }}>
+              <span className="shrink-0" style={{ color: "var(--color-ink-4)" }}>
                 {!isLeaf && (isOpen
                   ? <ChevronDown className="h-3 w-3" />
                   : <ChevronRight className="h-3 w-3" />
                 )}
               </span>
-              <span className="ac-eyebrow" style={{ width: 60, flexShrink: 0 }}>
+              <span className="ac-eyebrow truncate">
                 {LEVEL_LABELS[depth]}
               </span>
-              <span style={{
+              <span className="min-w-0 truncate" style={{
                 fontWeight: 600,
-                width: 80,
-                flexShrink: 0,
                 fontSize: depth === 0 ? 14 : 12,
                 color: active
                   ? "var(--color-accent)"
@@ -115,13 +116,13 @@ function DashaRows({ entries, depth, expanded, onToggle }: RowsProps) {
                 {e.planet}
                 {active && <span style={{ marginLeft: 4, fontSize: 9, opacity: 0.6 }}>← now</span>}
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-ink-3)", width: 96, flexShrink: 0 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-ink-3)" }}>
                 {e.start}
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-ink-4)", width: 96, flexShrink: 0 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-ink-4)" }}>
                 {e.end}
               </span>
-              <span style={{ fontSize: 11, color: "var(--color-ink-4)", marginLeft: "auto", flexShrink: 0 }}>
+              <span style={{ fontSize: 11, color: "var(--color-ink-4)" }}>
                 {formatDuration(e.years)}
               </span>
             </button>

@@ -1,15 +1,24 @@
 "use client";
 import { useEffect } from "react";
 import { RefreshCw } from "lucide-react";
-import { PLANET_ORDER } from "@/components/unified/types";
+import type { Planet, SignName } from "@/components/unified/types";
+import { NatalChartGrid } from "@/components/unified/NatalChartGrid";
 import { SectionHeading } from "@/components/unified/SectionHeading";
+import { TabLoadingSkeleton } from "@/components/unified/TabLoadingSkeleton";
+
+// Transits render as a D1-style chart with the transiting planet positions
+// placed on the natal SAV-bindu lattice — "Saturn transiting Pisces, which
+// has 24 natal bindus" at a glance. The earlier per-planet detail strip was
+// removed per product direction (2026-05-20).
 
 export function TransitsTab({
+  chartOutput,
   transitOutput,
   isTransitLoading,
   transitError,
   onFetchTransit,
 }: {
+  chartOutput: Record<string, unknown> | null;
   transitOutput: Record<string, unknown> | null;
   isTransitLoading: boolean;
   transitError?: string | null;
@@ -20,8 +29,19 @@ export function TransitsTab({
   }, [transitOutput, isTransitLoading, onFetchTransit]);
 
   const transit = ((transitOutput as Record<string, unknown> | null)?.data ?? transitOutput) as Record<string, unknown> | null;
+  const chart = (chartOutput?.data ?? chartOutput) as Record<string, unknown> | undefined;
 
-  const transitPlanets = transit?.planets as Record<string, {
+  // Natal context for the chart frame (lagna sign + per-sign SAV bindus).
+  // These don't change with the transit; they describe the chart that the
+  // transit is *moving through*.
+  const natalLagna = chart?.lagna as Record<string, unknown> | undefined;
+  const natalLagnaSign = natalLagna?.sign as SignName | undefined;
+  const natalAshtakavarga = chart?.ashtakavarga as Record<string, unknown> | undefined;
+  const natalSav = natalAshtakavarga?.sarvashtakavarga as Record<string, number> | undefined;
+
+  // Transit planets — `sign` gives the current sign per planet. We pass these
+  // to NatalChartGrid via signKey="sign" so it places them on the chart.
+  const transitPlanetsRaw = transit?.planets as Record<string, {
     sign?: string;
     is_retrograde?: boolean;
     house_from_lagna?: number;
@@ -30,8 +50,18 @@ export function TransitsTab({
   }> | undefined;
   const sadeSati = transit?.sade_sati as { active?: boolean; phase?: string } | undefined;
 
+  // Shape transit planets for NatalChartGrid (it expects `Record<PlanetName, Planet>`).
+  const transitPlanetsForChart: Record<string, Planet> | undefined = transitPlanetsRaw
+    ? Object.fromEntries(
+        Object.entries(transitPlanetsRaw).map(([name, p]) => [
+          name,
+          { sign: p.sign as SignName | undefined, is_retrograde: p.is_retrograde } as Planet,
+        ]),
+      )
+    : undefined;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <SectionHeading>Today&apos;s Transits</SectionHeading>
         <button
@@ -49,9 +79,7 @@ export function TransitsTab({
         </button>
       </div>
 
-      {isTransitLoading && (
-        <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>Loading transits…</p>
-      )}
+      {isTransitLoading && <TabLoadingSkeleton lines={4} cards={2} />}
 
       {!isTransitLoading && transitError && (
         <div style={{ display: "flex", gap: 8, fontSize: 12, color: "var(--color-danger)" }}>
@@ -68,39 +96,24 @@ export function TransitsTab({
             </div>
           )}
 
-          {transitPlanets && (
-            <div className="ac-card overflow-x-auto">
-              <table className="ac-table">
-                <thead>
-                  <tr>
-                    {["Planet", "Transit Sign", "H / Lagna", "H / Moon", "SAV"].map(h => (
-                      <th key={h}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {PLANET_ORDER.map(name => {
-                    const p = transitPlanets[name];
-                    if (!p) return null;
-                    const savVal = p.sav_points ?? 0;
-                    const savCls = savVal >= 30 ? "ac-cell-good" : savVal <= 22 ? "ac-cell-bad" : "";
-                    return (
-                      <tr key={name}>
-                        <td className="planet">
-                          {name}
-                          {p.is_retrograde && <span className="ac-retro" style={{ marginLeft: 4 }}>℞</span>}
-                        </td>
-                        <td>{p.sign ?? "—"}</td>
-                        <td className="num right">{p.house_from_lagna ?? "—"}</td>
-                        <td className="num right">{p.house_from_moon ?? "—"}</td>
-                        <td className={`num right ${savCls}`}>{savVal}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          {/* D1-style transit chart on the natal SAV lattice. Each sign shows
+              the natal SAV bindu count (favorability) and the transit planets
+              currently in it. */}
+          {transitPlanetsForChart && (
+            <section>
+              <NatalChartGrid
+                planets={transitPlanetsForChart}
+                lagnaSign={natalLagnaSign}
+                signKey="sign"
+                label="Today — transit on natal SAV lattice"
+                savScores={natalSav}
+              />
+              <p style={{ marginTop: 6, fontSize: 10, color: "var(--color-ink-4)" }}>
+                Bindus shown per sign are from the natal Sarvashtakavarga (≥28 favourable · &lt;22 challenging). Transit planet placements move daily; bindus do not.
+              </p>
+            </section>
           )}
+
         </>
       )}
     </div>

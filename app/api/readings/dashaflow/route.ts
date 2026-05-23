@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const cached = await db.readings.latestByEngine(profile_id, ENGINE);
   if (cached && !birthDataChanged(cached.input_snapshot as string, input)) {
     try {
-      return NextResponse.json({ output: JSON.parse(cached.output_data as string), cached: true });
+      return NextResponse.json({ output: JSON.parse(cached.output_data as string), cached: true }, { headers: { "Cache-Control": "private, no-store" } });
     } catch {
       // Corrupted cache row — fall through to recalculate below.
     }
@@ -32,11 +32,15 @@ export async function GET(req: NextRequest) {
 
   await db.readings.save({ profile_id, engine: ENGINE, input_snapshot: input, output_data: output });
 
-  return NextResponse.json({ output, cached: false });
+  return NextResponse.json({ output, cached: false }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { profile_id } = await req.json();
 
   if (!rateLimit(`refresh_${profile_id}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS).success) {
@@ -58,5 +62,5 @@ export async function POST(req: NextRequest) {
     output_data: output,
   });
 
-  return NextResponse.json({ reading, output, cached: false });
+  return NextResponse.json({ reading, output, cached: false }, { headers: { "Cache-Control": "private, no-store" } });
 }

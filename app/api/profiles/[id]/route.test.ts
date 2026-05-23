@@ -13,6 +13,7 @@ vi.mock("next-auth/next", () => ({
 // We need to mock the auth file so its export does not fail
 vi.mock("@/lib/auth", () => ({
   authOptions: {},
+  getUserId: (s: { user?: { id?: string } } | null) => s?.user?.id ?? "",
 }));
 
 vi.mock("@/lib/db", () => ({

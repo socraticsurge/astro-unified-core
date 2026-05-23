@@ -52,13 +52,17 @@ describe("fetchDashaflow", () => {
     expect(result.error).toBe("Sidecar HTTP 500");
   });
 
-  it("should return statusText if JSON parsing fails on non-200", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+  it("should return statusText if JSON parsing fails on non-200 (retries once on 503)", async () => {
+    // fetchWithRetry retries once on 503 — mock both calls with the same response.
+    const mock503 = {
       ok: false,
       status: 503,
       statusText: "Service Unavailable",
       json: async () => { throw new Error("Invalid JSON"); },
-    } as Response);
+    } as Response;
+    vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce(mock503)
+      .mockResolvedValueOnce(mock503);
 
     const result = await fetchDashaflow(mockInput);
     expect(result.data).toBeNull();

@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState, useMemo } from "react";
-import { Loader2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { EngineLoading } from "@/components/ui/EngineLoading";
 
 type Source = { text: string; chapter?: number | string; sloka?: number | string };
 
@@ -43,14 +44,14 @@ const proseClasses = `
   prose-h2:text-lg prose-h2:mt-5 prose-h2:mb-2
   prose-h3:text-base prose-h3:mt-4 prose-h3:mb-1.5
   prose-p:leading-relaxed prose-p:text-foreground/90
-  prose-blockquote:border-l-2 prose-blockquote:border-amber-500/50
+  prose-blockquote:border-l-2 prose-blockquote:border-[var(--color-accent-dim)]
   prose-blockquote:bg-[var(--color-accent-faint)] prose-blockquote:py-1 prose-blockquote:px-3
   prose-blockquote:not-italic prose-blockquote:text-foreground/85
   prose-table:text-xs prose-th:font-medium prose-th:text-left
   prose-th:border-b prose-th:border-[var(--color-border)] prose-th:py-1.5
   prose-td:py-1.5 prose-td:border-b prose-td:border-[var(--color-border-subtle)]
   prose-strong:text-foreground prose-em:text-foreground/90
-  prose-a:text-blue-300 prose-a:no-underline hover:prose-a:underline
+  prose-a:text-[var(--color-accent)] prose-a:no-underline hover:prose-a:underline
 `;
 
 // Lightweight client-side cache for chart-specific fetches.
@@ -182,8 +183,12 @@ export function ExplainerModal({
     };
   }, [open, hasChartEntries, chartEntries]);
 
+  // Snap to the most-relevant tab whenever the modal opens. Derived state
+  // would lose the user's manual tab switches while open, so an effect is
+  // the right shape here.
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTab(hasChartEntries ? "chart" : "about");
   }, [open, hasChartEntries]);
 
@@ -210,16 +215,14 @@ export function ExplainerModal({
 
   const renderedChart = hasChartEntries ? (
     chartLoading && chartFetched.length === 0 ? (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground px-5 py-6">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading readings…
-      </div>
+      <EngineLoading message="Loading readings…" />
     ) : (
       <div className="px-5 py-4 space-y-6">
         {chartFetched.map((entry, i) => {
           if (!entry) return null;
           return (
             <section key={i}>
-              <h3 className="font-heading text-base font-medium text-green-300 mb-2">
+              <h3 className="font-heading text-base font-medium text-[var(--color-success)] mb-2">
                 {entry.heading}
               </h3>
               <div
@@ -243,13 +246,18 @@ export function ExplainerModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="explainer-title"
-      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm md:p-6" style={{ background: 'var(--color-overlay)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-3 md:p-6" style={{ background: 'var(--color-overlay)' }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full h-full md:h-auto md:max-h-[85vh] md:w-[640px] md:max-w-[92vw] md:rounded-lg border border-[var(--color-border)] bg-zinc-950 shadow-2xl flex flex-col">
-        <header className="flex items-start justify-between gap-3 p-5 border-b border-[var(--color-border)]">
+      {/* `max-h-[92vh]` on mobile (was `h-full`) — leaves a backdrop strip
+          the user can tap to close, and prevents iOS Safari's dynamic toolbar
+          from hiding the X button below the visible viewport. */}
+      <div className="relative w-full max-h-[92vh] md:h-auto md:max-h-[85vh] md:w-[640px] md:max-w-[92vw] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] shadow-2xl flex flex-col">
+        {/* Sticky header — close button stays reachable even if the modal
+            renders before the OS chrome settles. */}
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-3 p-5 border-b border-[var(--color-border)] bg-[var(--color-surface-1)] rounded-t-lg">
           <div>
             <h2 id="explainer-title" className="font-heading text-xl font-medium text-foreground">
               {title}
@@ -280,7 +288,7 @@ export function ExplainerModal({
                   onClick={() => setTab("chart")}
                   className={`py-2.5 text-sm font-medium border-b-2 transition-colors ${
                     tab === "chart"
-                      ? "border-green-400 text-green-300"
+                      ? "border-[var(--color-success)] text-[var(--color-success)]"
                       : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -293,7 +301,7 @@ export function ExplainerModal({
                   onClick={() => setTab("about")}
                   className={`py-2.5 text-sm font-medium border-b-2 transition-colors ${
                     tab === "about"
-                      ? "border-green-400 text-green-300"
+                      ? "border-[var(--color-success)] text-[var(--color-success)]"
                       : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >

@@ -1,7 +1,8 @@
 "use client"
 import { useState } from 'react'
-import { Sparkles, Pencil, Trash2, Monitor } from 'lucide-react'
+import { Sparkles, PanelLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatName } from '@/lib/display'
 import type { Profile, CompatibilityCheck } from '@/lib/db'
 import { TodayTab }          from '@/components/tabs/TodayTab'
 import type { TodayInsight } from '@/components/tabs/TodayInsightCard'
@@ -14,31 +15,34 @@ import { AshtakavargaTab }   from '@/components/unified/tabs/AshtakavargaTab'
 import { DashaTab }          from '@/components/unified/tabs/DashaTab'
 import { TransitsTab }       from '@/components/unified/tabs/TransitsTab'
 import { CareerTab }         from '@/components/unified/tabs/CareerTab'
+import { ShadabalaTab }      from '@/components/unified/tabs/ShadabalaTab'
+import { NatalTab }          from '@/components/tabs/NatalTab'
 import { MuhurthaView }      from '@/components/engines/MuhurthaView'
 import { TarabalamView }     from '@/components/engines/TarabalamView'
 import type { AskContext }   from '@/components/panels/AskPanel'
 
 export type ChartTabId =
-  | 'today' | 'planets' | 'divisional'
+  | 'today' | 'natal' | 'planets' | 'divisional'
   | 'yogas' | 'jaimini' | 'ashtakavarga'
   | 'dasha' | 'transits' | 'career' | 'compare'
-  | 'muhurtha' | 'tarabalam'
+  | 'muhurtha' | 'tarabalam' | 'shadbala'
 
-const DESKTOP_ONLY_TABS = new Set<ChartTabId>(['planets', 'divisional', 'yogas', 'jaimini', 'ashtakavarga', 'dasha'])
 
 const CHART_TABS: { id: ChartTabId; label: string; adminOnly?: boolean }[] = [
-  { id: 'today',        label: 'Today'        },
-  { id: 'planets',      label: 'Planets'      },
-  { id: 'divisional',   label: 'Divisional'   },
-  { id: 'yogas',        label: 'Yogas'        },
-  { id: 'jaimini',      label: 'Jaimini'      },
-  { id: 'ashtakavarga', label: 'Ashtakavarga' },
-  { id: 'dasha',        label: 'Dasha'        },
-  { id: 'transits',     label: 'Transits'     },
-  { id: 'career',       label: 'Career'       },
+  { id: 'today',        label: 'Current Period' },
+  { id: 'natal',        label: 'Natal Chart'    },
+  { id: 'planets',      label: 'Planets'        },
+  { id: 'divisional',   label: 'Divisional',    adminOnly: true },
+  { id: 'yogas',        label: 'Yogas',         adminOnly: true },
+  { id: 'jaimini',      label: 'Jaimini',       adminOnly: true },
+  { id: 'ashtakavarga', label: 'Ashtakavarga',  adminOnly: true },
+  { id: 'dasha',        label: 'Dashas',        adminOnly: true },
+  { id: 'transits',     label: 'Transits',      adminOnly: true },
+  { id: 'career',       label: 'Career'         },
   { id: 'compare',      label: 'Marriage Compatibility' },
-  { id: 'muhurtha',     label: 'Muhurtha',    adminOnly: true },
-  { id: 'tarabalam',    label: 'Tarabalam',   adminOnly: true },
+  { id: 'shadbala',     label: 'Shadbala',      adminOnly: true },
+  { id: 'muhurtha',     label: 'Muhurtha',      adminOnly: true },
+  { id: 'tarabalam',    label: 'Tarabalam',     adminOnly: true },
 ]
 
 export interface AIOpenPayload {
@@ -69,6 +73,7 @@ interface ProfileViewProps {
   onFetchCareer: (force?: boolean) => void
   onAskOpen: (context?: Partial<AskContext>) => void
   onAIOpen?: (payload: AIOpenPayload) => void
+  onOpenSidebar?: () => void
   isAdmin?: boolean
   defaultTab?: ChartTabId
   initialCompareCheck?: CompatibilityCheck
@@ -90,6 +95,7 @@ export function ProfileView({
   onFetchCareer,
   onAskOpen,
   onAIOpen,
+  onOpenSidebar,
   isAdmin = false,
   defaultTab = 'today',
   initialCompareCheck,
@@ -130,50 +136,56 @@ export function ProfileView({
     })
   }
 
-  const needsChart = activeTab !== 'today' && activeTab !== 'transits' && activeTab !== 'compare' && activeTab !== 'muhurtha' && activeTab !== 'tarabalam'
-
-  const handleMobileDelete = async () => {
-    if (!window.confirm(`Delete ${profile.name}? This cannot be undone.`)) return
-    await fetch(`/api/profiles/${profile.id}`, { method: 'DELETE' })
-    window.location.href = '/dashboard'
-  }
+  const needsChart = activeTab !== 'today' && activeTab !== 'natal' && activeTab !== 'transits' && activeTab !== 'compare' && activeTab !== 'muhurtha' && activeTab !== 'tarabalam'
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      {/* Mobile-only profile header — edit/delete without the sidebar */}
-      <div className="md:hidden flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)]">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{profile.name}</p>
-          {(profile.relationship || profile.gender) && (
-            <p className="text-xs text-muted-foreground">
-              {[profile.relationship, profile.gender].filter(Boolean).join(' · ')}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-0.5 shrink-0 ml-2">
-          <a
-            href={`/profiles/${profile.id}/edit`}
-            title="Edit profile"
-            className="p-2.5 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors"
-          >
-            <Pencil className="h-4 w-4" />
-          </a>
+      {/* Mobile-only profile header — sidebar toggle + Ask */}
+      <div className="flex-shrink-0 md:hidden flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-1)]">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={handleMobileDelete}
-            title="Delete profile"
-            className="p-2.5 rounded text-muted-foreground hover:text-danger transition-colors"
+            onClick={onOpenSidebar}
+            title="View birth charts & profile details"
+            className="p-2 rounded text-muted-foreground hover:text-[var(--color-ink-1)] transition-colors shrink-0"
           >
-            <Trash2 className="h-4 w-4" />
+            <PanelLeft className="h-4 w-4" />
           </button>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--color-ink-1)] truncate">{formatName(profile.name)}</p>
+            {(profile.relationship || profile.gender) && (
+              <p className="text-xs text-muted-foreground">
+                {[profile.relationship, profile.gender].filter(Boolean).join(' · ')}
+              </p>
+            )}
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => handleAskFromInsight()}
+          title="Ask Dr Chaganti"
+          className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent-faint)] transition-colors shrink-0 ml-2"
+        >
+          <span aria-hidden="true">✦</span>
+          Ask
+        </button>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex-shrink-0 flex items-stretch border-b border-[var(--color-border)]">
+      {/* Tab bar — kept visible while scrolling the active tab's content.
+          `flex-shrink-0` pins it in the flex column; the background ensures
+          tab content scrolling beneath doesn't bleed through. */}
+      <div className="flex-shrink-0 flex items-stretch border-b border-[var(--color-border)] bg-[var(--color-background)] z-10">
+        {/* overflow-x-auto means the strip horizontally scrolls when the
+           tab labels are wider than the viewport — which is every mobile
+           viewport. We previously hid the scrollbar unconditionally with
+           `[scrollbar-width:none]`, so mobile users saw "Jaimi…" clipped
+           at the right edge with no visual cue they could swipe.
+           Now the scrollbar shows below `sm` (mobile) as the swipe
+           affordance, and stays hidden from `sm` and up where the strip
+           usually fits without scrolling. */}
         <div
           role="tablist"
-          className="flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex-1 overflow-x-auto sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden"
         >
           <div className="flex min-w-max">
             {CHART_TABS.filter(t => !t.adminOnly || isAdmin).map(t => (
@@ -204,7 +216,7 @@ export function ProfileView({
             title="Open AI Assistant"
             className="shrink-0 flex items-center gap-1 px-3 border-l border-[var(--color-border)] text-[11px] font-medium text-muted-foreground hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] transition-colors"
           >
-            <Sparkles className="h-3 w-3 text-violet-400" />
+            <Sparkles className="h-3 w-3 text-[var(--color-accent)]" />
             AI
           </button>
         )}
@@ -224,39 +236,49 @@ export function ProfileView({
             />
           </div>
         )}
+        {activeTab === 'natal' && (
+          <div id="profileview-panel-natal" role="tabpanel" aria-labelledby="profileview-tab-natal">
+            <NatalTab
+              todayReadingOutput={todayReadingOutput ?? null}
+              isTodayReadingLoading={isTodayReadingLoading}
+              chartOutput={chartOutput}
+            />
+          </div>
+        )}
         {activeTab === 'planets' && chartOutput && (
           <div id="profileview-panel-planets" role="tabpanel" aria-labelledby="profileview-tab-planets">
             <PlanetsTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'divisional' && chartOutput && (
+        {activeTab === 'divisional' && isAdmin && chartOutput && (
           <div id="profileview-panel-divisional" role="tabpanel" aria-labelledby="profileview-tab-divisional">
             <HousesVargasTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'yogas' && chartOutput && (
+        {activeTab === 'yogas' && isAdmin && chartOutput && (
           <div id="profileview-panel-yogas" role="tabpanel" aria-labelledby="profileview-tab-yogas">
             <YogasTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'jaimini' && chartOutput && (
+        {activeTab === 'jaimini' && isAdmin && chartOutput && (
           <div id="profileview-panel-jaimini" role="tabpanel" aria-labelledby="profileview-tab-jaimini">
             <JaiminiTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'ashtakavarga' && chartOutput && (
+        {activeTab === 'ashtakavarga' && isAdmin && chartOutput && (
           <div id="profileview-panel-ashtakavarga" role="tabpanel" aria-labelledby="profileview-tab-ashtakavarga">
             <AshtakavargaTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'dasha' && chartOutput && (
+        {activeTab === 'dasha' && isAdmin && chartOutput && (
           <div id="profileview-panel-dasha" role="tabpanel" aria-labelledby="profileview-tab-dasha">
             <DashaTab chartOutput={chartOutput} />
           </div>
         )}
-        {activeTab === 'transits' && (
+        {activeTab === 'transits' && isAdmin && (
           <div id="profileview-panel-transits" role="tabpanel" aria-labelledby="profileview-tab-transits">
             <TransitsTab
+              chartOutput={chartOutput}
               transitOutput={transitOutput}
               isTransitLoading={isTransitLoading}
               transitError={transitError}
@@ -273,6 +295,11 @@ export function ProfileView({
               careerError={careerError}
               onFetchCareer={onFetchCareer}
             />
+          </div>
+        )}
+        {activeTab === 'shadbala' && isAdmin && chartOutput && (
+          <div id="profileview-panel-shadbala" role="tabpanel" aria-labelledby="profileview-tab-shadbala">
+            <ShadabalaTab chartOutput={chartOutput} />
           </div>
         )}
         {activeTab === 'muhurtha' && isAdmin && (
@@ -297,15 +324,7 @@ export function ProfileView({
           />
           </div>
         )}
-        {/* Desktop nudge for data-heavy tabs */}
-        {DESKTOP_ONLY_TABS.has(activeTab) && (
-          <div className="md:hidden mb-4 flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs text-muted-foreground">
-            <Monitor className="h-3.5 w-3.5 shrink-0" />
-            Best explored on a desktop for full detail and interactivity.
-          </div>
-        )}
-
-        {needsChart && !chartOutput && (
+{needsChart && !chartOutput && (
           <div className="flex items-center justify-center h-40">
             <p className="text-sm text-muted-foreground">Loading chart data…</p>
           </div>

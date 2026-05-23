@@ -57,14 +57,13 @@ describe("PlanetsTab", () => {
 
   it("shows retrograde marker for Mercury", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    // ℞ appears in the Retro column — no click needed in flat table
-    expect(screen.getByText("℞")).toBeDefined();
+    expect(screen.getAllByText("℞").length).toBeGreaterThan(0);
   });
 
-  it("shows shadbala total for Sun without any click", () => {
+  it("does not render shadbala data (moved to ShadabalaTab)", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    // Shadbala table is always visible; Sun total_rupas = 4.1
-    expect(screen.getByText("4.10")).toBeDefined();
+    // Shadbala is now in ShadabalaTab; PlanetsTab should not show total_rupas
+    expect(document.querySelector("[data-shadbala]")).toBeNull();
   });
 
   it("shows yoga indicator badge on planet row", () => {

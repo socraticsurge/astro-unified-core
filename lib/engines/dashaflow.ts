@@ -3,6 +3,8 @@
 // Calls our self-hosted Python sidecar (separate Vercel project, no Next.js)
 // which wraps the DashaFlow library (Swiss Ephemeris + Lahiri ayanamsha).
 // Computes locally — no third-party API rate limits.
+import { fetchWithRetry } from "./fetch-with-retry";
+
 const SIDECAR =
   process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
 
@@ -21,7 +23,7 @@ export type DashaflowOutput = {
 
 export async function fetchDashaflow(input: DashaflowInput): Promise<DashaflowOutput> {
   try {
-    const res = await fetch(`${SIDECAR}/calculate`, {
+    const res = await fetchWithRetry(`${SIDECAR}/calculate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -37,9 +39,10 @@ export async function fetchDashaflow(input: DashaflowInput): Promise<DashaflowOu
     const json = (await res.json()) as { status?: string; data?: unknown };
     return { data: json.data ?? null };
   } catch (e) {
+    const isTimeout = e instanceof Error && e.name === "TimeoutError";
     return {
       data: null,
-      error: e instanceof Error ? e.message : String(e),
+      error: isTimeout ? "Sidecar request timed out. Please try again." : (e instanceof Error ? e.message : String(e)),
     };
   }
 }

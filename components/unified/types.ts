@@ -44,16 +44,6 @@ export type ShadbalaPlanet = {
   kashta_phala?: number;
 };
 
-export type UnifiedViewProps = {
-  chartOutput: Record<string, unknown>;
-  transitOutput: Record<string, unknown> | null;
-  careerOutput: Record<string, unknown> | null;
-  isTransitLoading: boolean;
-  isCareerLoading: boolean;
-  onFetchTransit: (force?: boolean) => void;
-  onFetchCareer: (force?: boolean) => void;
-};
-
 export const SIGNS_ORDER: readonly SignName[] = [
   "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
   "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces",

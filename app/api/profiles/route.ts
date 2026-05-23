@@ -2,26 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { geocodePlace } from "@/lib/geocode";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getUserId } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { MAX_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   
-  const userId = (session.user as { id: string }).id;
+  const userId = getUserId(session);
   const profiles = await db.profiles.list(userId);
-  return NextResponse.json(profiles);
+  return NextResponse.json(profiles, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = (session?.user as { id?: string } | undefined)?.id;
-    if (!session?.user || !userId) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const userId = getUserId(session);
 
     // Rate Limiting Check
     const rateLimitResult = rateLimit(`create_profile_${userId}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS);
@@ -29,9 +30,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Too many requests. Please wait a minute before creating another profile." }, { status: 429 });
     }
 
-    // Max Profiles Check
-    const existingProfiles = await db.profiles.list(userId);
-    if (existingProfiles.length >= MAX_PROFILES) {
+    // Max Profiles Check — use COUNT() rather than loading the full list (TOCTOU + memory).
+    const profileCount = await db.profiles.count(userId);
+    if (profileCount >= MAX_PROFILES) {
       return NextResponse.json({ error: `You have reached the maximum limit of ${MAX_PROFILES} profiles.` }, { status: 403 });
     }
 
@@ -45,6 +46,12 @@ export async function POST(req: NextRequest) {
     // Input Length Validation
     if (name.length > 100 || place_of_birth.length > 100 || (current_location && current_location.length > 100)) {
       return NextResponse.json({ error: "Name, birth place, and current location must be under 100 characters." }, { status: 400 });
+    }
+
+    // DOB must not be in the future. The form sets `max={today}` but clients
+    // can bypass — guard server-side too. Compare as ISO date strings.
+    if (date_of_birth > new Date().toISOString().slice(0, 10)) {
+      return NextResponse.json({ error: "Date of birth cannot be in the future." }, { status: 400 });
     }
 
     let geo;
@@ -67,16 +74,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Preserve the user's typed strings as the canonical display values for
+    // `place_of_birth` and `current_location`. The geocoder's display_name is
+    // discarded — we only keep its lat/lon/timezone in the dedicated columns.
+    // (See "cognitive consistency" rule in observations.)
     const profile = await db.profiles.create(userId, {
       name,
       date_of_birth,
       time_of_birth,
-      place_of_birth: geo.display_name,
+      place_of_birth,
       latitude: geo.latitude,
       longitude: geo.longitude,
       timezone: geo.timezone,
       timezone_offset: geo.timezone_offset,
-      current_location: currentGeo?.display_name || null,
+      current_location: current_location || null,
       current_latitude: currentGeo?.latitude || null,
       current_longitude: currentGeo?.longitude || null,
       current_timezone: currentGeo?.timezone || null,
@@ -85,7 +96,16 @@ export async function POST(req: NextRequest) {
       relationship,
     });
 
-    return NextResponse.json(profile, { status: 201 });
+    getPostHogClient().capture({
+      distinctId: userId,
+      event: "profile_created",
+      properties: {
+        relationship: relationship ?? null,
+        has_current_location: !!current_location,
+      },
+    });
+
+    return NextResponse.json(profile, { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (e) {
     console.error("POST /api/profiles failed:", e);
     const msg = e instanceof Error ? e.message : "Internal error";

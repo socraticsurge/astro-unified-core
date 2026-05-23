@@ -1,6 +1,5 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
@@ -76,6 +75,7 @@ export default async function AdminPage() {
         appSettings={appSettings}
         aiInsightStats={aiInsightStats}
         llmSettings={{ ai_insights: aiInsightsLlm, chat: chatLlm, draft: draftLlm, today_reading: todayReadingLlm }}
+        adminEmail={session?.user?.email ?? ""}
       />
     </div>
   );

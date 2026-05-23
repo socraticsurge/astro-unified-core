@@ -1,11 +1,12 @@
 "use client"
 import { useState } from "react"
-import { CheckCircle2, XCircle, MinusCircle, Loader2, RotateCcw } from "lucide-react"
+import { Loader2, RotateCcw } from "lucide-react"
 import type { Profile, CompatibilityCheck } from "@/lib/db"
 import type { CompatResult, AdditionalKuta } from "@/lib/compatibility"
 import { KOOTA_MAX, scoreLabel } from "@/lib/compatibility"
 import { ProfileAvatar } from "@/components/profile/ProfileAvatar"
 import { SectionHeading } from "@/components/unified/SectionHeading"
+import { formatName } from "@/lib/display"
 
 // ── Gender helpers ────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ function ProfilePill({ profile, role }: { profile: Profile; role: Role }) {
     <div className="flex items-center gap-2 shrink-0">
       <ProfileAvatar name={profile.name ?? "?"} size="sm" />
       <div>
-        <p className="text-sm font-medium text-[var(--color-ink-1)] leading-tight">{profile.name}</p>
+        <p className="text-sm font-medium text-[var(--color-ink-1)] leading-tight">{formatName(profile.name ?? "")}</p>
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabel(role)}</p>
       </div>
     </div>
@@ -91,14 +92,17 @@ function FullResult({ check, groomProfile, brideProfile }: {
   )
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    // Removed the prior `max-w-2xl`. The compare result fits the dashboard
+    // content area naturally now, and the dense kuta / dosha tables get more
+    // breathing room on wide screens.
+    <div className="space-y-8">
 
       {/* Score + verdict */}
-      <section style={{ paddingBottom: 8, borderBottom: "1px solid var(--color-border)", marginBottom: 8 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+      <section className="pb-2 mb-2 border-b border-[var(--color-border)]">
+        <div className="flex items-baseline gap-2 flex-wrap mb-1">
           <span style={{ fontSize: "1.5rem", fontWeight: 600, tabularNums: true, color: scoreColor } as React.CSSProperties}>{score}</span>
-          <span style={{ fontSize: 12, color: "var(--color-ink-3)" }}>/ 36 gunas</span>
-          <span style={{ fontSize: 12, fontWeight: 500, color: scoreColor }}>{scoreLabel(score)}</span>
+          <span className="text-xs text-[var(--color-ink-3)]">/ 36 gunas</span>
+          <span className="text-xs font-medium" style={{ color: scoreColor }}>{scoreLabel(score)}</span>
         </div>
         <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>
           {score >= 26 ? "Highly auspicious for marriage."
@@ -152,8 +156,8 @@ function FullResult({ check, groomProfile, brideProfile }: {
               <thead>
                 <tr>
                   <th></th>
-                  <th className="right">{groomProfile.name}</th>
-                  <th className="right">{brideProfile.name}</th>
+                  <th className="right">{formatName(groomProfile.name)}</th>
+                  <th className="right">{formatName(brideProfile.name)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,19 +184,19 @@ function FullResult({ check, groomProfile, brideProfile }: {
       <section>
         <SectionHeading>Doshas</SectionHeading>
         <div className="ac-card ac-card-pad">
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, paddingBottom: 10, borderBottom: "1px solid var(--color-border)", marginBottom: 10 }}>
-            <div>
-              <div style={{ fontSize: 12, color: "var(--color-ink-2)", fontWeight: 500, marginBottom: 2 }}>Mangal Dosha</div>
-              {kujaDosha?.male?.is_manglik   && <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>{groomProfile.name} is Manglik</p>}
-              {kujaDosha?.female?.is_manglik && <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>{brideProfile.name} is Manglik</p>}
-              {kujaDosha?.compatibility?.description && <p style={{ fontSize: 12, color: "var(--color-ink-3)", lineHeight: 1.5 }}>{kujaDosha.compatibility.description}</p>}
+          <div className="flex items-start justify-between gap-4 pb-2.5 mb-2.5 border-b border-[var(--color-border)]">
+            <div className="min-w-0">
+              <div className="text-xs text-[var(--color-ink-2)] font-medium mb-0.5">Mangal Dosha</div>
+              {kujaDosha?.male?.is_manglik   && <p className="text-xs text-[var(--color-ink-3)]">{formatName(groomProfile.name)} is Manglik</p>}
+              {kujaDosha?.female?.is_manglik && <p className="text-xs text-[var(--color-ink-3)]">{formatName(brideProfile.name)} is Manglik</p>}
+              {kujaDosha?.compatibility?.description && <p className="text-xs text-[var(--color-ink-3)] leading-relaxed">{kujaDosha.compatibility.description}</p>}
             </div>
-            <span className={hasManglik ? "ac-tag unf" : "ac-tag fav"} style={{ flexShrink: 0 }}>
+            <span className={hasManglik ? "ac-tag unf shrink-0" : "ac-tag fav shrink-0"}>
               {hasManglik ? "Present" : "Not Present"}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-            <span style={{ fontSize: 12, color: "var(--color-ink-2)", fontWeight: 500 }}>Bhakoot Dosha</span>
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-xs text-[var(--color-ink-2)] font-medium">Bhakoot Dosha</span>
             <span className={hasBhakoot ? "ac-tag unf" : "ac-tag fav"}>
               {hasBhakoot ? "Present" : "Not Present"}
             </span>
@@ -214,8 +218,8 @@ function FullResult({ check, groomProfile, brideProfile }: {
               </thead>
               <tbody>
                 {([
-                  { label: groomProfile.name ?? "Groom", dosha: kujaDosha.male },
-                  { label: brideProfile.name  ?? "Bride", dosha: kujaDosha.female },
+                  { label: formatName(groomProfile.name ?? "Groom"), dosha: kujaDosha.male },
+                  { label: formatName(brideProfile.name  ?? "Bride"), dosha: kujaDosha.female },
                 ] as const).map(({ label, dosha }) =>
                   dosha?.breakdown && Object.keys(dosha.breakdown).length > 0
                     ? Object.entries(dosha.breakdown).map(([planet, entry], i) => (
@@ -255,9 +259,9 @@ function FullResult({ check, groomProfile, brideProfile }: {
                   </div>
                   {(kuta.male || kuta.female) && (
                     <p style={{ fontSize: 10, color: "var(--color-ink-3)" }}>
-                      <span>{groomProfile.name}: {kuta.male}</span>
+                      <span>{formatName(groomProfile.name ?? "")}: {kuta.male}</span>
                       <span style={{ margin: "0 6px", opacity: 0.3 }}>·</span>
-                      <span>{brideProfile.name}: {kuta.female}</span>
+                      <span>{formatName(brideProfile.name ?? "")}: {kuta.female}</span>
                     </p>
                   )}
                   {kuta.description && <p style={{ fontSize: 10, color: "var(--color-ink-3)" }}>{kuta.description}</p>}
@@ -354,7 +358,7 @@ export function CompareTab({ activeProfile, allProfiles, selectedId, onSelectedI
           <ProfilePill profile={activeProfile} role={activeRole} />
           <span className="text-muted-foreground/40 text-base shrink-0 select-none">♡</span>
           {candidates.length === 0 ? (
-            <a href="/profiles/new"
+            <a href="/dashboard?create=1"
               className="text-xs text-muted-foreground border border-dashed border-[var(--color-border)] rounded-lg px-3 py-1.5 hover:border-[var(--color-nav-chip-active-border)] transition-colors">
               + Add {roleLabel(partnerRole).toLowerCase()} profile
             </a>
@@ -369,7 +373,7 @@ export function CompareTab({ activeProfile, allProfiles, selectedId, onSelectedI
             >
               <option value="">Select {roleLabel(partnerRole).toLowerCase()}…</option>
               {candidates.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>{formatName(p.name)}</option>
               ))}
             </select>
           )}

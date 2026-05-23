@@ -1,14 +1,17 @@
 import { randomUUID } from "crypto";
+import { z } from "zod";
 import { getClient, ensureSchema } from "./client";
 
-export type Feedback = {
-  id: string;
-  user_email: string | null;
-  rating: string;
-  message: string | null;
-  page_url: string | null;
-  created_at: string;
-};
+const FeedbackSchema = z.object({
+  id: z.string(),
+  user_email: z.string().nullable(),
+  rating: z.string(),
+  message: z.string().nullable(),
+  page_url: z.string().nullable(),
+  created_at: z.string(),
+});
+
+export type Feedback = z.infer<typeof FeedbackSchema>;
 
 export const feedback = {
   async save(data: {
@@ -27,9 +30,12 @@ export const feedback = {
     return { id, created_at, user_email: data.user_email || null, rating: data.rating, message: data.message || null, page_url: data.page_url || null };
   },
 
-  async list(): Promise<Feedback[]> {
+  async list(limit = 200): Promise<Feedback[]> {
     await ensureSchema();
-    const rs = await getClient().execute("SELECT * FROM feedback ORDER BY created_at DESC");
-    return rs.rows as unknown as Feedback[];
+    const rs = await getClient().execute({
+      sql: "SELECT * FROM feedback ORDER BY created_at DESC LIMIT ?",
+      args: [limit],
+    });
+    return rs.rows.map((r) => FeedbackSchema.parse(r));
   },
 };

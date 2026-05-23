@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Libre_Baskerville,
   Inter,
@@ -9,10 +9,12 @@ import Link from "next/link";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
+import { PostHogIdentifier } from "@/components/PostHogIdentifier";
 import { NavBar } from "@/components/NavBar";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppShell } from "@/components/AppShell";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
@@ -39,9 +41,14 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Astro Chaganti — Vedic birth charts by Dr. Vinay Kumar Chaganti",
+  title: "Astro Chaganti - Vedic Astrology Readings by Dr Chaganti",
   description:
-    "Detailed Vedic birth charts: Lagna, divisional charts, 5-level Vimshottari Dasha, Yogas, Shadbala, Karakamsha, and more. By Dr. Vinay Kumar Chaganti.",
+    "Personal consultations and simplified readings of your current period, natal charts, career themes, and marriage compatibility.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -58,8 +65,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         ].join(" ")}
       >
         <ThemeProvider>
-          <NextAuthProvider session={session}>
-            <AppShell
+          <ToastProvider>
+            <NextAuthProvider session={session}>
+              <PostHogIdentifier />
+              <AppShell
               navBar={<NavBar />}
               footer={
                 <footer className="pb-24 sm:pb-6 pt-2 flex items-center justify-end px-4 sm:px-6 opacity-20 hover:opacity-50 transition-opacity duration-300">
@@ -73,9 +82,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               }
               feedback={<FeedbackWidget />}
             >
-              {children}
-            </AppShell>
-          </NextAuthProvider>
+                {children}
+              </AppShell>
+            </NextAuthProvider>
+          </ToastProvider>
         </ThemeProvider>
         <Analytics />
         <SpeedInsights />

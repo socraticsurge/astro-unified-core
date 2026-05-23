@@ -14,20 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type { NavProfile } from "@/components/profiles/ProfileNav"
 
-function TwoOrbits({ size = 36 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)"
-        stroke="var(--color-accent-dim)" strokeWidth="1.4" fill="none"/>
-      <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)"
-        stroke="var(--color-accent-dim)" strokeWidth="1.2" fill="none"/>
-      <circle cx="13.5" cy="16" r="1.5" fill="var(--color-accent-dim)"/>
-      <circle cx="34.5" cy="32" r="1.5" fill="var(--color-accent-dim)"/>
-      <circle cx="24"   cy="24" r="2.6" fill="var(--color-accent)"/>
-    </svg>
-  )
-}
-
 const navGlassStyle: React.CSSProperties = {
   background:           "var(--surface-blend)",
   backdropFilter:       "var(--backdrop-blur)",
@@ -37,8 +23,8 @@ const navGlassStyle: React.CSSProperties = {
 
 const wordmarkStyle: React.CSSProperties = {
   ...fonts.display,
-  fontSize: "1.1rem",
-  letterSpacing: "0.02em",
+  fontSize: "1.35rem",
+  letterSpacing: "0.015em",
   lineHeight: 1,
 }
 
@@ -61,25 +47,34 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
     >
       <div className="flex items-stretch h-12">
 
-        {/* Logo — same width as the profile sidebar so profile tabs align below */}
-        <div className="w-auto md:w-80 shrink-0 flex items-center gap-2 px-4 border-r border-[var(--color-border)]">
+        {/* Wordmark — collapses to "AC" on mobile so the navbar has room
+           for the profile chip strip. md:w-80 matches the ProfileSidebar
+           width on desktop so profile tabs align below the sidebar edge;
+           on mobile we let it shrink to content. */}
+        <div className="w-auto md:w-80 shrink-0 flex items-center gap-2 px-3 sm:px-4 border-r border-[var(--color-border)]">
           <Link
             href={isLoggedIn ? "/dashboard" : "/"}
-            className="flex items-center gap-2 flex-1 min-w-0"
-            aria-label="Home"
+            className="flex items-center flex-1 min-w-0"
+            aria-label="Astro Chaganti home"
           >
-            <TwoOrbits size={28} />
-            <span style={wordmarkStyle} className="hidden sm:block">
-              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
-              <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
+            <span style={wordmarkStyle}>
+              {/* sm and up: full wordmark. <sm: "AC" only — frees ~140px
+                  for the ProfileNav chip strip on mobile. */}
+              <span className="hidden sm:inline" style={{ color: "var(--color-ink-1)" }}>Astro </span>
+              <span className="hidden sm:inline" style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
+              <span className="sm:hidden" aria-hidden="true">
+                <span style={{ color: "var(--color-ink-1)" }}>A</span>
+                <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>C</span>
+              </span>
             </span>
           </Link>
-          <ThemeToggle />
+          {/* Hidden on mobile — accessible via Settings dropdown instead */}
+          <span className="hidden sm:block"><ThemeToggle /></span>
         </div>
 
         {/* Profile tabs — fills remaining space */}
         {isLoggedIn && onProfileChange && (
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0" data-testid="profile-nav">
             <ProfileNav
               profiles={profiles}
               activeProfileId={activeProfileId}
@@ -88,27 +83,27 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
           </div>
         )}
 
-        {/* Right: Add profile · Ask an expert · Settings */}
+        {/* Right: Add profile · Ask Dr Chaganti · Settings */}
         <div className="flex items-center gap-1 px-3 shrink-0 ml-auto">
           {isLoggedIn && (
             <>
               <Link
-                href="/profiles/new"
+                href="/dashboard?create=1"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
                 <UserPlus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Add profile</span>
               </Link>
 
+              {/* Hidden on mobile — Ask lives in the profile header row instead */}
               {onAskOpen && (
                 <button
                   type="button"
                   onClick={onAskOpen}
-                  className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)] text-[var(--color-accent)]"
+                  className="hidden sm:flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)] text-[var(--color-accent)]"
                 >
                   <span aria-hidden="true">✦</span>
-                  <span className="hidden sm:inline">Ask an expert</span>
-                  <span className="sm:hidden">Ask</span>
+                  Ask Dr Chaganti
                 </button>
               )}
 
@@ -120,21 +115,21 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                   <Settings className="w-4 h-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem>
-                    <Link href="/settings" className="w-full">Account settings</Link>
-                  </DropdownMenuItem>
+                  {/* "Account settings" was here pointing at /settings, but
+                      that route does not exist (no app/settings/page.tsx).
+                      Removed to stop sending users to a 404. Restore when
+                      the settings page is actually built. */}
                   {showAdmin && (
                     <>
-                      <DropdownMenuSeparator />
                       <DropdownMenuItem>
                         <Link href="/admin" className="flex items-center gap-2 w-full">
                           <ShieldCheck className="w-3.5 h-3.5" />
                           Admin
                         </Link>
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                     </>
                   )}
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => signOut({ callbackUrl: "/" })}
                     variant="destructive"

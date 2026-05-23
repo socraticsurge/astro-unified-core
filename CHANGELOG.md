@@ -52,6 +52,1731 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-22] — Fix unreadable chat text in light theme
+
+### Fixed
+- **AI Panel chat responses** were unreadable in the light (Vellum) theme: planet
+  names, dasha timings, and other markdown-rendered text appeared in light colours
+  against the parchment background.
+- Root cause: `MarkdownMessage` in `AIAdminPanel.tsx` had `prose-invert` hardcoded,
+  which forces all Tailwind Typography text to light variants regardless of theme.
+- Fix: import `useTheme` from `next-themes` and apply `prose-invert` only when
+  `resolvedTheme === "dark"`. Light theme now renders dark ink text correctly via
+  the existing `var(--color-ink-*)` CSS tokens.
+
+---
+
+## [2026-05-22] — Add missing AI chat API routes
+
+### Fixed
+- **AI Panel chat** was throwing "Unexpected token '<'" (HTML 404 returned instead
+  of JSON) because `/api/readings/chat` and `/api/readings/chat/compatibility`
+  did not exist.
+- Created `app/api/readings/chat/route.ts` — POST handler for per-profile chat.
+  Loads profile name/DOB/place, enriches system prompt with the latest cached
+  natal insight if available, then calls `callAIForText` and returns
+  `{ response: string }`.
+- Created `app/api/readings/chat/compatibility/route.ts` — POST handler for
+  compatibility chat. Same pattern using the latest compat insight as context.
+  Both routes are admin-only, `force-dynamic`, and use `private, no-store`
+  Cache-Control.
+
+---
+
+## [2026-05-22] — Update site meta title and description
+
+### Changed
+- **`app/layout.tsx`** — title updated to "Astro Chaganti - Vedic Astrology
+  Readings by Dr Chaganti"; description rewritten from a technical feature list
+  to benefit-led copy: "Personal consultations and simplified readings of your
+  current period, natal charts, career themes, and marriage compatibility."
+
+---
+
+## [2026-05-22] — CosmicLanding now theme-aware (dark ↔ light)
+
+### Changed
+- **`components/CosmicLanding.tsx`** — fully theme-aware via `useTheme()`.
+  Added `DARK_PALETTE` and `LIGHT_PALETTE` constants covering every hardcoded
+  color in the component. Background, ambient blobs, zodiac wheel (rebuilt on
+  theme change via `isDark` in its `useEffect` dep array), canvas star/meteor
+  colors (read from a `paletteRef` on every RAF frame without restarting the
+  loop), inline SVG glyphs, and the Google sign-in icon all switch between the
+  cosmic dark and warm parchment Vellum palettes.
+- **`components/CosmicLanding.module.css`** — added `:global([data-theme="light"])`
+  overrides for every color-bearing class: panel glass, text hierarchy, brand
+  gradient (amber → sindoor brick), CTA button (amber → brick red), dividers,
+  and mobile pill strip / fade overlay.
+
+---
+
+## [2026-05-22] — Default theme changed to light (Vellum)
+
+### Changed
+- New visitors now land on the light "Vellum" theme instead of dark "Cosmic".
+  Single-line change in `ThemeProvider.tsx` (`defaultTheme="light"`).
+  Existing users with a stored `localStorage` preference are unaffected.
+
+---
+
+## [2026-05-22] — Constrain Karma Bhava card width on desktop
+
+### Fixed
+- Career tab — Karma Bhava card was stretching to full column width on desktop.
+  Added `maxWidth: 360px` to match the natural width of its content.
+
+---
+
+## [2026-05-22] — Karma Bhava as simple card in Career tab
+
+### Changed
+- **Career tab — Karma Bhava section** converted from a label-value (`ac-kv`) grid
+  to a compact card: sign name as bold headline with dignity tag, occupants row,
+  lord row (house + sign), and lord-in-D10 row — consistent with the significator
+  planet cards above it.
+- **PlanetsTab test** updated to reflect Shadbala data now living in ShadabalaTab.
+
+---
+
+## [2026-05-22] — Clarify email response in Ask panel confirmation
+
+### Changed
+- **AskPanel success state** — confirmation text now tells users the response
+  arrives at their email address (not the app), and provides
+  astrochaganti@gmail.com as a clickable mailto link for urgent queries.
+
+---
+
+## [2026-05-22] — Restore D10 chart as last item in Career tab
+
+### Fixed
+- D10 — Dashamsha chart restored to Career tab as the fifth and final section
+  (was inadvertently dropped in the previous redesign). Order is now:
+  significator cards → career themes → astrological indicators →
+  Karma Bhava → D10 chart.
+
+---
+
+## [2026-05-22] — Always-visible birth charts in Natal tab; Career tab redesign
+
+### Changed
+- **Natal Chart tab** — D1 and D9 charts now always visible below the reading
+  (removed collapsible toggle). Charts render under a "Birth charts" section
+  heading on both mobile and desktop.
+- **Career tab redesigned** — single-column layout replacing the previous
+  two-column grid. New order:
+  1. **Key professional significators** — planet cards (auto-fill grid) with
+     name, Primary badge, D10 sign/lord, and "Strong in D10" indicator.
+     Replaces the horizontal-scroll table; works on mobile without scrolling.
+  2. **Career themes** — pill tags (unchanged).
+  3. **Astrological indicators** — bullet list (unchanged).
+  4. **10th house — Karma Bhava** — key-value card (unchanged).
+  D10 chart and `TwoColumnTabGrid` removed from this view; unused imports
+  (`NatalChartGrid`, `Planet`, `SignName`) cleaned up.
+
+---
+
+## [2026-05-22] — Shadbala admin tab; collapsible birth charts in Natal tab (mobile)
+
+### Added
+- **Shadbala tab (admin-only).** Shadbala · Rupas table and Bhava Chalit ·
+  House Shifts grid extracted from the Planets tab into a dedicated
+  `ShadabalaTab` component. Visible on both mobile and desktop for admins.
+  Planets tab now contains only the Positions table.
+- **Collapsible D1 + D9 charts in Natal Chart tab (mobile only).** On small
+  screens the Natal Chart tab now shows a "Birth charts" toggle below the
+  reading. Tapping it expands D1 — Rasi and D9 — Navamsa grids as reference.
+  Hidden on `md` and above (sidebar already shows the charts on desktop).
+  `NatalTab` accepts a new `chartOutput` prop; `ProfileView` threads it
+  through.
+
+### Changed
+- `components/unified/tabs/PlanetsTab.tsx` — Shadbala and Bhava Chalit
+  sections removed; `ShadbalaPlanet` type and helper constants moved to
+  `ShadabalaTab`.
+- `components/unified/tabs/ShadabalaTab.tsx` — new component.
+- `components/tabs/NatalTab.tsx` — collapsible charts section added; new
+  `chartOutput` prop.
+- `components/profiles/ProfileView.tsx` — `'shadbala'` added to `ChartTabId`
+  and `CHART_TABS` (adminOnly); content section wired; `chartOutput` passed
+  to `NatalTab`.
+
+---
+
+## [2026-05-22] — Natal Chart tab; remove mobile nudge; suppress success toast
+
+### Added
+- **Natal Chart tab.** The natal chart reading (`chart_reading` from the
+  today-reading engine) now lives in its own dedicated tab between Current
+  Period and Planets. No new data fetching — the payload was already present.
+  The Current Period tab is now single-column, focused purely on what's
+  happening now (insight cards, dasha period, dasha reading).
+- `components/tabs/NatalTab.tsx` — new component rendering the natal reading
+  with loading and empty states.
+
+### Changed
+- `components/tabs/TodayTab.tsx` — right column (natal reading) removed;
+  layout simplified from `TwoColumnTabGrid` to a single `div.space-y-6`.
+- `components/profiles/ProfileView.tsx` — `'natal'` added to `ChartTabId`;
+  Natal Chart entry added to `CHART_TABS`; content section wired;
+  `needsChart` excludes `'natal'` since it uses `todayReadingOutput` not
+  sidecar data; `DESKTOP_ONLY_TABS` set and mobile nudge block removed;
+  `Monitor` import removed.
+- `components/panels/AskPanel.tsx` — success toast suppressed after question
+  submission. The inline panel confirmation ("Dr. Chaganti will respond within
+  2 days") is sufficient; the toast was redundant. Error toast is preserved.
+
+---
+
+## [2026-05-22] — Admin-only tabs; rename Today → Current Period
+
+### Changed
+- **Six tabs restricted to admin users only:** Divisional, Yogas, Jaimini,
+  Ashtakavarga, Dashas, and Transits are now hidden from regular users.
+  Users see only: Current Period, Planets, Career, Marriage Compatibility.
+  Tab bar filter and content render guards both enforce the restriction so
+  neither the tab label nor the content is reachable by non-admins.
+- **"Today" tab renamed to "Current Period"** across the tab bar, AI ask
+  context (PostHog capture + `AskContext.tab` default), and `DashboardClient`
+  fallback strings.
+- `components/profiles/ProfileView.tsx` — `adminOnly: true` added to 6 tabs;
+  `isAdmin &&` guards added to their content sections; label updated.
+- `app/dashboard/DashboardClient.tsx` — three `'Today'` fallback strings
+  updated to `'Current Period'`.
+
+---
+
+## [2026-05-21] — Fix Vimshottari sub-dasha date drift in timeline
+
+### Fixed
+- **Dasha timeline showed wrong planets at Sukshma/Prana level.** The
+  expandable Vimshottari timeline was computing sub-periods using a fixed
+  `365.25 days/year` constant (`addYears`), which drifts from the Python
+  sidecar's precise calculation. Error compounds through each nested level
+  (Maha → Antar → Pratyantar → Sukshma), producing a 3-4 day offset at
+  Pratyantar level — enough to land in a completely different planet's period
+  at Sukshma/Prana depth.
+- **Fix:** `computeSubDashas` now proportions the parent's exact day count
+  (`parentEnd − parentStart` in ms) rather than multiplying planet-years by
+  a year constant. Sub-periods sum to exactly the parent duration with no
+  gaps or overlaps at any depth. The Maha timeline start/end dates come
+  directly from the sidecar, so all nesting levels inherit sidecar-authoritative
+  boundaries.
+- `components/unified/tabs/DashaTab.tsx` — removed `addYears`, rewrote
+  `computeSubDashas(parentStart, parentEnd, parentPlanet)`.
+
+---
+
+## [2026-05-21] — Invalidate all stale readings on profile birth-data edit
+
+### Fixed
+- **Compatibility check results were never cleared on profile edit.** When a
+  user changed their date/time/place of birth, Kuta point scores and
+  Ashtakavarga results in `compatibility_checks` remained stale. Added
+  `db.compatibility.deleteByProfile(id)` and called it alongside
+  `db.readings.deleteByProfile(id)` whenever `chartDataChanged` is true.
+- **Race condition in invalidation order.** Previously readings were deleted
+  *before* the profile row was updated. In the tiny window between those two
+  calls, a concurrent request would regenerate a reading with old birth data.
+  Fixed by updating the profile first, then deleting stale rows.
+- **AI insights had no self-healing staleness check.** Every other engine
+  (dashaflow, career, today-reading) uses `birthDataChanged()` to detect
+  stale cache. AI insights did not — they served whatever row was in the DB.
+  The GET endpoint now checks `birthDataChanged` against the current profile
+  and returns `{ insight: null }` if stale, forcing regeneration. The POST
+  endpoint now stores birth coordinates in `input_snapshot` so the check has
+  data to compare against.
+
+---
+
+## [2026-05-21] — Fix AIAdminPanel silent cache-check failure
+
+### Fixed
+- **AI panel cache-check swallowed errors silently.** When the "✦ Ask" panel
+  opened, it hit `/api/readings/ai-insight` to pre-load a cached summary. If
+  that fetch threw (network blip, DB timeout) or returned non-OK, the spinner
+  just stopped with no feedback — previously generated summaries would vanish
+  without explanation. Now surfaces the error via `summaryError` so users see
+  a readable message and can retry. `generateSummary` and chat error paths were
+  already handled correctly; this closes the one remaining silent gap. (T13)
+
+---
+
+## [2026-05-21] — Admin context-aware profile loading + compatibility bypass
+
+### Added
+- **Admin sees full user account on profile click.** When an admin navigates
+  to any user's profile from the admin panel, the dashboard now loads *all*
+  of that user's profiles as the active context — not just the single profile
+  clicked. This means Tarabalam, Marriage Compatibility, and the CompareTab
+  all work correctly with the target user's full profile set.
+- **Admin context banner.** A slim accent-bar at the top of the dashboard
+  shows "👁 Viewing [name]'s account ← Back to admin" when an admin is
+  operating in another user's context. Disappears for normal users.
+- **Admin compatibility bypass.** Admins can now run marriage compatibility
+  checks across any two profiles in the system (ownership not enforced).
+  The 6-check cap and duplicate guard are skipped for admins. Results are
+  stored under the admin's own `user_id` so the profile owner never sees
+  admin-initiated checks.
+
+### Changed
+- `app/dashboard/page.tsx` — admin branch now calls `db.profiles.list(userId)`
+  on the viewed user and fetches their name via `db.users.getById`. Passes
+  `viewingUserLabel` to `DashboardClient`.
+- `app/dashboard/DashboardClient.tsx` — renders admin context banner when
+  `viewingUserLabel` is set.
+- `app/api/compatibility/route.ts` — admin path uses `db.profiles.getAny()`
+  (bypasses ownership) and skips cap/duplicate checks.
+- `lib/db/users.ts` — added `getById(id)` query method.
+
+---
+
+## [2026-05-21] — Fix ESLint CI failure in ProfileSidebar; mobile dropdown background fix; remove mobile theme switch
+
+### Fixed
+- **Profile dropdown was transparent**, letting page content bleed through. Now uses `bg-[var(--color-background)]` for a solid, legible control.
+
+### Fixed
+- **ESLint CI failure** (`react-hooks/set-state-in-effect`) in `ProfileSidebar.tsx`. The `useEffect` that resets `isEditing` when the mobile overlay closes was missing the disable comment; added `/* eslint-disable/enable react-hooks/set-state-in-effect */` block matching the project pattern used in `DashboardClient.tsx`.
+
+### Removed
+- **Theme switch removed from mobile entirely.** The Settings dropdown no longer shows a Theme row on mobile; the desktop wordmark toggle is unchanged.
+
+---
+
+## [2026-05-21] — Mobile nav cleanup: Ask in header, Theme in Settings
+
+### Changed
+- **Ask Dr Chaganti button moved to the profile header row on mobile.** It replaces the edit/delete icons, placing the primary CTA in context of the active profile. The NavBar Ask button is now hidden on mobile (still visible on desktop).
+- **Edit and delete buttons removed from the mobile profile header.** Both actions remain accessible via the sidebar overlay (tap the `◧` icon → sidebar has pencil + trash). Removes clutter from a row that previously had four icons.
+- **Theme toggle moved into the Settings (⚙) dropdown on mobile.** Previously the theme cycle button sat next to the "AC" wordmark where it was easy to miss. On desktop it stays in the wordmark area as before.
+
+### Technical
+- `NavBar`: Ask button gains `hidden sm:flex`; `ThemeToggle` gains `hidden sm:block` wrapper; Settings dropdown gains a mobile-only Theme row with `onSelect` preventDefault to keep the dropdown open while cycling.
+- `ProfileView`: `handleMobileDelete` and `Pencil`/`Trash2` removed; `onOpenSidebarEdit` prop removed; mobile header right side is now a single `✦ Ask` button calling `handleAskFromInsight()`.
+- `ProfileSidebar`: `mobileEditMode` prop and its sync `useEffect` removed; sidebar always opens in view mode (user taps the pencil inside to edit).
+- `DashboardClient`: `mobileSidebarEditing` state and `onOpenSidebarEdit` wiring removed.
+
+---
+
+## [2026-05-21] — Mobile profile UI improvements
+
+### Changed
+- **Profile nav on mobile is now a dropdown select** instead of a horizontal scroll strip. Selecting a profile from the dropdown immediately switches to that profile. The existing chip strip is preserved on `sm` and wider viewports.
+- **Edit profile on mobile now opens the inline sidebar form** (same as desktop) instead of navigating to the separate `/profiles/[id]/edit` full-page form. The edit button in the mobile header triggers the sidebar overlay in edit mode.
+- **Sidebar is now accessible on mobile** via a `PanelLeft` icon button to the left of the profile name in the mobile header. Tapping the icon opens a full-screen overlay containing birth info, panchang, D1 (Rasi) chart, and D9 (Navamsa) chart — previously these were only visible on desktop. Switching profiles closes the overlay automatically.
+
+### Technical
+- `ProfileNav`: renders `<select>` on `< sm`, chip strip on `sm+`.
+- `ProfileSidebar`: new `mobileOpen / onMobileClose / mobileEditMode` props; `<aside>` switches between `fixed inset-0 z-50` overlay on mobile and the standard `hidden md:flex w-80` sidebar on desktop.
+- `ProfileView`: new `onOpenSidebar` / `onOpenSidebarEdit` optional callbacks; mobile header restructured to add the `PanelLeft` trigger.
+- `DashboardClient`: manages `mobileSidebarOpen` / `mobileSidebarEditing` state and wires the callbacks.
+
+---
+
+## [2026-05-21] — Mobile dasha-row alignment (Today tab + Dasha tab)
+
+### Fixed
+- **Current dasha period rows looked ragged on mobile.** The mobile
+  grid for `.ac-dasha-row` used `grid-template-columns: auto 1fr`,
+  which sized the level column to the widest label (PRATYANTAR) but
+  left short labels (ANTAR, PRANA, SUKSHMA) **left-aligned** inside
+  that column — opening a variable, ragged gap between the label and
+  the planet name. Tester described it as "disorganized, unaligned".
+- Now `grid-template-columns: 92px 1fr` with `text-align: right` on
+  `.level`. Every label's right edge sits flush against the planet
+  column → consistent visual rhythm row to row. Slightly bumped
+  column-gap (12 → 14), row-gap (2 → 3), and padding (10/12 → 12/14)
+  for breathing room without growing the card noticeably.
+- Single CSS edit; both `TodayTab` (current dasha card) and
+  `DashaTab` (dedicated tab) use the same class so both improve.
+
+---
+
+## [2026-05-21] — Tier-0 Playwright mobile-layout suite
+
+### Added
+- **`@playwright/test`** + `playwright.config.ts` + `tests/playwright/landing.spec.ts`.
+  Three layout-only assertions that run across **three mobile viewports**
+  (360 × 800, 375 × 812, 414 × 896) in Chromium-headless:
+  1. Landing snippet paragraph and the "Astro Chaganti" brand row do
+     **not** vertically intersect (catches the overlap regression that
+     just shipped to testers).
+  2. "Continue with Google" CTA is fully inside the viewport and at
+     least 40-px tall (catches CTA-pushed-off-screen and tap-target
+     regressions).
+  3. The 12 ascendant pills exist as accessible `<tab>` elements and
+     have a tappable first pill (catches the picker-collapsed-to-zero
+     regression).
+- Tests use `page.route()` to stub `/api/landing/today` — no DB, sidecar,
+  or LLM dependency. The Next dev server boots with a stub
+  `NEXTAUTH_SECRET` from `playwright.config.ts` so anyone with the
+  repo can `npm run test:e2e` cold.
+- `npm run test:e2e` runs the suite; `npm run test:e2e:install`
+  downloads Chromium on first use.
+- Vitest exclude pattern updated so it doesn't try to interpret the
+  Playwright specs.
+- **CI integration deliberately deferred to a follow-up PR.** First
+  pass ships the tests + config + npm scripts only. Once the suite
+  has run cleanly locally for a week we add a Playwright job to
+  `.github/workflows/test.yml`. Keeps the dev → main pipeline from
+  being flake-blocked by infra issues on day one.
+
+### Why
+- All three landing-mobile bugs we've shipped recently (`/settings`
+  dead link aside) were CSS layout issues at mobile widths that
+  vitest couldn't catch because it doesn't render. These three
+  geometry assertions would have caught the snippet-overlap, the
+  hidden-scrollbar tab strip, and the navbar-crushed-chip-strip bugs
+  before they reached testers.
+
+---
+
+## [2026-05-21] — Mobile landing: snippet box overlapped brand row — taller panel + tighter chrome
+
+### Fixed
+- **`CosmicLanding` mobile: snippet text bled into the "Astro Chaganti"
+  brand row.** The glass panel was a flex column with `.todaySection`
+  set to `flex: 1` and an inner `.snippetText` with a rigid `height: 13em`
+  (~175px at 13.5px font). Below the snippet, the panel chrome (brand
+  row + features + sidereal row + CTA) needed ~310px. On a 720-px
+  Android viewport the panel was only 62vh = 446px, leaving the
+  todaySection's flex slot too small for the 13em snippet box — so the
+  snippet visually overflowed its container and rendered on top of the
+  brand row.
+- Three coordinated changes inside `@media (max-width: 700px)`:
+  1. Panel height 62vh → **68vh** (recovers ~43px on a 720-px phone).
+     `pillDock` `bottom: calc(62vh + 8px) → calc(68vh + 8px)` and
+     `mobileFade` `bottom: 54vh → 60vh / height: 28vh → 22vh` track
+     the new top edge so the wheel/snippet pill dock alignment is
+     preserved.
+  2. `.snippetText` height 13em → **12em** + `-webkit-line-clamp` 8 → 7
+     (recovers ~14px; still fits a 320-char snippet at ~46-50 chars
+     per visible line × 7 lines = ~340 chars cap).
+  3. Trimmed mobile chrome margins: `.panelDivider` 14px → 8px,
+     `.brandRow` margin-bottom 14px → 8px, `.features` margin-bottom
+     14px → 8px, `.siderealRow` margin-bottom 16px → 8px. Brand
+     subtitle font 16px → 12px, brand name 28px → 26px. Net ~30px
+     recovered without breaking the visual rhythm.
+
+---
+
+## [2026-05-21] — Mobile: tab strip shows scrollbar so the "Jaimi…" cutoff has a swipe affordance
+
+### Fixed
+- **Profile tab strip looked truncated on mobile.** Mobile users saw
+  "Today | Planets | Divisional | Yogas | Jaimi…" with no visual cue
+  that the strip horizontally scrolls (Ashtakavarga / Dasha / Transits
+  / Career / Compatibility were one swipe away but invisible). The
+  scrollbar was hidden via `[scrollbar-width:none] [&::-webkit-scrollbar]:hidden`
+  — fine on desktop where the strip usually fits, hostile on mobile
+  where it always overflows. Now the hide rules are gated on `sm` and
+  up, so mobile gets a thin native scrollbar as the swipe affordance.
+
+---
+
+## [2026-05-21] — Mobile NavBar: wordmark collapses to "AC" so profile chips fit
+
+### Fixed
+- **Profile switcher invisible on mobile.** The NavBar wordmark "Astro
+  Chaganti" + ThemeToggle + Add profile + Ask + Settings icons consumed
+  the entire 360px width, crushing the `flex-1` slot reserved for
+  `ProfileNav` to zero. Mobile users with multiple profiles had no way
+  to switch between them. Now the wordmark renders as "AC" below the
+  `sm` breakpoint (640px) — full "Astro Chaganti" returns at 640px+.
+  Frees ~140px for the profile chip strip on mobile.
+- Added `data-testid="profile-nav"` to the ProfileNav container so the
+  upcoming Playwright mobile-geometry tests can assert the chip strip
+  has non-zero width at small viewports.
+
+---
+
+## [2026-05-21] — Hotfix: stable user.id + mobile create-sidebar + dead-link gate + auth contract tests
+
+### Fixed
+- **Orphan profiles after sign-in (P0).** `lib/db/users.ts` was running
+  `ON CONFLICT(email) DO UPDATE SET id = excluded.id, …` on every Google
+  sign-in, which rewrote the primary key whenever NextAuth produced a
+  different `user.id` for the same email — orphaning every
+  `profiles.user_id` row pointing at the old value. Three testers and a
+  family member hit this in production. Fix: drop `id = excluded.id`
+  from the upsert, add `users.getByEmail`, and resolve `session.user.id`
+  from the DB (by email) in `lib/auth.ts`, with a `token.sub` fallback
+  for the first-signin race.
+- **Mobile profile creation sidebar invisible.** `ProfileSidebarCreate`
+  used `hidden md:flex` — fine for the read-only sidebar (chips replace
+  it on mobile), but the create state has no mobile equivalent, so
+  mobile users saw "enter the birth details in the sidebar" and no
+  sidebar. Now `w-full md:w-80 … flex` so it spans full width on mobile.
+- **`/settings` dead link in NavBar dropdown.** "Account settings" linked
+  to a route that doesn't exist (no `app/settings/page.tsx`). Removed the
+  menu item; will restore when the settings page is built.
+
+### Added (preventive guards)
+- **`lib/db/users.test.ts`** — contract tests on `users.upsert` that
+  fail if anything re-introduces `id = excluded.id` in the ON CONFLICT
+  clause, plus coverage for `users.getByEmail`. The original incident
+  would have been caught by a 10-line test; now it is.
+- **`scripts/check-dead-route-links.mjs` + `npm run check:routes` CI
+  gate.** Enumerates routes from `app/**/page.tsx`, scans `.ts`/`.tsx`
+  in `app/`, `components/`, `lib/` for `Link href="/…"`,
+  `router.push("/…")`, `redirect("/…")` etc., and fails on any literal
+  that doesn't resolve to a real page. Wired into `.github/workflows/test.yml`
+  and the `AGENTS.md` pre-flight checklist. Skips template literals
+  (`/dashboard?profile=${id}`) and external URLs.
+
+### Operational
+- Existing orphan profiles in production are NOT auto-recovered by
+  this fix — they remain pointed at stale user ids. A one-time SQL
+  backfill is required to relink them to the canonical id for each
+  affected email. The PR body documents the queries; not blocking
+  this merge.
+
+---
+
+## [2026-05-21] — Landing: eyebrow names the active ascendant + LLM stops restating transits + slower cross-fade
+
+### Changed (landing UI)
+- **`CosmicLanding.tsx` eyebrow now reads "THE COSMOS SPEAKS FOR
+  ARIES"** (or whatever sign is active). After the prompt was tightened
+  for word count, the LLM stopped reliably opening snippets with the
+  ascendant name — so the reader couldn't always tell which sign the
+  paragraph addressed. The sign name in the eyebrow cross-fades in
+  lockstep with the snippet (shares the `snippetCopyIn` / `snippetCopyOut`
+  transition classes), and gets a gold-accent colour so the active sign
+  is unambiguous at a glance.
+- Tracks a new `displayedKey` state next to `displayedSnippet` — both
+  swap together when the active sign changes.
+- **Slowed the snippet cross-fade.** `SNIPPET_FADE_OUT_MS` 380 → 700
+  and `SNIPPET_FADE_IN_MS` 520 → 900. Total 1600ms transition vs 6500ms
+  cycle leaves ~5s of stillness — plenty of read time, but the
+  transition itself feels like a wind-stroke instead of a click.
+
+### Changed (LLM prompt — `PROMPT_VERSION_LANDING` 3 → 4)
+- **Snippets no longer restate today's transit data.** The reader
+  already sees the Moon nakshatra / Sun sign / retrogrades in the
+  tile row above the snippet; opening with "The Sun in Taurus brings…"
+  wasted the 45-word / 300-char budget on info the reader already had.
+  System prompt now explicitly forbids phrases like "The Sun in…",
+  "Moon in <nakshatra> asks…", "Mercury retrograde slows…". User prompt
+  reinforces: today's sky is private context for the LLM's choice of
+  angle; the snippet's words go to guidance, not celestial mechanics.
+
+---
+
+## [2026-05-21] — Hotfix: cron via GitHub Actions, not Vercel Cron
+
+### Fixed
+- **PR #91's deploy was rejected by Vercel.** Vercel Hobby plan only
+  allows daily cron schedules; the `0 */8 * * *` schedule in
+  `vercel.json` failed validation and blocked the development deploy
+  entirely (no cron route, no DOB fix, no Rahu/Ketu filter ever
+  reached the preview). Vercel's status check link pointed at the
+  Cron Jobs Usage & Pricing docs as the diagnostic.
+
+### Changed
+- **Switched to GitHub Actions schedule.** Removed `vercel.json` (the
+  crons section was its only content). Added
+  `.github/workflows/landing-cron.yml` with `schedule: 0 */8 * * *`
+  that curls `/api/cron/regenerate-landing` with the
+  `Authorization: Bearer ${{ secrets.CRON_SECRET }}` header. Same
+  cadence as we wanted (every 8 hours), free, works on any GitHub plan.
+  The endpoint code is unchanged.
+- **Two repo secrets needed in GitHub** (Settings → Secrets and variables
+  → Actions):
+  - `CRON_SECRET` — same value as the Vercel env var
+  - `LANDING_CRON_URL` — full URL, e.g.
+    `https://astrochaganti.com/api/cron/regenerate-landing`
+  Workflow fails loudly if either is missing.
+
+### Documentation
+- `docs/PROJECT.md` env table — clarified `CRON_SECRET` lives in two
+  places (Vercel + GitHub) and explained the GitHub Actions choice.
+- `docs/RUNBOOK.md` promotion env-parity table — updated.
+
+---
+
+## [2026-05-21] — DOB max + Rahu/Ketu filter + 8-hour cron landing refresh
+
+### Added
+- **Vercel Cron every 8 hours** regenerates today's landing snippets
+  when the moon's nakshatra changes. New route `/api/cron/regenerate-
+  landing` (auth via `CRON_SECRET` header) + `vercel.json` with
+  schedule `0 */8 * * *`. **Smart skip:** if the moon's nakshatra in
+  today's cached payload matches the current sky, no LLM call. Net
+  cost: 1–2 LLM calls/day typical, catches the nakshatra change
+  within ≤8 hours of when it happens.
+- Seven unit tests cover auth (missing/wrong/unset secret), skip,
+  regenerate, and cold-row paths.
+
+### Changed
+- **Profile form blocks future DOB.** `max={today}` on the date input
+  in both `ProfileFormFields.tsx` and `ProfileForm.tsx`. Server-side
+  defense-in-depth validation in `POST /api/profiles` and
+  `PUT /api/profiles/[id]`.
+- **Rahu/Ketu filtered out of the retrograde tile** in
+  `fetchTodayCelestialFacts()`. The lunar nodes are always retrograde
+  from Earth's frame; surfacing them every day was noise.
+
+### Documentation
+- `docs/PROJECT.md` — added `CRON_SECRET` (required).
+- `docs/RUNBOOK.md` — promotion-runbook env-parity table updated.
+
+---
+
+## [2026-05-21] — Test/lint guards + Sentry runbook
+
+### Added (catch entire bug classes going forward)
+- **Negative-case route tests.** Three routes now assert "DB throws →
+  handler doesn't 500" (the exact bug class that caused the recent
+  `/api/landing/today` outage). The tests caught two real prod risks
+  during this session:
+  - `PATCH /api/readings/[id]/rating` was unwrapped — wrapped in
+    try/catch with Sentry capture, returns 503 on DB failure.
+  - `GET /api/readings/today-reading` was unwrapped — same fix.
+- **CI palette gate.** `scripts/check-no-raw-palette.sh` (new) +
+  `npm run check:palette` blocks raw Tailwind palette classes
+  (`bg-emerald-900`, `text-amber-300`, etc.) in `app/`, `components/`,
+  `lib/`. Same class of bug as the recent Tarabalam regression. Wired
+  into the GitHub Actions workflow + `AGENTS.md` pre-flight checklist.
+
+### Migrated to theme tokens
+- `lib/astro-utils.ts` `dignityBadgeColor()` — was raw palette per
+  dignity state (Exalted/OwnSign/Debilitated/Friend/Enemy/default).
+  Now maps to `--color-success`, `--color-accent`, `--color-danger`,
+  `--color-cool`, `--color-warning`, `--color-ink-4` respectively. Test
+  rewritten to assert tokens, not raw colour names.
+- `components/ProfileLoadingScreen.tsx` — orbiting planet dots
+  (`bg-violet-400`, `bg-sky-300/70`) → `--color-accent-dim` and
+  `--color-cool`.
+- `app/credits/page.tsx` — link colour `prose-a:text-blue-300` →
+  `prose-a:text-[var(--color-cool)]`.
+
+### Documentation
+- **`docs/RUNBOOK.md`** — new "Weekly Sentry review" section. ~15
+  min cadence; lists what to look at (new issues, frequency-sorted top
+  5, Web Vitals, releases), what to ignore (AbortError noise, bot
+  crawlers, single-event Safari flukes), what to act on (500s from any
+  route, repeated client-component errors, release-time spikes).
+
+---
+
+## [2026-05-21] — Landing API hotfix + UX polish (gender, loader, snippet box)
+
+### Fixed
+- **`/api/landing/today` was returning HTTP 500** on every request to the
+  development preview. Two compounding bugs:
+  1. **Race condition in `recordAttempt`** — the SELECT-then-INSERT
+     pattern hit `UNIQUE constraint failed: daily_landing.ist_date`
+     whenever two cold-cache visitors landed at nearly the same time.
+     Replaced with a single atomic `INSERT … ON CONFLICT(ist_date) DO
+     UPDATE` UPSERT.
+  2. **Unwrapped DB calls in the route handler** — `getByDate()` and
+     `getMostRecentSuccess()` could throw and bubble up as a 500.
+     Wrapped both in try/catch; the route now gracefully falls through
+     to the cold-start 503 instead of crashing.
+- **`lib/db/daily-landing.ts` now self-creates its table.** Added a
+  module-level `ensureTable()` that runs an idempotent `CREATE TABLE IF
+  NOT EXISTS` before every operation, so the module is robust to any
+  schema-version drift (the main `ensureSchema()` flow gates table
+  creation by `schema_version`, which can skip the CREATE if version
+  was bumped without the table actually existing).
+- **Snippet's last line was visually clipping descenders** (the `g` /
+  `y` tails of "obvious" etc.). Bumped `.snippetText` height from
+  11.5em → 13em, `line-height` 1.55 → 1.6, added `padding-bottom:
+  0.35em` to the snippet `<p>` so the `-webkit-line-clamp` +
+  `overflow: hidden` combo doesn't visually shear the bottom line.
+  Mobile equivalent: height 9em → 10em, padding 0.3em.
+
+### Changed
+- **Profile-creation loader dismisses on chart-ready instead of
+  all-four-fetches-ready.** Was: wait for chart + transit + career +
+  today-reading (slow LLM call). Now: wait for chart only — the other
+  engines load behind the dashboard with per-engine loading states.
+  Minimum animation time also shortened 2s → 1.4s. Combined effect:
+  loader now feels deliberate, not stuck.
+- **Profile form gender options reduced to Male / Female.** Removed
+  the "Other" option from both the `<select>` in `ProfileForm.tsx`
+  and the `GENDERS` constant in `ProfileFormFields.tsx`. Existing
+  profiles with `gender: "Other"` remain valid in the DB.
+
+---
+
+## [2026-05-21] — Landing page polish: auto-resume cycling, em-dash safety, no-clip snippets, faster first paint
+
+### Changed
+- **Cycle auto-resumes 25s after pin.** `CosmicLanding.tsx`: when the user
+  clicks/taps a sign, we hold on it for 25s then quietly flip
+  `isPinned` back to false so the cycle picks back up. Page stays
+  lively even after interaction. localStorage-restored pins are not
+  auto-cleared (visitor presumably still wants their sign).
+- **Defensive em-dash fallback in transit tiles.** `buildSkyTiles` now
+  treats empty/whitespace-only values the same as missing data, so
+  partial API responses can't render invisible empty spans (the
+  reported "tiles aren't showing" bug).
+- **No more brutal mid-snippet truncation.** Three coordinated changes:
+  1. `lib/engines/today-landing.ts`: snippet Zod schema now has
+     `.max(320)`. Over-long Gemini responses fail validation, the route
+     retries (3/day budget), and the next attempt is asked to be shorter.
+  2. Prompt tightened: "STRICT MAX 45 words AND 300 chars (aim 35-42 /
+     ~250 chars). Over-length snippets cause the whole response to be
+     rejected." `PROMPT_VERSION_LANDING` bumped 2 → 3.
+  3. `CosmicLanding.module.css`: snippet font reduced to
+     `clamp(17px, 1.9vw, 22px)`, line-clamp from 5 → 7, box height
+     9.5em → 11.5em. Holds 300+ chars without clipping. Client-side
+     last-resort cap raised 320 → 360 (rarely fires now).
+- **Cosmos-speaks section sits higher in the glass panel.**
+  `.todaySection` switched from `justify-content: center` to
+  `flex-start` with small padding. Brand row + CTA stay inside the
+  panel; the snippet feels anchored near the top.
+
+### Performance
+- **Canvas init deferred via `requestIdleCallback`.** The 260-star + meteor
+  canvas no longer blocks first paint. Falls back to a short setTimeout
+  in Safari (no `requestIdleCallback`). Expected ~80–120ms cut to LCP
+  on cold loads.
+
+### Tests
+- `lib/engines/today-landing.test.ts` — new case verifying `.max(320)`
+  rejects snippets that exceed the bound.
+
+---
+
+## [2026-05-21] — Profile-create flow + theme-aware Tarabalam + "What's active now" fallback
+
+### Fixed (profile creation)
+- **Previous profile's chart no longer renders behind the create form.**
+  `app/dashboard/DashboardClient.tsx`: when `isCreating` is true, the
+  main panel now renders the create empty-state regardless of any
+  `activeProfile` left over from the URL the user came from.
+- **Post-create redirect now actually lands on the new profile.**
+  `app/dashboard/page.tsx`: added a `key` prop to `<DashboardClient>`
+  derived from URL params (profile id + isCreating + isNewProfile) so
+  the component remounts on navigation. Without this, React's `useState`
+  initializer kept the previously-active profile id, ignoring the new
+  `?profile=<newId>&new=1` URL.
+- **`ProfileLoadingScreen` now fires on the post-create redirect.**
+  Side effect of the same fix — the remount initializes
+  `showLoadingScreen` from the fresh `isNewProfile` prop.
+
+### Fixed (theme adaptation)
+- **`lib/tarabalam.ts` `taraColor()`** was returning hardcoded Tailwind
+  palette classes (`bg-emerald-900/40 text-emerald-300 …` /
+  `bg-red-900/30 text-red-300 …`) that don't adapt to the Vellum (light)
+  theme. Replaced with `--color-success-*` / `--color-danger-*` tokens
+  matching the rest of the app.
+- **`components/unified/IdentityStrip.tsx`** Sun sign was rendered in
+  `text-amber-300` (also off-theme). Switched to `text-[var(--color-accent)]`.
+
+### Changed (insights)
+- **"What's active now" section now always renders** on the Today tab.
+- `lib/insights.ts` adds a low-urgency fallback: when no imminent
+  antardasha, no imminent pratyantar, no active Sade Sati, and no Kaal
+  Sarpa is present, surface the upcoming pratyantar shift regardless of
+  distance ("Next: Saturn pratyantar in ~3 months"). New helper
+  `formatLeadTime()` picks weeks vs. months automatically.
+- `components/tabs/TodayTab.tsx` removes the `when={insights.length > 0}`
+  gate. The empty-state copy ("A quiet stretch in your chart…") is
+  reserved for the rare case where dasha data isn't loaded.
+
+### Tests
+- Updated `lib/__tests__/insights.test.ts` to cover the new fallback
+  contract: when antar+pratyantar are both far, the fallback fires; when
+  an imminent insight is already present, the fallback skips.
+
+---
+
+## [2026-05-20] — Prune dead npm dependencies
+
+### Removed
+Six unused packages from `package.json` + the matching `package-lock.json`
+entries, verified by grepping `from "<pkg>"` across the codebase:
+
+- `@fusionstrings/panchangam` — engine removed long ago; also dropped
+  its now-stale entry from `serverExternalPackages` in `next.config.ts`.
+- `dompurify` + `@types/dompurify` — only `isomorphic-dompurify` is
+  imported (`lib/sanitize.ts`). `isomorphic-dompurify` ships its own
+  `.d.ts`, so the explicit types package is also unnecessary.
+- `uuid` + `@types/uuid` — `lib/db/profiles.ts` uses `randomUUID`
+  from `node:crypto` instead. No imports anywhere.
+- `tsconfig-paths` — vitest has its own `resolve.alias`; `tsx` reads
+  `tsconfig.json` directly. No references in any config or source.
+
+Supersedes PR #78 (which had become unmergeable due to overlap with the
+earlier cleanup PR #80 that already removed the boilerplate SVGs).
+
+---
+
+## [2026-05-20] — Today readings: copy / share / thumbs feedback
+
+### Added
+- New reusable `<ReadingActions>` (in `components/tabs/ReadingActions.tsx`):
+  Copy (clipboard), Share (Web Share API with copy fallback), Thumbs
+  Up / Down. Toggles off on second tap. Rolls back optimistic state on
+  network failure.
+- Wired into both Today-tab reading cards (`Current period —` and
+  `Your natal chart`) via plumbing through `DashboardClient` →
+  `TodayTab`. Each card now exposes the four actions in a small
+  toolbar row at the bottom.
+- PostHog events fire from the client:
+  - `today_reading_copied` `{ engine, length }`
+  - `today_reading_shared` `{ engine, surface: 'web-share'|'clipboard-fallback', length }`
+  - `today_reading_rated`  `{ engine, rating: 1 | -1 | null }`
+
+### Added (API)
+- `PATCH /api/readings/[id]/rating` (new) — user-facing thumbs endpoint.
+  Validates the session user owns the profile the reading belongs to
+  via `db.profiles.get(profile_id, userId)`. Admins can rate any
+  reading. Returns 401/404/400 appropriately. Six unit tests cover the
+  branches.
+- `db.readings.getById(id)` — small CRUD helper used by the rating
+  endpoint.
+- `GET /api/readings/today-reading` now returns `meta.current` and
+  `meta.natal` (each `{ id, rating }`) alongside the existing
+  `output` so the Today tab can wire ratings without an extra fetch.
+
+---
+
+## [2026-05-20] — Landing polish: anchored eyebrow, wind cross-fade, mobile pills out of glass
+
+### Changed
+- **`CosmicLanding.tsx` + `CosmicLanding.module.css`:**
+  - Removed the per-sign `ASCENDANT — RISING` label. The LLM snippet
+    already names the sign — the label was redundant.
+  - Anchored the "The cosmos speaks" eyebrow at a fixed top position
+    inside a fixed-height snippet box (9.5em desktop, 7.5em mobile).
+    The eyebrow no longer jumps as snippet lengths vary; the
+    paragraph below clips at 5 lines (4 on mobile) with `-webkit-line-clamp`.
+    Client-side defensive truncate to 320 chars too.
+  - **Cross-fade between snippets** ("wind stroke" feel): state-driven
+    two-phase transition. Current text fades out with a slight upward
+    drift + 4px blur (380ms), the displayed text swaps, then drifts
+    back in (520ms). Replaces the abrupt key-remount fade.
+  - **Mobile: pill picker moved ABOVE the glass panel.** The pills now
+    sit in a new `.pillDock` fixed-positioned above the panel's top
+    edge (against the night sky, not behind the panel's frosted
+    glass). Backdrop blur on each pill keeps glyphs legible over the
+    starfield.
+- **`lib/engines/today-landing.ts`** prompt tightened from "~50 words"
+  to "STRICT max 40 words, aim for 30-38." `PROMPT_VERSION_LANDING`
+  bumped 1 → 2 (signals intent; daily cache key is by IST date, so
+  the new prompt takes effect on tomorrow's regeneration).
+
+### Removed
+- The "Free · Up to 10 Natal Charts and 6 Kundali Matches" footnote
+  under the sign-in button.
+
+### Changed (follow-up — make today's transits actually visible)
+- Replaced the small low-contrast `.skyBadge` pill with a proper three-
+  tile row above "The cosmos speaks": **Moon · Sun · Retrograde** with
+  a `Today` / `Yesterday` eyebrow above them. The third (Retrograde)
+  tile only appears when at least one planet is retrograde. Em-dash
+  placeholders before `/api/landing` resolves so the layout never
+  shifts on data arrival.
+
+---
+
+## [2026-05-20] — Audit round 2: mobile layout fixes + Transits cleanup
+
+### Added
+- **Landing — "The cosmos speaks" eyebrow** restored above the sign
+  label so the snippet has the same framing line the earlier version
+  had. Same fade animation as the label + paragraph.
+
+### Fixed
+- **Landing — mobile panel was bleeding the spinning wheel through
+  the glass.** Strengthened the mobile `.panel` background
+  (`rgba(8,4,24,0.78)`) and increased the backdrop blur to 42 px so
+  the wheel reads as a faint glow behind the panel rather than
+  competing with the snippet copy.
+- **Jaimini → Upapada (spouse indicator) — mobile squeeze.** The card
+  was a single 4-column grid (UL sign / Lord / 2nd from UL /
+  description) which collapsed the description to one word per line
+  on phones. Split into a 3-column header row + a full-width
+  description block underneath, separated by a thin divider. New
+  `.ac-upapada` / `.ac-upapada-row` / `.ac-upapada-desc` classes
+  handle the desktop + mobile layout.
+- **Current Dasha Period — mobile date-superscript.** The
+  `.ac-dasha-row` grid `110px 1fr auto` was squashing the date range
+  into a 2-line superscript next to a giant planet name. Added a
+  `@media (max-width: 640px)` rule that reflows the row into
+  `level | planet` / `level | range` grid areas so the date sits on
+  its own line, full-width, in mono, with `white-space: nowrap`.
+
+### Removed
+- **Transits tab — "Transit detail" planet-card strip.** The compact
+  per-planet card grid below the chart (showing retrograde marker,
+  house-from-lagna, house-from-moon, planet SAV) is gone. The same
+  bindu information is already in the natal-SAV-lattice chart
+  immediately above. Dropped the now-unused `PLANET_ORDER` import.
+
+### Verified
+- `tsc --noEmit`, `npx vitest run` (387 tests), `npx eslint .` clean.
+- Landing renders 200 with the "The cosmos speaks" eyebrow visible
+  in the HTML.
+
+---
+
+## [2026-05-20] — Landing page: restore wheel spin, fix font var, never-empty snippet
+
+### Fixed
+- **Zodiac wheel no longer rotates naturally.** PR #81 had replaced
+  the continuous slow rotation with a discrete
+  `transform: rotate(${activeIndex * 30}deg)` snap on the rotor `<g>`,
+  so the wheel only moved 30° every 6.5 s (auto-cycle step) and felt
+  jerky. Restored the pre-#81 behaviour:
+  `animation: spinZodiac 160s linear infinite` directly on the rotor.
+  The `@keyframes spinZodiac` in `app/globals.css` was already there
+  — the rewrite just stopped referencing it. Click-to-pin still
+  updates the panel snippet; the wheel itself stays decorative.
+- **Landing fonts fell back to Georgia.**
+  `components/CosmicLanding.module.css` referenced
+  `var(--font-cormorant)` in three places, but that CSS variable is
+  not defined anywhere — `app/layout.tsx` exposes only
+  `--font-display` (Libre Baskerville), `--font-ui` (Inter), and
+  `--font-mono`. The italic 32 px snippet and the "Astro *Chaganti*"
+  brand row were silently falling back to Georgia. Swapped all three
+  references to `var(--font-display)`.
+- **Snippets never appeared.** On cold start (no prior `daily_landing`
+  row) and any subsequent generation failure (sidecar timeout,
+  missing `GOOGLE_GEMINI_API_KEY`, etc.), `/api/landing/today`
+  returns `503 no_content_available`, the client set `errored=true`,
+  and the panel rendered "Astro Chaganti / Sign in to begin." — no
+  per-sign text at all. Loosened PR #81's "no canned-text fallback"
+  rule: added `lib/content/landing-fallback.ts` with one short
+  (~30–45 word) curated paragraph per ascendant, in the same
+  observational tone as the LLM prompt. The client now always
+  renders a per-sign paragraph from that map; when the API succeeds,
+  today's LLM-generated copy supersedes the fallback transparently.
+
+### Changed
+- Removed the dead `.zodiacRotor` and `.signIndicator` CSS classes,
+  the 12 o'clock indicator polygon, the mobile media-query rule that
+  hid the indicator, and the `errored` / `showFallback` client state
+  — the snippet path is now always live.
+- Auto-cycle effect no longer waits for `data` to load; it ticks
+  through the fallback snippets immediately on mount.
+- Added a small `landingSnippetFade` keyframe so the active sign
+  label and snippet text fade in (~500 ms) whenever the active sign
+  changes (auto-cycle or click). React `key` on the `<p>` /
+  `<span>` re-triggers the animation per cycle.
+
+### Notes
+- The cold-start / failure UX no longer reads as broken even when
+  the LLM endpoint is unreachable. The "Today — Moon in …" sky
+  badge still only appears when the live endpoint returns; the
+  static fallback never invents transit facts.
+- `tsc --noEmit`, `npx vitest run` (387 tests), and `npx eslint .`
+  all clean.
+
+---
+
+## [2026-05-20] — Living landing: 12 daily ascendant snippets
+
+### Added
+- `/api/landing/today` public endpoint: returns today's 12 ascendant
+  snippets + the "today's sky" badge data (Moon nakshatra, Sun sign,
+  active retrogrades). Lazy-generated on first visit of the IST day
+  via a single Gemini Flash Lite call. Cost ~$0.0001/day.
+- `lib/engines/today-landing.ts` — sidecar synthetic call for today's
+  celestial facts; LLM prompt grounded in the authored ascendant
+  content blocks (`lookupAscendant`) for stable per-sign lens; Zod-
+  validated output.
+- `lib/db/daily-landing.ts` + new `daily_landing` table
+  (`SCHEMA_VERSION` 8 → 9). Tracks `attempts`, `last_attempt_at`,
+  `generated_at` for retry budget.
+- Failure handling: max 3 attempts per IST day with ≥10-minute gap.
+  Until today succeeds, the endpoint serves the most recent prior
+  successfully-generated day with `is_stale: true` (badge phrasing
+  switches to "Yesterday's sky — …"). All failures captured to
+  Sentry. The hardcoded quote rotator is **removed** — no canned-
+  text fallback.
+- `CosmicLanding.tsx` rewrite:
+  - Spinning zodiac wheel is now the desktop picker. Each sign is a
+    click target; clicking pins the active sign and rotates the
+    wheel to put it under the new stationary 12-o'clock indicator.
+  - Mobile gets a horizontal pill strip with auto-cycle (6.5s) and
+    tap-to-pin.
+  - localStorage `astrochaganti.ascendant` restores the pinned sign
+    on return.
+- PostHog event `landing_ascendant_pinned` with
+  `{ sign, source: "click"|"tap"|"restored", is_stale }`.
+
+### Removed
+- `QUOTES_DESKTOP` / `QUOTES_MOBILE` hardcoded arrays and the quote
+  rotator `useEffect` block in `CosmicLanding.tsx` — landing is now
+  fully LLM-driven (or shows yesterday's content during failure).
+
+### Verified
+- `tsc --noEmit` clean
+- 387 tests pass (10 new)
+- ESLint clean
+
+---
+
+## [2026-05-20] — Cleanup + remove pending-request submission limit
+
+### Removed
+- `design/landing-mockup/` (24MB, local-only Vite scratchpad — was already
+  gitignored, this just clears local disk + drops the now-dead
+  gitignore/eslintignore entries).
+- `public/earth.{webm,mp4}` (1.6MB) and the earth render block in
+  `components/CosmicLanding.tsx` + `.module.css` (`.earthWrap` /
+  `.earthAtmo` / `.earthClip` / `.earthLight` + mobile rule). Landing
+  still has the zodiac wheel, glass quote panel, and starfield.
+- Default `create-next-app` boilerplate SVGs from `public/`:
+  `next.svg`, `vercel.svg`, `file.svg`, `window.svg`, `globe.svg`
+  — zero references anywhere in the codebase.
+- "You already have an outstanding consultation request" 409 guard in
+  `POST /api/consultation-requests`. Users can now submit any number of
+  questions back-to-back; the rate-limit (5/min) still applies. The
+  corresponding test case was removed.
+
+### Why
+- Cleanup: drop accidentally-committed mockups + 1.6MB of unused
+  landing assets before launch.
+- The pending-request limit was a guard for the (now-dormant) payment
+  flow — it doesn't fit the email-driven model where Dr. Chaganti may
+  legitimately have several open questions per user in flight.
+
+---
+
+## [2026-05-20] — Admin email notifications via Resend
+
+### Added
+- `resend` SDK + `lib/email/client.ts` (lazy singleton, returns null when
+  `RESEND_API_KEY` is missing so local dev / tests don't blow up).
+- `lib/email/admin-notify.ts` — sends a formatted HTML+text email to the
+  admin recipient when a new consultation request lands. Includes
+  requester, profiles, mode, slot (if appointment), the question itself,
+  and a link to /admin.
+- Wired into `app/api/consultation-requests/route.ts` POST handler.
+  Uses Next.js 16 `after()` so the user-facing submission isn't delayed
+  by Resend latency. Wrapped in try/catch — outside a request scope
+  (tests), it silently skips.
+- Constants in `lib/constants.ts`:
+  - `ADMIN_EMAIL_NOTIFICATIONS_ENABLED` (kill-switch, default `true`)
+  - `ADMIN_NOTIFY_EMAIL` = `astrochaganti@gmail.com`
+  - `EMAIL_FROM` = `Astro Chaganti <onboarding@resend.dev>` — Resend's
+    shared sender; switch to a verified-domain sender once
+    `astrochaganti.com` is live.
+- `docs/PROJECT.md`: documented `RESEND_API_KEY`.
+
+### Why
+- The "respond by email" flow depended on Dr. Chaganti manually checking
+  the admin queue. Without a notification, a question could sit for
+  days. This closes that gap before public launch.
+
+---
+
+## [2026-05-20] — Enforce ESLint as a gate
+
+### Changed
+- **`.github/workflows/test.yml`** — removed `continue-on-error: true` from
+  the ESLint step. Lint errors now fail the CI workflow like tsc and
+  vitest do. Renamed the step from `ESLint (advisory)` to `ESLint`.
+- **`.githooks/pre-push`** — added `npm run lint` after the vitest step.
+  Pushes are now blocked locally if lint reports errors. Warnings are
+  still tolerated (ESLint's default exit behavior).
+- **`AGENTS.md`** — added `npm run lint` to the pre-flight checklist
+  required before opening any PR. This closes the gap that allowed
+  React 19.2's stricter rules to surface 12 errors that piled up before
+  CI was set up.
+
+### Why
+With the slate cleaned in the previous entries (0 errors, 0 warnings),
+the gate can be tightened. The protocol previously enforced tsc + vitest
+but not lint, which let React purity and set-state-in-effect violations
+accumulate undetected.
+
+---
+
+## [2026-05-20] — Shared `<EngineLoading>` and `<EngineError>` components
+
+### Added
+- **`components/ui/EngineLoading.tsx`** — shared loading state for engine
+  views. Two variants: `inline` (spinner + text, no surface) and `card`
+  (wrapped in `.ac-card .ac-card-pad`). Accent-colored `Loader2`,
+  `role="status"`, `aria-live="polite"`.
+- **`components/ui/EngineError.tsx`** — shared error state. Accepts a
+  string or `Error` (renders nothing if nullish), optional `onRetry`
+  renders a "Retry" button, `tone` switches between `danger` (default,
+  red) and `warning` (yellow, for soft / no-data states). Built on the
+  existing `.ac-banner` CSS.
+- **`app/globals.css`** — added `.ac-banner.danger` (uses
+  `--color-danger-*` tokens) to complete the trio alongside the existing
+  `.accent` and `.warn` variants.
+- **`components/ui/__tests__/EngineLoading.test.tsx`** and
+  **`components/ui/__tests__/EngineError.test.tsx`** — 11 unit tests
+  covering default message, variant switching, tone switching, nullish
+  guard, Error-instance unwrapping, and Retry button click.
+
+### Changed (migrations using the new components)
+- **`components/engines/TarabalamView.tsx`** — replaced the inline
+  `<div className="ac-banner warn">{error}</div>` with
+  `<EngineError error={error} onRetry={handleSearch} />`. Switches the
+  tone from warning to danger (genuine fetch errors deserve danger
+  styling) and adds a one-click retry button that was previously absent.
+- **`components/engines/MuhurthaView.tsx`** — replaced the synchronous
+  `alert(...)` on search failure with `toast(message, "error")`. Aligns
+  with the rest of the app's toast pattern and doesn't block the user.
+- **`components/engines/ExplainerModal.tsx`** — replaced the inline
+  `<Loader2 /> Loading readings…` snippet with
+  `<EngineLoading message="Loading readings…" />`. The `Loader2` import
+  is no longer needed at this site.
+
+### Why
+Previously each engine reinvented loading and error UI: some used
+`.ac-banner.warn`, some used inline `text-red-400` paragraphs, some used
+browser `alert()`. The result was visually inconsistent and accessibility
+was uneven. These shared components give a single, accessible
+(`role="status"` / `role="alert"`, `aria-live`) source of truth that
+future engines should reach for first.
+
+---
+
+## [2026-05-20] — Clear all ESLint warnings
+
+### Fixed
+- **17 ESLint warnings → 0** across 13 files. All were truly unused
+  imports, unused locals, or stale `eslint-disable` directives — no
+  behavior change.
+  - Unused imports removed:
+    - `app/admin/page.tsx` — `Link` from `next/link`
+    - `app/api/admin/backfill/route.ts` — `db` from `@/lib/db`
+    - `app/consultation/ConsultationForm.tsx` — `scale` from typography
+    - `components/profile/ProfileSelectorCard.tsx` — `motion`
+    - `components/tabs/CompareTab.tsx` — `CheckCircle2`, `XCircle`,
+      `MinusCircle`
+    - `components/unified/NatalChartGrid.tsx` — `SIGNS_ORDER`
+    - `lib/__tests__/insights.test.ts` — `TodayInsight` type
+    - `lib/db/profiles.ts` — `User` type
+    - `components/panels/__tests__/AskPanel.test.tsx` — `userEvent`
+  - Unused locals removed:
+    - `app/dashboard/DashboardClient.tsx` — `fetchTodayReading` (dead
+      `useCallback`; grepped repo confirms no references)
+    - `components/engines/TarabalamView.tsx` — `currentProfile`
+  - Stale `eslint-disable` directives removed:
+    - `app/dashboard/DashboardClient.tsx:175` — `exhaustive-deps`
+      directive that no longer matched a fired rule
+    - `components/ui/Toast.tsx:45,139` — two `no-console` directives
+      around `console.warn` calls; `no-console` isn't currently
+      configured to fire on `console.warn`, so the directives were noise
+- **`components/engines/AIInsightCard.tsx:31`** — replaced
+  `next.has(id) ? next.delete(id) : next.add(id)` (ternary used as a
+  statement, flagged by `no-unused-expressions`) with an `if/else`.
+
+### Why
+With the 12 errors handled separately (PR #74), this brings ESLint
+output to a fully clean slate. Easier to spot future regressions when
+the baseline is `0 errors, 0 warnings`.
+
+---
+
+## [2026-05-20] — Clear all ESLint errors
+
+### Fixed
+- **12 ESLint errors → 0** across 9 files. CI's lint step was previously
+  configured with `continue-on-error: true` because of these pre-existing
+  errors from Next.js 16's stricter React 19.2 rules; with the slate clean,
+  CI can be tightened in a follow-up. Categories:
+  - `react-hooks/purity` (Date.now() in render) — `app/consultation/page.tsx`,
+    `components/engines/MuhurthaView.tsx`. Replaced with
+    `new Date().getTime()` (lazy-initialized in MuhurthaView's `useState`).
+  - `react-hooks/set-state-in-effect` (×6) — `app/dashboard/DashboardClient.tsx`
+    (×2 fetch-driven effects), `components/ThemeToggle.tsx` (SSR mount
+    canon), `components/engines/ExplainerModal.tsx` (open-driven tab snap),
+    `components/engines/TarabalamView.tsx` (auto-fetch on mount),
+    `components/panels/AskPanel.tsx` (form reset on close). Each call is a
+    legitimate fetch / mount / reset pattern with no synchronous
+    derivation; suppressed with tightly scoped
+    `eslint-disable-next-line` / block disables and a comment explaining why.
+  - `@typescript-eslint/no-explicit-any` (×3) — `components/unified/HouseGrid.tsx`
+    cast as `SignName`; `components/engines/MuhurthaView.tsx` typed via a new
+    `MuhurthaResult` shape (`start_time`, `end_time`, `date`, `points?`).
+  - `prefer-const` — `components/CosmicLanding.tsx`: `let meteors` →
+    `const meteors` (array is mutated via push, never reassigned).
+
+### Not touched
+- 17 ESLint warnings remain (unused vars, unused eslint-disable directives).
+  Out of scope for this commit, which focused on errors only.
+
+---
+
+## [2026-05-20] — Make content-loader caching tests hermetic
+
+### Fixed
+- **`lib/content/loader.test.ts`** — 5 of 6 tests in this file failed
+  whenever `lib/content/content-index.json` was absent (the build artifact
+  is gitignored and only generated by `npm run prebuild`). The tests
+  asserted a "+1" `fs.readFileSync` call attributable to the loader's
+  `createRequire("./content-index.json")` at module init, which only
+  fires when the JSON file exists. On any fresh checkout, `require`
+  threw before hitting `fs.readFileSync`, so spy counts were off by one
+  and the pre-push hook (`tsc` + `vitest`) blocked every contributor's
+  push. Each test now calls `readFileSyncSpy.mockClear()` right after
+  `await import("./loader")`, so assertions measure only user-triggered
+  reads and are hermetic across CI (index present) and fresh local
+  checkouts (index absent).
+
+---
+
+## [2026-05-20] — PostHog product analytics
+
+### Added
+- `posthog-js` + `posthog-node` integration via PostHog wizard. EU
+  region. Browser inits in `instrumentation-client.ts` (alongside
+  Sentry). Server singleton in `lib/posthog-server.ts`. Server-side
+  identify on Google sign-in (`lib/auth.ts`); client-side identify on
+  session change (`components/PostHogIdentifier.tsx`).
+- `/ingest/*` rewrite proxy in `next.config.ts` for ad-blocker
+  resilience.
+- Events captured:
+  - `user_signed_in` (server, NextAuth signIn callback)
+  - `profile_created`, `profile_deleted` (server, REST)
+  - `consultation_request_created` (server, REST — authoritative for
+    funnel)
+  - `consultation_feedback_submitted` (client, rating thumbs)
+  - `feedback_submitted` (server, FeedbackWidget)
+  - `ask_panel_opened`, `ai_insight_panel_opened` (client, UI)
+
+### Tuned
+- `capture_exceptions: false` in PostHog — Sentry already handles
+  exception tracking; do not double-capture.
+- Removed wizard-added client-side `consultation_submitted` and
+  `ask_submitted` events — both POST to `/api/consultation-requests`
+  which fires the authoritative server-side `consultation_request_created`,
+  so the client events were duplicates that would double-count in
+  funnels.
+
+### Documented
+- `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` in
+  `docs/PROJECT.md`.
+
+### Removed
+- Wizard scaffolding: `posthog-setup-report.md`, `.claude/skills/`
+  (PostHog agent skill folder). `.claude/` added to `.gitignore`.
+
+### Known caveat
+- `posthog-node` on Vercel serverless is fire-and-forget with
+  `flushAt: 1, flushInterval: 0`. Most events land, but a fraction
+  may be lost when a Lambda freezes before flush completes. For
+  better fidelity later, await `posthog.shutdown()` or use Next.js
+  `after()` from `next/server`. Acceptable for analytics; not OK if
+  we ever use it for auditing.
+
+---
+
+## [2026-05-20] — Sentry error tracking
+
+### Added
+- `@sentry/nextjs` integration via the Sentry wizard. Project
+  `astrochaganti` on EU SaaS. Captures uncaught exceptions on client,
+  server, edge, and via App Router `global-error.tsx`.
+- Build-time source map upload — requires `SENTRY_AUTH_TOKEN` env var
+  on Vercel (added).
+- `docs/PROJECT.md`: documented `SENTRY_AUTH_TOKEN`.
+
+### Tuned
+- `tracesSampleRate: 0.1` (free tier ~5k errors/month).
+- `sendDefaultPii: false` everywhere — we have OAuth session cookies
+  + user emails, do not ship them to Sentry by default.
+- `enableLogs: false` — `console.log` not forwarded.
+
+### Removed
+- Wizard-generated `/sentry-example-page` and
+  `/api/sentry-example-api` routes — verification only.
+
+---
+
+## [2026-05-20] — Merge of PR #66 (audit fixes, Sessions 1-4)
+
+Picked up the substantive backend hardening from PR #66: Cache-Control on
+auth-gated routes, isomorphic-dompurify sanitizer, AbortSignal timeouts on
+sidecar/LLM, fetch-with-retry utility, Zod schemas across DB modules,
+COUNT queries (TOCTOU fix), 5 new route test files (61 tests), admin
+pagination LIMIT 200, eslint-plugin-jsx-a11y wiring, content index
+prebuild, pre-push hook. Conflicts resolved by combining with PR-1..PR-8
+work (proper-case display, sidebar create, tab primitives, today-reading
+two-tier cache, AdminTables split, Transit chart). See the dedicated
+session entries below for the details.
+
+---
+
+## [2026-05-20] — PR-8: Legacy Compatibility UI removed + Transit chart
+
+Two corrections from user testing:
+1. The standalone Compatibility screens (`/compatibility`, `/compatibility/[id]`,
+   their clients + chat/insight components) are unreachable from the live UI —
+   no NavBar link, no in-app router push outside the legacy client itself.
+   The Compare tab inside the dashboard is the canonical compatibility view now.
+2. The Transits tab should render as a D1-style chart with the transiting
+   planet placements overlaid on the natal SAV bindu lattice — that's how the
+   reading is done classically. The card grid I built in PR-4 missed that.
+
+### Removed (legacy compatibility, UI-orphaned)
+- `app/compatibility/page.tsx`
+- `app/compatibility/[id]/page.tsx`
+- `app/compatibility/[id]/CompatibilityDetailClient.tsx`
+- `components/compatibility/CompatibilityClient.tsx`
+- `components/engines/CompatibilityChat.tsx` (only consumer was the deleted client)
+- `components/engines/CompatibilityInsightShell.tsx` (same)
+- `app/api/readings/chat/compatibility/route.ts` + its test (only consumer was
+  the deleted `CompatibilityChat` component)
+- `app/api/readings/chat/route.ts` (orphaned by the prior `ProfileChat` deletion;
+  no remaining caller)
+
+Kept (still in use):
+- `app/api/compatibility/route.ts` + `app/api/compatibility/[id]/route.ts` —
+  consumed by the dashboard Compare tab.
+- `app/api/readings/ai-insight/compatibility/route.ts` — consumed by the
+  admin `AIAdminPanel` when expanding a compare check.
+- `lib/engines/groq.ts` — still wired through `lib/engines/ai-caller.ts`
+  (today-reading + admin draft + ai-insight may route to Groq depending on
+  the configured model).
+
+Net: ~700 lines of dead UI + API code gone.
+
+### Changed
+- **TransitsTab → D1-style chart with natal SAV bindus + transit planet
+  positions** (per user correction). `NatalChartGrid` receives the transit's
+  `planets[*].sign` keyed by `signKey="sign"`, with the natal lagna for
+  orientation and the natal `sarvashtakavarga` for per-sign bindu counts.
+  The compact card grid stays below the chart as a "Transit detail" strip —
+  it's still useful for retrograde markers and the H/Lagna / H/Moon callouts,
+  but the chart now leads.
+- `ProfileView` passes `chartOutput` to `TransitsTab`.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 267/267 pass (-8 from PR-7: the deleted compatibility-chat
+  route had 8 tests; all other tests untouched)
+- `npm run build` → success
+
+---
+
+## [2026-05-20] — PR-7: AdminTables split + ExplainerModal mobile
+
+The remaining cleanup items from the audit (N3 + N7).
+
+### Changed
+- **`app/admin/AdminTables.tsx` split** — was 880 lines in a single file with
+  intertwined per-tab state. Extracted:
+  - **`app/admin/tabs/QuestionsTab.tsx`** (287 lines) — full Questions tab
+    with its own draft / answer / payment state, paid-now → answered flow,
+    and the inline Draft Assistant.
+  - **`app/admin/tabs/SettingsTab.tsx`** (244 lines) — consultation toggles,
+    pricing form, slot management; owns its own state and the `Toggle`
+    helper.
+  - **`app/admin/utils.tsx`** (33 lines) — shared `sortBy`, `renderSortIcon`,
+    `resolveProfileIds`.
+  - **`AdminTables.tsx`** is now 370 lines and only holds the inline Users /
+    Profiles / Compatibility / Feedback / AI Insights / LLM Settings tabs
+    (each under 70 lines).
+  - No behavior change — DOM output is identical to the prior single-file
+    implementation.
+
+- **`ExplainerModal` on mobile** (observation N7) — the modal previously used
+  `h-full` on mobile, occupying 100% of the viewport. On iOS Safari the
+  dynamic toolbar could hide the X button below the visible area. Switched
+  to `max-h-[92vh]` on mobile (was `h-full`), added `sticky top-0` to the
+  header so the close affordance stays reachable as content scrolls, and
+  added `p-3` padding around the backdrop so the user can tap outside to
+  close. Rounded corners now apply at all sizes for consistency.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 275/275 pass
+- `npm run build` → success
+
+### Audit status — all 11 items addressed
+| Item | PR |
+|---|---|
+| Display rules (Born/Lives raw, proper case) | PR-1 (#58) |
+| Profile create in sidebar | PR-1 (#58) |
+| Logo / wordmark | PR-1 (#58) |
+| Tab primitives (TwoColumnTabGrid, TabSection) | PR-2 (#59) |
+| Today tab redesign | PR-2 (#59) |
+| Today reading LLM split | PR-3 (#60) |
+| Jaimini, Dasha, Transits, Career tab refits | PR-4 (#61) |
+| Toast + sticky tabs + loading skeleton | PR-5 (#62) |
+| Compare responsive + orphan cleanup | PR-6 (#63) |
+| AdminTables split + ExplainerModal mobile | PR-7 (this PR) |
+
+The Compatibility Basic/Pro toggle decision (N8) is still queued for your call.
+
+---
+
+## [2026-05-20] — PR-6: Compare responsive + orphan cleanup
+
+Audits the remaining untouched tabs from the UI/UX review, removes orphaned
+components discovered during the audit, and tightens the Compare tab.
+
+### Changed
+- **`components/tabs/CompareTab.tsx`** — removed the prior `max-w-2xl` clamp
+  on the result body. The compare result now fills the dashboard content
+  area, so the dense kuta / dosha tables get breathing room on wide screens.
+  Replaced inline `display: flex` constructs with Tailwind classes for the
+  score row and dosha card chrome, so the existing `flex-wrap` actually
+  kicks in at narrow widths. `formatName` applied to all profile names
+  in the result body (Natal Moon Profiles header, Kuja Dosha rows,
+  Additional Kutas detail lines, Mangal Dosha sentences).
+- **"+ Add partner profile" CTA** in CompareTab now links to
+  `/dashboard?create=1` (matches the rest of the app).
+- **`components/unified/tabs/YogasTab.tsx`** — both sections now use
+  `TabSection` for the empty-state policy. When both yogas and doshas are
+  absent, a single short "data not available" message renders instead of
+  two empty headings.
+
+### Removed
+- **Orphaned `components/unified/UnifiedView.tsx`** (had no callers — the
+  dashboard shell is `ProfileView`, not `UnifiedView`).
+- **Orphaned `components/unified/tabs/PatternsTab.tsx`** (only imported by
+  `UnifiedView`; the dashboard's Yogas + Jaimini + Ashtakavarga + Doshas
+  content lives in the dedicated top-level tabs).
+- **Orphaned `UnifiedViewProps` type** in `components/unified/types.ts`.
+- Net: 326 + 106 + 9 = ~441 lines of dead component code gone.
+
+### Fixed (docs)
+- **`docs/ARCHITECTURE.md`** Chart Engine Components table — replaced
+  `UnifiedView.tsx` row with `TabGrid.tsx` + `TabLoadingSkeleton.tsx`
+  (the actual primitives in use). Removed `PatternsTab.tsx` row.
+  Updated `Transits` and `Career` row descriptions to reflect the
+  PR-4 refits. Server/Client Boundary Map now describes
+  `ProfileView + components/unified/tabs/*` as the dashboard shell.
+
+### Decision deferred
+- **Compatibility Basic / Pro toggle** (`CompatibilityDetailClient`) —
+  the unified dashboard removed the parallel toggle on profile pages,
+  but `CompatibilityDetailClient` still has it. Keeping it as-is until
+  you decide whether to merge Basic + Pro into one view or remove the
+  toggle for non-admins.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 275/275 pass
+- `npm run build` → success
+
+### Queued
+- **PR-7** — AdminTables split (880 lines), ExplainerModal mobile, sidebar
+  dead space, smaller items
+
+---
+
+## [2026-05-20] — PR-5: polish (Toast + sticky tabs + loading skeleton)
+
+Polish layer over the user-visible changes from PR-1 → PR-4. Adds positive
+feedback for actions that previously had none, ensures the tab nav stays
+visible during scroll, and unifies the loading state across tabs.
+
+### Added
+- **`components/ui/Toast.tsx`** — global toast notification system.
+  - `<ToastProvider>` mounted once in `app/layout.tsx` (inside `ThemeProvider`).
+  - `toast(message, kind?, opts?)` imperative helper callable from any client
+    component. `kind` is `"success" | "error" | "info"`. `opts.duration: 0`
+    keeps the toast open until dismissed; default auto-dismiss is 3.5s.
+  - `useToast()` hook for reactive use.
+  - Visual: bottom-right slide-in stack, semantic icon + colour per kind,
+    inline dismiss button. 6 unit tests.
+- **`components/unified/TabLoadingSkeleton.tsx`** — shared pulsing skeleton.
+  Replaces the prior mix of "Loading…" text labels and bare paragraphs across
+  tabs. Configurable `lines` / `cards` / `framed`. Applied to `TransitsTab`
+  and `CareerTab` (both previously rendered a single italic line).
+
+### Changed
+- **ProfileSidebar save / create / delete + AskPanel submit** now fire toasts.
+  - Profile saved → "Profile saved" (success)
+  - Profile created → "Created &lt;Name&gt;" (success)
+  - Profile deleted → "&lt;Name&gt; deleted" (success)
+  - Ask submitted → "Your question is on its way — we'll respond within 2 days." (success)
+  - Any of the above failing → red error toast with the message
+- **ProfileView tab bar is now pinned visibly during content scroll**
+  (observation N4). Added `flex-shrink-0 bg-[var(--color-background)] z-10`
+  to the tab bar, and `flex-shrink-0` to the mobile header. Both were
+  implicit-shrink flex items in some layout regimes; making them explicit
+  ensures they stay visible no matter how tall the inner Dasha / Patterns
+  table grows.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 275/275 pass (+6 toast tests)
+- `npm run build` → success
+
+### Out of scope (queued)
+- **PR-6** — Compare responsive, Yogas / Ashtakavarga / Patterns 2-col audit,
+  Compatibility Basic/Pro decision
+- **PR-7** — AdminTables split (880 lines), ExplainerModal mobile,
+  sidebar dead space, smaller items
+
+---
+
+## [2026-05-20] — PR-4: tab refits (Jaimini, Dasha, Transits, Career)
+
+Closes PDF observations **#4–#7**. Each refit composes the PR-2 primitives
+(`TwoColumnTabGrid` + `TabSection`) instead of being styled in isolation.
+
+### Changed
+- **Jaimini tab** (#4) — section order reflows from "reference-first" to
+  "data-first":
+  1. Karakamsha — soul's direction (the personal data)
+  2. Arudha Padas (personal data)
+  3. Upapada (personal data)
+  4. Jaimini Soul Indicators karaka table (reference / definitions — moved to
+     the bottom)
+  - Arudha Padas grid tiles loosened: minimum tile width 80→120px, padding
+    8/10→12/14px, gap 6→10px. The cramped look in the screenshot is gone.
+  - Every section now uses `TabSection` so missing data hides the heading
+    along with the body.
+
+- **Dasha tab — Vimshottari Maha Dasha Timeline** (#5) — text overlap fixed.
+  The row was using a flexbox with fixed-width `60px` label and `80px`
+  planet columns; "Pratyantar" (10 chars at 10.5px + tracking) overflowed
+  into the planet name, producing the "PRATYANTARRahu" rendering.
+  Switched to CSS grid `grid-cols-[16px_104px_1fr_96px_96px_auto]` with
+  `truncate` on both label and planet cells — each column has its own track
+  and content can't bleed.
+
+- **Transits tab** (#6) — wide 5-column table replaced with a **compact card
+  grid**. 2 cards/row on small screens, 3 at `sm`, 4 at `lg`. Each card has
+  the planet name + retro marker + transit sign on top, and a tight 3-column
+  footer for H/Lagna · H/Moon · SAV. The numeric grid uses `font-mono` for
+  alignment. Visual density now matches the rest of the unified dashboard.
+
+- **Career tab** (#7) — single-column `max-w-2xl` layout replaced with the
+  shared `TwoColumnTabGrid`:
+  - **Column 1**: D10 — Dashamsha → Career themes → Astrological indicators
+  - **Column 2**: 10th house — Karma Bhava → Key professional significators
+  - Every section uses `TabSection` so a missing block doesn't print a stray
+    heading.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 269/269 pass
+- `npm run build` → success
+
+### What this concludes
+With PR-4 in, the PDF observations are addressed (the LLM cost half of #3b
+landed in PR-3). The remaining queued work is:
+- **PR-5** — sticky tab nav, Toast provider, loading-skeleton consistency,
+  Ask submission confirmation
+- **PR-6** — Compare responsive, Yogas / Ashtakavarga / Patterns audit,
+  Compatibility Basic/Pro decision
+- **PR-7** — AdminTables split, ExplainerModal mobile, smaller items
+
+---
+
+## [2026-05-20] — PR-3: today-reading LLM split (two-tier cache)
+
+Closes the cost-saving half of PDF observation 3b. Splits the today-reading
+into two independently cached engines so a Pratyantar shift no longer triggers
+a full regeneration of the natal portion.
+
+### Added
+- **`buildCurrentReading(profile, chartOutput, llmConfig)`** in `lib/engines/today-reading.ts` — Tier 1. Returns the dasha reading. Prompted for ~2× the previous length (6–8 sentences / 120–180 words).
+- **`buildNatalReading(profile, chartOutput, llmConfig)`** — Tier 2. Returns the chart reading. Prompted for ~5× the previous length (15–20 sentences across 3–4 paragraphs / 350–500 words).
+- **`PROMPT_VERSION_CURRENT`** and **`PROMPT_VERSION_NATAL`** — independent bumpable constants. Bumping one does not invalidate the other tier's cache.
+- **`LlmConfig`** type re-exported for the route.
+
+### Changed
+- **`GET /api/readings/today-reading` now uses two cache rows**: `engine="today-current"` and `engine="today-natal"`. Each has its own `input_snapshot` + `llm_fingerprint`. The route checks both caches in parallel, generates only the stale tiers, and saves them independently.
+- **Response shape extended** — `{ output: { dasha_reading, chart_reading }, cached: boolean, cached_tiers: { current, natal } }`. `cached` is true only when both tiers came from cache; `cached_tiers` exposes the per-tier state for debugging. Client (TodayTab) still reads `output.dasha_reading` / `output.chart_reading` unchanged.
+- **`buildTodayReading` removed** — superseded by the two-function API. The legacy `today-reading` cache rows from the single-engine era become orphaned but harmless; they simply stop being read.
+
+### Cost characteristic
+For an existing profile, the natal-tier reading effectively never regenerates (only on birth-data change or admin prompt edits / `PROMPT_VERSION_NATAL` bump). On every Pratyantar shift, only the current tier regenerates — roughly **−50% of LLM tokens per Today-tab visit on a returning user** versus the prior single-tier flow, despite emitting ~3.5× more total content per fresh generation.
+
+### Tests
+- **`lib/engines/__tests__/today-reading.test.ts`** rewritten — 12 tests covering both build functions: empty-content short-circuit, LLM config plumbing, tier-identifying system prompts, antar alert window, HTML stripping, non-string output coercion, and the ~5× length target for the natal tier.
+- **`app/api/readings/today-reading/route.test.ts`** rewritten — 10 tests covering: 401 / 400 / 500 / 502 paths, cold-start (both tiers regenerate), per-engine save shape, full cache hit (`cached_tiers: {current: true, natal: true}`), surgical re-generation of *only* current when Pratyantar shifts (natal stays cached), surgical re-generation of *only* natal when fingerprint mismatches (current stays cached), and corrupt-cache fall-through.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 269/269 pass (+5 net new since PR-2: refactored 10 existing today-reading tests, added 2 new tier-routing tests, expanded engine tests from 10 → 12)
+- `npm run build` → success
+
+---
+
+## [2026-05-20] — PR-2: tab primitives + Today refit
+
+Second batch from the UI/UX review. Establishes the global standards
+(`<TwoColumnTabGrid>` + `<TabSection>`) and applies them to the Today tab.
+Subsequent tab refits (Jaimini, Dasha, Transits, Career) compose these
+primitives instead of being re-styled individually.
+
+### Added
+- **`components/unified/TabGrid.tsx`** with three exports:
+  - **`<TwoColumnTabGrid>`** — `grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8`. Collapses cleanly on small screens.
+  - **`<TabColumn>`** — `space-y-6 min-w-0` per column. The `min-w-0` is critical: it lets long inline content (mono ranges) truncate or wrap cleanly inside the grid cell instead of forcing the column wider than the grid track.
+  - **`<TabSection title? when? trailing? children>`** — encodes the "no empty sections" rule. When `when` evaluates to `false`, the entire section (including the heading) renders nothing. The heading is rendered as `.ac-eyebrow` for consistency. The `trailing` slot is meant for refresh buttons / inline actions next to the heading.
+  - 6 unit tests in `components/unified/__tests__/TabGrid.test.tsx`.
+
+### Fixed
+- **Maha Dasha line wraps in light theme** (observation 3a). The Current Dasha card was using inline `flex` with a fixed-width `width: 80` label column that wasn't wide enough for "Maha Dasha" + Inter-light at light-theme metrics. Now uses the existing `.ac-dasha-row` class (`grid-template-columns: 110px 1fr auto`) which always fits the label.
+- **Removed duplicate antardasha / pratyantar shift chips from the Current Dasha Period card** (observation 3a). The same data is already rendered as expanded `TodayInsightCard`s under "What's active now". The chips were redundant; the cards win because they carry context + the Ask CTA.
+- **"What's active now" section no longer renders when empty** (observation 3a). The "No significant patterns active right now" italic-greyed placeholder is gone. `TabSection when={insights.length > 0}` suppresses the entire section — heading included.
+
+### Changed
+- **Today tab is now a two-column layout** (observation 3b layout-only portion):
+  - **Column 1**: What's active now → Current dasha period → Current period reading
+  - **Column 2**: Natal chart reading
+  Collapses to single column below `lg:` (1024px). Falls back to single column with natal at the bottom on mobile.
+- All Today sections converted to `<TabSection>`, inheriting the empty-state policy automatically.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 264/264 pass (+6 new)
+- `npm run build` → success
+
+### Not in this PR (queued)
+- **PR-3** — today-reading LLM split (observation 3b cost portion): two engine rows (`today-current` + `today-natal`), independent fingerprints, ~2× content for current period, ~5× for natal. Storage replaces API calls.
+- **PR-4** — Jaimini / Dasha / Transits / Career tab refits using these primitives.
+- **PR-5** — sticky tab nav, Toast provider, loading skeleton consistency, Ask submission confirmation.
+
+---
+
+## [2026-05-20] — PR-1: display rules + profile create in sidebar + brand
+
+First batch from the user UI/UX review pass. The aim is "cognitive consistency"
+— users see what they typed, in a predictable form, with fewer screens.
+
+### Fixed
+- **Server no longer overwrites `place_of_birth` / `current_location` with
+  the geocoder's `display_name`** (`app/api/profiles/route.ts` POST, `app/api/profiles/[id]/route.ts` PUT). The user's typed string is now stored verbatim. Geocoding still runs for `latitude` / `longitude` / `timezone`, which are stored in their own columns. Resolves observation #1 — "Born" and "Lives" now show the user's input.
+
+### Added
+- **`lib/display.ts`** with `toTitleCase`, `formatName`, `formatPlace`. Policy: never mutate user input on save; normalize for display at the read site. Preserves all-caps acronyms (≤4 chars: USA, MIT, NASA), lowercases small connector words (of, the, and). 11 tests in `lib/__tests__/display.test.ts`.
+- **`components/profile/ProfileFormFields.tsx`** — shared field set powering the sidebar's create + edit forms. One place to add/change/validate inputs.
+- **`ProfileSidebarCreate`** in `components/profiles/ProfileSidebar.tsx` — inline create form rendered in the sidebar when `?create=1` is set on the dashboard URL. Mirrors the existing `InlineEditForm` flow.
+- **Empty-profile users land on `/dashboard?create=1` directly** — the sidebar shows the create form. No more separate "Your cosmic story starts here" screen.
+
+### Changed
+- **NavBar wordmark larger; orbital-globe logo removed** (observation #7). `Astro Chaganti` now renders at 1.35rem (up from 1.1) with tighter letter-spacing.
+- **NavBar "Add profile" link** now routes to `/dashboard?create=1` instead of `/profiles/new`.
+- **`/profiles/new`** is a server redirect to `/dashboard?create=1` — bookmarks and external links still work.
+- **`formatName` / `formatPlace` applied at display sites**: `ProfileSidebar` (header name + Born + Lives), `ProfileChip` (NavBar pills), `ProfileView` (mobile header + delete confirm), `CompareTab` (profile pills + dropdown options), `DashboardClient` (Ask + AI panel context). Users who type "VINAY KUMAR" or "vinay kumar" now see "Vinay Kumar".
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 258/258 pass (was 247; +11 display tests)
+- `npm run build` → success
+
+### Not in this PR (queued)
+- PR-2: `<TwoColumnTabGrid>` + `<TabSection>` primitives applied to Today tab
+- PR-3: today-reading split into `today-current` + `today-natal` cache engines
+- PR-4: Jaimini / Dasha / Transits / Career tab refits
+- PR-5: sticky tab nav, toast system, loading skeleton consistency, Ask submission confirmation
+- PR-6: Compare responsive, untouched-tab audit, Compatibility Basic/Pro decision
+- PR-7: AdminTables split, ExplainerModal mobile, smaller fish
+
+### Notes
+- `components/ProfileForm.tsx` is still used by `app/profiles/[id]/edit/page.tsx` (the mobile edit fallback — the sidebar is `hidden md:flex`). When mobile edit moves to a sheet drawer in a later PR, `ProfileForm` can be deleted in favor of `ProfileFormFields`.
+- **Existing profiles with geocoded `place_of_birth` strings** in the database continue to display as-is until the user edits them — at which point the user's new typed value becomes canonical.
+
+---
+
+## [2026-05-20] — Docs rewrite + LLM/insight test coverage (B2 + E1)
+
+PR B from the post-#52/#53 follow-up plan. Closes out the audit backlog.
+
+### Added — Test coverage for previously-untested high-risk modules (E1)
+- **`lib/engines/__tests__/cache-validate.test.ts`** (10 tests) — covers `birthDataChanged()`: every field change individually, unparseable JSON, empty string, missing fields, all-null current.
+- **`lib/engines/__tests__/reading-handler.test.ts`** (11 tests) — covers `resolveProfile()`: 401 / 400 / 404 paths, admin vs non-admin `db.profiles.get` scoping, every missing-field branch (date, time, lat=null, empty timezone), and the success payload shape.
+- **`app/api/readings/today-reading/route.test.ts`** (9 tests) — covers the GET handler: 401 / 400 (chart missing) / 500 (corrupt chart JSON) / 502 (LLM throws), cache-hit when fingerprint matches, regeneration when `llm_fingerprint` or `pratyantar_end` mismatches, fall-through on corrupt cache output, and snapshot save shape.
+- **`lib/engines/__tests__/today-reading.test.ts`** (10 tests) — covers `buildTodayReading()`: PROMPT_VERSION shape, empty-blocks short-circuit, LLM-config plumbed to `callAIForJson`, `custom_instructions` appended to system prompt, antar/pratyantar alert windows (4w / 8w), HTML-stripping of content bodies, non-string LLM-output coercion.
+- **`app/api/compatibility/[id]/route.test.ts`** (4 tests) — DELETE handler: 401, ownership-scoped `db.compatibility.get`, no-delete on missing/foreign check, 204 on success.
+- **`app/api/compatibility/route.test.ts`** (8 tests) — GET (401, userId scoping) and POST (401, 429 rate limit, 400 missing IDs, 404 unowned profile, duplicate-in-either-order short-circuit, rate-limit key uses userId).
+
+Net: **+52 tests, total 247/247 passing.**
+
+### Changed — `docs/ARCHITECTURE.md` no longer references deleted components (B2)
+- Removed the stale-section banner added in #52 — the sections below are now actually rewritten.
+- **Section 6 "Astrology Engine Layer / DashaFlow"** — updated the consumer description from `DashaflowView` to the unified dashboard + `tabs/*`.
+- **Section 8 "Profile Detail"** rewritten as "Dashboard / Profile View" — describes the actual flow: `/profiles/[id]` redirects to `/dashboard?profile=…`, which renders `DashboardClient` orchestrating chart/transit/career/today-reading fetches with the per-profile in-memory cache. Includes a table mapping each of the 10 dashboard tabs to its renderer + data source, plus the admin AI panel and Ask panel.
+- **Section 9 "Chart Engine Components" table** rewritten into three groupings: `components/unified/*` (the dashboard set — UnifiedView, IdentityStrip, HouseGrid, NatalChartGrid, SavChartGrid, and all 11 tabs with timeline subcomponents), `components/tabs/*` (TodayTab + CompareTab), and `components/engines/*` (standalone views — MuhurthaView, TarabalamView, SectionShell, ExplainerModal, AIInsightCard, CompatibilityChat).
+- **Section 12 "Journey 3: Viewing a Birth Chart"** rewritten to match the dashboard flow: cache-hit-vs-miss branching, parallel chart+transit prefetch, lazy career-on-tab-open, new-profile loading screen path, and the LLM cache invalidation pipeline (fingerprint check).
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 247/247 pass (was 195)
+- `npm run build` → success
+
+---
+
+## [2026-05-20] — Perf & theme polish (D1 + D2 + C1 + C2)
+
+PR A from the post-#52/#53 follow-up plan. User-visible perf + theme parity.
+
+### Changed
+- **`app/page.tsx` is now fully static / CDN-cacheable** (D1). The `getServerSession` call and `force-dynamic` directive moved to `proxy.ts` (NextAuth middleware), which now redirects authed users from `/` → `/dashboard` before the page renders. The page itself is a pure `return <CosmicLanding />`. Anonymous landing-page hits no longer pay a per-request server render.
+- **DashboardClient caches engine output by profile id** (D2). New `profileCacheRef` (Map) holds `{ chart, transit, career, todayReading }` per profile. Both the new-profile (parallel prefetch) and returning-user (chart + transit) paths populate the cache, and the returning-user effect now checks it first — toggling between profile pills no longer refetches the chart/transit/career/today-reading endpoints. Force-refresh paths (`fetchTransit(true)`, `fetchCareer(true)`) still bypass cache.
+
+### Fixed
+- **Hardcoded Tailwind colors replaced with design tokens in 9 files** (C1) — Vellum-light theme parity. Replacements: `text-red-*` / `bg-red-*` → `--color-danger` + `-faint` + `-border`; `text-emerald-*` / `text-green-*` → `--color-success` + faint/border; `text-amber-*` / `text-yellow-*` → `--color-warning` (or `--color-accent` for action contexts); `text-violet-*` / `text-purple-*` → `--color-accent` + faint/dim; `bg-zinc-*` → `--color-surface-1` / `-2`. Files: `app/consultation/ConsultationForm.tsx`, `components/engines/ExplainerModal.tsx`, `components/engines/CompatibilityChat.tsx`, `components/FeedbackWidget.tsx`, `components/engines/TarabalamView.tsx`, `components/engines/AIInsightCard.tsx`, `components/unified/UnifiedView.tsx`, `components/profiles/ProfileView.tsx`, `components/ui/ModelPicker.tsx`.
+
+### Documented
+- **`lib/typography.ts` boundary clarified** (C2). Audit flagged 79 references across 3 files (`ConsultationForm`, `CompatibilityClient`, `ProfileSelectorCard`) as a half-finished migration. On inspection, these inline-style tokens (`fonts`, `textStyles`, `glass`, `clamp`, `radii`, `motion`, `spacing`, `shadows`, `interactive`) are not legacy — they complement the `.ac-*` classes for cases where runtime-computed styles or unwieldy Tailwind arbitrary values are awkward. Added a usage-policy comment at the top of `lib/typography.ts`. Existing inline-style usage does NOT need to be migrated; the two paths resolve to the same CSS variables and switch with the theme.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 195/195 pass
+- `npm run build` → success
+
+---
+
+## [2026-05-19] — P0 + B1 + B3: security/correctness + repo lean
+
+Carryover items from the dev → main audit (#52). After this lands, `development`
+is in shape to merge to `main`.
+
+### Fixed
+- **`today-reading` cache key now includes a prompt fingerprint** (`app/api/readings/today-reading/route.ts`, `lib/engines/today-reading.ts`) — added a `PROMPT_VERSION` constant and an `llm_fingerprint` (sha1 over version + temperature + max_tokens + custom_instructions) into the cached `input_snapshot`. Admin edits to LLM settings or bumps to `PROMPT_VERSION` now invalidate cached readings on the next request. Previously, an admin editing `custom_instructions` would silently serve stale cached output until the user's pratyantar period shifted.
+- **`POST /api/readings/muhurtha` is now rate-limited** (`app/api/readings/muhurtha/route.ts`) — was the only reading route without a limit. Now uses `RATE_LIMIT_DEFAULT_COUNT` per user per minute, matching career/transit/dashaflow.
+- **`POST /api/feedback` hardening** (`app/api/feedback/route.ts`) — was an unauthenticated POST that trusted the first value of `X-Forwarded-For` (client-spoofable) and accepted any string as `rating`. Now: rate-limits by user-email when authed and by the *last* X-Forwarded-For segment (Vercel's trusted observation) when anonymous, validates rating against the widget's emoji enum, caps `message` to 2000 chars and `page_url` to 500 chars.
+
+### Changed
+- **Extracted `getUserId(session)` helper** (`lib/auth.ts`) — replaces the 15 repeated `(session.user as { id: string }).id` casts across `app/api/**`, `app/**/page.tsx`, and `lib/engines/reading-handler.ts`. The cast now exists only inside the helper. Test mocks for `@/lib/auth` updated in 5 files.
+
+### Removed
+- **`public/data/` (52MB) untracked from git** — 11 Hipparcos catalog chunks + 236 sidecar pickle cache files. No app code references them; they were committed as a workaround for GitHub's 50MB limit ("add star catalog in small 5mb chunks for github", 2026-05-06) under an earlier deployment model. The Python sidecar runs as a separate service and cannot access this folder anyway. Added `/public/data/` to `.gitignore` and `.vercelignore`. Repo and every Vercel deployment now ~52MB lighter.
+- **3 orphan components, ~684 lines** — `components/LandingPage.tsx` (superseded by `CosmicLanding.tsx`), `components/dashboard/ProfileList.tsx`, and `components/profile-ui.tsx` (only imported by `ProfileList`). Verified zero importers across the codebase.
+
+### Verified
+- `./node_modules/.bin/tsc --noEmit` → 0 errors
+- `npx vitest run` → 195/195 pass
+- `npm run build` → success
+
+---
+
+## [2026-05-19] — Pre-merge cleanup for development → main
+
+### Fixed
+- **Auth order in 3 reading POST routes** (`app/api/readings/transit`, `dashaflow`, `career`) — rate-limit was running before the session check, so unauthenticated requests could consume rate-limit slots and receive 429 instead of 401. Now returns 401 first if `!session?.user`. Also resolves the `returns 401 if unauthorized` test failure on the transit route.
+- **5 stale UI tests** (theme/nav rebuild leftovers) — `AskPanel` (button label `submit` not `request consultation`), `ProfileChip` (relationship rendered as `You` not `· You`), `ProfileNav` (removed assertions for Add/Ask buttons that moved to `NavBar`), `PlanetsTab` (`℞` now appears in multiple cells, use `getAllByText`). All 195 tests now pass.
+- **Missing viewport meta** — added `export const viewport` to `app/layout.tsx`. Mobile browsers were rendering at desktop width, defeating every `sm:`/`md:` breakpoint introduced by the theme rebuild.
+
+### Changed
+- **`next.config.ts` CSP** — dropped `'unsafe-eval'` from `script-src`. `next build` verified green; production bundle does not need eval. `'unsafe-inline'` stays until nonce wiring lands.
+- **`docs/ARCHITECTURE.md`** — added stale-section banner near top listing the 12 components removed in the 2026-05-19 cleanup. Replaced the client-components table with the current unified-dashboard set (`DashboardClient`, `UnifiedView`, `tabs/*`, `panels/AskPanel`, `profiles/*`, etc.). Deeper sections (legacy "Basic vs Professional" narrative around lines 355, 573-666, 773-781) still need a fuller rewrite — banner flags them.
+- **`docs/PROJECT.md`** — updated the user-flow walkthrough and the component tree to reflect the dashboard + 10-tab unified view + theme system.
+- **`docs/TESTING.md`** — replaced the dead `DashaflowView` test row with `components/unified/tabs/*` coverage notes.
+
+### Removed
+- **`design/landing-mockup/`** — 24MB of unused landing-page exploration (including a 23MB `earth.mp4`). Nothing in the app imported from `design/`. Removed via `git rm -r --cached design/`; added `design/` to `.gitignore`.
+- **Jest devdependencies** — `jest`, `ts-jest`, `@jest/globals`, `@types/jest` were installed but unused (project uses Vitest per `AGENTS.md`). `npm test` script changed from `jest` to `vitest run` (was previously broken). `@testing-library/jest-dom` kept — it's loaded by `vitest.setup.ts`.
+- **Other dead deps**: `dompurify`, `isomorphic-dompurify`, `@types/dompurify` (sanitizer is custom in `lib/sanitize.ts`), `tsx` (no consumer). 225 packages dropped from the lockfile.
+
+### Added
+- **`.vercelignore`** — excludes `design/`, `docs/`, `CHANGELOG.md`, `AGENTS.md`, tests, AI agent scratch dirs (`.claude/`, `.jules/`, `.cursor/`, `.aider/`), and `public/data/ephemeris/*.pickle` from Vercel deployments. Trims the deployed bundle significantly.
+
+### Known follow-ups (not in this PR)
+- `public/data/` carries ~52MB (Hipparcos catalog + pickle cache). Referenced as static assets in `docs/ARCHITECTURE.md` but no app code reads it. Confirm whether these are needed at runtime and either move out of `public/` or remove from git.
+- `app/api/readings/muhurtha/route.ts` has no rate limit.
+- `app/api/feedback/route.ts` is unauthenticated and trusts spoofable `X-Forwarded-For`.
+- `today-reading` cache key omits prompt version + `custom_instructions` hash — admin prompt edits silently serve stale cached readings.
+- Hardcoded Tailwind colors remain in 9 files (worst: `ConsultationForm.tsx`, `LandingPage.tsx`, `FeedbackWidget.tsx`).
+- 3 orphan components (~684 lines): `components/LandingPage.tsx`, `components/dashboard/ProfileList.tsx`, `components/profile-ui.tsx`.
+---
+
 ## [2026-05-19] — Remove dead basic/professional views and all orphaned engine components
 
 ### Removed
@@ -788,6 +2513,84 @@ All notable changes to Astro Chaganti are recorded here.
 
 ### Changed
 - **`design/landing-mockup/bundle.html`** — Earlier design iteration, kept as reference.
+## [2026-05-20] — Zod DB validation, content index prebuild, and sort type fix (Session 4)
+
+### Code quality
+- **`lib/db/users.ts`**, **`lib/db/feedback.ts`**, **`lib/db/profiles.ts`**, **`lib/db/compatibility.ts`**, **`lib/db/consultation-requests.ts`**, **`lib/db/consultation-slots.ts`**, **`lib/db/readings.ts`** — Replaced all `as unknown as T` raw type casts with Zod schema parsing. Each module now defines a `z.object({...})` schema that matches the table columns exactly. Schema mismatch between the DB and TypeScript types now throws a `ZodError` at runtime rather than silently producing `undefined` fields. Used `z.infer<typeof Schema>` to derive the exported types, so schemas and types stay in sync automatically.
+- **`app/admin/AdminTables.tsx`** — Replaced `(a as Record<string, unknown>)[col]` sort accessor with a bounded generic `<T extends Record<string, unknown>>(arr: T[], col: string): T[]`. Accessing via `a[col as keyof T]` removes the unconstrained cast while keeping the `string`-typed sort state.
+
+### Performance
+- **`scripts/build-content-index.ts`** (new) — Pre-build script that reads all 542 markdown content files, parses them using the same logic as `lib/content/loader.ts`, and writes `lib/content/content-index.json` (394 entries, ~456 KB) at build time. Added to `package.json` as `"prebuild": "tsx scripts/build-content-index.ts"` so it runs automatically before `next build`.
+- **`lib/content/loader.ts`** — Modified to load the pre-built JSON index at module init time (via `createRequire`), pre-populating the in-memory cache before the first request arrives. Cold Lambda starts no longer parse 500+ markdown files — they read a single JSON. Falls back to on-demand file reading if the index doesn't exist (dev mode without running `prebuild`).
+- **`lib/content/loader.test.ts`** — Updated call-count assertions to account for the one-time content-index.json read that now occurs at module init. Caching invariants are unaffected.
+- **`.gitignore`** — Added `lib/content/content-index.json` (generated at build time; not committed).
+
+### Housekeeping (I3)
+- Old engine readings (`bazi`, `vedastro`, `western`, `panchangam`) remain in the DB. Run this once via Turso dashboard when convenient: `DELETE FROM readings WHERE engine IN ('bazi', 'vedastro', 'western', 'panchangam');`
+
+---
+
+## [2026-05-20] — Route tests, admin pagination, and eslint hardening (Session 3)
+
+### Test coverage
+- **`app/api/profiles/route.test.ts`** (new) — 8 tests: GET (401, 200+list, Cache-Control) and POST (401, 429, 403 cap at 10, 400 missing fields, 400 name > 100 chars, 201 success with geocoding, 400 geocoding failure).
+- **`app/api/compatibility/route.test.ts`** (new) — 9 tests: GET (401, 200+Cache-Control) and POST (401, 429, 400 missing IDs, 200 duplicate no-sidecar, 403 cap, 404 profiles not found, 200 sidecar success+Cache-Control).
+- **`app/api/readings/dashaflow/route.test.ts`** (new) — 12 tests: GET (401, 400 missing profile_id, 404, 200 cached+Cache-Control, 200 fresh, 502 engine error, admin `getAny` path) and POST (401, 429, 404, 502, 200 success+Cache-Control).
+- **`app/api/readings/ai-insight/route.test.ts`** (new) — 11 tests: GET (403 non-admin, 400 missing tab, 400 invalid tab, 200 with reading+Cache-Control, 200 null when no reading) and POST (403, 400 missing tab, 200 cached no-LLM, 404 profile not found, 200 fresh insight, 500 LLM throws).
+- **`app/api/consultation-requests/route.test.ts`** (new) — 10 tests: GET (401, 200+Cache-Control) and POST (401, 429, 409 pending, 400 missing fields, 400 too short, 400 invalid delivery_mode, 400 appointment no slot, 404 profile not found, 201 success, 409 slot already booked).
+
+### Performance
+- **`lib/db/users.ts`**, **`lib/db/feedback.ts`**, **`lib/db/profiles.ts`**, **`lib/db/compatibility.ts`**, **`lib/db/consultation-requests.ts`** — All `list()` / `listAll*()` admin queries now include `LIMIT 200` (default, callers can pass a higher value). Previously these queries loaded all rows into Lambda memory with no upper bound. At moderate user scale the unbounded 3-way join in `listAllWithDetails()` would hit Vercel's 50 MB response ceiling. Full pagination with page-controls in the admin UI is deferred to backlog.
+
+### Code quality
+- **`eslint.config.mjs`** — Explicitly wired `eslint-plugin-jsx-a11y` (`flatConfigs.recommended`) alongside `eslint-config-next/core-web-vitals`. The plugin was installed transitively but not explicitly declared; this makes accessibility linting unambiguous and resilient to future dependency changes.
+
+---
+
+## [2026-05-20] — Reliability, performance, CSP, and test coverage (Session 2)
+
+### Security
+- **`next.config.ts`** — Removed `unsafe-eval` from `script-src` in the Content-Security-Policy header. Production Next.js builds do not use `eval()`; the directive was overly permissive and undermined XSS protection. Also tightened `connect-src` from `https:` (any external domain) to `'self'` — all browser→API traffic goes to the same origin.
+
+### Reliability
+- **`lib/engines/fetch-with-retry.ts`** (new) — Shared utility that adds a single 1-retry with 500ms backoff on 502/503/504 responses from sidecar or LLM calls. Does not retry 4xx (genuine client errors) or `TimeoutError` (already exceeded budget). Each attempt gets a fresh `AbortSignal.timeout` so the timer resets on retry.
+- **`lib/engines/dashaflow.ts`**, **`lib/engines/transit.ts`**, **`lib/engines/career.ts`**, **`app/api/readings/muhurtha/route.ts`** — All sidecar fetch calls now use `fetchWithRetry` instead of bare `fetch`. Transient sidecar cold-start 502s are now auto-recovered without surfacing an error to the user.
+
+### Performance
+- **`lib/db/profiles.ts`** — Added `count(userId)` method: `SELECT COUNT(*)` instead of loading all profile rows just to check the cap.
+- **`lib/db/compatibility.ts`** — Added `countByUser(userId)` and `findDuplicate(userId, id1, id2)` methods using targeted SQL queries. Previously the whole user's compatibility list was loaded to count and search for duplicates in JavaScript.
+- **`app/api/profiles/route.ts`** — Profile cap check now uses `db.profiles.count()` instead of `db.profiles.list()`. Fixes a TOCTOU race condition: two concurrent POST requests could both see count=9, both pass the check, and both create a profile — resulting in 11 profiles.
+- **`app/api/compatibility/route.ts`** — Compatibility cap and duplicate checks now use the two new targeted DB methods.
+
+### Test coverage
+- **`lib/tarabalam.test.ts`** (new) — 34 tests covering all exported functions in `lib/tarabalam.ts`: `getNakshatraIndex` (exact match, unknown, prefix/pada), `computeTara` (all 27×27 pairs, wrap-around, known values), `computeTithi` (Amavasya/Purnima, all pakshas, wrap-around, full range), `extrapolateMoonLongitude` (0-offset, daily motion, wrap, negative days, full-cycle), `extrapolateMoonNakshatra` (all 27 segments), `extrapolateSunLongitude` (daily motion, full year), `TARAS` constant integrity.
+- **`lib/engines/dashaflow.test.ts`** — Updated 503 test to mock `fetch` twice (initial call + retry) to match the new `fetchWithRetry` behaviour.
+
+### Code quality
+- **`package.json`** — Added `"prepare"` script (`git config core.hooksPath .githooks`) so any fresh `npm install` auto-registers the pre-push hook.
+- **`.githooks/pre-push`** (new) — Shell hook that runs `tsc --noEmit` and `vitest run` before every push. Blocks the push if either fails.
+
+---
+
+## [2026-05-20] — Security hardening, reliability, and code quality (Session 1)
+
+### Security
+- **`app/api/profiles/route.ts`**, **`app/api/consultation-requests/route.ts`**, **`app/api/compatibility/route.ts`**, **`app/api/readings/dashaflow/route.ts`** — Added `Cache-Control: private, no-store` to all authenticated data responses. Without this header, browsers and shared proxies could cache personal chart data and serve it to other users on the same device or network. AI insight and chat routes already had this header; the gap was in the core data retrieval endpoints.
+- **`lib/sanitize.ts`** — Replaced homegrown regex-based HTML sanitizer (known OWASP anti-pattern, bypassable with obfuscated payloads) with `isomorphic-dompurify`. DOMPurify is maintained by cure53, uses a real DOM parser on both client and server, and is the industry standard. Package was already in `dependencies`; only the implementation changed.
+- **`app/api/readings/muhurtha/route.ts`** — Added enum validation for `event_type` against `["marriage", "house_entry", "business", "travel", "education", "medical"]`. Unknown values now return 400 instead of being forwarded to the sidecar.
+- **`app/api/readings/tarabalam/route.ts`** — Added validation that `end_date` is strictly after `start_date`. Previously a reversed range produced a negative `daysDiff` that passed the 90-day guard and sent a backwards date range to the engine.
+- **`app/api/admin/backfill/route.ts`**, **`app/api/admin/clear-compatibility/route.ts`** — Replaced direct `createClient()` instantiation with `getClient()` from `lib/db/client.ts`. Admin routes were creating fresh libSQL client instances on every request instead of using the shared singleton, accumulating connection objects on warm Lambdas and bypassing future safety guards.
+
+### Reliability
+- **`lib/engines/dashaflow.ts`**, **`lib/engines/transit.ts`**, **`lib/engines/career.ts`** — Added `AbortSignal.timeout(20_000)` (20s) to all sidecar fetch calls. Node's default timeout is ~2 minutes; a hung sidecar would block the Lambda and produce a raw Vercel 504 with no user-friendly message. `TimeoutError` now returns a clear message.
+- **`lib/engines/gemini.ts`**, **`lib/engines/groq.ts`** — Added `AbortSignal.timeout(60_000)` (60s) to all LLM API fetch calls.
+- **`app/api/readings/muhurtha/route.ts`** — Added 20s timeout to the muhurtha sidecar fetch.
+
+### Code quality
+- **`lib/db/client.ts`** — Parameterized the `INSERT OR IGNORE INTO settings` statement (was using a template literal with `new Date().toISOString()` directly in SQL, violating the codebase's own parameterized-query rule). Replaced the 14 empty `catch {}` blocks around `ALTER TABLE` migrations with a shared `migrate()` helper that logs unexpected errors (i.e. errors that are NOT "duplicate column name"), making genuine migration failures visible instead of silent.
+- **`package.json`** — Fixed `"test"` script from `"jest"` (no config, always fails) to `"vitest run"`. Added `"test:watch": "vitest"` and `"test:coverage": "vitest run --coverage"`.
+- **`vitest.config.ts`** — Added coverage configuration: v8 provider, text + lcov reporters, 60% statement/branch thresholds.
+- **`proxy.ts` → `middleware.ts`** — Renamed to follow Next.js convention. Next.js loads middleware from `middleware.ts`; the previous name worked but was non-standard.
 
 ---
 

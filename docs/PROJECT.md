@@ -80,10 +80,20 @@ app/
 
 components/
 ├── NavBar.tsx                          # Top nav + auth state
+├── CosmicLanding.tsx                   # Public landing (replaces LandingPage.tsx)
 ├── ProfileForm.tsx                     # New-profile form (geocodes on submit)
+├── ThemeProvider.tsx, ThemeToggle.tsx  # Umbra dark / Vellum light theme system
 ├── auth/NextAuthProvider.tsx           # Session provider
+├── unified/
+│   ├── UnifiedView.tsx                 # 10-tab dashboard shell
+│   └── tabs/                           # TodayTab, ChartTab, PlanetsTab,
+│                                       # HousesVargasTab, DashaTab, YogasTab,
+│                                       # JaiminiTab, AshtakavargaTab,
+│                                       # TransitsTab, CareerTab
+├── tabs/CompareTab.tsx, TodayTab.tsx   # Top-level compare + today views
 ├── engines/
-│   ├── DashaflowView.tsx               # Renders the 17-section chart
+│   ├── MuhurthaView.tsx                # Event picker
+│   ├── TarabalamView.tsx               # Date-range + multi-profile star compatibility
 │   ├── SectionShell.tsx                # Section container with collapse + ⓘ trigger
 │   └── ExplainerModal.tsx              # Tabbed modal: "For your chart" + "About"
 └── ui/                                 # shadcn primitives
@@ -132,7 +142,14 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `TURSO_DATABASE_URL`       | libSQL DSN                                                    |
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
 | `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`                        |
+| `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
+| `GROQ_API_KEY`             | Secondary LLM provider used by chat / draft generation (`lib/engines/groq.ts`). Get from console.groq.com. |
 | `ADMIN_EMAILS` (required)  | Comma-separated list of admin email addresses. If unset, no one has admin access. |
+| `SENTRY_AUTH_TOKEN`        | Build-time only. Uploads source maps to Sentry for readable stack traces. From Sentry → Settings → Auth Tokens. |
+| `NEXT_PUBLIC_POSTHOG_KEY`  | PostHog Project API key (`phc_…`). Browser-visible (public-prefix is correct). |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog ingest URL — `https://eu.i.posthog.com`. Browser hits `/ingest/*` which `next.config.ts` rewrites to this. |
+| `RESEND_API_KEY`           | Resend API key (`re_…`). Used to send the admin notification email on new consultation requests. If unset, notifications are silently skipped (helper short-circuits). Recipient and from-address are hardcoded in `lib/constants.ts`. |
+| `CRON_SECRET` (required)   | Shared secret the landing-refresh cron sends as `Authorization: Bearer <secret>` to `/api/cron/regenerate-landing` every 8 hours. Generate a random 32+ char string. Set as both a Vercel env var (so the route can validate) AND a GitHub Actions repo secret (so the workflow can send). The workflow lives at `.github/workflows/landing-cron.yml` — we use GitHub Actions instead of Vercel Cron because the Hobby plan only allows daily cron schedules. |
 
 ### Sidecar — none required.
 
@@ -433,13 +450,14 @@ fetch `GET /v13/deployments/{id}` from the Vercel API, read `readyState`,
    → INSERT into profiles
    → redirect to /profiles/{id}
 
-3. Profile detail page loads at /profiles/{id}
+3. Dashboard loads at /dashboard?profile={id}
    → GET /api/profiles/{id} → load profile (admin can fetch any)
    → GET /api/readings/dashaflow?profile_id={id}
        → check readings cache (engine="dashaflow")
        → if miss: POST to ${DASHAFLOW_SIDECAR_URL}/calculate
        → save reading row, return chart
-   → DashaflowView renders the 17 sections
+   → DashboardClient renders the 10-tab unified view (Today, Chart, Planets,
+     Houses, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career, Compare)
 ```
 
 ---

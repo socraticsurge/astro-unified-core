@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { toast } from "@/components/ui/Toast"
+import { PAYMENT_FLOW_ENABLED } from "@/lib/constants"
 
 export interface AskContext {
   profileName: string
@@ -58,13 +60,18 @@ export function AskPanel({
   const [sent, setSent] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
+  // Reset the form whenever the panel closes so the next open shows a clean
+  // state. setState-in-effect is intentional here — these aren't derived
+  // values, they're persistent user input that should be cleared on close.
   React.useEffect(() => {
     if (!open) {
+      /* eslint-disable react-hooks/set-state-in-effect */
       setQuestion("")
       setSent(false)
       setError(null)
       setSubmitting(false)
       setMode(hasWritten ? "written" : "live")
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [open, hasWritten])
 
@@ -82,7 +89,9 @@ export function AskPanel({
       await onSubmit(question.trim())
       setSent(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to submit. Please try again.")
+      const msg = e instanceof Error ? e.message : "Failed to submit. Please try again."
+      setError(msg)
+      toast(msg, "error")
     } finally {
       setSubmitting(false)
     }
@@ -92,7 +101,7 @@ export function AskPanel({
     <Sheet open={open} onOpenChange={(isOpen: boolean) => { if (!isOpen) onClose() }}>
       <SheetContent side="right" className="sm:max-w-sm w-full flex flex-col gap-4 overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>✦ Ask an expert</SheetTitle>
+          <SheetTitle>✦ Ask Dr Chaganti</SheetTitle>
         </SheetHeader>
 
         {sent ? (
@@ -101,7 +110,14 @@ export function AskPanel({
             <div>
               <p className="text-sm font-semibold text-[var(--color-ink-1)] mb-1">Question submitted</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                An astrologer will review your question and respond within 2 days.
+                You&apos;ll receive a response at your email address within 2 days.
+                If you need to reach Dr. Chaganti sooner, write directly to{" "}
+                <a
+                  href="mailto:astrochaganti@gmail.com"
+                  className="underline underline-offset-2 hover:text-[var(--color-ink-1)] transition-colors"
+                >
+                  astrochaganti@gmail.com
+                </a>
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="mt-2">
@@ -126,7 +142,8 @@ export function AskPanel({
               )}
             </div>
 
-            {/* Delivery mode toggle — only when both options are available */}
+            {/* Delivery mode toggle — only when both options are available.
+                Fee labels are hidden when PAYMENT_FLOW_ENABLED=false. */}
             {showToggle && (
               <div className="grid grid-cols-2 gap-2">
                 {(["written", "live"] as const).map(m => {
@@ -147,9 +164,11 @@ export function AskPanel({
                       )}
                     >
                       <span className="text-xs font-medium">{label}</span>
-                      <span className={cn("text-[11px]", mode === m ? "text-[var(--color-accent)]" : "text-muted-foreground/60")}>
-                        {fee}
-                      </span>
+                      {PAYMENT_FLOW_ENABLED && (
+                        <span className={cn("text-[11px]", mode === m ? "text-[var(--color-accent)]" : "text-muted-foreground/60")}>
+                          {fee}
+                        </span>
+                      )}
                     </button>
                   )
                 })}
@@ -190,7 +209,7 @@ export function AskPanel({
                 >
                   {submitting
                     ? "Submitting…"
-                    : isFree
+                    : !PAYMENT_FLOW_ENABLED || isFree
                       ? "Submit question"
                       : `Submit · ${fmtRupees(writtenFeePaise)}`}
                 </Button>
@@ -207,7 +226,7 @@ export function AskPanel({
                   href="/consultation"
                   className="inline-flex items-center justify-center w-full rounded-md bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-[var(--color-accent)] text-sm font-medium px-4 py-2.5 hover:bg-[var(--color-accent-faint)]/80 transition-colors"
                 >
-                  Book a live session · {fmtRupees(liveFeePaise)} →
+                  Book a live session{PAYMENT_FLOW_ENABLED ? ` · ${fmtRupees(liveFeePaise)}` : ""} →
                 </a>
               </div>
             )}

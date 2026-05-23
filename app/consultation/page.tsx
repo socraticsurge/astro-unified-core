@@ -18,7 +18,7 @@ export default async function ConsultationPage() {
   const userName = (session?.user as { name?: string } | undefined)?.name ?? "";
   const userEmail = (session?.user as { email?: string } | undefined)?.email ?? "";
 
-  const fiveDaysFromNow = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
+  const fiveDaysFromNow = new Date(new Date().getTime() + 5 * 24 * 60 * 60 * 1000).toISOString();
 
   const [allRequests, profiles, appSettings, allUpcomingSlots] = await Promise.all([
     db.consultationRequests.listByUser(userId),

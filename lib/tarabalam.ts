@@ -95,7 +95,9 @@ export function computeTithi(moonLon: number, sunLon: number): Tithi {
 }
 
 export function taraColor(quality: TaraQuality): string {
+  // Theme-aware: routes through the same success/danger tokens the rest of
+  // the app uses, so light/dark themes adapt correctly.
   return quality === "auspicious"
-    ? "bg-emerald-900/40 text-emerald-300 border-emerald-700/40"
-    : "bg-red-900/30 text-red-300 border-red-700/30";
+    ? "bg-[var(--color-success-faint)] text-[var(--color-success)] border-[var(--color-success-border)]"
+    : "bg-[var(--color-danger-faint)] text-[var(--color-danger)] border-[var(--color-danger-border)]";
 }

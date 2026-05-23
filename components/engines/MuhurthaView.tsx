@@ -5,12 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Calendar } from "lucide-react";
+import { toast } from "@/components/ui/Toast";
 
 type SectionExplainer = {
   title: string;
   gist?: string | null;
   bodyHtml: string;
   sources?: { text: string; chapter?: number | string; sloka?: number | string }[];
+};
+
+type MuhurthaResult = {
+  start_time: string;
+  end_time: string;
+  date: string;
+  points?: string[];
 };
 
 type Props = {
@@ -20,11 +28,15 @@ type Props = {
 
 export function MuhurthaView({ profileId, explainer }: Props) {
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    event_type: "marriage",
-    start_date: new Date().toISOString().split("T")[0],
-    end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+  const [results, setResults] = useState<MuhurthaResult[]>([]);
+  const [form, setForm] = useState(() => {
+    const now = new Date();
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return {
+      event_type: "marriage",
+      start_date: now.toISOString().split("T")[0],
+      end_date: weekFromNow.toISOString().split("T")[0],
+    };
   });
 
   const handleSearch = async () => {
@@ -39,7 +51,7 @@ export function MuhurthaView({ profileId, explainer }: Props) {
       if (!res.ok) throw new Error(data.error || "Search failed");
       setResults(data.timings || []);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Search failed");
+      toast(e instanceof Error ? e.message : "Search failed", "error");
     } finally {
       setLoading(false);
     }

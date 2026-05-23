@@ -1,14 +1,8 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { CosmicLanding } from "@/components/CosmicLanding";
 
-export const dynamic = "force-dynamic";
-
-export default async function HomePage() {
-  const session = await getServerSession(authOptions);
-  if (session?.user) {
-    redirect("/dashboard");
-  }
+// No force-dynamic + no session call → Next.js prerenders this as static HTML
+// and Vercel's CDN serves it. The authed-user → /dashboard redirect lives in
+// proxy.ts (NextAuth middleware) so the page can stay cacheable.
+export default function HomePage() {
   return <CosmicLanding />;
 }

@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { resolveProfile } from "@/lib/engines/reading-handler";
-import { buildTodayReading } from "@/lib/engines/today-reading";
+import {
+  buildCurrentReading,
+  buildNatalReading,
+  PROMPT_VERSION_CURRENT,
+  PROMPT_VERSION_NATAL,
+  type LlmConfig,
+} from "@/lib/engines/today-reading";
 
 export const dynamic = "force-dynamic";
 
-const ENGINE = "today-reading";
+const ENGINE_CURRENT = "today-current";
+const ENGINE_NATAL   = "today-natal";
 
 function extractPratyantarEnd(chartOutput: Record<string, unknown>): string | null {
   const data = (chartOutput?.data ?? chartOutput) as Record<string, unknown>;
@@ -15,20 +24,54 @@ function extractPratyantarEnd(chartOutput: Record<string, unknown>): string | nu
   return dashas?.pratyantar?.end ?? dashas?.antar?.end ?? null;
 }
 
-function isStale(
-  cachedSnapshotJson: string,
-  current: { date_of_birth: string; time_of_birth: string; latitude: number; longitude: number; timezone: string },
+// Fingerprints the LLM-call inputs beyond the chart itself. Each tier has its
+// own version constant so a prompt rewrite on one tier doesn't invalidate the
+// other's cache.
+function fingerprint(version: number, cfg: LlmConfig): string {
+  const payload = `v${version}|t${cfg.temperature}|m${cfg.max_tokens}|${cfg.custom_instructions}`;
+  return createHash("sha1").update(payload).digest("hex").slice(0, 12);
+}
+
+type BirthInput = {
+  date_of_birth: string;
+  time_of_birth: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+};
+
+function currentIsStale(
+  snapshotJson: string,
+  current: BirthInput,
   currentPratyantarEnd: string | null,
+  fp: string,
 ): boolean {
   try {
-    const snap = JSON.parse(cachedSnapshotJson) as Record<string, unknown>;
+    const snap = JSON.parse(snapshotJson) as Record<string, unknown>;
     return (
       snap.date_of_birth !== current.date_of_birth ||
       snap.time_of_birth !== current.time_of_birth ||
       snap.latitude !== current.latitude ||
       snap.longitude !== current.longitude ||
       snap.timezone !== current.timezone ||
-      snap.pratyantar_end !== currentPratyantarEnd
+      snap.pratyantar_end !== currentPratyantarEnd ||
+      snap.llm_fingerprint !== fp
+    );
+  } catch {
+    return true;
+  }
+}
+
+function natalIsStale(snapshotJson: string, current: BirthInput, fp: string): boolean {
+  try {
+    const snap = JSON.parse(snapshotJson) as Record<string, unknown>;
+    return (
+      snap.date_of_birth !== current.date_of_birth ||
+      snap.time_of_birth !== current.time_of_birth ||
+      snap.latitude !== current.latitude ||
+      snap.longitude !== current.longitude ||
+      snap.timezone !== current.timezone ||
+      snap.llm_fingerprint !== fp
     );
   } catch {
     return true;
@@ -36,6 +79,18 @@ function isStale(
 }
 
 export async function GET(req: NextRequest) {
+  try {
+    return await handleGet(req);
+  } catch (err) {
+    // Catch-all: a libsql blip in any of the DB reads below would
+    // otherwise bubble up as a 500. Degrade to 503 + log to Sentry so
+    // the client can show its loading state rather than an error.
+    Sentry.captureException(err, { tags: { route: "GET /api/readings/today-reading" } });
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
+  }
+}
+
+async function handleGet(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const r = await resolveProfile(req.nextUrl.searchParams.get("profile_id"), session);
   if (!r.ok) return r.response;
@@ -54,38 +109,105 @@ export async function GET(req: NextRequest) {
   }
 
   const pratyantarEnd = extractPratyantarEnd(chartOutput);
+  const llmConfig = await db.settings.getTodayReadingLlm();
+  const fpCurrent = fingerprint(PROMPT_VERSION_CURRENT, llmConfig);
+  const fpNatal   = fingerprint(PROMPT_VERSION_NATAL,   llmConfig);
 
-  const cached = await db.readings.latestByEngine(profile_id, ENGINE);
-  if (cached && !isStale(cached.input_snapshot as string, input, pratyantarEnd)) {
+  // Read both caches in parallel.
+  const [cachedCurrent, cachedNatal] = await Promise.all([
+    db.readings.latestByEngine(profile_id, ENGINE_CURRENT),
+    db.readings.latestByEngine(profile_id, ENGINE_NATAL),
+  ]);
+
+  let dashaReading: string | null = null;
+  let chartReadingOut: string | null = null;
+  let currentFromCache = false;
+  let natalFromCache = false;
+  // IDs + ratings surfaced to the client so the Today tab can wire copy /
+  // share / thumbs feedback per reading. May be reassigned when a tier is
+  // regenerated mid-request.
+  let currentReadingId: string | null = cachedCurrent?.id ?? null;
+  let natalReadingId: string | null = cachedNatal?.id ?? null;
+  let currentRating: 1 | -1 | null = (cachedCurrent?.rating as 1 | -1 | null | undefined) ?? null;
+  let natalRating:   1 | -1 | null = (cachedNatal?.rating   as 1 | -1 | null | undefined) ?? null;
+
+  if (cachedCurrent && !currentIsStale(cachedCurrent.input_snapshot as string, input, pratyantarEnd, fpCurrent)) {
     try {
-      return NextResponse.json({
-        output: JSON.parse(cached.output_data as string),
-        cached: true,
-      });
+      dashaReading = JSON.parse(cachedCurrent.output_data as string).dasha_reading ?? null;
+      currentFromCache = true;
     } catch {
-      // Corrupted cache — fall through to regenerate
+      // Corrupt cache — fall through to regenerate
     }
   }
 
-  const llmConfig = await db.settings.getTodayReadingLlm();
+  if (cachedNatal && !natalIsStale(cachedNatal.input_snapshot as string, input, fpNatal)) {
+    try {
+      chartReadingOut = JSON.parse(cachedNatal.output_data as string).chart_reading ?? null;
+      natalFromCache = true;
+    } catch {
+      // Corrupt cache — fall through to regenerate
+    }
+  }
 
-  let output;
-  try {
-    output = await buildTodayReading(profile, chartOutput, llmConfig);
-  } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to generate reading" },
-      { status: 502 },
+  // Generate the stale tiers in parallel. Either or both may run.
+  const llmPromises: Promise<unknown>[] = [];
+  if (dashaReading === null) {
+    llmPromises.push(
+      buildCurrentReading(profile, chartOutput, llmConfig)
+        .then(async (text) => {
+          dashaReading = text;
+          const row = await db.readings.save({
+            profile_id,
+            engine: ENGINE_CURRENT,
+            input_snapshot: { ...input, pratyantar_end: pratyantarEnd, llm_fingerprint: fpCurrent },
+            output_data: { dasha_reading: text },
+          });
+          currentReadingId = row.id;
+          currentRating = null;
+        }),
+    );
+  }
+  if (chartReadingOut === null) {
+    llmPromises.push(
+      buildNatalReading(profile, chartOutput, llmConfig)
+        .then(async (text) => {
+          chartReadingOut = text;
+          const row = await db.readings.save({
+            profile_id,
+            engine: ENGINE_NATAL,
+            input_snapshot: { ...input, llm_fingerprint: fpNatal },
+            output_data: { chart_reading: text },
+          });
+          natalReadingId = row.id;
+          natalRating = null;
+        }),
     );
   }
 
-  const inputSnapshot = { ...input, pratyantar_end: pratyantarEnd };
-  await db.readings.save({
-    profile_id,
-    engine: ENGINE,
-    input_snapshot: inputSnapshot,
-    output_data: output,
-  });
+  if (llmPromises.length > 0) {
+    try {
+      await Promise.all(llmPromises);
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Failed to generate reading" },
+        { status: 502 },
+      );
+    }
+  }
 
-  return NextResponse.json({ output, cached: false });
+  return NextResponse.json({
+    output: {
+      dasha_reading: dashaReading ?? "",
+      chart_reading: chartReadingOut ?? "",
+    },
+    meta: {
+      current: { id: currentReadingId, rating: currentRating },
+      natal:   { id: natalReadingId,   rating: natalRating   },
+    },
+    cached: currentFromCache && natalFromCache,
+    cached_tiers: {
+      current: currentFromCache,
+      natal: natalFromCache,
+    },
+  });
 }
