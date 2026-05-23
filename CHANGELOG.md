@@ -8,6 +8,26 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-05-23] — Fix "WHAT'S ACTIVE NOW" showing wrong pratyantar label
+
+### Fixed
+- **Current Period tab** was displaying "Next: Saturn pratyantar in ~3 months"
+  even when the person was already in Saturn Pratyantar. Two bugs in the
+  `generateInsights` fallback (`lib/insights.ts`):
+  1. No check for whether the pratyantar had already started — it only checked
+     whether the end date was in the future, so it called active periods "Next".
+  2. The "in ~X" lead time was computed from the **end** date, not the **start**,
+     so the countdown showed time remaining, not time until it begins.
+- Fixed by splitting the fallback into two branches:
+  - **Active** (`today >= start && today < end`): shows "Active: X pratyantar"
+    with time remaining.
+  - **Upcoming** (`today < start`): shows "Next: X pratyantar in ~Y" with lead
+    time computed from the start date.
+- Added three new tests covering the active, upcoming, and imminent-already-fired
+  cases.
+
+---
+
 ## [2026-05-19] — Remove dead basic/professional views and all orphaned engine components
 
 ### Removed

@@ -88,5 +88,55 @@ export function generateInsights(
   // Jupiter transit and major yogas are surfaced via the AI reading on the Today tab.
   // Keeping the data available here for future re-enablement if needed.
 
+  // Fallback — when none of the urgent checks above fired, surface either
+  // the currently active pratyantar or the upcoming one, so the "What's
+  // active now" section is never empty.
+  if (results.length === 0 && dashas?.pratyantar) {
+    const todayStr = today.toISOString().slice(0, 10)
+    const { planet, start, end } = dashas.pratyantar
+    const isAlreadyActive = start ? todayStr >= start && todayStr < end : false
+
+    if (isAlreadyActive) {
+      // Person is already in this pratyantar — label it as active with time remaining
+      const weeksLeft = weeksUntil(end, today)
+      if (weeksLeft > 0 && weeksLeft !== Infinity) {
+        const label = formatLeadTime(weeksLeft)
+        results.push({
+          id: 'pratyantar-active',
+          category: 'dasha',
+          categoryColor: CATEGORY_COLORS.dasha,
+          title: `Active: ${planet} pratyantar`,
+          body: `You are in the ${planet} sub-period within the ${dashas.maha.planet} mahadasha. This period continues for roughly ${label}.`,
+          cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
+        })
+      }
+    } else if (start) {
+      // Not yet started — lead time is computed from the START date, not end
+      const weeksToStart = weeksUntil(start, today)
+      if (weeksToStart > 4 && weeksToStart !== Infinity) {
+        const label = formatLeadTime(weeksToStart)
+        results.push({
+          id: 'pratyantar-upcoming',
+          category: 'dasha',
+          categoryColor: CATEGORY_COLORS.dasha,
+          title: `Next: ${planet} pratyantar in ~${label}`,
+          body: `Your current ${dashas.antar.planet} antardasha continues within the ${dashas.maha.planet} mahadasha. The next sub-period shift is roughly ${label} away — plenty of room to settle into this energy.`,
+          cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
+        })
+      }
+    }
+  }
+
   return results.slice(0, 5)
+}
+
+// Picks a clean unit (weeks vs. months) for medium-distance windows.
+function formatLeadTime(weeks: number): string {
+  if (weeks < 1) return 'less than a week'
+  if (weeks < 8) {
+    const w = Math.round(weeks)
+    return `${w} week${w === 1 ? '' : 's'}`
+  }
+  const months = Math.round(weeks / 4.345)
+  return `${months} month${months === 1 ? '' : 's'}`
 }
