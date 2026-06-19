@@ -8,6 +8,65 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-19] — Chat: session_id links Q/A pairs and conversation threads
+
+### Added
+- **`session_id` column on `chat_messages`** — UUID shared by all rows in one chat session (user + assistant turns). Generated on the client when the panel opens; reset whenever the context changes (new profile/tab). Indexed for fast thread lookups.
+- Turso `ALTER TABLE chat_messages ADD COLUMN session_id` migration runs idempotently via `migrate()`.
+
+### Changed
+- Both chat API routes accept `session_id` in the request body and write it to all saved rows.
+- `AIAdminPanel`: generates `sessionIdRef` on mount, rotates on context change, sends with every request.
+
+---
+
+## [2026-06-19] — Fix: robust chat_messages schema migration (v11)
+
+### Fixed
+- **`lib/db/client.ts`** — Bumped schema to v11. `chat_messages` table and index creation moved to `migrate()` calls so they run idempotently even when schema_version was already stamped as 10 by a partial migration. Previously a failed v10 migration would leave the DB version at 10 with the table missing, and subsequent cold-starts would skip the block entirely.
+
+---
+
+## [2026-06-19] — Fix: graceful chat error handling
+
+### Fixed
+- **`components/panels/AIAdminPanel.tsx`** — `res.json()` now safe-parses with a fallback; shows "Request failed (N) — please try again" instead of exposing the raw JS parse error when the server returns an empty or HTML body.
+- **`app/api/readings/chat/route.ts`** — All logic (quota check, profile lookup, context building, AI call) now runs inside a single top-level try/catch via an extracted `handleChat()` helper, guaranteeing a JSON error response on any unhandled throw.
+- **`app/api/readings/chat/compatibility/route.ts`** — Same pattern via `handleCompatChat()`.
+
+---
+
+## [2026-06-19] — Fix: AI button now visible to all users
+
+### Fixed
+- **`components/profiles/ProfileView.tsx`** — AI button was still gated on `isAdmin`; now renders whenever `onAIOpen` is provided (which is always the case from DashboardClient).
+
+---
+
+## [2026-06-19] — User chat: richer context from user-generated tab readings
+
+### Changed
+- **`app/api/readings/chat/route.ts`** — System prompt now includes user-generated engine readings for all users: `today-current` (current dasha period narrative), `today-natal` (natal chart narrative), and `career` (D10 themes, primary planets, strength factors). These load in parallel and are omitted gracefully if the user hasn't visited those tabs yet. Admins additionally get the active-tab AI insight as before. Removed the incorrect approach of loading admin-generated `ai-*` summaries as user context.
+
+---
+
+## [2026-06-19] — User AI Chat: quota, message logging, feedback persistence
+
+### Added
+- **`lib/db/chat-messages.ts`** — New DB module for the `chat_messages` table. Records every user/assistant turn with `user_id`, `profile_id`/`check_id`, `session_type`, `model`, and `rating`. Exposes `save()`, `countUserMonthly()`, `rate()`, `listByUser()`, `listAll()`.
+- **`app/api/chat/feedback/route.ts`** — `POST /api/chat/feedback` saves thumbs-up/down on a specific assistant message. Ownership-enforced via `user_id`.
+- **DB schema v10** — New `chat_messages` table with index on `(user_id, created_at)`.
+
+### Changed
+- **`app/api/readings/chat/route.ts`** — Opened to all authenticated users (was admin-only). Non-admins: profile ownership enforced, model locked to `chatConfig.user_model`, monthly quota enforced. Response now includes `message_id` (assistant turn) and `quota` for non-admins. Messages saved to DB only after a successful LLM response.
+- **`app/api/readings/chat/compatibility/route.ts`** — Same changes as above for compatibility chat.
+- **`lib/db/settings.ts`** — `ChatLlmConfig` extended with `user_model` (AiModelKey, default `"groq-scout"`) and `user_quota_per_month` (default 20).
+- **`components/panels/AIAdminPanel.tsx`** — Added `isAdmin` prop. Non-admins: no model picker, no summary tab, quota pill shown in header, quota exhaustion disables input. Thumbs-up/down now persists to DB via `/api/chat/feedback`.
+- **`app/dashboard/DashboardClient.tsx`** — `AIAdminPanel` now renders for all users (not just admins); `isAdmin` prop passed through.
+- **`components/admin/LlmSettingsPanel.tsx`** — Chat settings section gains user model selector and monthly quota slider.
+
+---
+
 ## [2026-06-19] — Performance: landing page FCP, dashboard streaming, Vercel region
 
 ### Added

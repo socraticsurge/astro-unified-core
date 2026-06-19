@@ -22,22 +22,67 @@ function stripHtml(html: string): string {
 
 // POST /api/readings/chat/compatibility
 // Body: { check_id, messages, model? }
+// Admins: any check, any model, no quota.
+// Users:  own checks only, model from admin config, quota enforced.
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  if (!session || !userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
-  const { check_id, messages, model } = body as {
+  const admin = isAdmin(session);
+
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const { check_id, messages, model, session_id } = body as {
     check_id?: string;
     messages?: ChatMessage[];
     model?: AiModelKey;
+    session_id?: string;
   };
 
   if (!check_id || !messages?.length) {
     return NextResponse.json({ error: "check_id and messages required" }, { status: 400 });
   }
 
-  const check = await db.compatibility.getAny(check_id);
+  try { return await handleCompatChat({ admin, userId, session_id: session_id ?? "", check_id, messages, model }); }
+  catch (err) {
+    const message = err instanceof Error ? err.message : "Something went wrong — please try again";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+async function handleCompatChat({ admin, userId, session_id, check_id, messages, model }: {
+  admin: boolean;
+  userId: string;
+  session_id: string;
+  check_id: string;
+  messages: ChatMessage[];
+  model: AiModelKey | undefined;
+}): Promise<ReturnType<typeof NextResponse.json>> {
+  const chatConfig = await db.settings.getChatLlm();
+
+  // Quota check for non-admins
+  let usedThisMonth = 0;
+  if (!admin) {
+    usedThisMonth = await db.chatMessages.countUserMonthly(userId);
+    if (usedThisMonth >= chatConfig.user_quota_per_month) {
+      return NextResponse.json(
+        {
+          error: "quota_exceeded",
+          quota: { used: usedThisMonth, limit: chatConfig.user_quota_per_month },
+        },
+        { status: 429 },
+      );
+    }
+  }
+
+  // Ownership check: users can only chat about their own checks
+  const check = admin
+    ? await db.compatibility.getAny(check_id)
+    : await db.compatibility.get(check_id, userId);
   if (!check) return NextResponse.json({ error: "Compatibility check not found" }, { status: 404 });
 
   const [profile1, profile2] = await Promise.all([
@@ -48,15 +93,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "One or both profiles not found" }, { status: 404 });
   }
 
-  try {
-    let compatResult: Record<string, unknown> = {};
-    try { compatResult = JSON.parse(check.result_json) as Record<string, unknown>; } catch { /* empty */ }
+  let compatResult: Record<string, unknown> = {};
+  try { compatResult = JSON.parse(check.result_json) as Record<string, unknown>; } catch { /* empty */ }
 
     const scores = compatResult?.scores as Record<string, number> | undefined;
     const totalScore = compatResult?.total_score as number ?? check.score;
     const isApproved = compatResult?.is_match_approved as boolean ?? false;
 
-    // Build context for both profiles
     async function buildProfileContext(p: typeof profile1) {
       const reading = await db.readings.latestByEngine(p!.id, "dashaflow");
       if (!reading) return { summary: "(no chart data)", blocks: [] as { key: string; text: string }[], lagna: "", moonNak: "", maha: "", antar: "" };
@@ -89,13 +132,13 @@ export async function POST(req: NextRequest) {
     const [ctx1, ctx2] = await Promise.all([buildProfileContext(profile1), buildProfileContext(profile2)]);
 
     const contentSection = [...ctx1.blocks.map(b => `[${profile1.name}] ${b.key}\n${b.text}`), ...ctx2.blocks.map(b => `[${profile2.name}] ${b.key}\n${b.text}`)].join("\n\n---\n\n");
-
     const scoreSummary = scores
       ? Object.entries(scores).map(([k, v]) => `${k}: ${v}`).join(" | ")
       : "";
 
-    const chatConfig = await db.settings.getChatLlm();
-    const chosenModel: AiModelKey = resolveModel(model, DEFAULT_CHAT_MODEL);
+    const chosenModel: AiModelKey = admin
+      ? resolveModel(model, DEFAULT_CHAT_MODEL)
+      : resolveModel(chatConfig.user_model, DEFAULT_CHAT_MODEL);
 
     const systemPrompt = `You are an expert Vedic astrologer analysing the compatibility between ${profile1.name} and ${profile2.name}.
 
@@ -134,9 +177,32 @@ ${contentSection}${chatConfig.custom_instructions ? `\n\n=== ADDITIONAL INSTRUCT
       maxTokens: chatConfig.max_tokens,
       topP: chatConfig.top_p,
     });
-    return NextResponse.json({ response }, { headers: { "Cache-Control": "private, max-age=0" } });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to get response";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+
+  const userMsg = messages[messages.length - 1];
+  const [, assistantRecord] = await Promise.all([
+    db.chatMessages.save({
+      session_id,
+      user_id: userId,
+      check_id,
+      session_type: "compat",
+      role: "user",
+      content: userMsg.content,
+    }),
+    db.chatMessages.save({
+      session_id,
+      user_id: userId,
+      check_id,
+      session_type: "compat",
+      role: "assistant",
+      content: response,
+      model: chosenModel,
+    }),
+  ]);
+
+    const payload: Record<string, unknown> = { response, message_id: assistantRecord.id };
+    if (!admin) {
+      payload.quota = { used: usedThisMonth + 1, limit: chatConfig.user_quota_per_month };
+    }
+
+  return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=0" } });
 }

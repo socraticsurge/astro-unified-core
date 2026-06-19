@@ -20,7 +20,7 @@ let schemaInitialized = false;
 // (not PRAGMA user_version — Turso's HTTP API rejects PRAGMA writes). Warm
 // Lambda instances skip all DDL via the in-memory flag; cold instances do one
 // SELECT to check the version.
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 11;
 
 export async function ensureSchema() {
   if (schemaInitialized) return;
@@ -172,6 +172,27 @@ export async function ensureSchema() {
     await migrate("ALTER TABLE readings ADD COLUMN rating INTEGER;");
     await migrate("ALTER TABLE readings ADD COLUMN rated_at TEXT;");
 
+    // v10/v11: user chat messages — kept as migrate() so it runs idempotently
+    // even if the schema_version was already bumped to 10 by a partial migration.
+    await migrate(`CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      profile_id TEXT,
+      check_id TEXT,
+      session_type TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      model TEXT,
+      rating INTEGER,
+      rated_at TEXT,
+      created_at TEXT NOT NULL
+    )`);
+    await migrate("CREATE INDEX IF NOT EXISTS idx_chat_messages_user ON chat_messages (user_id, created_at)");
+    await migrate("CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages (session_id)");
+    // v11 patch: session_id column on existing chat_messages rows (no-op if table was just created)
+    await migrate("ALTER TABLE chat_messages ADD COLUMN session_id TEXT NOT NULL DEFAULT ''");
+
     // v7: live consultation slot booking
     await client.execute(`
       CREATE TABLE IF NOT EXISTS consultation_slots (
@@ -197,6 +218,24 @@ export async function ensureSchema() {
       );
     `);
     await client.execute("CREATE INDEX IF NOT EXISTS idx_daily_landing_generated ON daily_landing (generated_at);");
+
+    // v10: user chat messages log (quota + feedback)
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        profile_id TEXT,
+        check_id TEXT,
+        session_type TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        model TEXT,
+        rating INTEGER,
+        rated_at TEXT,
+        created_at TEXT NOT NULL
+      );
+    `);
+    await client.execute("CREATE INDEX IF NOT EXISTS idx_chat_messages_user ON chat_messages (user_id, created_at);");
 
     await client.execute(
       `INSERT OR REPLACE INTO schema_version (id, version) VALUES (1, ${SCHEMA_VERSION})`

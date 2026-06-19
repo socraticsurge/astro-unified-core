@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig, TodayReadingLlmConfig } from "@/lib/db";
+import { AI_MODELS } from "@/lib/engines/models";
 
 type Props = {
   initialAiInsights: AiInsightsLlmConfig;
@@ -230,6 +231,44 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft,
             placeholder="e.g. Always respond in under 200 words. Be direct and avoid hedging."
             className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50 resize-none"
           />
+        </div>
+
+        <div className="pt-2 border-t border-[var(--color-border)] space-y-4">
+          <p className="text-xs font-medium text-[var(--color-ink-2)]">User Chat Controls</p>
+
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Model for regular users</label>
+            <select
+              value={chatConfig.user_model ?? "groq-scout"}
+              onChange={e => setChatConfig(c => ({ ...c, user_model: e.target.value }))}
+              className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
+            >
+              {Object.entries(AI_MODELS).map(([key, m]) => (
+                <option key={key} value={key}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground">Monthly message quota per user</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min={5} max={200} step={5}
+                value={chatConfig.user_quota_per_month ?? 20}
+                onChange={e => setChatConfig(c => ({ ...c, user_quota_per_month: parseInt(e.target.value, 10) }))}
+                className="flex-1 accent-[var(--color-accent)]"
+              />
+              <input
+                type="number"
+                min={1} max={1000}
+                value={chatConfig.user_quota_per_month ?? 20}
+                onChange={e => setChatConfig(c => ({ ...c, user_quota_per_month: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
+                className="w-20 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">Per calendar month. Admins are exempt.</p>
+          </div>
         </div>
 
         {chatError && <p className="text-xs text-[var(--color-danger)]">{chatError}</p>}

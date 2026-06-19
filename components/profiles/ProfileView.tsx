@@ -209,7 +209,7 @@ export function ProfileView({
             ))}
           </div>
         </div>
-        {isAdmin && (
+        {onAIOpen && (
           <button
             type="button"
             onClick={handleAIOpen}

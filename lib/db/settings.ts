@@ -18,6 +18,9 @@ export type ChatLlmConfig = {
   max_tokens: number;
   top_p: number;
   custom_instructions: string;
+  // User-facing chat controls (admins are exempt from quota and always pick their own model)
+  user_model: string;             // AiModelKey — which model regular users get
+  user_quota_per_month: number;   // max user-sent messages per calendar month
 };
 
 export type DraftLlmConfig = {
@@ -43,6 +46,8 @@ const CHAT_LLM_DEFAULTS: ChatLlmConfig = {
   max_tokens: 8192,
   top_p: 0.9,
   custom_instructions: "",
+  user_model: "groq-scout",
+  user_quota_per_month: 20,
 };
 
 const DRAFT_LLM_DEFAULTS: DraftLlmConfig = {
