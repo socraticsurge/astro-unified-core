@@ -8,6 +8,7 @@ export type { AppSettings, AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig, T
 export type { ConsultationRequest, ConsultationRequestWithUser } from "./consultation-requests";
 export type { ConsultationSlot } from "./consultation-slots";
 export type { DailyLandingRow } from "./daily-landing";
+export type { ChatMessageRecord } from "./chat-messages";
 
 import { users } from "./users";
 import { profiles } from "./profiles";
@@ -18,5 +19,6 @@ import { settings } from "./settings";
 import { consultationRequests } from "./consultation-requests";
 import { consultationSlots } from "./consultation-slots";
 import { dailyLanding } from "./daily-landing";
+import { chatMessages } from "./chat-messages";
 
-export const db = { users, profiles, readings, compatibility, feedback, settings, consultationRequests, consultationSlots, dailyLanding };
+export const db = { users, profiles, readings, compatibility, feedback, settings, consultationRequests, consultationSlots, dailyLanding, chatMessages };

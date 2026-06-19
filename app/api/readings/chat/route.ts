@@ -22,24 +22,48 @@ export const dynamic = "force-dynamic";
 
 // POST /api/readings/chat
 // Body: { profile_id, messages: [{role, content}], model?, tab? }
-// Stateless — caller owns conversation history; we only build the system prompt server-side.
+// Admins: any profile, any model, no quota.
+// Users:  own profiles only, model from admin config, quota enforced.
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!isAdmin(session)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  if (!session || !userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const admin = isAdmin(session);
 
   const body = await req.json();
   const { profile_id, messages, model, tab } = body as {
     profile_id?: string;
     messages?: ChatMessage[];
     model?: AiModelKey;
-    tab?: string;  // InsightTab value ("natal", "dashas", "career", etc.)
+    tab?: string;
   };
 
   if (!profile_id || !messages?.length) {
     return NextResponse.json({ error: "profile_id and messages required" }, { status: 400 });
   }
 
-  const profile = await db.profiles.getAny(profile_id);
+  const chatConfig = await db.settings.getChatLlm();
+
+  // Quota check for non-admins
+  let usedThisMonth = 0;
+  if (!admin) {
+    usedThisMonth = await db.chatMessages.countUserMonthly(userId);
+    if (usedThisMonth >= chatConfig.user_quota_per_month) {
+      return NextResponse.json(
+        {
+          error: "quota_exceeded",
+          quota: { used: usedThisMonth, limit: chatConfig.user_quota_per_month },
+        },
+        { status: 429 },
+      );
+    }
+  }
+
+  // Ownership check: users can only chat about their own profiles
+  const profile = admin
+    ? await db.profiles.getAny(profile_id)
+    : await db.profiles.get(profile_id, userId);
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
 
   const chartReading = await db.readings.latestByEngine(profile_id, "dashaflow");
@@ -48,7 +72,6 @@ export async function POST(req: NextRequest) {
   const chartOutput = JSON.parse(chartReading.output_data) as Record<string, unknown>;
   const chartSummary = summarizeDashaflow(chartOutput);
 
-  // Build the full content library for this profile — all planets, ascendant, nakshatra, dasha pair
   const data = chartOutput?.data as Record<string, unknown> | undefined;
   const lagnaSign = (data?.lagna as Record<string, unknown> | undefined)?.sign as string | undefined ?? "";
   const planets = data?.planets as Record<string, { sign?: string; house?: number; nakshatra?: string }> | undefined;
@@ -72,7 +95,6 @@ export async function POST(req: NextRequest) {
     if (entry) contentBlocks.push({ key: `dasha-pair/${maha.toLowerCase()}-${antar.toLowerCase()}`, text: stripHtml(entry.body) });
   }
   if (planets) {
-    // Prioritise kendra/trikona houses (1,4,5,7,9,10) then remaining
     const HOUSE_PRIORITY = [1, 10, 5, 9, 4, 7, 2, 3, 6, 8, 11, 12];
     const sorted = Object.entries(planets).sort(([, a], [, b]) => {
       const ai = HOUSE_PRIORITY.indexOf(a.house ?? 0);
@@ -87,14 +109,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Content files are small (~700–2900 chars each, ~3K tokens total for all 12 blocks).
-  // 131K token context window means we send everything at full length.
   const contentSection = contentBlocks
     .map((b) => `--- ${b.key} ---\n${b.text}`)
     .join("\n\n");
 
-  // Tab-specific context: cached AI insight sections for the currently active tab.
-  // This grounds the chat in the same interpretive layer the summary already shows.
   let tabContext = "";
   if (tab) {
     const tabInsight = await db.readings.latestByEngine(profile_id, `ai-${tab}`);
@@ -141,18 +159,48 @@ ${chartSummary}
 ${contentSection}${tabContext}`;
 
   try {
-    const chatConfig = await db.settings.getChatLlm();
     const finalSystemPrompt = chatConfig.custom_instructions
       ? `${systemPrompt}\n\n=== ADDITIONAL INSTRUCTIONS ===\n${chatConfig.custom_instructions}`
       : systemPrompt;
 
-    const chosenModel: AiModelKey = resolveModel(model, DEFAULT_CHAT_MODEL);
+    // Admins choose their own model; users get the admin-configured model
+    const chosenModel: AiModelKey = admin
+      ? resolveModel(model, DEFAULT_CHAT_MODEL)
+      : resolveModel(chatConfig.user_model, DEFAULT_CHAT_MODEL);
+
     const response = await callAIForText(chosenModel, finalSystemPrompt, messages, {
       temperature: chatConfig.temperature,
       maxTokens: chatConfig.max_tokens,
       topP: chatConfig.top_p,
     });
-    return NextResponse.json({ response }, {
+
+    // Save the conversation turn only after a successful response
+    const userMsg = messages[messages.length - 1];
+    const [, assistantRecord] = await Promise.all([
+      db.chatMessages.save({
+        user_id: userId,
+        profile_id,
+        session_type: "profile",
+        role: "user",
+        content: userMsg.content,
+      }),
+      db.chatMessages.save({
+        user_id: userId,
+        profile_id,
+        session_type: "profile",
+        role: "assistant",
+        content: response,
+        model: chosenModel,
+      }),
+    ]);
+
+    // Build response payload
+    const payload: Record<string, unknown> = { response, message_id: assistantRecord.id };
+    if (!admin) {
+      payload.quota = { used: usedThisMonth + 1, limit: chatConfig.user_quota_per_month };
+    }
+
+    return NextResponse.json(payload, {
       headers: { "Cache-Control": "private, max-age=0" },
     });
   } catch (err) {

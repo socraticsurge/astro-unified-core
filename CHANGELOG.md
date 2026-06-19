@@ -8,6 +8,23 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-19] — User AI Chat: quota, message logging, feedback persistence
+
+### Added
+- **`lib/db/chat-messages.ts`** — New DB module for the `chat_messages` table. Records every user/assistant turn with `user_id`, `profile_id`/`check_id`, `session_type`, `model`, and `rating`. Exposes `save()`, `countUserMonthly()`, `rate()`, `listByUser()`, `listAll()`.
+- **`app/api/chat/feedback/route.ts`** — `POST /api/chat/feedback` saves thumbs-up/down on a specific assistant message. Ownership-enforced via `user_id`.
+- **DB schema v10** — New `chat_messages` table with index on `(user_id, created_at)`.
+
+### Changed
+- **`app/api/readings/chat/route.ts`** — Opened to all authenticated users (was admin-only). Non-admins: profile ownership enforced, model locked to `chatConfig.user_model`, monthly quota enforced. Response now includes `message_id` (assistant turn) and `quota` for non-admins. Messages saved to DB only after a successful LLM response.
+- **`app/api/readings/chat/compatibility/route.ts`** — Same changes as above for compatibility chat.
+- **`lib/db/settings.ts`** — `ChatLlmConfig` extended with `user_model` (AiModelKey, default `"groq-scout"`) and `user_quota_per_month` (default 20).
+- **`components/panels/AIAdminPanel.tsx`** — Added `isAdmin` prop. Non-admins: no model picker, no summary tab, quota pill shown in header, quota exhaustion disables input. Thumbs-up/down now persists to DB via `/api/chat/feedback`.
+- **`app/dashboard/DashboardClient.tsx`** — `AIAdminPanel` now renders for all users (not just admins); `isAdmin` prop passed through.
+- **`components/admin/LlmSettingsPanel.tsx`** — Chat settings section gains user model selector and monthly quota slider.
+
+---
+
 ## [2026-06-19] — Performance: landing page FCP, dashboard streaming, Vercel region
 
 ### Added

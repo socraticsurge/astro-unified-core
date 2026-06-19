@@ -460,13 +460,12 @@ export function DashboardClient({
         onSubmit={handleAskSubmit}
       />
 
-      {isAdmin && (
-        <AIAdminPanel
-          open={aiOpen}
-          onClose={() => setAiOpen(false)}
-          context={aiCtx}
-        />
-      )}
+      <AIAdminPanel
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        context={aiCtx}
+        isAdmin={isAdmin}
+      />
     </div>
   )
 }

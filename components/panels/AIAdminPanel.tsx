@@ -15,7 +15,6 @@ import type { ChartTabId } from "@/components/profiles/ProfileView"
 function MarkdownMessage({ content }: { content: string }) {
   const html = useMemo(() => sanitizeHtml(marked(content) as string), [content])
   const { resolvedTheme } = useTheme()
-  // prose-invert forces light text — only apply it in dark mode
   const invertClass = resolvedTheme === "dark" ? "prose-invert" : ""
   return (
     <div
@@ -54,23 +53,25 @@ type InsightState = {
 } | null
 
 type Message = {
-  role:    "user" | "assistant"
-  content: string
-  rating?: 1 | -1 | null
-  copied?: boolean
+  role:       "user" | "assistant"
+  content:    string
+  message_id?: string   // present on assistant messages; used for persisting feedback
+  rating?:    1 | -1 | null
+  copied?:    boolean
 }
 
 interface Props {
-  open:    boolean
-  onClose: () => void
-  context: AIPanelContext | null
+  open:     boolean
+  onClose:  () => void
+  context:  AIPanelContext | null
+  isAdmin?: boolean
 }
 
-export function AIAdminPanel({ open, onClose, context }: Props) {
-  const [subTab, setSubTab] = useState<"summary" | "chat">("summary")
+export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props) {
+  const [subTab, setSubTab] = useState<"summary" | "chat">(isAdmin ? "summary" : "chat")
   const [model,  setModel]  = useState<AiModelKey>(DEFAULT_INSIGHT_MODEL)
 
-  // Summary
+  // Summary (admin only)
   const [summaryState,    setSummaryState]    = useState<InsightState>(null)
   const [summaryChecking, setSummaryChecking] = useState(false)
   const [summaryLoading,  setSummaryLoading]  = useState(false)
@@ -81,6 +82,7 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
   const [chatInput,   setChatInput]   = useState("")
   const [chatLoading, setChatLoading] = useState(false)
   const [chatError,   setChatError]   = useState<string | null>(null)
+  const [quota,       setQuota]       = useState<{ used: number; limit: number } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const isCompare  = context?.activeTab === "compare"
@@ -88,7 +90,6 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
   const hasSummary = isCompare ? !!context?.compareCheckId : !!insightTab
   const hasChat    = isCompare ? !!context?.compareCheckId : !!context?.profileId
 
-  // Reset everything when the meaningful context changes
   const contextKey = context
     ? `${context.profileId}|${context.activeTab}|${context.compareCheckId ?? ""}`
     : ""
@@ -101,11 +102,12 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
     setSummaryError(null)
     setMessages([])
     setChatError(null)
+    setQuota(null)
   }, [contextKey])
 
-  // Cache check whenever panel opens or context changes
+  // Cache check whenever panel opens or context changes (admin only — summary is admin-gated)
   useEffect(() => {
-    if (!open || !context || !hasSummary) return
+    if (!open || !context || !hasSummary || !isAdmin) return
     let cancelled = false
 
     async function checkCache() {
@@ -128,7 +130,7 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
     checkCache()
     return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, contextKey])
+  }, [open, contextKey, isAdmin])
 
   const generateSummary = useCallback(async (force = false) => {
     if (!context) return
@@ -155,6 +157,13 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
 
   const sendMessage = useCallback(async () => {
     if (!context || !chatInput.trim() || chatLoading) return
+
+    // Enforce quota client-side as an early guard (server enforces authoritatively)
+    if (!isAdmin && quota && quota.used >= quota.limit) {
+      setChatError(`You've used all ${quota.limit} messages for this month.`)
+      return
+    }
+
     const userMsg: Message = { role: "user", content: chatInput.trim() }
     const next = [...messages, userMsg]
     setMessages(next)
@@ -170,15 +179,19 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Failed to get response")
-      setMessages(prev => [...prev, { role: "assistant", content: data.response }])
+      const data = await res.json() as { response?: string; message_id?: string; quota?: { used: number; limit: number }; error?: string }
+      if (!res.ok) {
+        if (res.status === 429 && data.quota) setQuota(data.quota)
+        throw new Error(data.error ?? "Failed to get response")
+      }
+      if (data.quota) setQuota(data.quota)
+      setMessages(prev => [...prev, { role: "assistant", content: data.response ?? "", message_id: data.message_id }])
     } catch (err) {
       setChatError(err instanceof Error ? err.message : "Something went wrong")
     } finally {
       setChatLoading(false)
     }
-  }, [context, chatInput, messages, model, isCompare, chatLoading])
+  }, [context, chatInput, messages, model, isCompare, chatLoading, isAdmin, quota, insightTab])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -190,17 +203,30 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
     setTimeout(() => setMessages(prev => prev.map((m, i) => i === idx ? { ...m, copied: false } : m)), 2000)
   }, [])
 
-  const rateMessage = useCallback((idx: number, value: 1 | -1) => {
-    setMessages(prev => prev.map((m, i) =>
-      i === idx ? { ...m, rating: m.rating === value ? null : value } : m
-    ))
-  }, [])
+  const rateMessage = useCallback(async (idx: number, value: 1 | -1) => {
+    const msg = messages[idx]
+    const next: 1 | -1 | null = msg.rating === value ? null : value
+    setMessages(prev => prev.map((m, i) => i === idx ? { ...m, rating: next } : m))
+
+    // Persist to DB if we have a message_id
+    if (msg.message_id) {
+      try {
+        await fetch("/api/chat/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message_id: msg.message_id, rating: next }),
+        })
+      } catch { /* non-critical — UI already updated */ }
+    }
+  }, [messages])
 
   const breadcrumb = context
     ? isCompare
       ? `Compatibility · ${context.profileName} × ${context.partnerName ?? "?"}`
       : `${context.tabLabel} · ${context.profileName}`
     : ""
+
+  const quotaExhausted = !isAdmin && quota && quota.used >= quota.limit
 
   return (
     <Sheet open={open} onOpenChange={isOpen => { if (!isOpen) onClose() }}>
@@ -220,30 +246,42 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
                 <p className="text-[11px] text-muted-foreground mt-0.5">{breadcrumb}</p>
               )}
             </div>
-            <ModelPicker value={model} onChange={setModel} disabled={summaryLoading || chatLoading} />
+            {isAdmin ? (
+              <ModelPicker value={model} onChange={setModel} disabled={summaryLoading || chatLoading} />
+            ) : quota ? (
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                quotaExhausted
+                  ? "border-[var(--color-danger)] text-[var(--color-danger)] bg-[var(--color-danger)]/10"
+                  : "border-[var(--color-border)] text-muted-foreground"
+              }`}>
+                {quota.used}/{quota.limit} this month
+              </span>
+            ) : null}
           </div>
 
-          {/* Sub-tab switcher */}
-          <div className="flex gap-0">
-            {(["summary", "chat"] as const).map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setSubTab(t)}
-                className={`px-4 py-2 text-xs font-medium capitalize border-b-2 transition-colors ${
-                  subTab === t
-                    ? "border-[var(--color-nav-chip-active-text)] text-[var(--color-ink-1)]"
-                    : "border-transparent text-muted-foreground hover:text-[var(--color-ink-2)]"
-                }`}
-              >
-                {t === "summary" ? "Summary" : "Chat"}
-              </button>
-            ))}
-          </div>
+          {/* Sub-tab switcher — admins see both; users see chat only */}
+          {isAdmin && (
+            <div className="flex gap-0">
+              {(["summary", "chat"] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setSubTab(t)}
+                  className={`px-4 py-2 text-xs font-medium capitalize border-b-2 transition-colors ${
+                    subTab === t
+                      ? "border-[var(--color-nav-chip-active-text)] text-[var(--color-ink-1)]"
+                      : "border-transparent text-muted-foreground hover:text-[var(--color-ink-2)]"
+                  }`}
+                >
+                  {t === "summary" ? "Summary" : "Chat"}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* ── Summary sub-tab ── */}
-        {subTab === "summary" && (
+        {/* ── Summary sub-tab (admin only) ── */}
+        {isAdmin && subTab === "summary" && (
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {!hasSummary ? (
               <p className="text-xs text-muted-foreground italic">
@@ -293,7 +331,7 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
         )}
 
         {/* ── Chat sub-tab ── */}
-        {subTab === "chat" && (
+        {(isAdmin ? subTab === "chat" : true) && (
           <div className="flex-1 flex flex-col overflow-hidden">
             {!hasChat ? (
               <p className="p-4 text-xs text-muted-foreground italic">
@@ -366,14 +404,14 @@ export function AIAdminPanel({ open, onClose, context }: Props) {
                     value={chatInput}
                     onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                    placeholder="Ask a question… (Shift+Enter for newline)"
-                    disabled={chatLoading}
+                    placeholder={quotaExhausted ? "Monthly message limit reached." : "Ask a question… (Shift+Enter for newline)"}
+                    disabled={chatLoading || !!quotaExhausted}
                     rows={2}
-                    className="flex-1 resize-none rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-xs text-[var(--color-ink-1)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] max-h-[120px]"
+                    className="flex-1 resize-none rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-xs text-[var(--color-ink-1)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] max-h-[120px] disabled:opacity-50"
                   />
                   <Button
                     size="sm"
-                    disabled={!chatInput.trim() || chatLoading}
+                    disabled={!chatInput.trim() || chatLoading || !!quotaExhausted}
                     onClick={sendMessage}
                     className="shrink-0 h-8 w-8 p-0"
                   >
