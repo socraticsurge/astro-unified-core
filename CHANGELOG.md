@@ -8,6 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-19] — User chat: full all-tab AI insight context
+
+### Changed
+- **`app/api/readings/chat/route.ts`** — Non-admin users now receive all available AI insight tabs (natal, vargas, dashas, career, transit, tarabalam) loaded in parallel and appended to the system prompt, rather than only the single active tab. Admins retain the single active-tab behaviour.
+
+---
+
 ## [2026-06-19] — User AI Chat: quota, message logging, feedback persistence
 
 ### Added

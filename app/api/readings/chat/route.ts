@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { callAIForText } from "@/lib/engines/ai-caller";
 import { resolveModel, DEFAULT_CHAT_MODEL, type AiModelKey } from "@/lib/engines/models";
+import { INSIGHT_TABS, TAB_LABELS, TAB_ENGINE } from "@/lib/ai-insight";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import {
   lookupAscendant,
@@ -113,8 +114,33 @@ export async function POST(req: NextRequest) {
     .map((b) => `--- ${b.key} ---\n${b.text}`)
     .join("\n\n");
 
+  // For non-admins load all tab insights in parallel — richer context since they
+  // can't regenerate on demand. For admins, honour the single active tab as before.
   let tabContext = "";
-  if (tab) {
+  if (!admin) {
+    const tabReadings = await Promise.all(
+      INSIGHT_TABS.map(t => db.readings.latestByEngine(profile_id, TAB_ENGINE[t]))
+    );
+    const parts: string[] = [];
+    for (let i = 0; i < INSIGHT_TABS.length; i++) {
+      const reading = tabReadings[i];
+      if (!reading) continue;
+      try {
+        const insight = JSON.parse(reading.output_data) as {
+          sections?: { title: string; interpretation: string }[];
+          key_themes?: string[];
+        };
+        const themes = insight.key_themes?.join(", ") ?? "";
+        const sections = (insight.sections ?? [])
+          .map((s) => `${s.title}: ${s.interpretation}`)
+          .join("\n");
+        if (themes || sections) {
+          parts.push(`=== ${TAB_LABELS[INSIGHT_TABS[i]].toUpperCase()} (AI) ===\nKey themes: ${themes}\n${sections}`);
+        }
+      } catch { /* skip malformed */ }
+    }
+    if (parts.length) tabContext = "\n\n" + parts.join("\n\n");
+  } else if (tab) {
     const tabInsight = await db.readings.latestByEngine(profile_id, `ai-${tab}`);
     if (tabInsight) {
       try {
