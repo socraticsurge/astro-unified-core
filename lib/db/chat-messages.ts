@@ -89,7 +89,7 @@ export const chatMessages = {
   async listByUser(user_id: string, limit = 200): Promise<ChatMessageRecord[]> {
     await ensureSchema();
     const rs = await getClient().execute({
-      sql: `SELECT id, user_id, profile_id, check_id, session_type, role, content, model, rating, rated_at, created_at
+      sql: `SELECT id, session_id, user_id, profile_id, check_id, session_type, role, content, model, rating, rated_at, created_at
             FROM chat_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`,
       args: [user_id, limit],
     });
@@ -99,7 +99,7 @@ export const chatMessages = {
   async listAll(limit = 500): Promise<ChatMessageRecord[]> {
     await ensureSchema();
     const rs = await getClient().execute({
-      sql: `SELECT id, user_id, profile_id, check_id, session_type, role, content, model, rating, rated_at, created_at
+      sql: `SELECT id, session_id, user_id, profile_id, check_id, session_type, role, content, model, rating, rated_at, created_at
             FROM chat_messages ORDER BY created_at DESC LIMIT ?`,
       args: [limit],
     });
