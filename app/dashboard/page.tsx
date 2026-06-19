@@ -54,14 +54,15 @@ export default async function DashboardPage({
       }
     }
   } else {
-    // Empty-profile users go straight into create mode — the sidebar renders
-    // the inline create form. No more separate /profiles/new screen.
+    // Empty-profile users go through the onboarding flow before the dashboard.
+    if (!adminUser && ownProfiles.length === 0) redirect("/onboarding");
+
     initialProfileId = params?.profile
       ? ownProfiles.find(p => p.id === params.profile)?.id
       : undefined;
   }
 
-  const isCreating = params?.create === "1" || (!adminUser && ownProfiles.length === 0);
+  const isCreating = params?.create === "1";
   const isNewProfile = params?.new === "1";
 
   // `key` forces DashboardClient to remount whenever the URL meaningfully
