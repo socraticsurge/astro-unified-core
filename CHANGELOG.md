@@ -8,6 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-19] — Performance: landing page FCP, dashboard streaming, Vercel region
+
+### Added
+- **`components/cosmic-shared.ts`** — Shared `ZODIAC`, `DARK_PALETTE`, `LIGHT_PALETTE`, and `Palette` type extracted from `CosmicLanding.tsx` so the animation bundle can be code-split without duplication.
+- **`components/CosmicAnimations.tsx`** — New lazily-loaded component (`dynamic(() => import(...), { ssr: false })`) containing the canvas star/meteor animation and the imperative SVG zodiac-wheel builder. Removed from the initial JS bundle so the glass panel (brand, snippet, CTA) paints first.
+- **`app/dashboard/DashboardLoader.tsx`** — Async server component holding all DB queries for the dashboard. Runs behind a `<Suspense>` boundary so the skeleton HTML flushes to the client immediately after session verification.
+- **`app/dashboard/DashboardSkeleton.tsx`** — Server-rendered loading skeleton shown while `DashboardLoader` resolves, replacing the blank wait users previously experienced.
+- **`vercel.json`** — Sets the primary serverless function region to `bom1` (Mumbai) to reduce TTFB for the primarily India-based user base.
+
+### Changed
+- **`components/CosmicLanding.tsx`** — Imports `ZODIAC` and palettes from `cosmic-shared.ts`; delegates canvas + zodiac rendering to `CosmicAnimations` via `dynamic()`. Panel (snippet, brand, CTA, pill strip) is unchanged in behaviour and appearance.
+- **`app/dashboard/page.tsx`** — Session check still runs synchronously (needed for redirect). DB queries moved to `DashboardLoader` and wrapped in `<Suspense fallback={<DashboardSkeleton />}>` for streaming.
+
 ## [2026-06-19] — Dedicated onboarding flow for new users
 
 ### Added
