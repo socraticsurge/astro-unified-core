@@ -8,10 +8,10 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
-## [2026-06-19] — User chat: full all-tab AI insight context
+## [2026-06-19] — User chat: richer context from user-generated tab readings
 
 ### Changed
-- **`app/api/readings/chat/route.ts`** — Non-admin users now receive all available AI insight tabs (natal, vargas, dashas, career, transit, tarabalam) loaded in parallel and appended to the system prompt, rather than only the single active tab. Admins retain the single active-tab behaviour.
+- **`app/api/readings/chat/route.ts`** — System prompt now includes user-generated engine readings for all users: `today-current` (current dasha period narrative), `today-natal` (natal chart narrative), and `career` (D10 themes, primary planets, strength factors). These load in parallel and are omitted gracefully if the user hasn't visited those tabs yet. Admins additionally get the active-tab AI insight as before. Removed the incorrect approach of loading admin-generated `ai-*` summaries as user context.
 
 ---
 
