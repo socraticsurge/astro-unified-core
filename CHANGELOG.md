@@ -8,6 +8,15 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-19] — Fix: graceful chat error handling
+
+### Fixed
+- **`components/panels/AIAdminPanel.tsx`** — `res.json()` now safe-parses with a fallback; shows "Request failed (N) — please try again" instead of exposing the raw JS parse error when the server returns an empty or HTML body.
+- **`app/api/readings/chat/route.ts`** — All logic (quota check, profile lookup, context building, AI call) now runs inside a single top-level try/catch via an extracted `handleChat()` helper, guaranteeing a JSON error response on any unhandled throw.
+- **`app/api/readings/chat/compatibility/route.ts`** — Same pattern via `handleCompatChat()`.
+
+---
+
 ## [2026-06-19] — Fix: AI button now visible to all users
 
 ### Fixed

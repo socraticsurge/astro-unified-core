@@ -179,11 +179,13 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      const data = await res.json() as { response?: string; message_id?: string; quota?: { used: number; limit: number }; error?: string }
+      let data: { response?: string; message_id?: string; quota?: { used: number; limit: number }; error?: string } = {}
+      try { data = await res.json() } catch { /* empty or non-JSON body */ }
       if (!res.ok) {
         if (res.status === 429 && data.quota) setQuota(data.quota)
-        throw new Error(data.error ?? "Failed to get response")
+        throw new Error(data.error ?? `Request failed (${res.status}) — please try again`)
       }
+      if (!data.response) throw new Error("No response received — please try again")
       if (data.quota) setQuota(data.quota)
       setMessages(prev => [...prev, { role: "assistant", content: data.response ?? "", message_id: data.message_id }])
     } catch (err) {

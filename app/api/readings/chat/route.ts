@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
 
   const admin = isAdmin(session);
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
   const { profile_id, messages, model, tab } = body as {
     profile_id?: string;
     messages?: ChatMessage[];
@@ -43,6 +47,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "profile_id and messages required" }, { status: 400 });
   }
 
+  try { return await handleChat({ admin, userId, profile_id, messages, model, tab }); }
+  catch (err) {
+    const message = err instanceof Error ? err.message : "Something went wrong — please try again";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+async function handleChat({ admin, userId, profile_id, messages, model, tab }: {
+  admin: boolean;
+  userId: string;
+  profile_id: string;
+  messages: ChatMessage[];
+  model: AiModelKey | undefined;
+  tab: string | undefined;
+}): Promise<ReturnType<typeof NextResponse.json>> {
   const chatConfig = await db.settings.getChatLlm();
 
   // Quota check for non-admins
@@ -205,53 +224,47 @@ ${chartSummary}
 === INTERPRETATION TEXTS (${contentBlocks.length} sources) ===
 ${contentSection}${tabContext}`;
 
-  try {
-    const finalSystemPrompt = chatConfig.custom_instructions
-      ? `${systemPrompt}\n\n=== ADDITIONAL INSTRUCTIONS ===\n${chatConfig.custom_instructions}`
-      : systemPrompt;
+  const finalSystemPrompt = chatConfig.custom_instructions
+    ? `${systemPrompt}\n\n=== ADDITIONAL INSTRUCTIONS ===\n${chatConfig.custom_instructions}`
+    : systemPrompt;
 
-    // Admins choose their own model; users get the admin-configured model
-    const chosenModel: AiModelKey = admin
-      ? resolveModel(model, DEFAULT_CHAT_MODEL)
-      : resolveModel(chatConfig.user_model, DEFAULT_CHAT_MODEL);
+  // Admins choose their own model; users get the admin-configured model
+  const chosenModel: AiModelKey = admin
+    ? resolveModel(model, DEFAULT_CHAT_MODEL)
+    : resolveModel(chatConfig.user_model, DEFAULT_CHAT_MODEL);
 
-    const response = await callAIForText(chosenModel, finalSystemPrompt, messages, {
-      temperature: chatConfig.temperature,
-      maxTokens: chatConfig.max_tokens,
-      topP: chatConfig.top_p,
-    });
+  const response = await callAIForText(chosenModel, finalSystemPrompt, messages, {
+    temperature: chatConfig.temperature,
+    maxTokens: chatConfig.max_tokens,
+    topP: chatConfig.top_p,
+  });
 
-    // Save the conversation turn only after a successful response
-    const userMsg = messages[messages.length - 1];
-    const [, assistantRecord] = await Promise.all([
-      db.chatMessages.save({
-        user_id: userId,
-        profile_id,
-        session_type: "profile",
-        role: "user",
-        content: userMsg.content,
-      }),
-      db.chatMessages.save({
-        user_id: userId,
-        profile_id,
-        session_type: "profile",
-        role: "assistant",
-        content: response,
-        model: chosenModel,
-      }),
-    ]);
+  // Save the conversation turn only after a successful response
+  const userMsg = messages[messages.length - 1];
+  const [, assistantRecord] = await Promise.all([
+    db.chatMessages.save({
+      user_id: userId,
+      profile_id,
+      session_type: "profile",
+      role: "user",
+      content: userMsg.content,
+    }),
+    db.chatMessages.save({
+      user_id: userId,
+      profile_id,
+      session_type: "profile",
+      role: "assistant",
+      content: response,
+      model: chosenModel,
+    }),
+  ]);
 
-    // Build response payload
-    const payload: Record<string, unknown> = { response, message_id: assistantRecord.id };
-    if (!admin) {
-      payload.quota = { used: usedThisMonth + 1, limit: chatConfig.user_quota_per_month };
-    }
-
-    return NextResponse.json(payload, {
-      headers: { "Cache-Control": "private, max-age=0" },
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to get response";
-    return NextResponse.json({ error: message }, { status: 500 });
+  const payload: Record<string, unknown> = { response, message_id: assistantRecord.id };
+  if (!admin) {
+    payload.quota = { used: usedThisMonth + 1, limit: chatConfig.user_quota_per_month };
   }
+
+  return NextResponse.json(payload, {
+    headers: { "Cache-Control": "private, max-age=0" },
+  });
 }

@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
 
   const admin = isAdmin(session);
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
   const { check_id, messages, model } = body as {
     check_id?: string;
     messages?: ChatMessage[];
@@ -42,6 +46,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "check_id and messages required" }, { status: 400 });
   }
 
+  try { return await handleCompatChat({ admin, userId, check_id, messages, model }); }
+  catch (err) {
+    const message = err instanceof Error ? err.message : "Something went wrong — please try again";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+async function handleCompatChat({ admin, userId, check_id, messages, model }: {
+  admin: boolean;
+  userId: string;
+  check_id: string;
+  messages: ChatMessage[];
+  model: AiModelKey | undefined;
+}): Promise<ReturnType<typeof NextResponse.json>> {
   const chatConfig = await db.settings.getChatLlm();
 
   // Quota check for non-admins
@@ -73,9 +91,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "One or both profiles not found" }, { status: 404 });
   }
 
-  try {
-    let compatResult: Record<string, unknown> = {};
-    try { compatResult = JSON.parse(check.result_json) as Record<string, unknown>; } catch { /* empty */ }
+  let compatResult: Record<string, unknown> = {};
+  try { compatResult = JSON.parse(check.result_json) as Record<string, unknown>; } catch { /* empty */ }
 
     const scores = compatResult?.scores as Record<string, number> | undefined;
     const totalScore = compatResult?.total_score as number ?? check.score;
@@ -183,9 +200,5 @@ ${contentSection}${chatConfig.custom_instructions ? `\n\n=== ADDITIONAL INSTRUCT
       payload.quota = { used: usedThisMonth + 1, limit: chatConfig.user_quota_per_month };
     }
 
-    return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=0" } });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to get response";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=0" } });
 }
