@@ -8,6 +8,15 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-19] — Dedicated onboarding flow for new users
+
+### Added
+- **`app/onboarding/page.tsx`** — Server component that auth-gates the onboarding route, redirects users who already have profiles straight to `/dashboard`, and passes the Google display name to the client.
+- **`app/onboarding/OnboardingClient.tsx`** — Full-screen, 4-step animated onboarding form (About → Birthday → Birth Time → Birthplace). Features: slide-in/out step transitions, animated progress bar, cosmic orbital header, per-step validation, and a "Create my chart" submit that calls `/api/profiles` and redirects to `/dashboard?profile=[id]&new=1` (triggering the existing `ProfileLoadingScreen`). Birth time defaults to `12:00` with copy nudging users to find the accurate time.
+
+### Changed
+- **`app/dashboard/page.tsx`** — New users with 0 profiles are now redirected to `/onboarding` instead of landing on the dashboard in inline-create mode. Returning users and admins are unaffected; `?create=1` still works for adding subsequent profiles.
+
 ## [2026-05-23] — Enrich AI chat with full chart context, D9, and content library
 
 ### Changed
