@@ -176,6 +176,7 @@ export async function ensureSchema() {
     // even if the schema_version was already bumped to 10 by a partial migration.
     await migrate(`CREATE TABLE IF NOT EXISTS chat_messages (
       id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
       profile_id TEXT,
       check_id TEXT,
@@ -188,6 +189,9 @@ export async function ensureSchema() {
       created_at TEXT NOT NULL
     )`);
     await migrate("CREATE INDEX IF NOT EXISTS idx_chat_messages_user ON chat_messages (user_id, created_at)");
+    await migrate("CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages (session_id)");
+    // v11 patch: session_id column on existing chat_messages rows (no-op if table was just created)
+    await migrate("ALTER TABLE chat_messages ADD COLUMN session_id TEXT NOT NULL DEFAULT ''");
 
     // v7: live consultation slot booking
     await client.execute(`

@@ -83,6 +83,8 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
   const [chatLoading, setChatLoading] = useState(false)
   const [chatError,   setChatError]   = useState<string | null>(null)
   const [quota,       setQuota]       = useState<{ used: number; limit: number } | null>(null)
+  // session_id groups all turns in one chat session so Q/A pairs are linkable in DB
+  const sessionIdRef = useRef<string>(crypto.randomUUID())
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const isCompare  = context?.activeTab === "compare"
@@ -103,6 +105,7 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
     setMessages([])
     setChatError(null)
     setQuota(null)
+    sessionIdRef.current = crypto.randomUUID()
   }, [contextKey])
 
   // Cache check whenever panel opens or context changes (admin only — summary is admin-gated)
@@ -171,9 +174,10 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
     setChatLoading(true)
     setChatError(null)
     try {
+      const sid = sessionIdRef.current
       const [url, body] = isCompare
-        ? ["/api/readings/chat/compatibility", { check_id: context.compareCheckId, messages: next, model }] as const
-        : ["/api/readings/chat",               { profile_id: context.profileId, messages: next, model, tab: insightTab ?? undefined }] as const
+        ? ["/api/readings/chat/compatibility", { check_id: context.compareCheckId, messages: next, model, session_id: sid }] as const
+        : ["/api/readings/chat",               { profile_id: context.profileId, messages: next, model, tab: insightTab ?? undefined, session_id: sid }] as const
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -36,27 +36,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { profile_id, messages, model, tab } = body as {
+  const { profile_id, messages, model, tab, session_id } = body as {
     profile_id?: string;
     messages?: ChatMessage[];
     model?: AiModelKey;
     tab?: string;
+    session_id?: string;
   };
 
   if (!profile_id || !messages?.length) {
     return NextResponse.json({ error: "profile_id and messages required" }, { status: 400 });
   }
 
-  try { return await handleChat({ admin, userId, profile_id, messages, model, tab }); }
+  try { return await handleChat({ admin, userId, session_id: session_id ?? "", profile_id, messages, model, tab }); }
   catch (err) {
     const message = err instanceof Error ? err.message : "Something went wrong — please try again";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-async function handleChat({ admin, userId, profile_id, messages, model, tab }: {
+async function handleChat({ admin, userId, session_id, profile_id, messages, model, tab }: {
   admin: boolean;
   userId: string;
+  session_id: string;
   profile_id: string;
   messages: ChatMessage[];
   model: AiModelKey | undefined;
@@ -243,6 +245,7 @@ ${contentSection}${tabContext}`;
   const userMsg = messages[messages.length - 1];
   const [, assistantRecord] = await Promise.all([
     db.chatMessages.save({
+      session_id,
       user_id: userId,
       profile_id,
       session_type: "profile",
@@ -250,6 +253,7 @@ ${contentSection}${tabContext}`;
       content: userMsg.content,
     }),
     db.chatMessages.save({
+      session_id,
       user_id: userId,
       profile_id,
       session_type: "profile",

@@ -36,26 +36,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { check_id, messages, model } = body as {
+  const { check_id, messages, model, session_id } = body as {
     check_id?: string;
     messages?: ChatMessage[];
     model?: AiModelKey;
+    session_id?: string;
   };
 
   if (!check_id || !messages?.length) {
     return NextResponse.json({ error: "check_id and messages required" }, { status: 400 });
   }
 
-  try { return await handleCompatChat({ admin, userId, check_id, messages, model }); }
+  try { return await handleCompatChat({ admin, userId, session_id: session_id ?? "", check_id, messages, model }); }
   catch (err) {
     const message = err instanceof Error ? err.message : "Something went wrong — please try again";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-async function handleCompatChat({ admin, userId, check_id, messages, model }: {
+async function handleCompatChat({ admin, userId, session_id, check_id, messages, model }: {
   admin: boolean;
   userId: string;
+  session_id: string;
   check_id: string;
   messages: ChatMessage[];
   model: AiModelKey | undefined;
@@ -176,24 +178,26 @@ ${contentSection}${chatConfig.custom_instructions ? `\n\n=== ADDITIONAL INSTRUCT
       topP: chatConfig.top_p,
     });
 
-    const userMsg = messages[messages.length - 1];
-    const [, assistantRecord] = await Promise.all([
-      db.chatMessages.save({
-        user_id: userId,
-        check_id,
-        session_type: "compat",
-        role: "user",
-        content: userMsg.content,
-      }),
-      db.chatMessages.save({
-        user_id: userId,
-        check_id,
-        session_type: "compat",
-        role: "assistant",
-        content: response,
-        model: chosenModel,
-      }),
-    ]);
+  const userMsg = messages[messages.length - 1];
+  const [, assistantRecord] = await Promise.all([
+    db.chatMessages.save({
+      session_id,
+      user_id: userId,
+      check_id,
+      session_type: "compat",
+      role: "user",
+      content: userMsg.content,
+    }),
+    db.chatMessages.save({
+      session_id,
+      user_id: userId,
+      check_id,
+      session_type: "compat",
+      role: "assistant",
+      content: response,
+      model: chosenModel,
+    }),
+  ]);
 
     const payload: Record<string, unknown> = { response, message_id: assistantRecord.id };
     if (!admin) {

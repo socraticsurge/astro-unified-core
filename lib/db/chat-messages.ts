@@ -4,6 +4,7 @@ import { getClient, ensureSchema } from "./client";
 
 const ChatMessageSchema = z.object({
   id: z.string(),
+  session_id: z.string(),
   user_id: z.string(),
   profile_id: z.string().nullable(),
   check_id: z.string().nullable(),
@@ -20,6 +21,7 @@ export type ChatMessageRecord = z.infer<typeof ChatMessageSchema>;
 
 export const chatMessages = {
   async save(data: {
+    session_id: string;
     user_id: string;
     profile_id?: string | null;
     check_id?: string | null;
@@ -32,10 +34,11 @@ export const chatMessages = {
     const id = randomUUID();
     const created_at = new Date().toISOString();
     await getClient().execute({
-      sql: `INSERT INTO chat_messages (id, user_id, profile_id, check_id, session_type, role, content, model, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      sql: `INSERT INTO chat_messages (id, session_id, user_id, profile_id, check_id, session_type, role, content, model, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         id,
+        data.session_id,
         data.user_id,
         data.profile_id ?? null,
         data.check_id ?? null,
@@ -48,6 +51,7 @@ export const chatMessages = {
     });
     return {
       id,
+      session_id: data.session_id,
       user_id: data.user_id,
       profile_id: data.profile_id ?? null,
       check_id: data.check_id ?? null,

@@ -8,6 +8,18 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-19] — Chat: session_id links Q/A pairs and conversation threads
+
+### Added
+- **`session_id` column on `chat_messages`** — UUID shared by all rows in one chat session (user + assistant turns). Generated on the client when the panel opens; reset whenever the context changes (new profile/tab). Indexed for fast thread lookups.
+- Turso `ALTER TABLE chat_messages ADD COLUMN session_id` migration runs idempotently via `migrate()`.
+
+### Changed
+- Both chat API routes accept `session_id` in the request body and write it to all saved rows.
+- `AIAdminPanel`: generates `sessionIdRef` on mount, rotates on context change, sends with every request.
+
+---
+
 ## [2026-06-19] — Fix: robust chat_messages schema migration (v11)
 
 ### Fixed
