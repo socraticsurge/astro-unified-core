@@ -8,6 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-19] — Fix: robust chat_messages schema migration (v11)
+
+### Fixed
+- **`lib/db/client.ts`** — Bumped schema to v11. `chat_messages` table and index creation moved to `migrate()` calls so they run idempotently even when schema_version was already stamped as 10 by a partial migration. Previously a failed v10 migration would leave the DB version at 10 with the table missing, and subsequent cold-starts would skip the block entirely.
+
+---
+
 ## [2026-06-19] — Fix: graceful chat error handling
 
 ### Fixed
