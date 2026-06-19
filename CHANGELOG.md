@@ -8,6 +8,13 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-19] — Fix: AI button now visible to all users
+
+### Fixed
+- **`components/profiles/ProfileView.tsx`** — AI button was still gated on `isAdmin`; now renders whenever `onAIOpen` is provided (which is always the case from DashboardClient).
+
+---
+
 ## [2026-06-19] — User chat: richer context from user-generated tab readings
 
 ### Changed
