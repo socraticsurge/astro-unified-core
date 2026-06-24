@@ -15,7 +15,7 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings, consultationSlots, aiInsightStats, aiInsightsLlm, chatLlm, draftLlm, todayReadingLlm] = await Promise.all([
+  const [users, profiles, feedback, compatibilityChecks, consultationRequests, appSettings, consultationSlots, aiInsightStats, chatUsageStats, aiInsightsLlm, chatLlm, draftLlm, todayReadingLlm] = await Promise.all([
     db.users.list(),
     db.profiles.listAllWithUser(),
     db.feedback.list(),
@@ -24,6 +24,7 @@ export default async function AdminPage() {
     db.settings.getAll(),
     db.consultationSlots.listAll(),
     db.readings.aiInsightStats(),
+    db.chatMessages.stats(),
     db.settings.getAiInsightsLlm(),
     db.settings.getChatLlm(),
     db.settings.getDraftLlm(),
@@ -74,6 +75,7 @@ export default async function AdminPage() {
         consultationSlots={consultationSlots}
         appSettings={appSettings}
         aiInsightStats={aiInsightStats}
+        chatUsageStats={chatUsageStats}
         llmSettings={{ ai_insights: aiInsightsLlm, chat: chatLlm, draft: draftLlm, today_reading: todayReadingLlm }}
         adminEmail={session?.user?.email ?? ""}
       />
