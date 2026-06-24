@@ -11,8 +11,7 @@ import {
   lookupDashaPair,
   lookupPlanetInHouse,
 } from "@/lib/content/lookup";
-import { resolveModel, DEFAULT_CHAT_MODEL, type AiModelKey } from "@/lib/engines/models";
-import type { ChatMessage } from "@/lib/engines/groq";
+import { resolveModel, DEFAULT_CHAT_MODEL, type AiModelKey, type ChatMessage } from "@/lib/engines/models";
 
 export const dynamic = "force-dynamic";
 

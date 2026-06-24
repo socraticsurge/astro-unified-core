@@ -1,6 +1,5 @@
 import "server-only";
 import { callAIForJson } from "./engines/ai-caller";
-import { GEMINI_MODEL } from "./engines/gemini";
 import { summarizeDashaflow } from "./chart-summary";
 import {
   lookupAscendant,
@@ -10,7 +9,7 @@ import {
 } from "./content/lookup";
 import { db } from "./db";
 import type { Profile } from "./db";
-import { type AiModelKey, DEFAULT_INSIGHT_MODEL } from "./engines/models";
+import { AI_MODELS, type AiModelKey, DEFAULT_INSIGHT_MODEL } from "./engines/models";
 
 export const COMPAT_ENGINE = "ai-compat";
 const PROMPT_VERSION = "1.0";
@@ -121,7 +120,7 @@ export async function buildCompatibilityInsight(
     .join("\n\n");
 
   const schemaExample: CompatInsight = {
-    model: GEMINI_MODEL,
+    model: AI_MODELS[DEFAULT_INSIGHT_MODEL].id,
     prompt_version: PROMPT_VERSION,
     generated_at: new Date().toISOString(),
     profiles: { name1: profile1.name, name2: profile2.name },
@@ -180,7 +179,7 @@ Generate the compatibility insight for ${profile1.name} and ${profile2.name}.`;
 
   return {
     ...raw,
-    model: model === "gemini-flash" ? GEMINI_MODEL : model,
+    model: AI_MODELS[model].id,
     prompt_version: PROMPT_VERSION,
     generated_at: new Date().toISOString(),
     profiles: { name1: profile1.name, name2: profile2.name },
