@@ -183,6 +183,11 @@ export default function CosmicAnimations({ isDark, onSignPick }: Props) {
     }
 
     function spawnMeteor() {
+      // Canvas can be 0x0 if the effect fires before layout (hidden tab,
+      // requestIdleCallback racing with measurement). `n % 0 === NaN`, which
+      // then poisons every downstream coord and createLinearGradient throws
+      // (Sentry: ASTROCHAGANTI-A). Skip until we have real dimensions.
+      if (cv.width <= 0 || cv.height <= 0) return
       const angle = (Math.PI / 8)
       const speed = 10
       meteors.push({
@@ -196,6 +201,9 @@ export default function CosmicAnimations({ isDark, onSignPick }: Props) {
     function draw() {
       if (paused) { rafId = null; return }
       rafId = requestAnimationFrame(draw)
+      // Bail until canvas has real dimensions — see spawnMeteor for the
+      // failure mode this prevents.
+      if (cv.width <= 0 || cv.height <= 0) return
       t += 0.008
       const W = cv.width, H = cv.height
       const cp = paletteRef.current
@@ -228,10 +236,17 @@ export default function CosmicAnimations({ isDark, onSignPick }: Props) {
         const a = p < 0.25 ? p / 0.25 : 1 - (p - 0.25) / 0.75
         const mag = Math.hypot(m.vx, m.vy)
         const nx = m.vx / mag, ny = m.vy / mag
-        const grad = ctx.createLinearGradient(m.x - nx * m.len, m.y - ny * m.len, m.x, m.y)
+        const x0 = m.x - nx * m.len, y0 = m.y - ny * m.len
+        // Last-mile guard: drop any meteor whose coords went non-finite
+        // (NaN/Infinity) instead of crashing the canvas frame.
+        if (!Number.isFinite(x0) || !Number.isFinite(y0) || !Number.isFinite(m.x) || !Number.isFinite(m.y)) {
+          meteors.splice(i, 1)
+          continue
+        }
+        const grad = ctx.createLinearGradient(x0, y0, m.x, m.y)
         grad.addColorStop(0, `${cp.meteor}0)`)
         grad.addColorStop(1, `${cp.meteor}${(a * 0.85).toFixed(3)})`)
-        ctx.beginPath(); ctx.moveTo(m.x - nx * m.len, m.y - ny * m.len); ctx.lineTo(m.x, m.y)
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(m.x, m.y)
         ctx.strokeStyle = grad; ctx.lineWidth = 1.4; ctx.stroke()
         m.x += m.vx; m.y += m.vy; m.life++
         if (m.life >= m.maxLife) meteors.splice(i, 1)

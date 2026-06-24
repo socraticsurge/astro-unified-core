@@ -8,6 +8,29 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-24] — Fix: four production Sentry issues (bounce-rate incident)
+
+Bundle of fixes for the four issues blocking users on the deployed site this week. Each fix is structured so the failure mode cannot recur.
+
+### Fixed
+- **`lib/sanitize.ts`** — Replaced `isomorphic-dompurify` (drags `jsdom` into the server bundle; crashed `/credits` and any route in its module graph on Vercel with `require() of ES Module .../html-encoding-sniffer`) with [`sanitize-html`](https://github.com/apostrophecms/sanitize-html), which parses via `htmlparser2` and has **no DOM dependency at all**. Same `sanitizeHtml(html: string)` export — no caller changes. The new dep is externally maintained and cannot regress into jsdom. **Sentry: ASTROCHAGANTI-1 (72 events).**
+- **`instrumentation-client.ts` + `components/PostHogIdentifier.tsx`** — PostHog now probes `localStorage` at init and falls back to `persistence: "memory"` when storage is blocked (sandboxed iframes, in-app browsers like LinkedIn/Facebook, Brave shields, Safari ITP corners). `PostHogIdentifier` also wraps `identify()`/`reset()` in `try/catch` as belt-and-suspenders — analytics failures can never break the React commit phase again. **Sentry: ASTROCHAGANTI-7 (8 events).**
+- **`components/CosmicAnimations.tsx`** — `spawnMeteor()` and `draw()` now bail when the canvas has zero dimensions (happens when the effect fires before layout via `requestIdleCallback` on hidden tabs). Added a last-mile finite-coordinate guard before `createLinearGradient` that drops any meteor whose coords went `NaN`/`Infinity` instead of throwing. **Sentry: ASTROCHAGANTI-A (1 event).**
+- **`lib/db/client.ts`** — Rewrote `ensureSchema` to split idempotent bootstrap DDL from version-gated migrations:
+  - `bootstrapTables()` runs on every cold start with `CREATE TABLE IF NOT EXISTS` for every table (cheap, idempotent). This is what eliminates the failure mode where `schema_version` is at the latest but a table is missing — the cause of the incident.
+  - `runMigrations()` only runs when the DB is behind `SCHEMA_VERSION` and only handles `ALTER TABLE` / data seeds.
+  - `migrate()` now **rethrows** real errors (only "duplicate column" / "already exists" are still swallowed). Previously it logged-and-continued on any failure, letting a broken CREATE TABLE coexist with a bumped version row.
+  - The outer try/catch that hid schema errors has been removed; migration failures now surface as clear 500s at the route and reach Sentry instead of silently corrupting requests.
+  **Sentry: ASTROCHAGANTI-9 (2 events).**
+
+### Removed
+- `isomorphic-dompurify` from `dependencies`.
+
+### Added
+- `sanitize-html` + `@types/sanitize-html` to `dependencies` / `devDependencies`.
+
+---
+
 ## [2026-06-19] — Chat: session_id links Q/A pairs and conversation threads
 
 ### Added
