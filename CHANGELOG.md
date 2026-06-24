@@ -8,6 +8,20 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-06-24] — Admin dashboard: AI chat usage view
+
+Until now we shipped the chat feature without any admin-side visibility into who's using it. This adds a dedicated tab with the aggregated stats an admin needs to gauge adoption, see which model is doing the work, and spot specific sessions.
+
+### Added
+- **`lib/db/chat-messages.ts` → `stats()`** — Four parallel aggregate queries (overview, by-user top 20, by-model, recent 30 sessions) returning a `ChatUsageStats` object. JOINs with `users` on `user_id` so admins see emails/names, not opaque IDs. `session_id != ''` filter excludes pre-v11 rows from the recent-sessions list (they're still counted in the overview totals).
+- **`app/admin/tabs/ChatUsageTab.tsx`** — New tab component. Shows: 4 stat cards (user messages, unique users, sessions, this-month), thumbs up/down summary, per-model breakdown, top users with last-activity timestamps, and the 30 most recent sessions. Empty state when there's no chat activity yet.
+- **`app/admin/AdminTables.tsx`** — Wires the new `<TabsTrigger value="chat-usage">` (between AI Insights and LLM Settings) and renders `<ChatUsageTab>`. Tab label shows the live user-message count.
+- **`app/admin/page.tsx`** — Adds `db.chatMessages.stats()` to the `Promise.all` block so it runs in parallel with the other dashboard queries.
+- **`lib/db/index.ts`** — Re-exports `ChatUsageStats` from the barrel.
+- **`lib/db/chat-messages.test.ts`** — New test file with three cases: result shaping, current-calendar-month UTC threshold for `this_month`, and the empty-DB happy path.
+
+---
+
 ## [2026-06-24] — Migrate: Llama 4 Scout (Groq) → Gemma 4 31B IT (Google)
 
 Groq announced the deprecation of `meta-llama/llama-4-scout-17b-16e-instruct` with a shutdown date of **July 17, 2026** ([source](https://console.groq.com/docs/deprecations)). Migrated chat + draft defaults to Gemma 4 31B IT, served via the existing Google generative-language API (the same endpoint shape as Gemini, so no new provider plumbing). Groq is no longer wired into the codebase — re-introduce by restoring [`lib/engines/groq.ts`](lib/engines/groq.ts) from git history and adding an `AI_MODELS` entry with `provider: "groq"`.

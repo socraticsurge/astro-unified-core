@@ -8,7 +8,7 @@ export type { AppSettings, AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig, T
 export type { ConsultationRequest, ConsultationRequestWithUser } from "./consultation-requests";
 export type { ConsultationSlot } from "./consultation-slots";
 export type { DailyLandingRow } from "./daily-landing";
-export type { ChatMessageRecord } from "./chat-messages";
+export type { ChatMessageRecord, ChatUsageStats } from "./chat-messages";
 
 import { users } from "./users";
 import { profiles } from "./profiles";
