@@ -22,6 +22,27 @@ Until now we shipped the chat feature without any admin-side visibility into who
 
 ---
 
+## [2026-06-24] — Migrate: Llama 4 Scout (Groq) → Gemma 4 31B IT (Google)
+
+Groq announced the deprecation of `meta-llama/llama-4-scout-17b-16e-instruct` with a shutdown date of **July 17, 2026** ([source](https://console.groq.com/docs/deprecations)). Migrated chat + draft defaults to Gemma 4 31B IT, served via the existing Google generative-language API (the same endpoint shape as Gemini, so no new provider plumbing). Groq is no longer wired into the codebase — re-introduce by restoring [`lib/engines/groq.ts`](lib/engines/groq.ts) from git history and adding an `AI_MODELS` entry with `provider: "groq"`.
+
+### Changed
+- **`lib/engines/models.ts`** — Removed `groq-scout`; added `gemma-4-31b-it` (`label: "Gemma 4 31B IT"`, `provider: "gemini"`, `id: "gemma-4-31b-it"`). Updated `DEFAULT_CHAT_MODEL` and `DEFAULT_DRAFT_MODEL` to `gemma-4-31b-it`. `ChatMessage` type now lives here (was in the removed `groq.ts`).
+- **`lib/engines/gemini.ts`** — `callGemini` and `callGeminiText` now take `modelId` as the first argument and build the API URL from it. Both Gemini and Gemma models share the `https://generativelanguage.googleapis.com/v1beta/models/{id}:generateContent` endpoint.
+- **`lib/engines/ai-caller.ts`** — Simplified to a single provider branch (Google). Removed `callGroqById` import and the Groq routing branch.
+- **`lib/ai-insight.ts` / `lib/ai-insight-compat.ts`** — Stopped importing the now-removed `GEMINI_MODEL` constant; the underlying model id is read from `AI_MODELS[…].id` so the record always reflects the active registry entry.
+- **`lib/db/settings.ts`** — Default `user_model` for the chat config is now `gemma-4-31b-it`.
+- **`components/admin/LlmSettingsPanel.tsx`** — User-chat model picker fallback updated to `gemma-4-31b-it`. The picker reads from `AI_MODELS` so any future registry change shows up automatically.
+- **`app/api/readings/chat/route.ts` + `app/api/readings/chat/compatibility/route.ts`** — `ChatMessage` is now imported from `@/lib/engines/models` (was `@/lib/engines/groq`).
+
+### Removed
+- **`lib/engines/groq.ts`** — Deleted along with `callGroqById`, `GROQ_MODELS`, `GroqModelKey`. No active code path used it after the registry change.
+
+### Notes on stored user preferences
+Any user with a persisted `chat.user_model = "groq-scout"` setting will now hit `resolveModel`'s unknown-key fallback path and silently get `DEFAULT_CHAT_MODEL` (Gemma 4 31B IT). No DB migration required.
+
+---
+
 ## [2026-06-24] — Fix: four production Sentry issues (bounce-rate incident)
 
 Bundle of fixes for the four issues blocking users on the deployed site this week. Each fix is structured so the failure mode cannot recur.

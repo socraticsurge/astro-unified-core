@@ -239,7 +239,7 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft,
           <div className="space-y-1.5">
             <label className="text-xs text-muted-foreground">Model for regular users</label>
             <select
-              value={chatConfig.user_model ?? "groq-scout"}
+              value={chatConfig.user_model ?? "gemma-4-31b-it"}
               onChange={e => setChatConfig(c => ({ ...c, user_model: e.target.value }))}
               className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
             >

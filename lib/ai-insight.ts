@@ -1,8 +1,7 @@
 import "server-only";
 import { callAIForJson } from "./engines/ai-caller";
-import { GEMINI_MODEL } from "./engines/gemini";
 import { summarizeDashaflow } from "./chart-summary";
-import { type AiModelKey, DEFAULT_INSIGHT_MODEL } from "./engines/models";
+import { AI_MODELS, type AiModelKey, DEFAULT_INSIGHT_MODEL } from "./engines/models";
 import {
   lookupAscendant,
   lookupDashaPair,
@@ -93,7 +92,7 @@ function buildUserPrompt(
 
   const schemaExample: TabInsight = {
     tab,
-    model: GEMINI_MODEL,
+    model: AI_MODELS[DEFAULT_INSIGHT_MODEL].id,
     prompt_version: PROMPT_VERSION,
     generated_at: new Date().toISOString(),
     chart_verification: TAB_VERIFICATION_FIELDS[tab],
@@ -409,7 +408,7 @@ export async function buildInsightForTab(
   return {
     ...raw,
     tab,
-    model: model === "gemini-flash" ? GEMINI_MODEL : model,
+    model: AI_MODELS[model].id,
     prompt_version: PROMPT_VERSION,
     generated_at: new Date().toISOString(),
   };
