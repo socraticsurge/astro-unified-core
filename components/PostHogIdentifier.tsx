@@ -11,13 +11,21 @@ export function PostHogIdentifier() {
   const name = session?.user?.name;
 
   useEffect(() => {
-    if (userId) {
-      posthog.identify(userId, {
-        email: email ?? undefined,
-        name: name ?? undefined,
-      });
-    } else {
-      posthog.reset();
+    // Belt-and-suspenders: even with persistence:"memory" set in posthog.init
+    // (see instrumentation-client.ts), posthog-js can still touch storage in
+    // certain code paths. Swallow storage errors so analytics failures never
+    // break the React render (Sentry: ASTROCHAGANTI-7).
+    try {
+      if (userId) {
+        posthog.identify(userId, {
+          email: email ?? undefined,
+          name: name ?? undefined,
+        });
+      } else {
+        posthog.reset();
+      }
+    } catch {
+      // Analytics is non-essential; failing silently is correct here.
     }
   }, [userId, email, name]);
 
