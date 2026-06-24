@@ -46,7 +46,7 @@ const CHAT_LLM_DEFAULTS: ChatLlmConfig = {
   max_tokens: 8192,
   top_p: 0.9,
   custom_instructions: "",
-  user_model: "groq-scout",
+  user_model: "gemma-4-31b-it",
   user_quota_per_month: 20,
 };
 

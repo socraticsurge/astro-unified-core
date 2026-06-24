@@ -4,13 +4,13 @@ import { resolveModel, DEFAULT_INSIGHT_MODEL, DEFAULT_CHAT_MODEL, DEFAULT_DRAFT_
 describe("resolveModel", () => {
   it("passes through a valid model key unchanged", () => {
     expect(resolveModel("gemini-flash", DEFAULT_INSIGHT_MODEL)).toBe("gemini-flash");
-    expect(resolveModel("groq-scout", DEFAULT_CHAT_MODEL)).toBe("groq-scout");
-    expect(resolveModel("groq-scout", DEFAULT_DRAFT_MODEL)).toBe("groq-scout");
+    expect(resolveModel("gemma-4-31b-it", DEFAULT_CHAT_MODEL)).toBe("gemma-4-31b-it");
+    expect(resolveModel("gemma-4-31b-it", DEFAULT_DRAFT_MODEL)).toBe("gemma-4-31b-it");
   });
 
-  it("returns the fallback for an unrecognised string", () => {
+  it("returns the fallback for a retired or unknown model key (e.g. legacy 'groq-scout')", () => {
     expect(resolveModel("gpt-4o", DEFAULT_INSIGHT_MODEL)).toBe(DEFAULT_INSIGHT_MODEL);
-    expect(resolveModel("gemma-4-26b-a4b-it", DEFAULT_CHAT_MODEL)).toBe(DEFAULT_CHAT_MODEL);
+    expect(resolveModel("groq-scout", DEFAULT_CHAT_MODEL)).toBe(DEFAULT_CHAT_MODEL);
   });
 
   it("returns the fallback for undefined", () => {
