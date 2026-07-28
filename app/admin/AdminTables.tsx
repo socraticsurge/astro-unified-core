@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Bot, Calendar, MessageSquareText, Settings2, ThumbsUp, ThumbsDown, UsersRound, Wrench } from "lucide-react";
 import type {
   User,
   ProfileWithUser,
@@ -24,6 +24,7 @@ import { sortBy, renderSortIcon } from "./utils";
 import { QuestionsTab } from "./tabs/QuestionsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { ChatUsageTab } from "./tabs/ChatUsageTab";
+import styles from "./AdminTables.module.css";
 
 type Props = {
   users: User[];
@@ -52,6 +53,7 @@ export function AdminTables({
   llmSettings,
   adminEmail,
 }: Props) {
+  const [activeTab, setActiveTab] = useState("users");
   // Sort state for inline tabs (Users / Profiles / Compatibility). Questions
   // and Settings own their own state — see ./tabs/QuestionsTab + SettingsTab.
   const [userSortCol, setUserSortCol] = useState<string>("last_login");
@@ -89,22 +91,91 @@ export function AdminTables({
   for (const r of consultationRequests) questionCountByUser.set(r.user_id, (questionCountByUser.get(r.user_id) ?? 0) + 1);
 
   const profileNameMap = new Map(profiles.map((p) => [p.id, p.name]));
+  const groups = [
+    {
+      id: "people",
+      label: "People",
+      description: "Accounts, profiles, and relationship checks",
+      icon: UsersRound,
+      tabs: [
+        { id: "users", label: `Users (${users.length})` },
+        { id: "profiles", label: `Profiles (${profiles.length})` },
+        { id: "compatibility", label: `Compatibility (${compatibilityChecks.length})` },
+      ],
+    },
+    {
+      id: "consultations",
+      label: "Consultations",
+      description: "Questions, live work, and feedback",
+      icon: MessageSquareText,
+      tabs: [
+        { id: "questions", label: `Questions (${consultationRequests.filter((request) => request.status !== "answered").length} active)` },
+        { id: "feedback", label: `Feedback (${feedback.length})` },
+      ],
+    },
+    {
+      id: "content",
+      label: "Content & Publishing",
+      description: "AI insight quality and model configuration",
+      icon: Bot,
+      tabs: [
+        { id: "ai-insights", label: "AI Insights" },
+        { id: "llm-settings", label: "LLM Settings" },
+      ],
+    },
+    {
+      id: "operations",
+      label: "Operations",
+      description: "Usage, reliability, and activity",
+      icon: Wrench,
+      tabs: [
+        { id: "chat-usage", label: `Chat (${chatUsageStats.overview.total_user_messages})` },
+      ],
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      description: "Application and consultation controls",
+      icon: Settings2,
+      tabs: [{ id: "settings", label: "Application Settings" }],
+    },
+  ];
+  const activeGroup = groups.find((group) => group.tabs.some((tab) => tab.id === activeTab)) ?? groups[0];
+
+  function selectGroup(groupId: string) {
+    const group = groups.find((candidate) => candidate.id === groupId);
+    if (group?.tabs[0]) setActiveTab(group.tabs[0].id);
+  }
 
   return (
-    <Tabs defaultValue="users">
-      <TabsList className="mb-4 flex-wrap h-auto">
-        <TabsTrigger value="users">Users ({users.length})</TabsTrigger>
-        <TabsTrigger value="profiles">Profiles ({profiles.length})</TabsTrigger>
-        <TabsTrigger value="compatibility">Compatibility ({compatibilityChecks.length})</TabsTrigger>
-        <TabsTrigger value="feedback">Feedback ({feedback.length})</TabsTrigger>
-        <TabsTrigger value="questions">
-          Questions ({consultationRequests.filter((r) => r.status !== "answered").length} active)
-        </TabsTrigger>
-        <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
-        <TabsTrigger value="chat-usage">Chat ({chatUsageStats.overview.total_user_messages})</TabsTrigger>
-        <TabsTrigger value="llm-settings">LLM Settings</TabsTrigger>
-        <TabsTrigger value="settings">Settings</TabsTrigger>
-      </TabsList>
+    <div className={styles.workspace}>
+      <nav aria-label="Admin workspace" className={styles.groupNav}>
+        <p className={styles.navEyebrow}>Workspace</p>
+        {groups.map((group) => (
+          <button
+            key={group.id}
+            type="button"
+            aria-current={activeGroup.id === group.id ? "page" : undefined}
+            onClick={() => selectGroup(group.id)}
+            className={`${styles.groupButton} ${activeGroup.id === group.id ? styles.groupButtonActive : ""}`}
+          >
+            <span className={styles.groupIcon}><group.icon size={15} aria-hidden="true" /></span>
+            <span><strong>{group.label}</strong><small>{group.description}</small></span>
+          </button>
+        ))}
+      </nav>
+
+      <section className={styles.surface}>
+        <header className={styles.surfaceHeader}>
+          <p>{activeGroup.label}</p>
+          <h2>{activeGroup.description}</h2>
+        </header>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className={styles.tabs}>
+        <TabsList className={styles.tabList}>
+          {activeGroup.tabs.map((tab) => (
+            <TabsTrigger key={tab.id} value={tab.id}>{tab.label}</TabsTrigger>
+          ))}
+        </TabsList>
 
       {/* ── Users ─────────────────────────────────────────────────────────── */}
       <TabsContent value="users">
@@ -384,6 +455,8 @@ export function AdminTables({
       <TabsContent value="settings">
         <SettingsTab appSettings={appSettings} initialSlots={consultationSlots} />
       </TabsContent>
-    </Tabs>
+      </Tabs>
+      </section>
+    </div>
   );
 }

@@ -1,17 +1,11 @@
 "use client"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
-import { Settings, ShieldCheck, LogOut, UserPlus } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { ShieldCheck, LogOut, UserPlus } from "lucide-react"
 import { fonts, motion } from "@/lib/typography"
 import { ProfileNav } from "@/components/profiles/ProfileNav"
 import { ThemeToggle } from "@/components/ThemeToggle"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import type { NavProfile } from "@/components/profiles/ProfileNav"
 
 const navGlassStyle: React.CSSProperties = {
@@ -26,6 +20,24 @@ const wordmarkStyle: React.CSSProperties = {
   fontSize: "1.35rem",
   letterSpacing: "0.015em",
   lineHeight: 1,
+  whiteSpace: "nowrap",
+}
+
+function BrandMark() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-7 w-7 shrink-0 text-[var(--color-accent)]"
+      viewBox="0 0 48 48"
+      fill="none"
+    >
+      <ellipse cx="24" cy="24" rx="21" ry="7" transform="rotate(-8 24 24)" stroke="currentColor" strokeWidth="1.4" />
+      <ellipse cx="24" cy="24" rx="12" ry="19" transform="rotate(22 24 24)" stroke="currentColor" strokeWidth="1.1" opacity="0.72" />
+      <circle cx="13.5" cy="16" r="1.5" fill="currentColor" opacity="0.82" />
+      <circle cx="34.5" cy="32" r="1.5" fill="currentColor" opacity="0.82" />
+      <circle cx="24" cy="24" r="2.6" fill="currentColor" />
+    </svg>
+  )
 }
 
 interface NavBarProps {
@@ -37,6 +49,7 @@ interface NavBarProps {
 
 export function NavBar({ profiles = [], activeProfileId = null, onProfileChange, onAskOpen }: NavBarProps) {
   const { data: session, status } = useSession()
+  const pathname = usePathname()
   const isLoggedIn = status === "authenticated"
   const showAdmin  = (session?.user as { isAdmin?: boolean } | undefined)?.isAdmin === true
 
@@ -47,30 +60,45 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
     >
       <div className="flex items-stretch h-12">
 
-        {/* Wordmark — collapses to "AC" on mobile so the navbar has room
-           for the profile chip strip. md:w-80 matches the ProfileSidebar
-           width on desktop so profile tabs align below the sidebar edge;
-           on mobile we let it shrink to content. */}
-        <div className="w-auto md:w-80 shrink-0 flex items-center gap-2 px-3 sm:px-4 border-r border-[var(--color-border)]">
+        {/* Wordmark — collapses to the mark on mobile. */}
+        <div className="w-auto shrink-0 flex items-center gap-2 px-3 sm:w-[248px] sm:flex-[0_0_248px] sm:px-4 border-r border-[var(--color-border)]">
           <Link
             href={isLoggedIn ? "/dashboard" : "/"}
-            className="flex items-center flex-1 min-w-0"
+            className="flex items-center gap-2 flex-1 min-w-0"
             aria-label="Astro Chaganti home"
           >
-            <span style={wordmarkStyle}>
-              {/* sm and up: full wordmark. <sm: "AC" only — frees ~140px
-                  for the ProfileNav chip strip on mobile. */}
-              <span className="hidden sm:inline" style={{ color: "var(--color-ink-1)" }}>Astro </span>
-              <span className="hidden sm:inline" style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
-              <span className="sm:hidden" aria-hidden="true">
-                <span style={{ color: "var(--color-ink-1)" }}>A</span>
-                <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>C</span>
-              </span>
+            <BrandMark />
+            <span className="hidden sm:inline" style={wordmarkStyle}>
+              <span style={{ color: "var(--color-ink-1)" }}>Astro </span>
+              <span style={{ fontStyle: "italic", color: "var(--color-accent)" }}>Chaganti</span>
             </span>
           </Link>
-          {/* Hidden on mobile — accessible via Settings dropdown instead */}
+          {/* The dashboard keeps this beside the wordmark on larger screens. */}
           <span className="hidden sm:block"><ThemeToggle /></span>
         </div>
+
+        {pathname === "/" && (
+          <div
+            className="flex flex-1 min-w-0 items-stretch overflow-x-auto px-1 sm:px-3"
+            aria-label="Homepage sections"
+          >
+            {[
+              ["#today", "Horoscope"],
+              ["#panchangam", "Panchangam"],
+              ["#muhurtam", "When to act"],
+              ["#about", "Astrologer"],
+              ["#calendar", "Calendar"],
+            ].map(([href, label]) => (
+              <a
+                key={href}
+                href={href}
+                className="flex shrink-0 items-center px-2.5 text-[11px] font-medium text-[var(--color-ink-3)] transition-colors hover:text-[var(--color-accent)] sm:px-3"
+              >
+                {label}
+              </a>
+            ))}
+          </div>
+        )}
 
         {/* Profile tabs — fills remaining space */}
         {isLoggedIn && onProfileChange && (
@@ -83,15 +111,16 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
           </div>
         )}
 
-        {/* Right: Add profile · Ask Dr Chaganti · Settings */}
-        <div className="flex items-center gap-1 px-3 shrink-0 ml-auto">
+        {/* Right: primary profile action · human consultation · explicit account actions */}
+        <div className="flex items-center gap-1.5 px-2 sm:px-3 shrink-0 ml-auto">
           {isLoggedIn && (
             <>
               <Link
                 href="/dashboard?create=1"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] transition-colors"
+                aria-label="Add profile"
+                className="flex h-10 items-center gap-1.5 rounded-lg border border-[var(--color-accent)] bg-[var(--color-accent)] px-2.5 text-xs font-semibold text-[var(--color-button-fg)] transition-opacity hover:opacity-80 sm:px-3"
               >
-                <UserPlus className="h-3.5 w-3.5" />
+                <UserPlus className="h-4 w-4" />
                 <span className="hidden sm:inline">Add profile</span>
               </Link>
 
@@ -100,46 +129,33 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                 <button
                   type="button"
                   onClick={onAskOpen}
-                  className="hidden sm:flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-opacity hover:opacity-80 bg-[var(--color-accent-faint)] border-[var(--color-accent-dim)] text-[var(--color-accent)]"
+                  className="hidden h-10 items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 text-xs font-medium text-[var(--color-ink-2)] transition-colors hover:border-[var(--color-accent-dim)] hover:text-[var(--color-ink-1)] sm:flex"
                 >
                   <span aria-hidden="true">✦</span>
                   Ask Dr Chaganti
                 </button>
               )}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  className="p-2 rounded-lg text-muted-foreground hover:text-[var(--color-ink-1)] hover:bg-[var(--color-surface-hover)] transition-colors"
-                  aria-label="Settings"
+              {showAdmin && (
+                <Link
+                  href="/admin"
+                  aria-label="Open admin"
+                  className="hidden h-10 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-ink-1)] md:flex"
                 >
-                  <Settings className="w-4 h-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  {/* "Account settings" was here pointing at /settings, but
-                      that route does not exist (no app/settings/page.tsx).
-                      Removed to stop sending users to a 404. Restore when
-                      the settings page is actually built. */}
-                  {showAdmin && (
-                    <>
-                      <DropdownMenuItem>
-                        <Link href="/admin" className="flex items-center gap-2 w-full">
-                          <ShieldCheck className="w-3.5 h-3.5" />
-                          Admin
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  <DropdownMenuItem
-                    onClick={() => signOut({ callbackUrl: "/" })}
-                    variant="destructive"
-                    className="flex items-center gap-2"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Admin
+                </Link>
+              )}
+
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/" })}
+                aria-label="Sign out"
+                className="flex h-10 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-danger)]"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">Sign out</span>
+              </button>
             </>
           )}
 

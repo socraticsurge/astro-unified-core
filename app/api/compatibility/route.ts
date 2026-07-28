@@ -33,6 +33,12 @@ export async function POST(req: NextRequest) {
     if (!profile_id_1 || !profile_id_2) {
       return NextResponse.json({ error: "Two profiles required" }, { status: 400 });
     }
+    if (profile_id_1 === profile_id_2) {
+      return NextResponse.json(
+        { error: "Choose two different profiles" },
+        { status: 400 },
+      );
+    }
 
     // Admins bypass the duplicate check and 6-check cap — they run checks on
     // behalf of users and results are stored under their own userId, not the

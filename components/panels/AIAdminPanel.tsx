@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useTheme } from "next-themes"
 import { marked } from "marked"
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ModelPicker } from "@/components/ui/ModelPicker"
 import { AIInsightCard } from "@/components/engines/AIInsightCard"
@@ -27,6 +27,7 @@ function MarkdownMessage({ content }: { content: string }) {
 // today → natal so the panel works on every tab
 const CHART_TAB_TO_INSIGHT: Partial<Record<ChartTabId, InsightTab>> = {
   today:        "natal",
+  natal:        "natal",
   planets:      "natal",
   divisional:   "vargas",
   yogas:        "natal",
@@ -34,6 +35,7 @@ const CHART_TAB_TO_INSIGHT: Partial<Record<ChartTabId, InsightTab>> = {
   ashtakavarga: "natal",
   dasha:        "dashas",
   transits:     "transit",
+  tarabalam:    "tarabalam",
   career:       "career",
 }
 
@@ -177,7 +179,14 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
       const sid = sessionIdRef.current
       const [url, body] = isCompare
         ? ["/api/readings/chat/compatibility", { check_id: context.compareCheckId, messages: next, model, session_id: sid }] as const
-        : ["/api/readings/chat",               { profile_id: context.profileId, messages: next, model, tab: insightTab ?? undefined, session_id: sid }] as const
+        : ["/api/readings/chat",               {
+            profile_id: context.profileId,
+            messages: next,
+            model,
+            tab: insightTab ?? undefined,
+            context_label: context.tabLabel,
+            session_id: sid,
+          }] as const
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -235,19 +244,16 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
   const quotaExhausted = !isAdmin && quota && quota.used >= quota.limit
 
   return (
-    <Sheet open={open} onOpenChange={isOpen => { if (!isOpen) onClose() }}>
-      <SheetContent
-        side="right"
-        className="sm:max-w-sm w-full flex flex-col p-0 gap-0 overflow-hidden"
-      >
+    <Dialog open={open} onOpenChange={isOpen => { if (!isOpen) onClose() }}>
+      <DialogContent className="gap-0 p-0">
         {/* ── Fixed header ── */}
-        <div className="shrink-0 px-4 pt-5 pb-0 border-b border-[var(--color-border)]">
-          <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="shrink-0 border-b border-[var(--color-border)] px-5 pb-0 pt-5 sm:px-6">
+          <div className="mb-3 flex items-start justify-between gap-8 pr-9">
             <div>
-              <SheetTitle className="flex items-center gap-1.5 text-sm font-semibold">
-                <Sparkles className="h-3.5 w-3.5 text-[var(--color-accent)] shrink-0" />
-                AI Assistant
-              </SheetTitle>
+              <DialogTitle className="flex items-center gap-2 font-[var(--font-display)] text-lg font-semibold">
+                <Sparkles className="h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+                Explore with AI
+              </DialogTitle>
               {breadcrumb && (
                 <p className="text-[11px] text-muted-foreground mt-0.5">{breadcrumb}</p>
               )}
@@ -288,7 +294,7 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
 
         {/* ── Summary sub-tab (admin only) ── */}
         {isAdmin && subTab === "summary" && (
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 sm:p-6">
             {!hasSummary ? (
               <p className="text-xs text-muted-foreground italic">
                 {isCompare
@@ -345,13 +351,20 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
               </p>
             ) : (
               <>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-8 sm:py-6">
+                  <div className="mx-auto max-w-2xl space-y-4">
                   {messages.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic text-center pt-8">
+                    <div className="mx-auto mt-8 max-w-md rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-sunk)] px-6 py-8 text-center">
+                      <Sparkles className="mx-auto mb-3 h-5 w-5 text-[var(--color-accent)]" />
+                      <p className="text-sm font-medium text-[var(--color-ink-2)]">
                       {isCompare
                         ? `Ask about the compatibility between ${context?.profileName} and ${context?.partnerName ?? "?"}.`
                         : `Ask anything about ${context?.profileName ?? ""}'s chart.`}
-                    </p>
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        Your active profile and {context?.tabLabel.toLowerCase() ?? "chart"} context are already included.
+                      </p>
+                    </div>
                   )}
                   {messages.map((m, i) => (
                     <div key={i} className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}>
@@ -403,9 +416,11 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
                     <p className="text-xs text-[var(--color-danger)]">{chatError}</p>
                   )}
                   <div ref={messagesEndRef} />
+                  </div>
                 </div>
 
-                <div className="shrink-0 p-3 border-t border-[var(--color-border)] flex gap-2 items-end">
+                <div className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface-sunk)] p-3 sm:p-4">
+                  <div className="mx-auto flex max-w-2xl items-end gap-2">
                   <textarea
                     value={chatInput}
                     onChange={e => setChatInput(e.target.value)}
@@ -413,22 +428,23 @@ export function AIAdminPanel({ open, onClose, context, isAdmin = false }: Props)
                     placeholder={quotaExhausted ? "Monthly message limit reached." : "Ask a question… (Shift+Enter for newline)"}
                     disabled={chatLoading || !!quotaExhausted}
                     rows={2}
-                    className="flex-1 resize-none rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-xs text-[var(--color-ink-1)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] max-h-[120px] disabled:opacity-50"
+                    className="max-h-[160px] min-h-12 flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 text-sm text-[var(--color-ink-1)] placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-50"
                   />
                   <Button
                     size="sm"
                     disabled={!chatInput.trim() || chatLoading || !!quotaExhausted}
                     onClick={sendMessage}
-                    className="shrink-0 h-8 w-8 p-0"
+                    className="h-11 w-11 shrink-0 rounded-xl p-0"
                   >
                     <Send className="h-3.5 w-3.5" />
                   </Button>
+                  </div>
                 </div>
               </>
             )}
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

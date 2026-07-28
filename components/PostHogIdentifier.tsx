@@ -11,6 +11,7 @@ export function PostHogIdentifier() {
   const name = session?.user?.name;
 
   useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
     // Belt-and-suspenders: even with persistence:"memory" set in posthog.init
     // (see instrumentation-client.ts), posthog-js can still touch storage in
     // certain code paths. Swallow storage errors so analytics failures never

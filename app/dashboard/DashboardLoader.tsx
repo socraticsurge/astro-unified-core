@@ -44,12 +44,6 @@ export async function DashboardLoader({ session, searchParams }: Props) {
     initialProfileId = viewedProfile.id;
     viewingUserLabel = contextUser?.name ?? contextUser?.email ?? "unknown user";
 
-    if (params?.compare) {
-      const check = await db.compatibility.getAny(params.compare);
-      if (check) {
-        initialCompareCheck = check;
-      }
-    }
   } else {
     if (!adminUser && ownProfiles.length === 0) redirect("/onboarding");
 
@@ -58,10 +52,34 @@ export async function DashboardLoader({ session, searchParams }: Props) {
       : undefined;
   }
 
+  // Compatibility links from the admin workspace must work for both the
+  // administrator's own profiles and profiles viewed in another user's
+  // context. Only hydrate a check when both saved profiles belong to the
+  // currently resolved account and the requested profile participates in it.
+  if (adminUser && params?.compare && initialProfileId) {
+    const check = await db.compatibility.getAny(params.compare);
+    const profileIds = new Set(profiles.map(profile => profile.id));
+    const includesInitialProfile =
+      check?.profile_id_1 === initialProfileId || check?.profile_id_2 === initialProfileId;
+    const belongsToResolvedAccount =
+      check
+      && profileIds.has(check.profile_id_1)
+      && profileIds.has(check.profile_id_2);
+
+    if (check && includesInitialProfile && belongsToResolvedAccount) {
+      initialCompareCheck = check;
+    }
+  }
+
   const isCreating = params?.create === "1";
   const isNewProfile = params?.new === "1";
 
-  const dashboardKey = `${initialProfileId ?? "none"}|${isCreating ? "create" : "view"}|${isNewProfile ? "new" : ""}`;
+  const dashboardKey = [
+    initialProfileId ?? "none",
+    isCreating ? "create" : "view",
+    isNewProfile ? "new" : "",
+    initialCompareCheck?.id ?? "",
+  ].join("|");
 
   return (
     <DashboardClient

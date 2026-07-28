@@ -1,21 +1,48 @@
 "use client"
-import { useState } from "react"
-import { Loader2, RotateCcw } from "lucide-react"
-import type { Profile, CompatibilityCheck } from "@/lib/db"
-import type { CompatResult, AdditionalKuta } from "@/lib/compatibility"
-import { KOOTA_MAX, scoreLabel } from "@/lib/compatibility"
-import { ProfileAvatar } from "@/components/profile/ProfileAvatar"
-import { SectionHeading } from "@/components/unified/SectionHeading"
-import { formatName } from "@/lib/display"
 
-// ── Gender helpers ────────────────────────────────────────────────────────────
+import { useState } from "react"
+import {
+  ArrowRight,
+  HeartHandshake,
+  Loader2,
+  RotateCcw,
+  ShieldCheck,
+} from "lucide-react"
+
+import type { CompatibilityCheck, Profile } from "@/lib/db"
+import type {
+  AdditionalKuta,
+  CompatResult,
+  KujaDosha,
+} from "@/lib/compatibility"
+import { KOOTA_MAX, scoreLabel } from "@/lib/compatibility"
+import { formatName } from "@/lib/display"
+import toolStyles from "@/components/profiles/ToolPage.module.css"
+import styles from "./CompareTab.module.css"
 
 type Role = "groom" | "bride" | "person"
+type ResultTone = "supportive" | "mixed" | "caution" | "neutral"
+
+const KUTA_LABELS: Record<string, string> = {
+  GrahaMaitri: "Graha Maitri",
+  StreeDeergha: "Stree Deergha",
+  BadConstellations: "Bad Constellations",
+  LagnaHouse7: "Lagna / 7th House",
+  SexEnergy: "Sex Energy",
+}
+
+const MOON_FIELDS = [
+  ["moon_sign", "Moon sign"],
+  ["nakshatra", "Nakshatra"],
+  ["gana", "Gana"],
+  ["nadi", "Nadi"],
+  ["yoni", "Yoni"],
+] as const
 
 function resolveRole(gender: string | null | undefined): Role {
-  const g = gender?.toLowerCase()
-  if (g === "male") return "groom"
-  if (g === "female") return "bride"
+  const normalized = gender?.toLowerCase()
+  if (normalized === "male") return "groom"
+  if (normalized === "female") return "bride"
   return "person"
 }
 
@@ -33,111 +60,583 @@ function roleLabel(role: Role): string {
 
 function filterCandidates(allProfiles: Profile[], active: Profile): Profile[] {
   const role = resolveRole(active.gender)
-  const others = allProfiles.filter(p => p.id !== active.id)
-  if (role === "groom") return others.filter(p => resolveRole(p.gender) === "bride")
-  if (role === "bride") return others.filter(p => resolveRole(p.gender) === "groom")
+  const others = allProfiles.filter((profile) => profile.id !== active.id)
+  if (role === "groom") {
+    return others.filter((profile) => resolveRole(profile.gender) === "bride")
+  }
+  if (role === "bride") {
+    return others.filter((profile) => resolveRole(profile.gender) === "groom")
+  }
   return others
 }
 
-// ── Profile pill (shared display for both parties) ───────────────────────────
+function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "?"
+}
 
-function ProfilePill({ profile, role }: { profile: Profile; role: Role }) {
-  return (
-    <div className="flex items-center gap-2 shrink-0">
-      <ProfileAvatar name={profile.name ?? "?"} size="sm" />
-      <div>
-        <p className="text-sm font-medium text-[var(--color-ink-1)] leading-tight">{formatName(profile.name ?? "")}</p>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabel(role)}</p>
+function parseResult(check: CompatibilityCheck): CompatResult | null {
+  try {
+    return JSON.parse(check.result_json) as CompatResult
+  } catch {
+    return null
+  }
+}
+
+function kutaLabel(name: string): string {
+  if (KUTA_LABELS[name]) return KUTA_LABELS[name]
+  return name.replace(/([a-z])([A-Z])/g, "$1 $2")
+}
+
+function resultTone(result: string | undefined): ResultTone {
+  const normalized = result?.toLowerCase()
+  if (normalized === "good" || normalized === "auspicious") return "supportive"
+  if (normalized === "acceptable" || normalized === "moderate") return "mixed"
+  if (normalized === "bad" || normalized === "inauspicious") return "caution"
+  return "neutral"
+}
+
+function resultLabel(result: string | undefined): string {
+  const tone = resultTone(result)
+  if (tone === "supportive") return "Supportive"
+  if (tone === "mixed") return "Mixed"
+  if (tone === "caution") return "Caution"
+  return "Neutral"
+}
+
+function scoreTone(score: number): Exclude<ResultTone, "neutral"> {
+  if (score >= 26) return "supportive"
+  if (score >= 18) return "mixed"
+  return "caution"
+}
+
+function scoreStatement(score: number): string {
+  if (score >= 26) {
+    return "The classical Guna score is comfortably above the customary 18-point threshold."
+  }
+  if (score >= 18) {
+    return "The classical Guna score meets the customary 18-point threshold."
+  }
+  return "The classical Guna score is below the customary 18-point threshold."
+}
+
+function ProfileChoice({
+  profile,
+  role,
+  selected = false,
+  fixed = false,
+  onClick,
+}: {
+  profile: Profile
+  role: Role
+  selected?: boolean
+  fixed?: boolean
+  onClick?: () => void
+}) {
+  const content = (
+    <>
+      <span className={styles.profileMonogram} aria-hidden="true">
+        {initials(profile.name)}
+      </span>
+      <span className={styles.profileCopy}>
+        <strong>{formatName(profile.name)}</strong>
+        <small>
+          {roleLabel(role)}
+          {profile.relationship ? ` · ${profile.relationship}` : ""}
+        </small>
+      </span>
+      <span className={styles.profileState}>
+        {fixed ? "Current" : selected ? "Selected" : "Choose"}
+      </span>
+    </>
+  )
+
+  if (fixed) {
+    return (
+      <div className={styles.profileChoice} data-selected="true">
+        {content}
       </div>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      className={styles.profileChoice}
+      data-selected={selected}
+      aria-pressed={selected}
+      aria-label={`${formatName(profile.name)}, ${roleLabel(role)}${
+        profile.relationship ? `, ${profile.relationship}` : ""
+      }`}
+      onClick={onClick}
+    >
+      {content}
+    </button>
+  )
+}
+
+function SectionIntro({
+  id,
+  title,
+  description,
+}: {
+  id: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className={toolStyles.sectionHeader}>
+      <h3 id={id} className={toolStyles.sectionTitle}>{title}</h3>
+      <p className={toolStyles.sectionHint}>{description}</p>
     </div>
   )
 }
 
-// ── Result pill ───────────────────────────────────────────────────────────────
+function MoonProfiles({
+  result,
+  groomProfile,
+  brideProfile,
+}: {
+  result: CompatResult
+  groomProfile: Profile
+  brideProfile: Profile
+}) {
+  if (!result.male_details && !result.female_details) return null
 
-function ResultPill({ result }: { result?: string }) {
-  if (result === "good")       return <span className="ac-tag fav">Auspicious</span>
-  if (result === "bad")        return <span className="ac-tag unf">Inauspicious</span>
-  if (result === "acceptable") return <span className="ac-tag warn">Moderate</span>
-  return <span className="ac-tag neu">Neutral</span>
+  return (
+    <section
+      className={toolStyles.section}
+      aria-labelledby="compatibility-moon-heading"
+    >
+      <div className={toolStyles.sectionHeader}>
+        <h3 id="compatibility-moon-heading" className={toolStyles.sectionTitle}>
+          Natal Moon context
+        </h3>
+        <p className={toolStyles.sectionHint}>
+          The birth-star qualities used by the classical comparison.
+        </p>
+      </div>
+      <div className={styles.moonGrid}>
+        {[
+          {
+            profile: groomProfile,
+            role: "Groom",
+            details: result.male_details,
+          },
+          {
+            profile: brideProfile,
+            role: "Bride",
+            details: result.female_details,
+          },
+        ].map(({ profile, role, details }) => (
+          <article className={styles.moonCard} key={profile.id}>
+            <header className={styles.moonHeader}>
+              <span className={styles.profileMonogram} aria-hidden="true">
+                {initials(profile.name)}
+              </span>
+              <span>
+                <strong>{formatName(profile.name)}</strong>
+                <small>{role}</small>
+              </span>
+            </header>
+            <dl className={styles.moonFacts}>
+              {MOON_FIELDS.map(([key, label]) => (
+                <div key={key}>
+                  <dt>{label}</dt>
+                  <dd>{details?.[key] ?? "Not returned"}</dd>
+                </div>
+              ))}
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
 }
 
-// ── Full inline result ────────────────────────────────────────────────────────
+function DoshaSummary({
+  scores,
+  kujaDosha,
+  groomProfile,
+  brideProfile,
+}: {
+  scores: Record<string, number>
+  kujaDosha: KujaDosha | undefined
+  groomProfile: Profile
+  brideProfile: Profile
+}) {
+  const groomManglik = Boolean(kujaDosha?.male?.is_manglik)
+  const brideManglik = Boolean(kujaDosha?.female?.is_manglik)
+  const hasKujaData = Boolean(kujaDosha?.male || kujaDosha?.female)
+  const kujaBalanced =
+    hasKujaData && groomManglik === brideManglik
+  const bhakootScore = scores.Bhakoot ?? scores.Rashi
+  const hasBhakootData = typeof bhakootScore === "number"
+  const hasBhakootDosha = hasBhakootData && bhakootScore === 0
 
-function FullResult({ check, groomProfile, brideProfile }: {
+  return (
+    <section
+      className={toolStyles.section}
+      aria-labelledby="compatibility-dosha-heading"
+    >
+      <div className={toolStyles.sectionHeader}>
+        <h3 id="compatibility-dosha-heading" className={toolStyles.sectionTitle}>
+          Dosha checks
+        </h3>
+        <p className={toolStyles.sectionHint}>
+          Conditions to read alongside—not replace—the Guna score.
+        </p>
+      </div>
+      <div className={styles.doshaGrid}>
+        <article className={styles.doshaCard}>
+          <div className={styles.doshaHeading}>
+            <div>
+              <p>Mangal / Kuja Dosha</p>
+              <strong>
+                {!hasKujaData
+                  ? "Not returned"
+                  : kujaBalanced
+                    ? "Balanced between profiles"
+                    : "Needs individual review"}
+              </strong>
+            </div>
+            <span
+              className={styles.statusPill}
+              data-tone={
+                !hasKujaData
+                  ? "neutral"
+                  : kujaBalanced
+                    ? "supportive"
+                    : "caution"
+              }
+            >
+              {!hasKujaData
+                ? "Unavailable"
+                : groomManglik && brideManglik
+                  ? "Present in both"
+                  : !groomManglik && !brideManglik
+                    ? "Absent in both"
+                    : "Uneven"}
+            </span>
+          </div>
+          <p className={styles.doshaDescription}>
+            {kujaDosha?.compatibility?.description ??
+              `${formatName(groomProfile.name)}: ${
+                groomManglik ? "present" : "not present"
+              } · ${formatName(brideProfile.name)}: ${
+                brideManglik ? "present" : "not present"
+              }`}
+          </p>
+        </article>
+
+        <article className={styles.doshaCard}>
+          <div className={styles.doshaHeading}>
+            <div>
+              <p>Bhakoot Dosha</p>
+              <strong>
+                {!hasBhakootData
+                  ? "Not returned"
+                  : hasBhakootDosha
+                    ? "Condition identified"
+                    : "No condition identified"}
+              </strong>
+            </div>
+            <span
+              className={styles.statusPill}
+              data-tone={
+                !hasBhakootData
+                  ? "neutral"
+                  : hasBhakootDosha
+                    ? "caution"
+                    : "supportive"
+              }
+            >
+              {hasBhakootData ? `${bhakootScore} / 7` : "Unavailable"}
+            </span>
+          </div>
+          <p className={styles.doshaDescription}>
+            This status follows the Bhakoot score returned by the compatibility
+            engine.
+          </p>
+        </article>
+      </div>
+    </section>
+  )
+}
+
+function KujaDetails({
+  kujaDosha,
+  groomProfile,
+  brideProfile,
+}: {
+  kujaDosha: KujaDosha | undefined
+  groomProfile: Profile
+  brideProfile: Profile
+}) {
+  if (!kujaDosha?.male?.breakdown && !kujaDosha?.female?.breakdown) return null
+
+  const rows = [
+    {
+      profile: groomProfile,
+      breakdown: kujaDosha.male?.breakdown ?? {},
+    },
+    {
+      profile: brideProfile,
+      breakdown: kujaDosha.female?.breakdown ?? {},
+    },
+  ].flatMap(({ profile, breakdown }) =>
+    Object.entries(breakdown).map(([planet, entry]) => ({
+      profile,
+      planet,
+      ...entry,
+    })),
+  )
+
+  return (
+    <section
+      className={toolStyles.section}
+      aria-labelledby="compatibility-kuja-heading"
+    >
+      <SectionIntro
+        id="compatibility-kuja-heading"
+        title="Kuja Dosha detail"
+        description="Exact contributing placements returned by the engine."
+      />
+      <div className={styles.tableFrame}>
+        <table
+          className={styles.dataTable}
+          aria-label="Kuja Dosha contributing placements"
+        >
+          <thead>
+            <tr>
+              <th>Profile</th>
+              <th>Graha</th>
+              <th>Placement</th>
+              <th className={styles.numeric}>Weight</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length > 0 ? (
+              rows.map((row) => (
+                <tr key={`${row.profile.id}-${row.planet}`}>
+                  <th scope="row">{formatName(row.profile.name)}</th>
+                  <td>{row.planet}</td>
+                  <td>
+                    House {row.house} · {row.sign}
+                  </td>
+                  <td className={styles.numeric}>+{row.score}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4}>No contributing placements were returned.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+function AdditionalKutas({
+  additionalKutas,
+}: {
+  additionalKutas: Record<string, string | AdditionalKuta>
+}) {
+  const entries = Object.entries(additionalKutas)
+  if (entries.length === 0) return null
+
+  return (
+    <section
+      className={toolStyles.section}
+      aria-labelledby="compatibility-additional-heading"
+    >
+      <SectionIntro
+        id="compatibility-additional-heading"
+        title="Additional Kutas"
+        description="Supplementary traditional checks returned by the engine."
+      />
+      <div className={styles.tableFrame}>
+        <table
+          className={styles.dataTable}
+          aria-label="Additional Kuta results"
+        >
+          <thead>
+            <tr>
+              <th>Check</th>
+              <th>Result</th>
+              <th>Returned detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map(([key, value]) => {
+              const kuta: AdditionalKuta =
+                typeof value === "string" ? { result: value } : value
+              const details = [
+                kuta.description,
+                kuta.effect,
+                ...(kuta.issues ?? []),
+              ].filter(Boolean)
+              return (
+                <tr key={key}>
+                  <th scope="row">{kutaLabel(key)}</th>
+                  <td>
+                    <span
+                      className={styles.statusPill}
+                      data-tone={resultTone(kuta.result)}
+                    >
+                      {resultLabel(kuta.result)}
+                    </span>
+                  </td>
+                  <td className={styles.detailCell}>
+                    {details.length > 0 ? details.join(" · ") : "No detail returned"}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+function FullResult({
+  check,
+  groomProfile,
+  brideProfile,
+}: {
   check: CompatibilityCheck
   groomProfile: Profile
   brideProfile: Profile
 }) {
-  let result: CompatResult | null = null
-  try { result = JSON.parse(check.result_json) } catch {}
-
-  const score = result?.total_score ?? check.score
-  const scoreColor = score >= 26 ? "var(--color-success)" : score >= 18 ? "var(--color-warning)" : "var(--color-danger)"
-  const scores = result?.scores ?? {}
-  const kujaDosha = result?.kuja_dosha
-  const additionalKutas = result?.additional_kutas ?? {}
-  const exceptions = result?.exceptions ?? []
-  const hasManglik = kujaDosha?.male?.is_manglik || kujaDosha?.female?.is_manglik
-  const hasBhakoot = (scores.Bhakoot ?? -1) === 0
-
-  const KUTA_LABELS: Record<string, string> = {
-    Mahendra: "Mahendra", StreeDeergha: "Stree Deergha", Vedha: "Vedha",
-    Rajju: "Rajju", BadConstellations: "Bad Constellations",
-    LagnaHouse7: "Lagna / 7th House", SexEnergy: "Sex Energy",
+  const result = parseResult(check)
+  if (!result) {
+    return (
+      <div className={styles.errorCard} role="alert">
+        The saved result could not be read. Reset the comparison and calculate
+        it again.
+      </div>
+    )
   }
 
-  if (!result) return (
-    <p className="text-xs text-muted-foreground italic py-4">Result data unavailable.</p>
-  )
+  const score = result.total_score ?? check.score
+  const scores = result.scores ?? {}
+  const additionalKutas = result.additional_kutas ?? {}
+  const exceptions = result.exceptions ?? []
 
   return (
-    // Removed the prior `max-w-2xl`. The compare result fits the dashboard
-    // content area naturally now, and the dense kuta / dosha tables get more
-    // breathing room on wide screens.
-    <div className="space-y-8">
-
-      {/* Score + verdict */}
-      <section className="pb-2 mb-2 border-b border-[var(--color-border)]">
-        <div className="flex items-baseline gap-2 flex-wrap mb-1">
-          <span style={{ fontSize: "1.5rem", fontWeight: 600, tabularNums: true, color: scoreColor } as React.CSSProperties}>{score}</span>
-          <span className="text-xs text-[var(--color-ink-3)]">/ 36 gunas</span>
-          <span className="text-xs font-medium" style={{ color: scoreColor }}>{scoreLabel(score)}</span>
+    <div className={styles.results}>
+      <section
+        className={styles.overviewCard}
+        aria-labelledby="compatibility-overview-heading"
+      >
+        <div className={styles.pairHeading}>
+          <span className={styles.pairMark} aria-hidden="true">
+            {initials(groomProfile.name)}
+          </span>
+          <HeartHandshake size={22} aria-hidden="true" />
+          <span className={styles.pairMark} aria-hidden="true">
+            {initials(brideProfile.name)}
+          </span>
+          <div>
+            <p>Calculated comparison</p>
+            <h3 id="compatibility-overview-heading">
+              {formatName(groomProfile.name)} &amp;{" "}
+              {formatName(brideProfile.name)}
+            </h3>
+          </div>
         </div>
-        <p style={{ fontSize: 12, color: "var(--color-ink-3)" }}>
-          {score >= 26 ? "Highly auspicious for marriage."
-            : score >= 18 ? "Above the auspicious threshold of 18 gunas."
-            : score >= 12 ? "Below 18 gunas — worth careful deliberation."
-            : "Significant incompatibilities identified."}
-        </p>
-        <p style={{ fontSize: 10, color: "var(--color-ink-4)", marginTop: 2 }}>Classical Ashtakoota Milan</p>
+
+        <div className={styles.scoreLayout}>
+          <div className={styles.scoreBlock} data-tone={scoreTone(score)}>
+            <span className={styles.scoreValue}>{score}</span>
+            <span className={styles.scoreMax}>out of 36</span>
+            <strong>{scoreLabel(score)}</strong>
+          </div>
+          <div className={styles.scoreReading}>
+            <p className={styles.scoreEyebrow}>Classical Ashtakoota Milan</p>
+            <h4>{scoreStatement(score)}</h4>
+            <progress
+              className={styles.scoreProgress}
+              max={36}
+              value={score}
+              aria-label={`${score} of 36 Guna points`}
+            />
+            <p>
+              This is one traditional compatibility lens. Read the eight Kootas,
+              Dosha conditions, exceptions, both full charts, and lived context
+              before reaching a conclusion.
+            </p>
+          </div>
+        </div>
       </section>
 
-      {/* Guna breakdown */}
       {Object.keys(scores).length > 0 && (
-        <section>
-          <SectionHeading>Guna Breakdown</SectionHeading>
-          <div className="ac-card overflow-x-auto">
-            <table className="ac-table">
+        <section
+          className={toolStyles.section}
+          aria-labelledby="compatibility-guna-heading"
+        >
+          <div className={toolStyles.sectionHeader}>
+            <h3
+              id="compatibility-guna-heading"
+              className={toolStyles.sectionTitle}
+            >
+              Eight-Koota score
+            </h3>
+            <p className={toolStyles.sectionHint}>
+              Every point returned by the classical 36-point calculation.
+            </p>
+          </div>
+          <div className={styles.tableFrame}>
+            <table
+              className={styles.dataTable}
+              aria-label="Eight-Koota compatibility score"
+            >
               <thead>
                 <tr>
                   <th>Koota</th>
-                  <th className="right">Score</th>
-                  <th className="right">Max</th>
+                  <th className={styles.numeric}>Earned</th>
+                  <th className={styles.numeric}>Maximum</th>
+                  <th>Reading</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(scores).map(([name, pts]) => {
-                  const max = KOOTA_MAX[name]
-                  const full = typeof max === "number" && pts >= max
-                  const zero = pts === 0
+                {Object.entries(scores).map(([name, points]) => {
+                  const maximum = KOOTA_MAX[name]
+                  const state =
+                    typeof maximum !== "number"
+                      ? "Returned"
+                      : points >= maximum
+                        ? "Full points"
+                        : points === 0
+                          ? "No points"
+                          : "Partial points"
                   return (
                     <tr key={name}>
-                      <td>{name}</td>
-                      <td className="num right" style={{ fontWeight: 600, color: full ? "var(--color-success)" : zero ? "var(--color-danger)" : "var(--color-warning)" }}>
-                        {pts}
+                      <th scope="row">{kutaLabel(name)}</th>
+                      <td className={styles.numeric}>{points}</td>
+                      <td className={styles.numeric}>{maximum ?? "—"}</td>
+                      <td>
+                        <span
+                          className={styles.statusPill}
+                          data-tone={
+                            state === "Full points"
+                              ? "supportive"
+                              : state === "No points"
+                                ? "caution"
+                                : "mixed"
+                          }
+                        >
+                          {state}
+                        </span>
                       </td>
-                      <td className="num right muted">{max ?? "—"}</td>
                     </tr>
                   )
                 })}
@@ -147,153 +646,61 @@ function FullResult({ check, groomProfile, brideProfile }: {
         </section>
       )}
 
-      {/* Natal Moon Profiles */}
-      {(result.male_details || result.female_details) && (
-        <section>
-          <SectionHeading>Natal Moon Profiles</SectionHeading>
-          <div className="ac-card overflow-x-auto">
-            <table className="ac-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th className="right">{formatName(groomProfile.name)}</th>
-                  <th className="right">{formatName(brideProfile.name)}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(["moon_sign", "nakshatra", "gana", "nadi", "yoni"] as const).map(k => {
-                  const gVal = result.male_details?.[k]
-                  const bVal = result.female_details?.[k]
-                  if (!gVal && !bVal) return null
-                  const labelMap: Record<string, string> = { moon_sign: "Moon Sign", nakshatra: "Nakshatra", gana: "Gana", nadi: "Nadi", yoni: "Yoni" }
-                  return (
-                    <tr key={k}>
-                      <td className="muted">{labelMap[k]}</td>
-                      <td className="right" style={{ textTransform: "capitalize" }}>{gVal ?? "—"}</td>
-                      <td className="right" style={{ textTransform: "capitalize" }}>{bVal ?? "—"}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+      <MoonProfiles
+        result={result}
+        groomProfile={groomProfile}
+        brideProfile={brideProfile}
+      />
 
-      {/* Dosha summary */}
-      <section>
-        <SectionHeading>Doshas</SectionHeading>
-        <div className="ac-card ac-card-pad">
-          <div className="flex items-start justify-between gap-4 pb-2.5 mb-2.5 border-b border-[var(--color-border)]">
-            <div className="min-w-0">
-              <div className="text-xs text-[var(--color-ink-2)] font-medium mb-0.5">Mangal Dosha</div>
-              {kujaDosha?.male?.is_manglik   && <p className="text-xs text-[var(--color-ink-3)]">{formatName(groomProfile.name)} is Manglik</p>}
-              {kujaDosha?.female?.is_manglik && <p className="text-xs text-[var(--color-ink-3)]">{formatName(brideProfile.name)} is Manglik</p>}
-              {kujaDosha?.compatibility?.description && <p className="text-xs text-[var(--color-ink-3)] leading-relaxed">{kujaDosha.compatibility.description}</p>}
-            </div>
-            <span className={hasManglik ? "ac-tag unf shrink-0" : "ac-tag fav shrink-0"}>
-              {hasManglik ? "Present" : "Not Present"}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-xs text-[var(--color-ink-2)] font-medium">Bhakoot Dosha</span>
-            <span className={hasBhakoot ? "ac-tag unf" : "ac-tag fav"}>
-              {hasBhakoot ? "Present" : "Not Present"}
-            </span>
-          </div>
-        </div>
-      </section>
+      <DoshaSummary
+        scores={scores}
+        kujaDosha={result.kuja_dosha}
+        groomProfile={groomProfile}
+        brideProfile={brideProfile}
+      />
 
-      {/* Kuja Dosha detail */}
-      {kujaDosha && (kujaDosha.male?.breakdown || kujaDosha.female?.breakdown) && (
-        <section>
-          <SectionHeading>Kuja Dosha Detail</SectionHeading>
-          <p style={{ fontSize: 10, color: "var(--color-ink-4)", marginBottom: 8 }}>Mars · Saturn · Rahu · Ketu · Sun in houses 2 · 4 · 7 · 8 · 12</p>
-          <div className="ac-card overflow-x-auto">
-            <table className="ac-table">
-              <thead>
-                <tr>
-                  <th>Person</th><th>Planet</th><th>House · Sign</th><th className="right">Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {([
-                  { label: formatName(groomProfile.name ?? "Groom"), dosha: kujaDosha.male },
-                  { label: formatName(brideProfile.name  ?? "Bride"), dosha: kujaDosha.female },
-                ] as const).map(({ label, dosha }) =>
-                  dosha?.breakdown && Object.keys(dosha.breakdown).length > 0
-                    ? Object.entries(dosha.breakdown).map(([planet, entry], i) => (
-                      <tr key={`${label}-${planet}`}>
-                        <td className="muted">{i === 0 ? label : ""}</td>
-                        <td className="planet">{planet}</td>
-                        <td>H{entry.house} · {entry.sign}</td>
-                        <td className="num right" style={{ color: "var(--color-danger)", fontWeight: 600 }}>+{entry.score}</td>
-                      </tr>
-                    ))
-                    : [(
-                      <tr key={label}>
-                        <td className="muted">{label}</td>
-                        <td colSpan={3} style={{ fontStyle: "italic", color: "var(--color-ink-4)" }}>No contributing planets</td>
-                      </tr>
-                    )]
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+      <KujaDetails
+        kujaDosha={result.kuja_dosha}
+        groomProfile={groomProfile}
+        brideProfile={brideProfile}
+      />
 
-      {/* Additional Kutas */}
-      {Object.keys(additionalKutas).length > 0 && (
-        <section>
-          <SectionHeading>Additional Kutas</SectionHeading>
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {Object.entries(additionalKutas).map(([key, val]) => {
-              const label = KUTA_LABELS[key] ?? key
-              const kuta: AdditionalKuta = typeof val === "string" ? { result: val } : val
-              return (
-                <div key={key} style={{ padding: "10px 0", borderBottom: "1px solid var(--color-border)", display: "flex", flexDirection: "column", gap: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-ink-2)" }}>{label}</span>
-                    <ResultPill result={kuta.result} />
-                  </div>
-                  {(kuta.male || kuta.female) && (
-                    <p style={{ fontSize: 10, color: "var(--color-ink-3)" }}>
-                      <span>{formatName(groomProfile.name ?? "")}: {kuta.male}</span>
-                      <span style={{ margin: "0 6px", opacity: 0.3 }}>·</span>
-                      <span>{formatName(brideProfile.name ?? "")}: {kuta.female}</span>
-                    </p>
-                  )}
-                  {kuta.description && <p style={{ fontSize: 10, color: "var(--color-ink-3)" }}>{kuta.description}</p>}
-                  {kuta.issues?.map((issue, i) => (
-                    <p key={i} style={{ fontSize: 10, color: "var(--color-danger)" }}>· {issue}</p>
-                  ))}
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
+      <AdditionalKutas additionalKutas={additionalKutas} />
 
-      {/* Dosha mitigations */}
       {exceptions.length > 0 && (
-        <section>
-          <SectionHeading>Dosha Mitigations</SectionHeading>
-          <ul style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {exceptions.map((ex, i) => (
-              <li key={i} style={{ fontSize: 12, color: "var(--color-ink-3)", display: "flex", gap: 8 }}>
-                <span style={{ color: "var(--color-ink-4)", flexShrink: 0 }}>·</span>{ex}
-              </li>
-            ))}
-          </ul>
+        <section
+          className={styles.exceptionCard}
+          aria-labelledby="compatibility-exceptions-heading"
+        >
+          <span>
+            <ShieldCheck size={18} aria-hidden="true" />
+          </span>
+          <div>
+            <p className={styles.cardEyebrow}>Returned exceptions</p>
+            <h3 id="compatibility-exceptions-heading">
+              Dosha mitigations identified by the engine
+            </h3>
+            <ul>
+              {exceptions.map((exception) => (
+                <li key={exception}>{exception}</li>
+              ))}
+            </ul>
+          </div>
         </section>
       )}
 
+      <section className={styles.readingBoundary}>
+        <p className={styles.cardEyebrow}>Reading boundary</p>
+        <h3>A compatibility score is a starting point, not a decision.</h3>
+        <p>
+          Classical matching does not assess consent, values, communication,
+          health, safety, or the practical realities of a relationship. Use it
+          as structured astrological evidence within a much broader judgment.
+        </p>
+      </section>
     </div>
   )
 }
-
-// ── Main tab ──────────────────────────────────────────────────────────────────
 
 interface CompareTabProps {
   activeProfile: Profile
@@ -301,46 +708,68 @@ interface CompareTabProps {
   selectedId: string
   onSelectedId: (id: string) => void
   result: CompatibilityCheck | null
-  onResult: (r: CompatibilityCheck | null) => void
+  onResult: (result: CompatibilityCheck | null) => void
 }
 
-export function CompareTab({ activeProfile, allProfiles, selectedId, onSelectedId, result, onResult }: CompareTabProps) {
+export function CompareTab({
+  activeProfile,
+  allProfiles,
+  selectedId,
+  onSelectedId,
+  result,
+  onResult,
+}: CompareTabProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const candidates = filterCandidates(allProfiles, activeProfile)
   const activeRole = resolveRole(activeProfile.gender)
   const partnerRole = oppositeRole(activeRole)
-  const selected = candidates.find(p => p.id === selectedId) ?? null
+  const selected = candidates.find((profile) => profile.id === selectedId) ?? null
 
-  const handleSelect = async (id: string) => {
-    if (!id) { handleClear(); return }
-    const profile = candidates.find(p => p.id === id)
-    if (!profile) return
+  function chooseProfile(id: string) {
     onSelectedId(id)
     onResult(null)
     setError(null)
+  }
+
+  async function calculate() {
+    if (!selected || loading) return
     setLoading(true)
+    setError(null)
+    onResult(null)
     try {
-      const [id1, id2] = activeRole === "bride"
-        ? [profile.id, activeProfile.id]
-        : [activeProfile.id, profile.id]
-      const res = await fetch("/api/compatibility", {
+      const [profileId1, profileId2] =
+        activeRole === "bride"
+          ? [selected.id, activeProfile.id]
+          : [activeProfile.id, selected.id]
+      const response = await fetch("/api/compatibility", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile_id_1: id1, profile_id_2: id2 }),
+        body: JSON.stringify({
+          profile_id_1: profileId1,
+          profile_id_2: profileId2,
+        }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Calculation failed")
+      const data = (await response.json()) as CompatibilityCheck & {
+        error?: string
+      }
+      if (!response.ok) {
+        throw new Error(data.error ?? "The comparison could not be calculated.")
+      }
       onResult(data)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong")
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The comparison could not be calculated.",
+      )
     } finally {
       setLoading(false)
     }
   }
 
-  const handleClear = () => {
+  function reset() {
     onSelectedId("")
     onResult(null)
     setError(null)
@@ -350,68 +779,146 @@ export function CompareTab({ activeProfile, allProfiles, selectedId, onSelectedI
   const brideProfile = activeRole === "bride" ? activeProfile : selected
 
   return (
-    <div className="space-y-6">
+    <div className={toolStyles.root}>
+      <section className={toolStyles.leadCard}>
+        <div className={toolStyles.leadContent}>
+          <span className={toolStyles.leadIcon}>
+            <HeartHandshake size={19} aria-hidden="true" />
+          </span>
+          <div>
+            <p className={toolStyles.leadEyebrow}>Marriage compatibility</p>
+            <h2 className={toolStyles.leadTitle}>
+              Compare the charts, then read the conditions.
+            </h2>
+            <p className={toolStyles.leadText}>
+              Start with the classical Ashtakoota calculation, then examine Moon
+              context, Doshas, additional Kutas, and returned exceptions. The
+              score is evidence—not a verdict about a relationship.
+            </p>
+          </div>
+        </div>
+        <span className={styles.enginePill}>DashaFlow · private profiles</span>
+      </section>
 
-      {/* ── Selector row ── */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <ProfilePill profile={activeProfile} role={activeRole} />
-          <span className="text-muted-foreground/40 text-base shrink-0 select-none">♡</span>
-          {candidates.length === 0 ? (
-            <a href="/dashboard?create=1"
-              className="text-xs text-muted-foreground border border-dashed border-[var(--color-border)] rounded-lg px-3 py-1.5 hover:border-[var(--color-nav-chip-active-border)] transition-colors">
-              + Add {roleLabel(partnerRole).toLowerCase()} profile
-            </a>
-          ) : selected ? (
-            <ProfilePill profile={selected} role={partnerRole} />
-          ) : (
-            <select
-              value={selectedId}
-              onChange={e => handleSelect(e.target.value)}
-              disabled={loading}
-              className="text-sm bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-[var(--color-ink-2)] hover:border-[var(--color-nav-chip-active-border)] focus:outline-none focus:border-[var(--color-nav-chip-active-border)] transition-colors disabled:opacity-50 cursor-pointer"
+      <section
+        className={styles.selectionCard}
+        aria-labelledby="compatibility-selection-heading"
+      >
+        <div className={styles.selectionHeading}>
+          <div>
+            <p className={styles.cardEyebrow}>Profiles</p>
+            <h3 id="compatibility-selection-heading">
+              Choose the second birth chart
+            </h3>
+            <p>
+              The current profile stays fixed. Select one other saved profile,
+              then run the comparison when you are ready.
+            </p>
+          </div>
+          {selectedId && (
+            <button
+              type="button"
+              className={toolStyles.secondaryButton}
+              onClick={reset}
             >
-              <option value="">Select {roleLabel(partnerRole).toLowerCase()}…</option>
-              {candidates.map(p => (
-                <option key={p.id} value={p.id}>{formatName(p.name)}</option>
-              ))}
-            </select>
+              <RotateCcw size={13} aria-hidden="true" />
+              Reset
+            </button>
           )}
         </div>
+
+        <div className={styles.profileColumns}>
+          <fieldset>
+            <legend>Current profile</legend>
+            <ProfileChoice
+              profile={activeProfile}
+              role={activeRole}
+              fixed
+            />
+          </fieldset>
+
+          <span className={styles.profileConnector} aria-hidden="true">
+            <HeartHandshake size={18} />
+          </span>
+
+          <fieldset>
+            <legend>{roleLabel(partnerRole)} profile</legend>
+            {candidates.length > 0 ? (
+              <div className={styles.candidateList}>
+                {candidates.map((profile) => (
+                  <ProfileChoice
+                    key={profile.id}
+                    profile={profile}
+                    role={partnerRole}
+                    selected={profile.id === selectedId}
+                    onClick={() => chooseProfile(profile.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <a className={styles.addProfile} href="/dashboard?create=1">
+                Add a {roleLabel(partnerRole).toLowerCase()} profile
+                <ArrowRight size={14} aria-hidden="true" />
+              </a>
+            )}
+          </fieldset>
+        </div>
+
         {selected && (
-          <button
-            onClick={handleClear}
-            aria-label="Reset compatibility check"
-            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-[var(--color-ink-2)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] transition-colors shrink-0"
-          >
-            <RotateCcw className="h-3 w-3" />
-            Reset
-          </button>
+          <div className={styles.actionRow}>
+            <p>
+              Ready to compare {formatName(activeProfile.name)} and{" "}
+              {formatName(selected.name)}.
+            </p>
+            <button
+              type="button"
+              className={toolStyles.primaryButton}
+              disabled={loading}
+              onClick={calculate}
+            >
+              {loading ? (
+                <>
+                  <Loader2
+                    className={styles.spinning}
+                    size={14}
+                    aria-hidden="true"
+                  />
+                  Calculating…
+                </>
+              ) : (
+                <>
+                  {result ? "Recalculate compatibility" : "Calculate compatibility"}
+                  <ArrowRight size={14} aria-hidden="true" />
+                </>
+              )}
+            </button>
+          </div>
         )}
-      </div>
+      </section>
 
-      {/* ── Error ── */}
-      {error && <div className="ac-banner warn">{error}</div>}
-
-      {/* ── Loading ── */}
-      {loading && (
-        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Calculating…
+      {error && (
+        <div className={styles.errorCard} role="alert">
+          {error}
         </div>
       )}
 
-      {/* ── Result ── */}
       {!loading && result && groomProfile && brideProfile && (
-        <FullResult check={result} groomProfile={groomProfile} brideProfile={brideProfile} />
+        <FullResult
+          check={result}
+          groomProfile={groomProfile}
+          brideProfile={brideProfile}
+        />
       )}
 
-      {/* ── Empty state ── */}
-      {!loading && !result && !error && candidates.length > 0 && !selectedId && (
-        <p className="text-xs text-muted-foreground text-center py-12">
-          Select a {roleLabel(partnerRole).toLowerCase()} above to run the compatibility check.
-        </p>
+      {!loading && !result && !error && candidates.length > 0 && !selected && (
+        <section className={toolStyles.helpCard}>
+          <p className={toolStyles.helpTitle}>No comparison selected yet</p>
+          <p className={toolStyles.helpText}>
+            Choose the second saved profile above. Nothing is calculated or
+            stored until you press Calculate compatibility.
+          </p>
+        </section>
       )}
-
     </div>
   )
 }

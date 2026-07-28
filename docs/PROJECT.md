@@ -1,39 +1,244 @@
 # Astro Chaganti — Project Reference
 
+<!-- current-snapshot-verified: 2026-07-26 -->
+
 A Vedic-astrology birth-chart application by Dr. Vinay Kumar Chaganti.
 Users sign in with Google, save profiles for themselves and family
 members, and see a detailed chart for each profile.
 
-- **Live site**: https://astro-unified-core-pfni.vercel.app/
+- **Production site**: https://astrochaganti.com/
+- **Hosted acceptance site**: https://astro-unified-staging.vercel.app/
 - **Main repo**: https://github.com/socraticsurge/astro-unified-core (this repo)
 - **Sidecar repo**: https://github.com/socraticsurge/dashaflow-sidecar (private)
+- **Panchangam engine repo**: https://github.com/socraticsurge/telugu-calendar-utilities
+- **Existing Panchangam site**: https://panchangam.astrochaganti.com/
+
+---
+
+## Current system snapshot — read this first
+
+### Where the programme is
+
+Gates 1–8 of the unification programme are approved. Gate 9, the production
+release, is **not approved** and no production alias, DNS, Google OAuth callback,
+production Turso data, GitHub Pages workflow, or subscribed calendar-feed URL
+has been changed.
+
+The owner-review build is currently:
+
+- `https://astro-unified-staging.vercel.app`
+- Vercel project `astro-unified-staging`
+- deployment `dpl_CqSecbjJMeceXrabu4aXcjDCAaEV`
+- a separate synthetic Turso database and synthetic owner/admin identities
+- the staging Telugu Calendar API
+- fail-closed `rehearsal` mode and `noindex,nofollow`
+
+The public production domain still resolves to the pre-unification deployment
+`dpl_F6yWeNZ2Mx9fzdjwMnan19cM9HdY`, built from
+`astro-unified-core/main@519d686`. Production remains the rollback-safe blue
+environment while hosted acceptance continues on green.
+
+### The most important release fact
+
+The current hosted acceptance deployment was built from the local
+`codex/unification-program` worktree with `gitDirty=1`. The branch is based on
+`development@25f0206` but is not present on GitHub. The additive Telugu Calendar
+HTTP API is likewise in a dirty local `codex/vercel-api-parity` worktree that is
+not present on GitHub.
+
+This is acceptable for isolated owner review, but **not reproducible enough for
+production**. Before Gate 9 can be approved, both worktrees must be frozen into
+reviewed commits, pushed, merged through their repositories' normal branches,
+and redeployed from exact Git SHAs. A CLI deployment from uncommitted files is
+never the production source of truth.
+
+### Repository and source-of-truth map
+
+| Repository | Local folder | Role | Current source-of-truth status |
+|---|---|---|---|
+| [`socraticsurge/astro-unified-core`](https://github.com/socraticsurge/astro-unified-core) | `AstroRepos/astro-unified-core/` | Canonical Next.js web product, browser-facing API, auth, Turso access, admin, SEO and unified UX | **Active canonical web repo.** `main` is production; `development` is integration. Current unification changes are local and uncommitted. |
+| [`socraticsurge/telugu-calendar-utilities`](https://github.com/socraticsurge/telugu-calendar-utilities) | `AstroRepos/telugu-calendar-utilities/` | Canonical Panchangam, Rasi Phalalu, Tarabalam/Chandrabalam, Muhurtam engines, ICS feeds, static site, MCP/PyPI package and versioned FastAPI adapter | **Active canonical Panchangam repo.** `master` is the published baseline. Current Vercel API adapter changes are local and uncommitted. |
+| [`socraticsurge/dashaflow-sidecar`](https://github.com/socraticsurge/dashaflow-sidecar) | `AstroRepos/dashaflow-sidecar/` | Stateless FastAPI wrapper for natal charts, Vargas, Dashas, yogas, compatibility, transits and career | **Active supporting service.** `master@2c98ee8`; no database. |
+| [`socraticsurge/astrounified`](https://github.com/socraticsurge/astrounified) | `AstroRepos/astrounified/` | Early local predecessor | **Obsolete checkout; not a production source.** Do not implement new work here. |
+| [`socraticsurge/astrochaganti`](https://github.com/socraticsurge/astrochaganti) | Not currently checked out | Separate older Next.js product associated with Vercel project `astrochaganti` | **Legacy/uncleared.** Prove traffic, data and dependency disposition before archival or deletion. |
+
+All five GitHub repositories were accessible with administrator permission on
+2026-07-26. No open pull request was reported for the four locally checked-out
+repositories at that time.
+
+### Runtime and hosting map
+
+| Runtime | Project / provider | Data or dependency boundary | Current role |
+|---|---|---|---|
+| Astro production web | Vercel `astro-unified-core-pfni` | Production Turso `astrounified-live`, Google OAuth, production AI/observability services, DashaFlow sidecar | Existing live product at `astrochaganti.com`; no unified cutover yet |
+| Astro owner-review web | Vercel `astro-unified-staging` | Separate staging Turso, synthetic auth, staging Telugu API, isolated DashaFlow staging sidecar | Current acceptance environment |
+| Natal/chart service | Vercel `dashaflow-sidecar` | Stateless DashaFlow/Swiss Ephemeris computation | Called server-to-server by Astro |
+| Natal/chart staging service | Vercel `dashaflow-sidecar-staging` | Isolated DashaFlow 1.1.0 with query-date and lazy exact-subperiod contracts | Used only by Astro staging |
+| Telugu computation staging | Vercel `telugu-calendar-api-staging` | Bearer-protected FastAPI contract `1.0` | Used only by Astro staging |
+| Telugu computation production | Vercel `telugu-calendar-api-production` | Independent production bearer token | Prepared for a future Gate 9 candidate; not yet reached by public Astro traffic |
+| Panchangam site and feeds | GitHub Pages from `telugu-calendar-utilities` | Static HTML, dated Rasi artifacts and durable `.ics` paths generated by Actions | Existing public service; remains live through stabilization |
+| User data | Turso/libSQL | Production and staging are different databases and tokens | Schema version 11; the browser never connects directly |
+
+#### Vercel CLI naming trap
+
+All active migration worktrees are intentionally linked to their **staging**
+projects:
+
+- `astro-unified-core/.vercel/project.json` → `astro-unified-staging`
+- `dashaflow-sidecar/.vercel/project.json` → `dashaflow-sidecar-staging`
+- `telugu-calendar-utilities/.vercel/project.json` →
+  `telugu-calendar-api-staging`
+
+Therefore `vercel deploy --prod` from either folder means “production target of
+the linked staging project”; it does **not** mean Astro Chaganti live production.
+Before any true production candidate command, resolve and restate the exact
+project ID, team ID, deployment target and aliases. Never relink casually, and
+never infer the affected domain from the word `--prod`.
+
+### Request flow
+
+```text
+Browser
+  |
+  v
+astro-unified-core (Next.js on Vercel)
+  |- public pages + SEO
+  |- NextAuth + authorization
+  |- public/private BFF API routes
+  |- admin and consultation workflows
+  |
+  +--> Turso
+  |      users, profiles, readings, compatibility, consultation,
+  |      settings, landing cache, feedback and chat
+  |
+  +--> dashaflow-sidecar
+  |      natal chart, Vargas, Dashas, yogas, transits, career,
+  |      compatibility
+  |
+  +--> Telugu Calendar FastAPI
+         Panchangam, Rasi Phalalu, public and personalized Muhurtam,
+         Tarabalam and Chandrabalam
+
+telugu-calendar-utilities GitHub Actions
+  +--> GitHub Pages static site, dated artifacts and durable ICS feeds
+```
+
+Browsers do not receive computation-service tokens and do not call either
+Python service directly. The Next.js application is the browser-facing backend
+for both public and authenticated computation.
+
+### Local workspace map
+
+The shared workspace root is:
+
+`/Users/vinaychaganti/Documents/VibeCodedApps/AstroRepos`
+
+```text
+AstroRepos/
+├── astro-unified-core/          # work here for the web product
+│   ├── app/                     # Next.js pages, layouts and API routes
+│   ├── components/
+│   │   ├── public/              # unified public homepage
+│   │   ├── profiles/            # signed-in profile workspace
+│   │   ├── tabs/                # Today and Natal experiences
+│   │   ├── engines/             # Muhurtam/Tarabalam/AI presentation
+│   │   ├── admin/ and panels/   # protected administration
+│   │   └── ui/                  # shared UI primitives
+│   ├── lib/
+│   │   ├── db/                  # Turso client, schema and scoped queries
+│   │   ├── engines/             # DashaFlow and AI clients
+│   │   ├── panchangam/          # Telugu API contracts and BFF helpers
+│   │   ├── auth.ts              # NextAuth configuration
+│   │   └── unification-release.ts # fail-closed environment switch
+│   ├── content/                 # 542 Markdown interpretation files
+│   ├── docs/                    # product, architecture, testing and runbooks
+│   ├── scripts/                 # content build and guarded staging DB tasks
+│   ├── proxy.ts                 # public/private routing boundary
+│   └── .vercel/project.json     # intentionally linked to staging locally
+├── telugu-calendar-utilities/   # canonical Panchangam engines and publishers
+│   ├── telugu_panchangam/       # Python engines and FastAPI adapter
+│   ├── feeds/ and public/       # generated subscriber/static artifacts
+│   ├── .github/workflows/       # generation and Pages publishing
+│   ├── tests/                   # engine, compatibility and API parity fixtures
+│   └── app.py                   # Vercel FastAPI entrypoint
+├── dashaflow-sidecar/           # small stateless Python service
+├── astrounified/                # obsolete predecessor; do not use
+└── docs/                        # workspace-level notes, not the app reference
+```
+
+### Realistic path from here to production
+
+Functional implementation is late-stage, but release engineering is not yet
+complete. If owner feedback is mainly polish and no calculation defect appears,
+this is realistically a few focused engineering/review sessions rather than a
+new build from scratch. The actual alias cutover is short; the confidence work
+before and after it is the larger part.
+
+1. **Finish hosted owner acceptance.** Exercise public, owner, admin, mobile and
+   representative calculation journeys; record defects and intentional
+   follow-ups. Do not promote while review is open.
+2. **Close or explicitly accept remaining release gaps.** Provision a dedicated
+   staging Gemini key if full non-production AI narrative acceptance is
+   required. Decide whether DashaFlow authentication/error redaction is a
+   pre-cutover hardening task or a documented post-release risk.
+3. **Freeze reproducible source.** Split, commit and push the current web and
+   Telugu API work; review PRs; merge through `development`/`master` as
+   appropriate; record exact Git SHAs. Reconcile documentation generated during
+   the programme before merge.
+4. **Rebuild green from clean commits.** Deploy staging from the recorded SHAs,
+   rerun the 63-file/487-test web suite, TypeScript, lint, palette, route,
+   responsive and owner/admin checks, plus the full Telugu engine/API parity
+   suite. The deployment must report `gitDirty=0`.
+5. **Create fresh unaliased production candidates.** Deploy Telugu API first,
+   then Astro with the fail-closed production dependency graph. Do not assign
+   `astrochaganti.com` yet. Verify health, public calculations, SEO, private
+   redirects, error logs and responsive presentation.
+6. **Prepare the dated go/no-go packet.** Take and verify a fresh Turso export,
+   name the exact rollback deployment, record known issues and monitoring
+   owners, and obtain explicit Gate 9 approval.
+7. **Promote, then smoke-test the authorized domain.** Move the existing tested
+   Astro deployment to the production aliases. Immediately test real Google
+   sign-in, an existing profile, a disposable profile lifecycle, chart,
+   personalized timing, admin allow/deny, consultation and public SEO routes.
+8. **Stabilize before consolidation.** Watch health, Vercel errors, Sentry,
+   latency, analytics and user feedback for the first hour, 24 hours, 72 hours
+   and an agreed longer window. Roll back on the written triggers.
+9. **Treat SEO/feed migration and retirement as separate work.** Preserve every
+   subscribed `.ics` URL. Inventory indexed URLs and redirects, move canonical
+   content deliberately, and retire GitHub Pages/Actions or legacy projects
+   only after Gate 10 evidence and a separate Gate 11 approval.
+
+With modest review feedback, Steps 1–6 are plausibly two to four focused work
+sessions. A calculation discrepancy, major UX revision, Google OAuth problem,
+or sidecar-security hardening would extend that. Stabilization and retirement
+are intentionally measured in days or weeks, not in the cutover's minutes.
 
 ---
 
 ## Architecture at a glance
 
 ```
-GitHub: astro-unified-core      GitHub: dashaflow-sidecar (private)
-        │                                 │
-        │ push to main                    │ push to master
-        ▼                                 ▼
-┌───────────────────────┐         ┌───────────────────────┐
-│ Vercel project:       │   POST  │ Vercel project:       │
-│ astro-unified-core-   │ ──────► │ dashaflow-sidecar     │
-│   pfni                │         │                       │
-│                       │         │ FastAPI + DashaFlow   │
-│ Next.js 16, NextAuth, │         │ (Swiss Ephemeris,     │
-│ shadcn/ui, Tailwind   │         │ Lahiri ayanamsha)     │
-│                       │         │                       │
-│ DB: Turso (libSQL)    │         │ No DB, no auth        │
-└───────────────────────┘         └───────────────────────┘
+                         ┌─────────────────────────┐
+Browser ────────────────►│ astro-unified-core      │
+                         │ Next.js + NextAuth + BFF │
+                         └──────┬───────┬──────┬───┘
+                                │       │      │
+                         ┌──────▼──┐ ┌──▼──────▼─────────┐
+                         │ Turso   │ │ Python computation │
+                         │ libSQL  │ │ services on Vercel │
+                         └─────────┘ ├────────────────────┤
+                                     │ DashaFlow sidecar  │
+                                     │ Telugu Calendar API│
+                                     └────────────────────┘
+
+telugu-calendar-utilities GitHub Actions
+  └──► GitHub Pages static site, Rasi artifacts and subscribed ICS feeds
 ```
 
-Why two projects? Next.js framework integration on Vercel claims the entire
-`/api/*` URL space; a Python serverless function deployed in the same project
-is unreachable because Next.js intercepts every `/api/*` request before
-routing reaches the function. Splitting the Python service into its own
-Vercel project (with no Next.js) gives it sole ownership of `/api/*`.
+Why separate Vercel projects? Next.js framework integration claims the web
+project's `/api/*` space. Each Python service therefore has its own Vercel
+project and contract. This also lets chart computation and Panchangam
+computation deploy and roll back independently of the user-facing application.
 
 ---
 
@@ -44,12 +249,208 @@ Vercel project (with no Next.js) gives it sole ownership of `/api/*`.
 | Frontend / API        | Next.js 16 (App Router, Turbopack), React 19, TypeScript               |
 | Auth                  | NextAuth v4, Google provider (JWT strategy, no DB adapter)             |
 | Database              | Turso (libSQL, hosted)                                                 |
-| Astrology engine      | DashaFlow 1.1.0 (PyPI) — Swiss Ephemeris, Lahiri sidereal              |
-| Sidecar runtime       | FastAPI on Vercel Python serverless                                    |
+| Natal/chart engine    | DashaFlow 1.1.0 (PyPI) — Swiss Ephemeris, Lahiri sidereal              |
+| Panchangam engine     | Telugu Calendar Utilities — Drik, Surya Siddhanta and Vakya             |
+| Python runtimes       | Two independent FastAPI services on Vercel                             |
 | Geocoding             | OpenStreetMap Nominatim                                                |
 | UI                    | Tailwind v4, shadcn/ui                                                 |
 | Fonts                 | Inter (body) + Cormorant Garamond (headings) via `next/font`           |
-| Hosting               | Vercel (both projects, Hobby plan)                                     |
+| Hosting               | Vercel web/API projects plus GitHub Pages for static feeds             |
+
+---
+
+## Unification transition controls
+
+The unification programme is governed by `PRODUCT.md §8`. Until its production
+release and retirement gates are explicitly approved, the current Astro
+Chaganti and Panchangam systems remain independent production services.
+
+### Gate 1 current-state baseline — 2026-07-22
+
+This baseline was collected read-only. It did not query private user rows,
+download credentials, mutate Turso, deploy code, change DNS, or trigger a
+publishing workflow.
+
+#### Authoritative repositories
+
+| Repository | Production branch / audited head | Access | Open PRs | Role |
+|---|---|---|---|---|
+| `socraticsurge/astro-unified-core` | `main` / `519d686` | Admin | 0 | Next.js product, NextAuth, Turso, public and authenticated UX |
+| `socraticsurge/dashaflow-sidecar` | `master` / `2c98ee8` | Admin | 0 | FastAPI chart, transit, career, compatibility, and legacy Muhurtha computation |
+| `socraticsurge/telugu-calendar-utilities` | `master` / `08a113b` | Admin | 0 | Panchangam engines, personal timing, feeds, public toolkit, MCP/PyPI package |
+| `socraticsurge/astrochaganti` | `main` / legacy | Admin | Not part of active programme | Older Next.js product matching the legacy Vercel `astrochaganti` deployment; traffic/data disposition unconfirmed |
+
+`astro-unified-core/development` is at `25f0206`, with two unreleased feature
+commits beyond the last production merge. Release history contains merge commits
+on `main`; migration rehearsals must compare trees and tests rather than assume a
+simple fast-forward. The obsolete local `socraticsurge/astrounified` checkout is
+not a production source.
+
+#### Live hosting and domains
+
+| Surface | Provider/project | Verified state |
+|---|---|---|
+| `https://astrochaganti.com` | Vercel `astro-unified-core-pfni` | HTTP 200; production deployment `dpl_F6yWeNZ2Mx9fzdjwMnan19cM9HdY`; Mumbai function region; `/api/health` reports Turso and sidecar healthy |
+| `https://astro-unified-staging.vercel.app` | Vercel `astro-unified-staging` | Hosted owner-review deployment `dpl_FQJrDZbnN1dRq3DGHCzdFVjgrTB5`; isolated `astro-unified-staging` Turso DB, synthetic owner/admin auth, Telugu staging BFF, isolated DashaFlow staging service, fail-closed root switch, and no-index policy |
+| Unaliased Astro release candidate | Vercel `astro-unified-core-pfni` | `dpl_3VQvBeJransUK8MnN7QB6ksRSUQt`; Ready and fully checked with production dependencies; not assigned to apex/canonical production aliases |
+| `https://dashaflow-sidecar.vercel.app` | Vercel `dashaflow-sidecar` | HTTP 200; DashaFlow `1.1.0`; production function in `iad1` |
+| `https://dashaflow-sidecar-staging.vercel.app` | Vercel `dashaflow-sidecar-staging` | Deployment `dpl_zKD5qaLJPMnokk5DtXbnK2nkZHeQ`; DashaFlow `1.1.0`; query-date and lazy exact-subperiod checks pass; consumed only by Astro staging |
+| `https://panchangam.astrochaganti.com` | GitHub Pages from `gh-pages` | HTTP 200; HTTPS enforced; CNAME points to `socraticsurge.github.io` |
+| `https://astrochaganti.vercel.app` | Vercel `astrochaganti`, matching `socraticsurge/astrochaganti` by project name, branch, and 2026-05-16 timestamps | Separate older Next.js product; HTTP 200; no custom domain; traffic/data disposition unconfirmed |
+| Telugu Calendar API staging | Vercel `telugu-calendar-api-staging` | Stable staging-only alias; deployment `dpl_6i7AQt7hWqFCNs5sXy6KdpE8gzsm`; FastAPI contract `1.0`, Python 3.12, `bom1`; consumed only by Astro staging |
+| `https://telugu-calendar-api-production.vercel.app` | Vercel `telugu-calendar-api-production` | Deployment `dpl_2WpDHW73JjfAc6ENG3L88vdYNL92`; authenticated contract checks and post-QA error-log scan pass |
+
+The apex domain is registered and DNS-hosted on Vercel through 2027-05-07.
+The Panchangam subdomain is an external GitHub Pages CNAME and therefore does
+not appear in the Vercel domain list.
+
+#### Vercel configuration
+
+- Production contains the expected auth, Turso, sidecar, LLM, Sentry, PostHog,
+  Resend, admin, and cron variable names. Secret values were not read.
+- Preview contains Turso credentials. The existing runbook states that preview
+  and production currently use the same Turso database; treat this as shared
+  production access until a separate staging database is proven.
+- The dedicated Gate 7 project now uses a fresh `astro-unified-staging` Turso
+  database in `aws-ap-south-1`; it was created empty and seeded only with
+  `.test` identities. It is not a production branch, dump, or token.
+- Gate 7 review auth uses a credentials provider that activates only when the
+  stable staging URL, exact staging database host, explicit enable switch,
+  synthetic email domain, and strong owner/admin secrets all match. The owner
+  approved this as the Gate 8 auth alternative; the production Google callback
+  is unchanged and must be smoke-tested at Gate 9.
+- The application and Vercel project both target Node `24.x`; the Gate 6
+  production build succeeds on the aligned declaration.
+- The staging-only Vercel project `telugu-calendar-api-staging` now hosts the
+  additive, bearer-protected Gate 5 FastAPI contract. It is not connected to a
+  production domain or to Astro Chaganti consumers.
+- The Vercel project `telugu-calendar-api-production` hosts isolated, reviewed
+  deployment `dpl_2WpDHW73JjfAc6ENG3L88vdYNL92` behind a fresh sensitive
+  production token. Its live contract checks pass. Only the unaliased Astro
+  Gate 9 candidate consumes it; no public domain does.
+- The DashaFlow sidecar has no environment variables, authentication, rate
+  limit, or origin restriction (`allow_origins=["*"]`). It is stateless and has
+  no database, but accepts private birth inputs in requests and exposes raw
+  exception text on failure.
+
+#### Data and authentication
+
+- Turso/libSQL schema version is `11` with `users`, `profiles`,
+  `compatibility_checks`, `readings`, `feedback`, `consultation_requests`,
+  `settings`, `consultation_slots`, `daily_landing`, and `chat_messages` plus
+  indexes and `schema_version`.
+- Google NextAuth uses signed JWT sessions. The sign-in callback upserts a Turso
+  user; API routes scope profile and compatibility access by `user_id`, with
+  explicit admin-only access paths.
+- Birth details, current locations, generated readings, consultation text, and
+  chat content are production data classes requiring private staging fixtures
+  or redaction. They must not be copied wholesale into staging.
+- The documented recovery target is RPO 24 hours and RTO under one hour. The
+  runbook supports Turso export/SQL dump and restore into a new database.
+- The production database is positively identified as `astrounified-live` in
+  `aws-ap-south-1`, at schema 11 with 11 application tables, 105 users and 125
+  profiles. Only aggregate counts were queried; no private row was inspected.
+  Delete protection is now on. A dated, gitignored export on a FileVault-
+  encrypted disk passed integrity and exact aggregate parity after restoration
+  into a disposable Turso clone on 2026-07-22. The CLI reports the `starter`
+  plan, but two native PITR clone attempts returned an internal-server error and
+  created no database; manual export/restore remains the verified release path.
+
+#### Panchangam publishing estate
+
+- GitHub Pages is built from `gh-pages`, with 281 live files: 220 under
+  `feeds/`, 32 dated `rasi_phalalu/` JSON artifacts, and the site/assets.
+- `hyderabad-drik.ics` is healthy (HTTP 200, approximately 884 KB) and currently
+  covers 2026-07-01 through 2027-12-31. Its URL is a durable subscriber
+  contract.
+- Monthly Panchangam, Gochara, and Lagna workflows last succeeded on 2026-07-01.
+  Daily Rasi Phalalu last succeeded on 2026-07-21; a 2026-07-19 failure was
+  followed by successful runs. Pages deploy and self-heal workflows are healthy.
+- The engine is also published as `mcp-server-panchangam` `1.13.0` on PyPI and
+  exposes 17 MCP tool implementations. The repository contains 101 Python test
+  modules and treats its engine and ICS format as frozen compatibility contracts.
+- The live Rasi Phalalu contract is date-addressed
+  (`/rasi_phalalu/YYYY-MM-DD.json`); there is no `/rasi_phalalu/latest.json`.
+
+#### SEO and public routing
+
+- The Panchangam subdomain serves `robots.txt` and a one-URL sitemap.
+- `astrochaganti.com/robots.txt` and `/sitemap.xml` currently receive a 307 to
+  Google sign-in because the auth middleware public-path allowlist excludes
+  them. This is a confirmed SEO defect and must be fixed in the new public
+  surface before SEO consolidation.
+- A complete Search Console/indexed-URL/export and traffic baseline has not yet
+  been obtained. Redirect planning cannot be approved without it.
+
+#### Operations and rollback
+
+- Sentry, PostHog, Vercel Analytics, Speed Insights, Resend, and a public health
+  endpoint are wired in code and their Vercel variable names exist.
+- AstroChaganti's eight-hour landing refresh workflow is healthy. Panchangam's
+  publishing and self-heal workflows are healthy.
+- The runbook documents promotion of the previous green Vercel deployment and
+  Turso restore as rollback mechanisms.
+- Actual UptimeRobot configuration, current Sentry/PostHog access and metric
+  baselines, Resend domain state, Google Search Console access, and a recent
+  measured restore/rollback drill remain unverified.
+
+#### Gate 1 unresolved confirmations
+
+1. ~~Confirm a restorable Turso backup and successful restore test.~~ Completed
+   2026-07-22 with delete protection, a dated local/off-account artifact and an
+   exact-parity disposable restore. Native PITR separately returned an upstream
+   internal error and remains tracked with Turso; add a second encrypted storage
+   location as an operational follow-up.
+2. Confirm or replace the shared preview/production Turso configuration before
+   any preview containing migration code is deployed.
+3. Confirm whether the older `socraticsurge/astrochaganti` / Vercel
+   `astrochaganti` product has remaining users, data, traffic, or reusable design
+   assets before classifying it for preservation or eventual retirement.
+4. Export the Search Console/indexed URLs and baseline organic metrics for both
+   domains.
+5. Confirm access to Sentry, PostHog, Resend, Google OAuth/Search Console, and
+   any external uptime monitor; record baseline metrics without user PII.
+6. ~~Confirm the owner-reported production user count at aggregate level
+   only.~~ Verified as 105 users and 125 profiles on 2026-07-22.
+
+### Parallel environments
+
+| Concern | Production (blue) | Migration/staging (green) |
+|---|---|---|
+| Web application | Existing `astro-unified-core-pfni` production deployment | Dedicated stable Vercel staging project from the same repository; PR previews remain ephemeral |
+| User database | Existing production Turso database | Separate staging Turso database; never a production token |
+| Authentication | Production Google OAuth client and callback | Fail-closed synthetic owner/admin identities on the stable staging callback; no production client or session secret |
+| Chart computation | Existing `dashaflow-sidecar` | Pinned current service for unchanged calls or an isolated preview when its contract changes |
+| Panchangam computation | GitHub Pages artifacts and scheduled Actions | Separate authenticated Vercel Python staging API sourced from `telugu-calendar-utilities` |
+| Calendar feeds | Existing `panchangam.astrochaganti.com/feeds/*` URLs | Shadow-generated immutable Blob artifacts compared with production; no subscriber traffic |
+| Scheduled generation | Existing GitHub Actions | Shadow jobs only until parity and migration rehearsal pass |
+
+### Safety invariants
+
+- Migration work never writes to the production Turso database unless an
+  approved cutover step explicitly requires it.
+- Database changes are additive and backward-compatible during stabilization.
+- The existing Panchangam GitHub Actions and GitHub Pages deployment remain
+  enabled until the retirement gate.
+- Existing ICS paths are treated as durable subscriber contracts.
+- New calculation APIs run in shadow/parity mode before replacing any current
+  consumer.
+- Production aliases, DNS, OAuth callbacks, canonical URLs, and redirects only
+  change during an approved cutover window.
+- Every cutover runbook names the previous Vercel deployment, rollback owner,
+  rollback trigger, and maximum acceptable recovery time.
+
+### Intended service boundary
+
+The Next.js application remains the public and authenticated product shell and
+browser-facing backend. It owns NextAuth, user/profile authorisation, Turso
+persistence, SEO pages, admin, cache policy, and presentation. Browsers never
+call the Python services directly. Telugu Calendar Utilities remains the source
+of truth for Panchangam, Gochara/Rasi Phalalu, Tarabalam, Chandrabalam,
+Lagna/Hora, and both public and personalised Muhurtam. DashaFlow remains the
+source for natal charts, Vargas, Dashas, yogas, compatibility, transits, and
+career. The web application consumes versioned, authenticated contracts and
+does not duplicate calculation rules. Full Gate 3 design: `ARCHITECTURE.md §15`.
 
 ---
 
@@ -138,7 +539,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `GOOGLE_CLIENT_ID`         | Google OAuth client id                                        |
 | `GOOGLE_CLIENT_SECRET`     | Google OAuth client secret                                    |
 | `NEXTAUTH_SECRET`          | NextAuth JWT signing                                          |
-| `NEXTAUTH_URL`             | **Must equal** the canonical alias `https://astro-unified-core-pfni.vercel.app` — used in OAuth `redirect_uri` |
+| `NEXTAUTH_URL`             | **Must equal** the canonical public URL `https://astrochaganti.com` — used in OAuth `redirect_uri` |
 | `TURSO_DATABASE_URL`       | libSQL DSN                                                    |
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
 | `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`                        |
@@ -155,8 +556,8 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 
 ### Google Cloud Console — OAuth consent
 
-- **Authorized redirect URIs**: `https://astro-unified-core-pfni.vercel.app/api/auth/callback/google` (exact match required by Google).
-- **Authorized JavaScript origins**: `https://astro-unified-core-pfni.vercel.app`.
+- **Authorized redirect URIs**: `https://astrochaganti.com/api/auth/callback/google` (exact match required by Google).
+- **Authorized JavaScript origins**: `https://astrochaganti.com`.
 
 ---
 
@@ -269,9 +670,10 @@ These are the real ones we hit, in roughly the order we hit them.
 (deployment-hash, team alias, git alias, clean alias) and NextAuth uses
 whichever one the request landed on.
 
-**Fix**: pin `NEXTAUTH_URL` to one canonical alias (the clean
-`*.vercel.app` URL) so NextAuth always sends the same redirect URI, and
-register exactly that callback URL in Google Console.
+**Fix**: pin `NEXTAUTH_URL` to the canonical public URL
+`https://astrochaganti.com` so production requests use one redirect URI, and
+register exactly that callback URL in Google Console. Generated deployment URLs
+remain unsuitable for the real Google login smoke test.
 
 ### 2. `getServerSession()` without `authOptions`
 
@@ -466,12 +868,12 @@ fetch `GET /v13/deployments/{id}` from the Vercel API, read `readyState`,
 
 ```bash
 # Main app
-cd astrounified
+cd /Users/vinaychaganti/Documents/VibeCodedApps/AstroRepos/astro-unified-core
 npm install
 npm run dev               # http://localhost:3000
 
 # Sidecar (only needed if you're changing it)
-cd dashaflow-sidecar
+cd /Users/vinaychaganti/Documents/VibeCodedApps/AstroRepos/dashaflow-sidecar
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn api.index:app --reload  # http://localhost:8000
@@ -490,8 +892,8 @@ These came up but were left out of scope. None block the live site.
 - **Sidecar auth**: the Python sidecar is unauthenticated. Anyone with the
   URL can compute charts. Low risk (read-only, no PII, no DB), but a shared
   secret header would harden it.
-- **Custom domain**: we use `astro-unified-core-pfni.vercel.app`. A real
-  domain (`astrochaganti.com` or similar) would be cleaner.
+- **Custom domain**: resolved — `astrochaganti.com` is the canonical public
+  domain. The generated project alias remains a deployment/rollback handle.
 - **Lead capture**: the contact section is a `mailto:` link. No email
   capture / waitlist form yet.
 - **Payment / appointment booking**: the current flow asks users to email
@@ -560,7 +962,7 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 ### Schema migration
 
 1. Add DDL in `lib/db/client.ts` inside `ensureSchema()`.
-2. Bump `SCHEMA_VERSION` (currently `7`).
+2. Bump `SCHEMA_VERSION` (currently `11`).
 3. Deploy. `ensureSchema()` will auto-run the DDL on the next DB call.
 4. Update `docs/ARCHITECTURE.md §5` and `docs/PROJECT.md` schema section.
 
@@ -574,4 +976,4 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 *See `docs/STANDARDS.md` for coding standards, `docs/ARCHITECTURE.md` for system
 design, `docs/BACKLOG.md §Session Decisions` for historical architectural choices.*
 
-*Last updated: 2026-05-14*
+*Last updated: 2026-07-26*

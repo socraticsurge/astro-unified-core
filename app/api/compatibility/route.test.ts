@@ -88,6 +88,19 @@ describe("POST /api/compatibility", () => {
     expect(await res.json()).toEqual({ error: "Two profiles required" });
   });
 
+  it("returns 400 when both IDs refer to the same profile", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session as never);
+    vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
+    const res = await POST(
+      makeReq({ profile_id_1: "prof-1", profile_id_2: "prof-1" }),
+    );
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: "Choose two different profiles",
+    });
+    expect(db.compatibility.findDuplicate).not.toHaveBeenCalled();
+  });
+
   it("returns existing duplicate check without calling sidecar", async () => {
     vi.mocked(getServerSession).mockResolvedValue(session as never);
     vi.mocked(rateLimit).mockReturnValue({ success: true } as never);

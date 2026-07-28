@@ -1,76 +1,70 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions, getUserId } from "@/lib/auth";
-import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
-import { RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
-import { fetchWithRetry } from "@/lib/engines/fetch-with-retry";
+import { privateMuhurtamSchema } from "@/lib/panchangam/contracts";
+import { privateFailure, privateJson } from "@/lib/panchangam/private-route";
+import { requestId } from "@/lib/panchangam/public-route";
+import { searchPersonalMuhurtam } from "@/lib/panchangam/personal-search";
 
-const SIDECAR_URL =
-  process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
+const LEGACY_ACTIVITY: Record<string, string> = {
+  marriage: "wedding",
+  house_entry: "gruhapravesha",
+  business: "business",
+  travel: "travel",
+  education: "vidyarambha",
+  medical: "surgery",
+};
 
-export async function POST(req: NextRequest) {
+/**
+ * Compatibility endpoint for the historic /muhurtha spelling and payload.
+ * It now uses the canonical Telugu Calendar computation and safe error model;
+ * no request reaches the retired DashaFlow six-event approximation.
+ */
+export async function POST(request: NextRequest) {
+  const id = requestId(request);
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return privateJson({ error: "Unauthorized" }, 401, id);
+
+  const userId = getUserId(session);
+  if (!rateLimit(`muhurtha-compat:${userId}`, 20, 60_000).success) {
+    return privateJson({ error: "Too many requests. Please try again shortly." }, 429, id);
+  }
+
+  const legacy = await request.json().catch(() => null) as Record<string, unknown> | null;
+  const eventType = typeof legacy?.event_type === "string" ? legacy.event_type : "marriage";
+  const parsed = privateMuhurtamSchema.safeParse({
+    profile_ids: typeof legacy?.profile_id === "string" ? [legacy.profile_id] : [],
+    start_date: legacy?.start_date,
+    end_date: legacy?.end_date,
+    activity: LEGACY_ACTIVITY[eventType] ?? eventType,
+    chandra_mode: "stars",
+    include_night: false,
+  });
+  if (!parsed.success) {
+    return privateJson({ error: "Choose a profile, supported event, and up to 14 days." }, 400, id);
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const userId = getUserId(session);
-
-    const body = await req.json();
-    const { profile_id, event_type, start_date, end_date } = body ?? {};
-
-    if (!profile_id) return NextResponse.json({ error: "Profile ID required" }, { status: 400 });
-
-    if (!rateLimit(`muhurtha_${userId}`, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS).success) {
-      return NextResponse.json({ error: "Too many requests. Please wait a minute." }, { status: 429 });
-    }
-
-    const VALID_EVENT_TYPES = ["marriage", "house_entry", "business", "travel", "education", "medical"] as const;
-    if (event_type && !VALID_EVENT_TYPES.includes(event_type)) {
-      return NextResponse.json({ error: "Invalid event_type" }, { status: 400 });
-    }
-
-    const p = await db.profiles.get(profile_id, userId);
-    if (!p) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-
-    if (!p.current_location || !p.current_latitude || !p.current_longitude) {
-      return NextResponse.json({ error: "Current location required for Muhurtha" }, { status: 400 });
-    }
-
-    // Call Python Sidecar
-    const res = await fetchWithRetry(`${SIDECAR_URL}/muhurtha`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        birth_data: {
-          date_of_birth: p.date_of_birth,
-          time_of_birth: p.time_of_birth,
-          latitude: p.latitude,
-          longitude: p.longitude,
-          timezone: p.timezone,
-        },
-        current_location_data: {
-          date_of_birth: p.date_of_birth, // dummy, engine only needs coordinates/tz
-          time_of_birth: p.time_of_birth, // dummy
-          latitude: p.current_latitude,
-          longitude: p.current_longitude,
-          timezone: p.current_timezone || "UTC",
-        },
-        event_type: event_type || "marriage",
-        start_date,
-        end_date,
-      }),
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      return NextResponse.json({ error: `Engine error: ${errorText}` }, { status: 500 });
-    }
-
-    const { data } = await res.json();
-    return NextResponse.json(data);
-  } catch (e) {
-    console.error("POST /api/readings/muhurtha failed:", e);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const result = await searchPersonalMuhurtam(userId, parsed.data, id);
+    return privateJson(
+      {
+        timings: result.data.slots.map((slot) => ({
+          start_time: slot.start,
+          end_time: slot.end,
+          date: slot.date,
+          points: slot.reasons,
+          score: slot.score,
+          tier: slot.tier,
+        })),
+        evidence: result.evidence,
+        warnings: result.warnings,
+        request_id: result.request_id,
+      },
+      200,
+      id,
+    );
+  } catch (error) {
+    return privateFailure(error, id);
   }
 }
-

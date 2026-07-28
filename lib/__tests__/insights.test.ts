@@ -1,5 +1,4 @@
 import { generateInsights } from '../insights'
-import type { TodayInsight } from '@/components/tabs/TodayInsightCard'
 
 const baseDashas = {
   maha:       { planet: 'Sun',  start: '2020-04-15', end: '2026-04-15' },
@@ -14,6 +13,15 @@ describe('generateInsights', () => {
     const dashaInsight = insights.find(i => i.category === 'dasha')
     expect(dashaInsight).toBeDefined()
     expect(dashaInsight!.title).toMatch(/dasha|shift/i)
+  })
+
+  it('uses human language instead of zero weeks for an imminent shift', () => {
+    const today = new Date('2025-12-29')
+    const insights = generateInsights({ dashas: baseDashas }, null, today)
+    const shift = insights.find(i => i.id === 'pratyantar-transition')
+
+    expect(shift?.title).toContain('less than a week')
+    expect(shift?.title).not.toContain('~0 weeks')
   })
 
   it('falls back to upcoming pratyantar when no urgent insight fires and pratyantar not yet started', () => {

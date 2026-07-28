@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { PlanetsTab } from "../tabs/PlanetsTab";
 
 const mockOutput = {
   data: {
+    lagna: {
+      sign: "Aries", degree: 10.0, nakshatra: "Ashwini", pada: 3,
+    },
     planets: {
       Sun: {
         sign: "Leo", degree: 15.0, house: 5, nakshatra: "Purva Phalguni", pada: 2,
@@ -46,18 +49,36 @@ const mockOutput = {
 };
 
 describe("PlanetsTab", () => {
-  it("renders 9 planet name cells in the positions table", () => {
+  it("renders the complete nine-graha table from the D1 payload", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    // Each planet appears as a bold cell in the positions table
+
+    expect(screen.getByText("DashaFlow · Sidereal D1")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: /Sidereal D1 positions/i })).toBeInTheDocument();
     const planetNames = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
     for (const name of planetNames) {
       expect(screen.getAllByText(name).length).toBeGreaterThan(0);
     }
   });
 
-  it("shows retrograde marker for Mercury", () => {
+  it("uses Ascendant, Sun, and Moon as orientation anchors without ranking planets", () => {
     render(<PlanetsTab chartOutput={mockOutput} />);
-    expect(screen.getAllByText("℞").length).toBeGreaterThan(0);
+
+    const heading = screen.getByRole("heading", { name: "Chart anchors" });
+    const section = heading.closest("section");
+    expect(section).not.toBeNull();
+
+    const anchors = within(section as HTMLElement);
+    expect(anchors.getByText("Ascendant")).toBeInTheDocument();
+    expect(anchors.getByText("Sun")).toBeInTheDocument();
+    expect(anchors.getByText("Moon")).toBeInTheDocument();
+    expect(anchors.queryByText("Jupiter")).not.toBeInTheDocument();
+    expect(anchors.queryByText("Saturn")).not.toBeInTheDocument();
+    expect(anchors.getByText(/Orientation anchors, not a ranking/i)).toBeInTheDocument();
+  });
+
+  it("describes retrograde motion in words for Mercury", () => {
+    render(<PlanetsTab chartOutput={mockOutput} />);
+    expect(screen.getAllByText("Retrograde").length).toBeGreaterThan(0);
   });
 
   it("does not render shadbala data (moved to ShadabalaTab)", () => {
@@ -71,6 +92,14 @@ describe("PlanetsTab", () => {
     // Yoga name appears as tooltip on the ✦ badge in the planet's row
     const badge = document.querySelector('[title="Budhaditya Yoga"]');
     expect(badge).not.toBeNull();
+  });
+
+  it("does not manufacture functional benefic or malefic classifications", () => {
+    render(<PlanetsTab chartOutput={mockOutput} />);
+    expect(
+      screen.getByRole("heading", { name: "Benefic and malefic labels are not inferred" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/current calculation does not return that classification/i)).toBeInTheDocument();
   });
 
   it("renders nothing when chartOutput is empty", () => {

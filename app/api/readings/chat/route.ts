@@ -17,6 +17,23 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+const DASHBOARD_CONTEXT_LABELS = new Set([
+  "Today",
+  "Natal chart",
+  "Planets",
+  "Divisional charts",
+  "Dashas",
+  "Transits",
+  "Muhurtam",
+  "Tarabalam",
+  "Yogas",
+  "Jaimini",
+  "Ashtakavarga",
+  "Shadbala",
+  "Career",
+  "Marriage compatibility",
+]);
+
 export const dynamic = "force-dynamic";
 
 // POST /api/readings/chat
@@ -35,11 +52,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { profile_id, messages, model, tab, session_id } = body as {
+  const { profile_id, messages, model, tab, context_label, session_id } = body as {
     profile_id?: string;
     messages?: ChatMessage[];
     model?: AiModelKey;
     tab?: string;
+    context_label?: string;
     session_id?: string;
   };
 
@@ -47,14 +65,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "profile_id and messages required" }, { status: 400 });
   }
 
-  try { return await handleChat({ admin, userId, session_id: session_id ?? "", profile_id, messages, model, tab }); }
+  try {
+    return await handleChat({
+      admin,
+      userId,
+      session_id: session_id ?? "",
+      profile_id,
+      messages,
+      model,
+      tab,
+      context_label,
+    });
+  }
   catch (err) {
     const message = err instanceof Error ? err.message : "Something went wrong — please try again";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-async function handleChat({ admin, userId, session_id, profile_id, messages, model, tab }: {
+async function handleChat({ admin, userId, session_id, profile_id, messages, model, tab, context_label }: {
   admin: boolean;
   userId: string;
   session_id: string;
@@ -62,7 +91,11 @@ async function handleChat({ admin, userId, session_id, profile_id, messages, mod
   messages: ChatMessage[];
   model: AiModelKey | undefined;
   tab: string | undefined;
+  context_label: string | undefined;
 }): Promise<ReturnType<typeof NextResponse.json>> {
+  const safeContextLabel = context_label && DASHBOARD_CONTEXT_LABELS.has(context_label)
+    ? context_label
+    : "General chart exploration";
   const chatConfig = await db.settings.getChatLlm();
 
   // Quota check for non-admins
@@ -218,6 +251,7 @@ Name: ${profile.name}
 Date of birth: ${profile.date_of_birth}
 Time of birth: ${profile.time_of_birth} (${profile.timezone})
 Place of birth: ${profile.place_of_birth}
+Active dashboard context: ${safeContextLabel}
 
 === CHART DATA ===
 ${chartSummary}

@@ -1,35 +1,28 @@
 // Unified AI model registry — single source of truth for all AI features.
 // Every model picker in the app reads from here.
 //
-// 2026-06-24: Llama 4 Scout on Groq was retired (Groq deprecation schedule —
-// shutdown July 17, 2026). We migrated chat + draft defaults to Gemma 4 31B IT,
-// served by Google's generative-language API (same endpoint shape as Gemini,
-// so no separate provider plumbing is required). Groq is no longer a provider
-// — re-introduce by adding an entry with `provider: "groq"` and restoring
-// lib/engines/groq.ts from git history (commit ea897f2 or earlier).
+// GPT-OSS 120B is a Groq production model. It is the single active model so
+// every AI feature shares one provider contract and one staging credential.
 
 export const AI_MODELS = {
-  "gemini-flash": {
-    label: "Gemini 3.1 Flash Lite",
-    provider: "gemini" as const,
-    id: "gemini-3.1-flash-lite",
-  },
-  "gemma-4-31b-it": {
-    label: "Gemma 4 31B IT",
-    provider: "gemini" as const,
-    id: "gemma-4-31b-it",
+  "groq-gpt-oss-120b": {
+    label: "GPT-OSS 120B · Groq",
+    provider: "groq" as const,
+    id: "openai/gpt-oss-120b",
   },
 } as const;
 
 export type AiModelKey = keyof typeof AI_MODELS;
 
-export const DEFAULT_INSIGHT_MODEL: AiModelKey = "gemini-flash";
-export const DEFAULT_CHAT_MODEL: AiModelKey = "gemma-4-31b-it";
-export const DEFAULT_DRAFT_MODEL: AiModelKey = "gemma-4-31b-it";
+export const DEFAULT_INSIGHT_MODEL: AiModelKey = "groq-gpt-oss-120b";
+export const DEFAULT_CHAT_MODEL: AiModelKey = "groq-gpt-oss-120b";
+export const DEFAULT_DRAFT_MODEL: AiModelKey = "groq-gpt-oss-120b";
 
 const VALID_KEYS = new Set(Object.keys(AI_MODELS));
+const LEGACY_KEYS = new Set(["gemini-flash", "gemma-4-31b-it", "groq-scout"]);
 
 export function resolveModel(key: unknown, fallback: AiModelKey): AiModelKey {
+  if (typeof key === "string" && LEGACY_KEYS.has(key)) return fallback;
   return typeof key === "string" && VALID_KEYS.has(key) ? (key as AiModelKey) : fallback;
 }
 

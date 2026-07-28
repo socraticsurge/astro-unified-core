@@ -1,0 +1,254 @@
+.figure {
+  width: 100%;
+  margin: 0;
+}
+
+.chart {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-accent-dim);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 50%, var(--color-accent-faint), transparent 43%),
+    var(--color-surface-1);
+  box-shadow:
+    inset 0 0 0 4px var(--color-surface-1),
+    inset 0 0 0 5px var(--color-border),
+    var(--shadow-card);
+}
+
+.chart::after {
+  position: absolute;
+  inset: 7px;
+  z-index: 3;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 9px;
+  content: "";
+  pointer-events: none;
+}
+
+.centre,
+.cell {
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.centre {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 12px;
+  color: var(--color-ink-2);
+  text-align: center;
+}
+
+.centre::before {
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1;
+  border: 1px solid var(--color-accent-dim);
+  border-radius: 50%;
+  content: "";
+  opacity: 0.55;
+}
+
+.centreCode,
+.centre strong,
+.centreMeta {
+  position: relative;
+  z-index: 1;
+}
+
+.centreCode {
+  color: var(--color-accent);
+  font: 700 0.62rem/1 var(--font-ui);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.centre strong {
+  font: var(--type-weight-display) clamp(1rem, 3.6vw, 1.4rem)/var(--type-line-title) var(--font-display);
+}
+
+.centreMeta {
+  color: var(--color-ink-3);
+  font: 600 0.58rem/1.2 var(--font-ui);
+}
+
+.cell {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(7px, 1.8vw, 12px);
+  background: color-mix(in srgb, var(--color-surface-1) 82%, transparent);
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+.cell:hover {
+  z-index: 2;
+  background: var(--color-accent-faint);
+  box-shadow: inset 0 0 0 1px var(--color-accent-dim);
+}
+
+.lagnaCell {
+  background:
+    linear-gradient(145deg, var(--color-accent-faint), transparent 68%),
+    var(--color-surface-1);
+}
+
+.cellContext {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  color: var(--color-ink-4);
+  font: 700 clamp(0.48rem, 1.5vw, 0.62rem)/1 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lagnaBadge,
+.savScore {
+  position: absolute;
+  right: 8px;
+  font: var(--type-weight-label) clamp(0.48rem, 1.4vw, 0.62rem)/1 var(--font-ui);
+}
+
+.lagnaBadge {
+  top: 50%;
+  color: var(--color-accent);
+  transform: translateY(-50%);
+}
+
+.savScore {
+  bottom: 7px;
+  font-family: var(--font-mono);
+}
+
+.planets {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  flex-wrap: wrap;
+  gap: 3px 5px;
+  padding-top: 4px;
+}
+
+.planet {
+  font: 700 clamp(0.58rem, 1.8vw, 0.78rem)/1 var(--font-ui);
+  letter-spacing: 0.01em;
+}
+
+.planet sup {
+  margin-left: 1px;
+  font-size: 0.58em;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  padding: 10px 5px 0;
+  color: var(--color-ink-3);
+  font: 500 0.58rem/1.25 var(--font-ui);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend b,
+.legend i {
+  min-width: 15px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font: var(--type-weight-label) 0.52rem/1 var(--font-ui);
+}
+
+.legendLagna {
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+}
+
+.legendRetro {
+  color: var(--color-planet-retrograde);
+  background: var(--color-warning-faint);
+}
+
+.legendSupportive,
+.legendChallenging {
+  min-width: 8px !important;
+  width: 8px;
+  height: 8px !important;
+  border-radius: 50% !important;
+}
+
+.legendSupportive { background: var(--color-dignity-own); }
+.legendChallenging { background: var(--color-dignity-debilitated); }
+
+.legendScore {
+  color: var(--color-success);
+  background: var(--color-success-faint);
+  font-family: var(--font-mono) !important;
+}
+
+.compact .legend {
+  display: none;
+}
+
+.compact .cell {
+  padding: 4px;
+}
+
+.compact .centreMeta {
+  display: none;
+}
+
+.expanded {
+  max-width: 620px !important;
+}
+
+@media (max-width: 420px) {
+  .chart {
+    border-radius: 11px;
+  }
+
+  .cell {
+    padding: 6px;
+  }
+
+  .cellContext {
+    letter-spacing: 0;
+  }
+
+  .lagnaBadge {
+    right: 5px;
+  }
+
+  .legend {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell {
+    transition: none;
+  }
+}

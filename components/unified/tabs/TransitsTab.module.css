@@ -1,0 +1,309 @@
+.leadTools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.datePill {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid var(--color-accent-dim);
+  border-radius: 999px;
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+  font: var(--type-weight-label) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  letter-spacing: var(--type-track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.contextGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.contextCard {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 100% 0, var(--color-accent-faint), transparent 46%),
+    var(--color-surface-1);
+  box-shadow: var(--shadow-card);
+}
+
+.contextLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-ink-4);
+  font: var(--type-weight-label) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  letter-spacing: var(--type-track-label);
+  text-transform: uppercase;
+}
+
+.contextValue {
+  display: block;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  color: var(--color-ink-1);
+  font: var(--type-weight-display) var(--type-metric-size)/var(--type-line-title) var(--font-display);
+  text-wrap: balance;
+}
+
+.contextMeta {
+  margin-top: 6px;
+  color: var(--color-ink-3);
+  font: var(--type-weight-body) var(--type-caption-size)/var(--type-line-compact) var(--font-ui);
+  text-wrap: pretty;
+}
+
+.axisStrip {
+  display: grid;
+  grid-template-columns: auto auto minmax(42px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+  padding: 11px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-ink-3);
+  background: var(--color-surface-1);
+  font: var(--type-weight-body) var(--type-caption-size)/var(--type-line-compact) var(--font-ui);
+}
+
+.axisStrip strong {
+  color: var(--color-ink-1);
+  font-weight: var(--type-weight-label);
+}
+
+.axisLabel {
+  color: var(--color-ink-4);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+  letter-spacing: var(--type-track-label);
+  text-transform: uppercase;
+}
+
+.axisLine {
+  height: 1px;
+  background:
+    linear-gradient(
+      90deg,
+      var(--color-border) 0 45%,
+      transparent 45% 55%,
+      var(--color-border) 55% 100%
+    );
+}
+
+.planetGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.planetCard {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--color-border);
+  border-radius: 15px;
+  background: var(--color-surface-1);
+  box-shadow: var(--shadow-card);
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+
+.planetCard:hover {
+  border-color: var(--color-accent-dim);
+  transform: translateY(-1px);
+}
+
+.planetHeading {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.planetMark {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-accent-dim);
+  border-radius: 50%;
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+  font: var(--type-weight-display-strong) var(--type-body-sm-size)/1 var(--font-display);
+}
+
+.planetIdentity {
+  min-width: 0;
+}
+
+.planetIdentity strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--color-ink-1);
+  font: var(--type-weight-display) var(--type-title-sm-size)/var(--type-line-title) var(--font-display);
+}
+
+.planetIdentity span {
+  display: block;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  color: var(--color-ink-3);
+  font: var(--type-weight-title) var(--type-label-size)/var(--type-line-compact) var(--font-ui);
+}
+
+.savMetric {
+  min-width: 58px;
+  display: grid;
+  justify-items: end;
+  padding-left: 9px;
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+.savMetric > span {
+  color: var(--color-ink-4);
+  font: var(--type-weight-label) var(--type-label-size)/1 var(--font-ui);
+  letter-spacing: var(--type-track-label);
+}
+
+.savMetric strong {
+  margin-top: 3px;
+  color: var(--color-ink-2);
+  font: var(--type-weight-display-strong) 25px/0.95 var(--font-display);
+}
+
+.savMetric small {
+  max-width: 72px;
+  margin-top: 5px;
+  color: var(--color-ink-4);
+  font: var(--type-weight-title) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  text-align: right;
+}
+
+.savMetric[data-tone="higher"] strong,
+.savMetric[data-tone="higher"] small {
+  color: var(--color-success);
+}
+
+.savMetric[data-tone="lower"] strong,
+.savMetric[data-tone="lower"] small {
+  color: var(--color-warning);
+}
+
+.houseGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin-top: 13px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  background: var(--color-border-subtle);
+}
+
+.houseGrid > div {
+  min-width: 0;
+  padding: 9px 10px;
+  background: var(--color-surface-sunk);
+}
+
+.houseGrid dt {
+  color: var(--color-ink-4);
+  font: var(--type-weight-label) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  letter-spacing: var(--type-track-label);
+  text-transform: uppercase;
+}
+
+.houseGrid dd {
+  margin-top: 4px;
+  color: var(--color-ink-2);
+  font: var(--type-weight-title) var(--type-caption-size)/var(--type-line-compact) var(--font-ui);
+}
+
+.pointsNote,
+.emptyState {
+  padding: 13px 15px;
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  color: var(--color-ink-3);
+  background: var(--color-surface-sunk);
+  font: var(--type-weight-body) var(--type-caption-size)/var(--type-line-body) var(--font-ui);
+  text-wrap: pretty;
+}
+
+.pointsNote strong {
+  color: var(--color-ink-2);
+  font-weight: var(--type-weight-label);
+}
+
+@media (max-width: 980px) {
+  .contextGrid,
+  .planetGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .leadTools {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .datePill {
+    justify-content: center;
+  }
+
+  .axisStrip {
+    grid-template-columns: 1fr auto;
+  }
+
+  .axisLabel {
+    grid-column: 1 / -1;
+  }
+
+  .axisLine {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .contextGrid,
+  .planetGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .planetHeading {
+    grid-template-columns: 32px minmax(0, 1fr) minmax(58px, auto);
+  }
+}
+
+@media (max-width: 380px) {
+  .leadTools {
+    grid-template-columns: 1fr;
+  }
+
+  .axisStrip {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planetCard {
+    transition: none;
+  }
+
+  .planetCard:hover {
+    transform: none;
+  }
+}

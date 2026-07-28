@@ -1,5 +1,13 @@
 # Local design mockups (24MB) — not part of the deployed app
 design/
+prototypes/
+
+# Production database recovery artifacts must never enter a build context.
+backups/
+*.db
+*.db-wal
+*.db-shm
+*.db-info
 
 # Repo documentation — not needed at runtime
 docs/
@@ -10,8 +18,15 @@ AGENTS.md
 **/__tests__/
 **/*.test.ts
 **/*.test.tsx
+tests/
+test-results/
+playwright-report/
+playwright.config.ts
 vitest.config.ts
 vitest.setup.ts
+
+# Local framework output is rebuilt remotely.
+.next/
 
 # AI agent scratch directories
 .claude/

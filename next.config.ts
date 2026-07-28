@@ -1,6 +1,10 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
+const scriptSource = process.env.NODE_ENV === "development"
+  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+  : "script-src 'self' 'unsafe-inline'";
+
 const nextConfig: NextConfig = {
   // Don't try to bundle these — keep as node_modules imports.
   // geo-tz reads .dat files at runtime; bundling breaks fs.readFile lookups.
@@ -49,7 +53,7 @@ const nextConfig: NextConfig = {
             // connect-src keeps https: to allow Vercel Analytics / Speed Insights
             // and any future client-side fetches to third-party services. The
             // tighter `'self'` form (from PR #66) would break analytics.
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self';",
+            value: `default-src 'self'; ${scriptSource}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self';`,
           },
         ],
       },

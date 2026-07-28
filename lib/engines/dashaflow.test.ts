@@ -1,5 +1,9 @@
 import { vi, describe, it, expect, afterEach } from "vitest";
-import { fetchDashaflow, DashaflowInput } from "./dashaflow";
+import {
+  fetchDashaflow,
+  fetchDashaflowSubperiods,
+  DashaflowInput,
+} from "./dashaflow";
 
 describe("fetchDashaflow", () => {
   const mockInput: DashaflowInput = {
@@ -21,9 +25,15 @@ describe("fetchDashaflow", () => {
       json: async () => ({ status: "success", data: mockData }),
     } as Response);
 
-    const result = await fetchDashaflow(mockInput);
+    const result = await fetchDashaflow(mockInput, "2026-07-27");
     expect(result.data).toEqual(mockData);
     expect(result.error).toBeUndefined();
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/calculate"),
+      expect.objectContaining({
+        body: JSON.stringify({ ...mockInput, query_date: "2026-07-27" }),
+      }),
+    );
   });
 
   it("should return error detail on non-200 with JSON detail", async () => {
@@ -75,5 +85,40 @@ describe("fetchDashaflow", () => {
     const result = await fetchDashaflow(mockInput);
     expect(result.data).toBeNull();
     expect(result.error).toBe("Network Error");
+  });
+
+  it("requests exact Dasha children with the profile-local query date", async () => {
+    const children = [
+      {
+        planet: "Ketu",
+        start: "2020-02-28",
+        end: "2020-07-26",
+        days: 149.14,
+      },
+    ];
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        status: "ok",
+        data: { path: [2], children },
+      }),
+    } as Response);
+
+    const result = await fetchDashaflowSubperiods(
+      mockInput,
+      [2],
+      "2026-07-27",
+    );
+    expect(result.children).toEqual(children);
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/dasha-subperiods"),
+      expect.objectContaining({
+        body: JSON.stringify({
+          ...mockInput,
+          query_date: "2026-07-27",
+          path: [2],
+        }),
+      }),
+    );
   });
 });

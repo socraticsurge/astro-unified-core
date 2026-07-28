@@ -17,6 +17,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { getUnificationReleaseConfig } from "@/lib/unification-release";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -41,6 +42,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://astrochaganti.com"),
   title: "Astro Chaganti - Vedic Astrology Readings by Dr Chaganti",
   description:
     "Personal consultations and simplified readings of your current period, natal charts, career themes, and marriage compatibility.",
@@ -53,6 +55,7 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
+  const rootUsesAppShell = getUnificationReleaseConfig().mode !== "legacy";
   return (
     // No className="dark" — next-themes sets data-theme="dark" instead
     <html lang="en" suppressHydrationWarning>
@@ -69,19 +72,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <NextAuthProvider session={session}>
               <PostHogIdentifier />
               <AppShell
-              navBar={<NavBar />}
-              footer={
-                <footer className="pb-24 sm:pb-6 pt-2 flex items-center justify-end px-4 sm:px-6 opacity-20 hover:opacity-50 transition-opacity duration-300">
-                  <div className="flex items-center gap-3 text-[10px] text-[var(--color-ink-3)] tracking-wide">
-                    <span>© {CURRENT_YEAR} Astro Chaganti</span>
-                    <span className="text-[var(--color-border-subtle)]">·</span>
-                    <Link href="/privacy" className="hover:underline">Privacy</Link>
-                    <Link href="/terms" className="hover:underline">Terms</Link>
-                  </div>
-                </footer>
-              }
-              feedback={<FeedbackWidget />}
-            >
+                rootUsesAppShell={rootUsesAppShell}
+                navBar={<NavBar />}
+                footer={
+                  <footer className="pb-24 sm:pb-6 pt-2 flex items-center justify-end px-4 sm:px-6 opacity-20 hover:opacity-50 transition-opacity duration-300">
+                    <div className="flex items-center gap-3 text-[10px] text-[var(--color-ink-3)] tracking-wide">
+                      <span>© {CURRENT_YEAR} Astro Chaganti</span>
+                      <span className="text-[var(--color-border-subtle)]">·</span>
+                      <Link href="/privacy" className="hover:underline">Privacy</Link>
+                      <Link href="/terms" className="hover:underline">Terms</Link>
+                    </div>
+                  </footer>
+                }
+                feedback={<FeedbackWidget />}
+              >
                 {children}
               </AppShell>
             </NextAuthProvider>

@@ -1,19 +1,31 @@
-// Unified AI caller — routes to the correct provider based on model key.
+// Unified AI caller — routes every active model through Groq.
 // All AI features (insights, chat, drafts) go through these two functions.
-//
-// As of 2026-06-24 every active model in the registry is served via the
-// Google generative-language API (Gemini + Gemma share the same endpoint).
-// To re-introduce another provider, add it to AI_MODELS with a distinct
-// `provider` value and branch on it below.
 
 import { AI_MODELS, type AiModelKey, type ChatMessage } from "./models";
-import { callGemini, callGeminiText } from "./gemini";
+import { callGroq } from "./groq";
 
 export type AiCallOpts = {
   temperature?: number;
   maxTokens?: number;
   topP?: number;
 };
+
+function parseJsonResponse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenced?.[1]) return JSON.parse(fenced[1].trim());
+
+    const objectStart = text.indexOf("{");
+    const objectEnd = text.lastIndexOf("}");
+    if (objectStart >= 0 && objectEnd > objectStart) {
+      return JSON.parse(text.slice(objectStart, objectEnd + 1));
+    }
+
+    throw new Error("Groq returned an invalid JSON response");
+  }
+}
 
 // For structured JSON output — AI insights.
 export async function callAIForJson(
@@ -23,10 +35,13 @@ export async function callAIForJson(
   opts?: AiCallOpts,
 ): Promise<unknown> {
   const m = AI_MODELS[model];
-  return callGemini(m.id, systemPrompt, userPrompt, {
+  const text = await callGroq(m.id, systemPrompt, [{ role: "user", content: userPrompt }], {
     temperature: opts?.temperature,
-    maxOutputTokens: opts?.maxTokens,
+    maxTokens: opts?.maxTokens,
+    topP: opts?.topP,
+    jsonMode: true,
   });
+  return parseJsonResponse(text);
 }
 
 // For prose text output — chat and draft generation.
@@ -37,8 +52,9 @@ export async function callAIForText(
   opts?: AiCallOpts,
 ): Promise<string> {
   const m = AI_MODELS[model];
-  return callGeminiText(m.id, systemPrompt, messages, {
+  return callGroq(m.id, systemPrompt, messages, {
     temperature: opts?.temperature,
-    maxOutputTokens: opts?.maxTokens,
+    maxTokens: opts?.maxTokens,
+    topP: opts?.topP,
   });
 }

@@ -1,0 +1,600 @@
+.sourcePill {
+  align-self: start;
+  padding: 7px 10px;
+  border: 1px solid var(--color-accent-dim);
+  border-radius: 999px;
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+  font: var(--type-weight-label) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  letter-spacing: var(--type-track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.desktopTable {
+  display: block;
+}
+
+.mobileList {
+  display: none;
+}
+
+.tableFrame,
+.phalaPanel,
+.shiftPanel {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface-1);
+  box-shadow: var(--shadow-card);
+}
+
+.tableFrame {
+  overflow-x: auto;
+}
+
+.strengthTable,
+.componentTable {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--color-ink-2);
+  font-family: var(--font-ui);
+  font-size: var(--type-body-sm-size);
+}
+
+.strengthTable {
+  table-layout: fixed;
+}
+
+.strengthTable thead,
+.componentTable thead {
+  background: color-mix(
+    in srgb,
+    var(--color-surface-sunk) 88%,
+    transparent
+  );
+}
+
+.strengthTable th,
+.strengthTable td,
+.componentTable th,
+.componentTable td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.strengthTable thead th,
+.componentTable thead th {
+  color: var(--color-ink-4);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+  letter-spacing: var(--type-track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.strengthTable tbody tr:last-child th,
+.strengthTable tbody tr:last-child td,
+.componentTable tbody tr:last-child th,
+.componentTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.strengthTable tbody tr,
+.componentTable tbody tr {
+  transition: background 140ms ease;
+}
+
+.strengthTable tbody tr:hover,
+.componentTable tbody tr:hover {
+  background: var(--color-accent-faint);
+}
+
+.strengthTable thead th:first-child {
+  width: 22%;
+}
+
+.strengthTable thead th:nth-child(2),
+.strengthTable thead th:nth-child(3) {
+  width: 16%;
+}
+
+.planetIdentity {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.planetIdentity > strong {
+  color: var(--color-ink-1);
+  font-size: var(--type-body-sm-size);
+  font-weight: var(--type-weight-label);
+}
+
+.planetMark {
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-accent-dim);
+  border-radius: 50%;
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+  font: var(--type-weight-display-strong) var(--type-body-sm-size)/1 var(--font-display);
+}
+
+.rupaValue {
+  color: var(--color-ink-1);
+  font: var(--type-weight-display) var(--type-metric-size)/var(--type-line-title) var(--font-display);
+}
+
+.requiredValue {
+  color: var(--color-ink-3);
+  font-size: var(--type-body-sm-size);
+  font-weight: var(--type-weight-title);
+}
+
+.requirementCell {
+  min-width: 210px;
+  display: grid;
+  gap: 7px;
+}
+
+.requirementLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.requirementLabel strong,
+.requirementLabel span {
+  color: var(--color-ink-3);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-title);
+  line-height: var(--type-line-label);
+}
+
+.requirementCell[data-state="met"] .requirementLabel strong,
+.requirementCell[data-state="met"] .requirementLabel span {
+  color: var(--color-success);
+}
+
+.requirementCell[data-state="below"] .requirementLabel strong,
+.requirementCell[data-state="below"] .requirementLabel span {
+  color: var(--color-warning);
+}
+
+.requirementTrack {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-border-subtle);
+}
+
+.requirementTrack > span {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--color-ink-4);
+}
+
+.requirementCell[data-state="met"] .requirementTrack > span,
+.strengthCard[data-state="met"] .requirementTrack > span {
+  background: var(--color-success);
+}
+
+.requirementCell[data-state="below"] .requirementTrack > span,
+.strengthCard[data-state="below"] .requirementTrack > span {
+  background: var(--color-warning);
+}
+
+.boundaryNote {
+  margin-top: 9px;
+  color: var(--color-ink-4);
+  font: var(--type-weight-body) var(--type-caption-size)/var(--type-line-body) var(--font-ui);
+  text-wrap: pretty;
+}
+
+.boundaryNote strong {
+  color: var(--color-ink-3);
+}
+
+.componentTable {
+  min-width: 760px;
+  text-align: right;
+}
+
+.componentTable th,
+.componentTable td {
+  padding: 12px 13px;
+  text-align: right;
+}
+
+.componentTable thead th:first-child,
+.componentTable tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 116px;
+  border-right: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-1);
+  color: var(--color-ink-1);
+  font-weight: var(--type-weight-label);
+  text-align: left;
+}
+
+.componentTable thead th:first-child {
+  z-index: 2;
+  background: var(--color-surface-sunk);
+  color: var(--color-ink-4);
+}
+
+.componentTable thead th strong,
+.componentTable thead th span {
+  display: block;
+}
+
+.componentTable thead th strong {
+  color: var(--color-ink-3);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+}
+
+.componentTable thead th span {
+  margin-top: 3px;
+  color: var(--color-ink-4);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.componentTable td {
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-weight-title);
+  font-variant-numeric: tabular-nums;
+}
+
+.phalaPanel {
+  padding: 16px 18px;
+}
+
+.phalaLegend {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.32fr) repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 0 9px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.phalaLegend::before {
+  content: "";
+}
+
+.phalaLegend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-ink-3);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+}
+
+.phalaLegend span::before {
+  width: 7px;
+  height: 7px;
+  content: "";
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.phalaLegend span[data-kind="kashta"]::before {
+  background: var(--color-warning);
+}
+
+.phalaRows {
+  display: grid;
+}
+
+.phalaRow {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.32fr) repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.phalaRow:last-child {
+  border-bottom: 0;
+}
+
+.phalaRow > strong {
+  color: var(--color-ink-1);
+  font-size: var(--type-body-sm-size);
+  font-weight: var(--type-weight-label);
+}
+
+.phalaMeasure {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(50px, 1fr) 38px;
+  align-items: center;
+  gap: 8px;
+}
+
+.phalaMeasure > span:last-child {
+  color: var(--color-ink-3);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-title);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.phalaTrack {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-border-subtle);
+}
+
+.phalaTrack > span {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+
+.phalaTrack[data-kind="kashta"] > span {
+  background: var(--color-warning);
+}
+
+.shiftPanel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.shiftRow {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 15px;
+  border-right: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.shiftRow:nth-child(2n) {
+  border-right: 0;
+}
+
+.shiftRow:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.houseMove {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.houseMove > span {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.houseMove small {
+  color: var(--color-ink-4);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+  letter-spacing: var(--type-track-label);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.houseMove strong {
+  min-width: 31px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-ink-2);
+  background: var(--color-surface-sunk);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+}
+
+.houseMove b {
+  color: var(--color-accent);
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--type-weight-body);
+}
+
+.empty {
+  padding: 20px;
+  border: 1px dashed var(--color-border);
+  border-radius: 14px;
+  color: var(--color-ink-3);
+  background: var(--color-surface-sunk);
+  font: italic var(--type-weight-body) var(--type-body-sm-size)/var(--type-line-body) var(--font-ui);
+}
+
+.strengthCard,
+.componentCard {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--color-border);
+  border-radius: 15px;
+  background:
+    radial-gradient(
+      circle at 100% 0,
+      var(--color-accent-faint),
+      transparent 44%
+    ),
+    var(--color-surface-1);
+  box-shadow: var(--shadow-card);
+}
+
+.cardHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobileStatus {
+  color: var(--color-ink-3);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+}
+
+.strengthCard[data-state="met"] .mobileStatus {
+  color: var(--color-success);
+}
+
+.strengthCard[data-state="below"] .mobileStatus {
+  color: var(--color-warning);
+}
+
+.mobileRupas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 13px 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  background: var(--color-border-subtle);
+}
+
+.mobileRupas > div {
+  min-width: 0;
+  padding: 10px;
+  background: var(--color-surface-sunk);
+}
+
+.mobileRupas span,
+.componentCard dt {
+  color: var(--color-ink-4);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+  letter-spacing: var(--type-track-label);
+  line-height: var(--type-line-label);
+  text-transform: uppercase;
+}
+
+.mobileRupas strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--color-ink-1);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-weight-label);
+}
+
+.componentCard h3 {
+  color: var(--color-ink-1);
+  font: var(--type-weight-display) var(--type-title-sm-size)/var(--type-line-title) var(--font-display);
+}
+
+.componentCard dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 13px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+  background: var(--color-border-subtle);
+}
+
+.componentCard dl > div {
+  min-width: 0;
+  padding: 10px;
+  background: var(--color-surface-sunk);
+}
+
+.componentCard dt span {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-ink-4);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.componentCard dd {
+  margin-top: 6px;
+  color: var(--color-ink-1);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-weight-label);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 720px) {
+  .desktopTable {
+    display: none;
+  }
+
+  .mobileList {
+    display: grid;
+    gap: 10px;
+  }
+
+  .phalaPanel {
+    padding: 14px;
+  }
+
+  .phalaLegend {
+    grid-template-columns: 64px repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .phalaRow {
+    grid-template-columns: 64px repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .phalaMeasure {
+    grid-template-columns: minmax(28px, 1fr) 34px;
+    gap: 5px;
+  }
+
+  .shiftPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .shiftRow,
+  .shiftRow:nth-child(2n),
+  .shiftRow:nth-last-child(-n + 2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .shiftRow:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .sourcePill {
+    display: none;
+  }
+
+  .phalaLegend span {
+    font-size: var(--type-label-size);
+  }
+
+  .phalaRow > strong {
+    font-size: var(--type-caption-size);
+  }
+}

@@ -250,9 +250,16 @@ describe("GET /api/readings/today-reading", () => {
   it("returns 502 when the LLM throws", async () => {
     mockSession();
     mockReadings({});
-    vi.mocked(buildCurrentReading).mockRejectedValueOnce(new Error("LLM offline"));
+    vi.mocked(buildCurrentReading).mockRejectedValueOnce(
+      new Error("GOOGLE_GEMINI_API_KEY is not set"),
+    );
     const res = await GET(makeRequest());
+    const body = await res.json();
     expect(res.status).toBe(502);
+    expect(body.error).toBe(
+      "Personal reading is temporarily unavailable. Please try again.",
+    );
+    expect(JSON.stringify(body)).not.toContain("GOOGLE_GEMINI_API_KEY");
   });
 
   it("falls through to regenerate when cached output JSON is corrupted", async () => {

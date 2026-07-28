@@ -8,6 +8,223 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-07-27] — Signed-in timing and specialist workspaces
+
+### Changed
+- Rebuilt Marriage compatibility as a deliberate two-profile journey: the
+  current profile remains fixed, selecting the partner no longer triggers an
+  accidental calculation, and the user explicitly starts or repeats the
+  comparison.
+- Reorganized the full DashaFlow result into an honest classical-score
+  overview, exact eight-Koota table, paired Moon context, distinct Dosha
+  checks, exact Kuja contributors, supplementary Kutas, returned exceptions,
+  and a clear decision boundary. Saved checks still reopen without
+  recalculation.
+- Added a dedicated responsive visual system for Marriage compatibility with
+  semantic regions, colour-independent states, internally scrolling evidence
+  tables, and single-column phone layouts.
+- Rebuilt Career around the natal 10th-house foundation, the exact D10 chart,
+  a complete nine-graha professional emphasis map, engine-returned evidence,
+  and an unranked domain vocabulary. The page no longer combines Primary and
+  D10-strong planets into an all-positive significator subset.
+- Separated supportive career factors from explicitly returned complexities.
+  When DashaFlow returns no challenge for a chart, the interface now says so
+  and states the model boundary instead of inventing adverse influences or
+  implying that professional life is challenge-free.
+- Replaced the legacy theme pills, mixed-purpose metric cards, inline styles,
+  and partial significator display with the shared signed-in editorial lead,
+  semantic desktop table, complete mobile graha cards, exact evidence panels,
+  and a restrained domain grid.
+- Rebuilt Shadbala around four distinct reading layers: total Rupas against
+  each graha's own requirement, the exact six Virupa contributors, paired
+  Ishta/Kashta Phala, and secondary Bhava Chalit placement context. The new
+  hierarchy explicitly separates strength from beneficence and preserves every
+  engine-returned value.
+- Replaced the legacy 11-column mixed-purpose table and inline colour styles
+  with the approved signed-in editorial lead, a focused strength table,
+  colour-independent threshold labels, a disciplined component matrix,
+  responsive per-planet cards, paired phala measures, and exact house-shift
+  rows.
+- Rebuilt Ashtakavarga around the questions a reader can actually navigate:
+  each exact SAV score is now mapped from the returned Lagna to a house and
+  paired with that house's traditional life-area lens. The D1 chart and exact
+  seven-planet BAV contribution matrix now support the primary house reading
+  instead of competing with it.
+- Replaced the legacy bindu presentation with the shared signed-in editorial
+  lead, disciplined desktop table, complete mobile house cards, restrained
+  colour-independent support bands, and an internally scrolling mobile BAV
+  matrix. The page explicitly limits these scores to comparative support
+  context rather than presenting them as complete predictions.
+- Rebuilt Jaimini into a connected reading sequence: Atmakaraka and Karakamsha
+  first, the ordered Chara Karakas second, followed by the complete Arudha Pada
+  set and a distinct Upapada relationship context. Replaced legacy inline
+  styles, tiny generic tiles, and the inherited table language with a semantic
+  responsive presentation while preserving every engine-returned value.
+- Rebalanced Jaimini typography after owner review: display type now identifies
+  hierarchy without overpowering the page, while summaries, Karaka names,
+  planets, Arudha signs, and Upapada values share a quieter UI rhythm. Removed
+  competing planet pills and reduced excessive weight across labels and data.
+- Rebuilt Jaimini again from the approved shared signed-in primitives after the
+  owner identified a broader design-language departure. Removed inventory
+  counters, the directional diagram, numbered Karaka rows, the custom Arudha
+  matrix, and bespoke section typography. The tab now follows the Planets
+  pattern: shared editorial lead, three calculated anchors, disciplined data
+  tables, matching mobile cards, and a restrained context panel.
+- Rebuilt Yogas into a calculation-faithful hierarchy: major combinations
+  first, supporting combinations second, and Doshas/junction conditions in a
+  distinct contextual section. Replaced legacy generic chips and inline styles
+  with semantic planet labels, readable two-column cards, an interpretation
+  boundary, and responsive one-column behavior.
+- Rebuilt the Transits tab around the complete DashaFlow response: every
+  returned graha now presents sign, motion, houses from Lagna and Moon, and
+  prominent Sarvashtakavarga support.
+- Replaced the isolated warning-style Sade Sati banner with a restrained
+  current-context card, removed its redundant full-width explanation, and
+  retained the computed Rahu-Ketu axis.
+- Kept the current-sky chart on the natal SAV lattice while clarifying that
+  bindus are natal sign context rather than a complete prediction.
+- Rebuilt the signed-in Muhurtam journey around a general-first calculation,
+  followed by optional validation for one to four saved profiles.
+- Preserved the canonical engine's 1–14-day inclusive contract, restored the
+  complete occasion catalogue, and added public-style ranked result cards,
+  calculation evidence, expandable checks, and WhatsApp sharing.
+- Added an explicit authenticated `validation_mode`: general searches use the
+  active profile only as a location anchor and send no participant contexts;
+  personal searches send only anonymous derived contexts for owned profiles.
+- Rebuilt Tarabalam around the canonical exact Drik calculation with one to four
+  owned profiles, 1–90-day searches, three explicit Chandrabalam policies,
+  authoritative group verdicts, and complete per-person reasoning.
+- Consolidated the legacy duplicate desktop/mobile Tarabalam results into one
+  responsive result model with shortlist metrics, calculation evidence,
+  progressive disclosure, retry states, and WhatsApp sharing.
+- Presented that model as a compact comparison
+  table: one row per date, pinned date context, Moon and Tithi columns, an
+  overall verdict, and one Tara/Chandrabalam column per selected profile.
+
+### Added
+- Added four focused Marriage compatibility interaction/render contracts and
+  an API contract that rejects attempts to compare a profile with itself
+  before database or sidecar work.
+- Added six focused Career render contracts for exact 10th-house/D10
+  foundation data, complete indicator coverage, supportive and complicating
+  factors, honest factor absence, unranked domains, and explicit error/empty
+  states.
+- Recorded the current DashaFlow 1.1 career challenge boundary and the
+  engine-owned expansion requirement as backlog item D11.
+- Added five focused Shadbala render contracts for exact Rupa comparisons,
+  six-component Virupa evidence and units, Ishta/Kashta separation, genuine
+  Bhava Chalit shifts, and honest empty output.
+- Added four focused Ashtakavarga render contracts for Lagna-to-house mapping,
+  exact SAV values and support bands, D1 context, exact BAV values and totals,
+  and honest empty output.
+- Added focused Jaimini render contracts for primary orientation, exact
+  Karakamsha occupants, ordered Chara Karakas, Arudha/Upapada separation, and
+  honest empty output.
+- Added responsive, colour-independent SAV bands, the calculation date,
+  explicit empty/error/loading states, and five focused Transits contracts.
+- Added focused Muhurtam component, BFF, adapter, and ownership contracts for
+  general and personal modes, participant privacy, and the real range limit.
+- Added focused Tarabalam component and BFF contracts for profile order, Moon
+  policy, evidence mapping, long-result disclosure, and the exact 90-day limit.
+- Recorded per-tab acceptance criteria and the owner-approved Dasha accordion
+  review in the signed-in experience register.
+
+### Deployment
+- Deployed the Marriage compatibility pass only to the isolated
+  `astro-unified-staging` project as
+  `dpl_FGZr1Xuso69TU5SX5d4ZmjS6V2rE`; production was not changed.
+- Deployed the Career pass only to the isolated `astro-unified-staging`
+  project as `dpl_EaU3b1s8osuXMtxJLCsrMM3SmE8c`; production was not changed.
+- Deployed the Shadbala pass only to the isolated `astro-unified-staging`
+  project as `dpl_8hPedha999T13CgYJ2uLJoVXdVfW`; production was not changed.
+- Deployed the Ashtakavarga pass only to the isolated
+  `astro-unified-staging` project as `dpl_EfEp3KHHbXmNqUVx6UjoRHeMfPCx`;
+  production was not changed.
+- Deployed the Jaimini pass only to the isolated `astro-unified-staging`
+  project, with the shared-design-language rebuild current as
+  `dpl_DEfZsySRwQzmBcrg3ABKLSRg3j8J`; production was not changed.
+- Deployed only to the isolated `astro-unified-staging` project as
+  `dpl_6RnAY6nqsufMtQWmbibzfG2aYKQL`; production was not changed.
+- Reduced the Vercel upload context by excluding local framework output,
+  Playwright artifacts, configuration, and test directories.
+
+## [2026-07-26] — Gate 9 homepage rebuild, acceptance stabilization and system map
+
+### Added
+- Rebuilt the public home around daily Moon-sign guidance, with a twelve-sign
+  picker, computed transit evidence, a subtle animated zodiac field and a clear
+  invitation to add a birth profile for personal validation.
+- Added complete Panchangam presentation for the five limbs, the traditional
+  calendar line, supportive/caution windows, day/night Horas, day/night
+  Choghadiya and Lagna transitions.
+- Expanded the public Muhurtam finder to expose the complete activity
+  catalogue, explain its three-step journey, preserve public results, invite
+  profile validation and support WhatsApp sharing.
+- Added focused homepage regression tests for the horoscope-first hierarchy,
+  supported occasions, calendar continuity and secondary PyPI pathway.
+- Connected the hero's Surya and Chandra markers to the backend's computed
+  Lahiri sidereal longitudes at sunrise, with visible evidence of the values
+  and an explicit fallback while a calculation loads.
+- Added a genuinely interactive public Muhurtam journey: occasion, place/date
+  range, then the boundary between anonymous results and saved-profile
+  validation.
+- Replaced the legacy calendar-site handoff with a complete in-page
+  subscription builder covering 22 locations, three calculation systems and
+  full, festivals-only or observances-only feeds, plus copying, direct calendar
+  opening and Google/Apple/Outlook instructions.
+
+### Changed
+- Location, date and Drik settings now resolve quietly and live behind
+  one sticky, clearly editable page-level control instead of being repeated in
+  Panchangam.
+- Choghadiya and Lagna transitions now share the scannable day/night timing-row
+  language used by Planetary Horas; Choghadiya also names each interval as
+  favourable, movable or caution instead of relying on color alone.
+- Moved homepage section navigation into the same bar as the logo and sign-in,
+  added proximity section snapping, and introduced restrained palm-leaf
+  manuscript lines, inset frames and ornaments.
+- Kept stable `.ics` subscriber endpoints as infrastructure while moving the
+  entire discovery and setup experience into Astro Chaganti; the legacy
+  Panchangam landing page is no longer linked from the unified home.
+- Reframed the calendar-feed action as a continuing service, explains the
+  current migration boundary and keeps existing subscriber URLs explicitly
+  safe.
+- Refined the astrologer biography spacing and retained only owner-approved
+  astrology experience claims alongside separately sourced academic context.
+- Deployed the rebuilt homepage only to isolated staging as
+  `dpl_CqSecbjJMeceXrabu4aXcjDCAaEV`, consuming the separately deployed
+  staging calculation service `dpl_H5LZCWuAPG6fMjVXhzR2ucYtaMoX`.
+
+### Fixed
+- Removed duplicate sunrise/sunset and date-setting presentations, improved
+  the computed traditional calendar context, and corrected Muhurtam results so
+  the visible count always matches the rendered cards with an explicit
+  show-all action.
+- An adversarial phone pass reduced the sticky day context from two rows to a
+  compact 60-pixel strip and restored visible decimal numbering to calendar
+  instructions.
+- The authenticated Today and Natal views now preserve deterministic chart,
+  dasha, and transit content when the optional LLM narrative provider is
+  unavailable, and show an explicit retry action instead of silently omitting
+  the reading.
+- `/api/readings/today-reading` now records generation failures in Sentry while
+  returning a stable user-safe message; provider responses and environment
+  variable names are no longer reflected to the browser.
+- Added regression coverage for both unavailable states and for redaction of a
+  missing provider-key error.
+
+### Documentation
+- Added a current system map covering canonical and legacy repositories, local
+  folders, Vercel runtimes, Turso boundaries, request flow and source ownership.
+- Replaced the localhost acceptance handoff with the durable Vercel staging
+  environment and recorded that both staged worktrees must be committed and
+  rebuilt from clean Git SHAs before production.
+- Added a realistic Gate 9 path from owner review through reproducible release,
+  go/no-go, cutover, stabilization, SEO migration and separate retirement.
+- Verified all 198 published feed combinations (22 cities × 3 systems × 3 feed
+  types) as HTTP 200 and recorded the complete desktop/mobile, accessibility,
+  interaction and console-health challenge pass.
+
 ## [2026-06-24] — Admin dashboard: AI chat usage view
 
 Until now we shipped the chat feature without any admin-side visibility into who's using it. This adds a dedicated tab with the aggregated stats an admin needs to gauge adoption, see which model is doing the work, and spot specific sessions.
@@ -40,6 +257,189 @@ Groq announced the deprecation of `meta-llama/llama-4-scout-17b-16e-instruct` wi
 
 ### Notes on stored user preferences
 Any user with a persisted `chat.user_model = "groq-scout"` setting will now hit `resolveModel`'s unknown-key fallback path and silently get `DEFAULT_CHAT_MODEL` (Gemma 4 31B IT). No DB migration required.
+
+---
+
+## [2026-07-22] — Establish the Astro Chaganti unification programme
+
+### Added
+- Product principles and eleven explicit owner-approval gates for safely
+  consolidating the public Panchangam experience into Astro Chaganti.
+- Blue-green environment boundaries, staging isolation, compatibility rules,
+  cutover controls, and rollback invariants.
+- Evidence requirements for backend parity, public and personalized acceptance,
+  migration rehearsal, stabilization, and eventual retirement.
+- Read-only Gate 1 baseline covering repositories, Vercel, Turso schema/auth,
+  Panchangam workflows and artifacts, DNS/SEO, observability, rollback, and
+  unresolved owner/dashboard confirmations.
+- Gate 2 target-experience proposal covering the public and authenticated route
+  map, homepage composition, feature placement, simplified chart navigation,
+  profile-aware Muhurtam journey, subscriber continuity, and owner-supplied
+  astrologer-profile content.
+- Gate 3 technical-architecture proposal covering service ownership, isolated
+  staging, versioned computation/BFF contracts, cache and privacy boundaries,
+  Turso migrations, service security, feed artifacts, jobs, admin operations,
+  observability, rollback, runtime alignment, and initial cost controls.
+- Gate 4 isolated visual prototype covering the unified public home, daily
+  Panchangam, Rasi Phalalu, useful public Muhurtam with profile-aware validation
+  invitation, signed-in dashboard, profile onboarding, and protected admin
+  workspace at desktop and mobile breakpoints.
+- Gate 5 additive Telugu Calendar FastAPI contract, twelve-case parity matrix,
+  security/error/cache tests, full repository regression, and an isolated
+  protected Vercel preview in `bom1`.
+- Gate 6 isolated `/unified` public experience with live Panchangam, generic
+  Rasi Phalalu, a usable public Muhurtam calculator, profile-upgrade language,
+  feed continuity, responsive layouts, accessible controls, and sharing.
+- Server-only Panchangam client plus validated, rate-limited and CDN-cacheable
+  `/api/public/panchangam`, `/api/public/horoscope`, and
+  `/api/public/muhurtam` BFF routes. Public Muhurtam always sends an empty
+  participant list; the browser never receives the service URL or token.
+- Crawlable `robots.txt` and `sitemap.xml` metadata routes with private and
+  staging surfaces excluded.
+- Gate 7 isolated Turso staging database at schema version 11, idempotent
+  guarded migration/seed commands, three synthetic users, four synthetic
+  profiles, and fail-closed owner/admin staging credentials.
+- Canonical authenticated `/api/readings/muhurtam` and
+  `/api/readings/tarabalam` routes backed by Telugu Calendar Utilities. Mixed
+  owner/cross-user profile lists fail as a whole, private responses are never
+  cached, and upstream participant payloads contain anonymous labels plus only
+  derived Nakshatra/Rasi/Lagna context.
+- Six-group signed-in workspace navigation and five-group admin navigation,
+  with profile-aware Muhurtam/Tarabalam available to registered users and
+  existing specialist/admin chart depth retained.
+- Gate 8 fail-closed rehearsal release mode: the unified experience can replace
+  `/` only when the dedicated staging web URL, project hostname, Turso host and
+  Telugu API URL all match. Rehearsal pages are non-indexable, health includes
+  all three dependencies and the safe release state, and the root remains a
+  static CDN document.
+- A production-like migration/rollback runbook with exact URL-continuity rules,
+  release triggers and separate application/database recovery procedures.
+
+### Changed
+- Expanded the product story to include public daily Panchangam and Rasi Phalalu
+  alongside authenticated, profile-aware charts and Muhurtam selection.
+- Recorded the primary-domain robots/sitemap redirect defect, shared preview DB
+  risk, runtime drift, sidecar security boundary, and legacy Vercel project as
+  tracked backlog items.
+- Traced the legacy Vercel `astrochaganti` deployment to the separate private
+  `socraticsurge/astrochaganti` product; its traffic and data remain unverified.
+- Recorded owner approval of Gate 1 and advanced the programme to Gate 2 review;
+  the six unresolved baseline confirmations remain tracked inputs rather than
+  being silently treated as resolved.
+- Recorded owner approval of Gate 2 with an amended Muhurtam boundary: the
+  baseline calculator remains public, while sign-in adds saved-profile and
+  deeper chart validation. Added the protected admin workspace as an explicit
+  authenticated-experience workstream and advanced the programme to Gate 3.
+- Identified the current TypeScript Tarabalam extrapolation and DashaFlow
+  six-activity Muhurtha approximation as controlled migration targets; neither
+  production path changes until Telugu Calendar Utilities parity is proven.
+- Recorded owner approval of Gate 3 and advanced the programme to Gate 4 visual
+  review. Added `prototypes/` to `.vercelignore` so the review artifact cannot
+  enter a Vercel build or affect current production routes.
+- Recorded directional owner approval of Gate 4 and advanced the programme to
+  Gate 5 backend parity. Detailed visual refinements remain tracked as part of
+  staging implementation rather than being treated as production-ready from a
+  static prototype.
+- Recorded owner approval of Gate 5 and advanced the programme to Gate 6 public
+  experience implementation. No production source switch is authorised.
+- Aligned the declared web runtime with the existing Vercel Node 24 setting and
+  migrated the deprecated Next.js middleware convention to `proxy.ts`.
+- Made client analytics initialization conditional on a configured PostHog key
+  so analytics-free staging environments remain console-clean.
+- Deployed Gate 6 to the dedicated `astro-unified-staging` project, backed only
+  by `telugu-calendar-api-staging` and independently rotatable staging secrets.
+  Desktop, phone, live interaction, cache, error, console, and semantic checks
+  are complete; the programme is awaiting explicit Gate 6 owner review.
+- Recorded owner approval of Gate 6 and advanced the programme to Gate 7. The
+  approved direction retains explicit refinement work for widows, awkward line
+  breaks, hanging text, and a more engaging animated hero; a daily DashaFlow
+  transit visualization is tracked as a candidate rather than silently added
+  to the critical path.
+- Replaced the legacy mean-motion Tarabalam and six-event DashaFlow Muhurtha
+  routes with the canonical Telugu Calendar computation path while retaining a
+  safe compatibility wrapper for the historic `/muhurtha` spelling.
+- Deployed Gate 7 only to `astro-unified-staging` as
+  `dpl_9Z9dcoq5vgz7o21h2ajqha3FRyF9`. Owner, admin, multi-profile timing,
+  responsive, semantic, cache, console, build, and regression checks pass.
+- Recorded owner approval of Gate 7 and advanced the programme to the Gate 8
+  migration rehearsal. Detailed experience refinements remain open for later
+  review; approval does not authorise a production release, source switch, or
+  retirement.
+- Deployed the Gate 8 rehearsal only to `astro-unified-staging` as
+  `dpl_DkvRBucDzEQxnoxj4WozSHtMfnCq`. The prior Gate 7 deployment rolled back
+  in 5.34 seconds and the final rehearsal restored in 5.23 seconds. Production
+  Astro, GitHub Pages, Actions, feeds, DNS, OAuth and Turso remain unchanged.
+- Recorded owner approval of Gate 8 for functionality and migration safety and
+  advanced the programme to Gate 9 release preparation. Restoring a visible
+  brand logo and replacing the weak hero with the stronger approved direction
+  remain explicit pre-production requirements, not deferred post-release work.
+- Restored the Astro Chaganti orbital brand mark and application shell on the
+  unified root, replaced the weak hero with an animated Panchangam-derived
+  lunar-day portrait, improved responsive text wrapping, and deployed the
+  reviewed visual candidate only to staging.
+- Added an inactive, fail-closed Gate 9 production release mode. It activates
+  only when the exact production auth URL, Vercel project host, Turso database
+  host and dedicated production Panchangam service all match; mixing any
+  staging dependency returns the existing legacy experience.
+- Positively identified production Turso at schema 11 with 105 users and 125
+  profiles using aggregate counts only. Recorded delete protection being off,
+  missing PITR/export/restore evidence, and the undeployed production Telugu API
+  as hard release blockers. Existing production deployment, data, aliases,
+  feeds, Actions and OAuth configuration remain unchanged.
+- Deployed the complete Gate 9 staging candidate as
+  `dpl_GwBcP697Aeaab5sSBh2UXsEJsmc6`. All 60 Vitest files / 468 tests,
+  TypeScript, lint, palette, 26-route and optimized-build checks pass; live
+  staging health is green and remains `rehearsal` plus `Disallow: /`.
+- Replaced the public astrologer placeholder with the owner-approved portrait
+  and a grounded profile: 14+ years studying/practising Vedic astrology, 400+
+  consultations, and separately substantiated academic credentials. The image
+  was identity-preserved, naturally reframed and optimized to a 108 KB WebP.
+- Enabled and verified delete protection on production Turso. Exported a dated,
+  owner-only recovery image to the gitignored FileVault-backed backup directory,
+  confirmed SQLite integrity, restored it to a disposable Turso database in
+  4.916 seconds, proved exact aggregate parity, and removed only that clone in
+  1.149 seconds. No schema or production row was changed or inspected.
+- Added explicit public proxy handling for `/images/*` and `/icon.svg`, with 11
+  regression cases proving public assets remain anonymous while application
+  workspaces stay protected. The optimized portrait now passes live desktop and
+  phone loading, overflow, semantics and console checks.
+- Permanently excluded `backups/` plus SQLite, WAL and export-info artifacts
+  from Vercel build contexts. The one staging build that revealed the missing
+  exclusion was cancelled and deleted before aliasing. The clean candidate is
+  `dpl_BnfRNuvjj63MGxd932EbyifoZPJs`; live health remains fully green in
+  fail-closed rehearsal mode.
+- Deployed the reviewed Telugu Calendar FastAPI contract to the isolated
+  production project as `dpl_2WpDHW73JjfAc6ENG3L88vdYNL92`. A fresh sensitive
+  service token is shared only with Astro production, and health, auth,
+  Panchangam, Rasi Phalalu, Tarabalam and participant-aware Muhurtam smoke tests
+  pass. At API deployment time Astro's release switch was still absent; its
+  production aliases continue to resolve to
+  `dpl_F6yWeNZ2Mx9fzdjwMnan19cM9HdY` pending go/no-go.
+- Corrected the Gate 9 release boundary to match Vercel's actual
+  `VERCEL_PROJECT_PRODUCTION_URL` semantics: a project with a custom production
+  domain reports `astrochaganti.com`, not the generated project hostname. Added
+  production/rehearsal presentation tests and removed the rehearsal banner from
+  the production-mode root while preserving it on staging and `/unified`.
+- Built the final unaliased Astro release candidate as
+  `dpl_3VQvBeJransUK8MnN7QB6ksRSUQt`. All 62 Vitest files / 481 tests,
+  TypeScript, palette, 27-route and Vercel optimized-build checks pass. Health,
+  root/SEO, public Panchangam/Rasi/Muhurtam, provider discovery and private-route
+  protection checks pass; Sentry source maps uploaded and post-QA Vercel error
+  scans are empty. Production aliases remain on
+  `dpl_F6yWeNZ2Mx9fzdjwMnan19cM9HdY` pending explicit go/no-go.
+- Recorded the native Turso PITR result without overstating it: the CLI reports
+  `starter`, but two timestamped clone attempts returned `internal server error`
+  and created no clone. The exact-parity manual export/restore remains the
+  verified Gate 9 recovery mechanism; native PITR is tracked for Turso follow-up.
+- Paused Gate 9 promotion for owner-led local testing. Added a fail-closed local
+  review boundary that requires development mode, `localhost:3001`, the
+  synthetic staging Turso host and a locally authenticated Telugu API. The same
+  synthetic owner/admin identities work locally without changing Google OAuth.
+- Verified the local review end to end: dependency health and Panchangam are
+  green, synthetic owner login reaches the dashboard, synthetic admin login
+  reaches `/admin`, and all 62 Vitest files / 485 tests plus TypeScript, lint,
+  palette and 27-route checks pass. Production traffic and aliases are unchanged;
+  a fresh unaliased candidate will follow owner feedback.
 
 ---
 

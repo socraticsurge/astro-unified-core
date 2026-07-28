@@ -1,6 +1,6 @@
 # Astro Chaganti — Project Standards
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-07-26 -->
 
 > **Agent-neutral.** These rules apply to Claude Code, Jules, Gemini, and any
 > future agent. They are the single source of truth for all coding standards.
@@ -199,7 +199,7 @@ check auth. CDN caches do not scope by user.
 `ensureSchema()` in `lib/db/client.ts` is the only migration mechanism.
 
 1. Write DDL in `ensureSchema()`.
-2. Bump `SCHEMA_VERSION` (currently `7`).
+2. Bump `SCHEMA_VERSION` (currently `11`).
 3. Wrap `ALTER TABLE … ADD COLUMN` in `try/catch` to handle re-runs on existing DBs.
 4. Add the new module in `lib/db/your-table.ts`.
 5. Export from `lib/db/index.ts` and add to the `db` object.

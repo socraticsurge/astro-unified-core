@@ -1,5 +1,6 @@
 import "server-only";
 import { callAIForJson } from "./ai-caller";
+import { DEFAULT_INSIGHT_MODEL } from "./models";
 import { lookupDashaPair, lookupAscendant } from "@/lib/content/lookup";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import type { Profile } from "@/lib/db";
@@ -154,7 +155,7 @@ Return JSON only:
   "dasha_reading": "the reading text"
 }`;
 
-  const raw = (await callAIForJson("gemini-flash", systemPromptFor("current", llmConfig), userPrompt, {
+  const raw = (await callAIForJson(DEFAULT_INSIGHT_MODEL, systemPromptFor("current", llmConfig), userPrompt, {
     temperature: llmConfig.temperature,
     maxTokens: llmConfig.max_tokens,
   })) as Record<string, unknown>;
@@ -207,7 +208,7 @@ Return JSON only:
   "chart_reading": "the reading text"
 }`;
 
-  const raw = (await callAIForJson("gemini-flash", systemPromptFor("natal", llmConfig), userPrompt, {
+  const raw = (await callAIForJson(DEFAULT_INSIGHT_MODEL, systemPromptFor("natal", llmConfig), userPrompt, {
     temperature: llmConfig.temperature,
     maxTokens: llmConfig.max_tokens,
   })) as Record<string, unknown>;

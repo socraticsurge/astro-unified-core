@@ -102,6 +102,35 @@
 /* ── Fallback root (shadcn needs a base :root) ── */
 :root {
   --radius: 0.625rem;
+
+  /* ── Typography system ──────────────────────────────────────
+     Families are supplied by next/font in app/layout.tsx.
+     These semantic roles are shared by every authenticated tab. */
+  --type-label-size: 0.5625rem;       /* 9px — eyebrows, table heads */
+  --type-caption-size: 0.625rem;      /* 10px — metadata, hints */
+  --type-body-sm-size: 0.6875rem;     /* 11px — compact tables, controls */
+  --type-body-size: 0.75rem;          /* 12px — default interface copy */
+  --type-body-lg-size: 0.8125rem;     /* 13px — reading copy */
+  --type-title-sm-size: 1.125rem;     /* 18px — card titles */
+  --type-metric-size: 1.3125rem;      /* 21px — compact scores and values */
+  --type-title-size: clamp(1.3125rem, 3vw, 1.75rem);
+  --type-feature-size: clamp(1.5rem, 3.2vw, 2.125rem);
+  --type-page-size: clamp(1.5625rem, 3vw, 2.125rem);
+
+  --type-weight-regular: 400;
+  --type-weight-body: 500;
+  --type-weight-title: 600;
+  --type-weight-label: 700;
+  --type-weight-display: 400;
+  --type-weight-display-strong: 700;
+
+  --type-line-label: 1.25;
+  --type-line-compact: 1.45;
+  --type-line-body: 1.6;
+  --type-line-title: 1.12;
+  --type-track-label: 0.1em;
+  --type-track-title: -0.015em;
+
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -533,9 +562,10 @@
 
 /* ── Eyebrow label ── */
 .ac-eyebrow {
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: var(--tracking-label);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+  letter-spacing: var(--type-track-label);
+  line-height: var(--type-line-label);
   text-transform: uppercase;
   color: var(--color-ink-3);
 }
@@ -548,9 +578,10 @@
   margin-bottom: 10px;
 }
 .ac-section-title {
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: var(--tracking-label);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+  letter-spacing: var(--type-track-label);
+  line-height: var(--type-line-label);
   text-transform: uppercase;
   color: var(--color-ink-3);
 }
@@ -570,12 +601,14 @@
 .ac-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-line-compact);
 }
 .ac-table thead th {
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: var(--tracking-label);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+  letter-spacing: var(--type-track-label);
+  line-height: var(--type-line-label);
   text-transform: uppercase;
   color: var(--color-ink-3);
   text-align: left;
@@ -593,8 +626,8 @@
 .ac-table tbody tr:last-child td { border-bottom: 0; }
 .ac-table tbody tr:nth-child(2n) td { background: var(--color-surface-sunk); }
 .ac-table tbody tr:hover td { background: var(--color-accent-faint); transition: background 120ms; }
-.ac-table .num   { font-family: var(--font-mono); font-size: 12px; }
-.ac-table .planet { font-weight: 600; color: var(--color-cool); }
+.ac-table .num   { font-family: var(--font-mono); font-size: var(--type-caption-size); }
+.ac-table .planet { font-weight: var(--type-weight-title); color: var(--color-cool); }
 .ac-table .muted { color: var(--color-ink-3); }
 .ac-table .right { text-align: right; }
 .ac-table th.right { text-align: right; }
@@ -604,8 +637,9 @@
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-weight-body);
+  line-height: var(--type-line-label);
   letter-spacing: 0.01em;
   background: var(--color-surface-sunk);
   color: var(--color-ink-2);
@@ -620,7 +654,7 @@
 .ac-tag.solid { background: var(--color-accent); color: var(--color-button-fg); border-color: var(--color-accent); }
 
 /* ── Retrograde / combust / dash markers ── */
-.ac-retro   { color: var(--color-warning); font-family: var(--font-display); font-style: italic; font-weight: 700; }
+.ac-retro   { color: var(--color-warning); font-family: var(--font-display); font-style: italic; font-weight: var(--type-weight-display-strong); }
 .ac-combust { width: 7px; height: 7px; border-radius: 50%; background: var(--color-danger); display: inline-block; vertical-align: middle; }
 .ac-dash    { color: var(--color-ink-4); }
 
@@ -633,10 +667,11 @@
 .ac-kv > div {
   padding: 10px 16px;
   border-bottom: var(--border-width) solid var(--color-border-subtle);
-  font-size: 13.5px;
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-line-compact);
 }
 .ac-kv .k { color: var(--color-ink-3); }
-.ac-kv .v { color: var(--color-ink-1); text-align: right; font-weight: 500; }
+.ac-kv .v { color: var(--color-ink-1); text-align: right; font-weight: var(--type-weight-body); }
 .ac-kv .v.accent { color: var(--color-accent); }
 .ac-kv .v.cool   { color: var(--color-cool); }
 
@@ -645,7 +680,8 @@
 .ac-pill {
   padding: 4px 11px;
   border-radius: var(--radius-full);
-  font-size: 12px;
+  font-size: var(--type-body-sm-size);
+  line-height: var(--type-line-label);
   border: var(--border-width) solid var(--color-border);
   background: var(--color-surface-2);
   color: var(--color-ink-2);
@@ -655,14 +691,14 @@
 .ac-pill.accent { color: var(--color-accent); border-color: var(--color-accent-dim); background: var(--color-accent-faint); }
 
 /* ── Table cell tinting (BAV scores, SAV scores) ── */
-.ac-cell-good { color: var(--color-success); background: var(--color-success-faint); font-weight: 600; }
-.ac-cell-bad  { color: var(--color-danger);  background: var(--color-danger-faint);  font-weight: 600; }
+.ac-cell-good { color: var(--color-success); background: var(--color-success-faint); font-weight: var(--type-weight-title); }
+.ac-cell-bad  { color: var(--color-danger);  background: var(--color-danger-faint);  font-weight: var(--type-weight-title); }
 
 /* ── Display typography ── */
 .ac-h1 {
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 400;
+  font-size: var(--type-metric-size);
+  font-weight: var(--type-weight-display);
   color: var(--color-ink-1);
   line-height: 1.18;
 }
@@ -674,7 +710,7 @@
   grid-template-columns: 56px 1fr;
   row-gap: 6px;
   column-gap: 8px;
-  font-size: 12px;
+  font-size: var(--type-body-sm-size);
 }
 .ac-bio dt { color: var(--color-ink-3); padding-top: 1px; }
 .ac-bio dd { color: var(--color-ink-1); margin: 0; line-height: 1.45; }
@@ -682,7 +718,8 @@
 /* ── Sidebar person header ── */
 .ac-person-name {
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: var(--type-title-sm-size);
+  font-weight: var(--type-weight-display);
   color: var(--color-ink-1);
   letter-spacing: 0.005em;
   display: flex;
@@ -690,8 +727,8 @@
   justify-content: space-between;
   margin-bottom: 4px;
 }
-.ac-person-name-icons { display: flex; gap: 12px; color: var(--color-ink-3); font-size: 11px; }
-.ac-person-meta { font-size: 12px; color: var(--color-ink-3); }
+.ac-person-name-icons { display: flex; gap: 12px; color: var(--color-ink-3); font-size: var(--type-body-sm-size); }
+.ac-person-meta { font-size: var(--type-body-sm-size); color: var(--color-ink-3); }
 
 /* ── Eyebrow with horizontal rule ── */
 .ac-eyebrow.with-rule {
@@ -724,8 +761,8 @@
   font-size: 52px;
   color: var(--color-accent);
   line-height: 1;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: var(--type-weight-display-strong);
+  letter-spacing: var(--type-track-title);
 }
 .ac-score-bar {
   height: 6px;
@@ -749,7 +786,8 @@
   padding: 10px 14px;
   border-radius: var(--radius-md);
   border: var(--border-width) solid;
-  font-size: 13.5px;
+  font-size: var(--type-body-size);
+  line-height: var(--type-line-compact);
 }
 .ac-banner.accent { background: var(--color-accent-faint); border-color: var(--color-accent-dim); color: var(--color-accent); }
 .ac-banner.warn   { background: var(--color-warning-faint); border-color: var(--color-warning-border); color: var(--color-warning); }
@@ -765,21 +803,24 @@
 }
 .ac-dasha-row:last-child { border-bottom: 0; }
 .ac-dasha-row .level {
-  font-size: 10.5px;
-  letter-spacing: var(--tracking-label);
+  font-size: var(--type-label-size);
+  letter-spacing: var(--type-track-label);
+  line-height: var(--type-line-label);
   text-transform: uppercase;
   color: var(--color-ink-3);
-  font-weight: 600;
+  font-weight: var(--type-weight-label);
 }
 .ac-dasha-row .planet-name {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: var(--type-title-sm-size);
   color: var(--color-ink-1);
-  font-weight: 700;
+  font-weight: var(--type-weight-display);
+  line-height: var(--type-line-title);
 }
 .ac-dasha-row .range {
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: var(--type-caption-size);
+  line-height: var(--type-line-compact);
   color: var(--color-ink-3);
 }
 .ac-dasha-row.current { background: var(--color-accent-faint); }
@@ -805,8 +846,8 @@
     padding: 12px 14px;
   }
   .ac-dasha-row .level       { grid-area: level; align-self: center; text-align: right; }
-  .ac-dasha-row .planet-name { grid-area: planet; font-size: 15px; line-height: 1.15; }
-  .ac-dasha-row .range       { grid-area: range; font-size: 11px; white-space: nowrap; line-height: 1.25; }
+  .ac-dasha-row .planet-name { grid-area: planet; font-size: var(--type-title-sm-size); line-height: var(--type-line-title); }
+  .ac-dasha-row .range       { grid-area: range; font-size: var(--type-caption-size); white-space: nowrap; line-height: var(--type-line-compact); }
 }
 
 /* ── Upapada (Jaimini) ── */
@@ -819,8 +860,8 @@
 .ac-upapada-cell { min-width: 0; }
 .ac-upapada-desc {
   color: var(--color-ink-2);
-  line-height: 1.55;
-  font-size: 13px;
+  line-height: var(--type-line-body);
+  font-size: var(--type-body-size);
   margin-top: var(--sp-4);
   padding-top: var(--sp-3);
   border-top: var(--border-width) solid var(--color-border-subtle);
@@ -833,8 +874,9 @@
 /* ── Long-form reading text ── */
 .ac-reading {
   font-family: var(--font-display);
-  font-size: 15px;
-  line-height: 1.7;
+  font-size: var(--type-body-lg-size);
+  font-weight: var(--type-weight-display);
+  line-height: var(--type-line-body);
   color: var(--color-ink-1);
   letter-spacing: 0.003em;
 }
@@ -847,8 +889,8 @@
   gap: 6px;
   padding: 6px 12px;
   border-radius: var(--radius-md);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--type-body-sm-size);
+  font-weight: var(--type-weight-body);
   font-family: var(--font-ui);
   background: var(--color-accent-faint);
   color: var(--color-accent);

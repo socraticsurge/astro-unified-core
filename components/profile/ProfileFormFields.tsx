@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useId } from "react";
 
 // Shared field set used by both the inline-sidebar create form and the
 // inline-sidebar edit form. The full-screen ProfileForm at /profiles/new also
@@ -55,16 +55,17 @@ function todayIsoDate(): string {
 
 export function ProfileFormFields({ form, onChange }: Props) {
   const today = todayIsoDate();
+  const id = useId();
   return (
     <>
       <div className="space-y-1">
-        <label className={LABEL_CLASS}>Full name</label>
-        <input name="name" value={form.name} onChange={onChange} className={INPUT_CLASS} required maxLength={100} />
+        <label htmlFor={`${id}-name`} className={LABEL_CLASS}>Full name</label>
+        <input id={`${id}-name`} name="name" value={form.name} onChange={onChange} className={INPUT_CLASS} required maxLength={100} />
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <label className={LABEL_CLASS}>Relationship</label>
-          <select name="relationship" value={form.relationship} onChange={onChange} className={SELECT_CLASS} required>
+          <label htmlFor={`${id}-relationship`} className={LABEL_CLASS}>Relationship</label>
+          <select id={`${id}-relationship`} name="relationship" value={form.relationship} onChange={onChange} className={SELECT_CLASS} required>
             <option value="">—</option>
             {RELATIONSHIPS.map((v) => (
               <option key={v} value={v}>{v}</option>
@@ -72,8 +73,8 @@ export function ProfileFormFields({ form, onChange }: Props) {
           </select>
         </div>
         <div className="space-y-1">
-          <label className={LABEL_CLASS}>Gender</label>
-          <select name="gender" value={form.gender} onChange={onChange} className={SELECT_CLASS} required>
+          <label htmlFor={`${id}-gender`} className={LABEL_CLASS}>Gender</label>
+          <select id={`${id}-gender`} name="gender" value={form.gender} onChange={onChange} className={SELECT_CLASS} required>
             <option value="">—</option>
             {GENDERS.map((v) => (
               <option key={v} value={v}>{v}</option>
@@ -82,16 +83,17 @@ export function ProfileFormFields({ form, onChange }: Props) {
         </div>
       </div>
       <div className="space-y-1">
-        <label className={LABEL_CLASS}>Date of birth</label>
-        <input type="date" name="date_of_birth" value={form.date_of_birth} onChange={onChange} max={today} className={INPUT_CLASS} required />
+        <label htmlFor={`${id}-date-of-birth`} className={LABEL_CLASS}>Date of birth</label>
+        <input id={`${id}-date-of-birth`} type="date" name="date_of_birth" value={form.date_of_birth} onChange={onChange} max={today} className={INPUT_CLASS} required />
       </div>
       <div className="space-y-1">
-        <label className={LABEL_CLASS}>Time of birth</label>
-        <input type="time" name="time_of_birth" value={form.time_of_birth} onChange={onChange} className={INPUT_CLASS} required />
+        <label htmlFor={`${id}-time-of-birth`} className={LABEL_CLASS}>Time of birth</label>
+        <input id={`${id}-time-of-birth`} type="time" name="time_of_birth" value={form.time_of_birth} onChange={onChange} className={INPUT_CLASS} required />
       </div>
       <div className="space-y-1">
-        <label className={LABEL_CLASS}>Place of birth</label>
+        <label htmlFor={`${id}-place-of-birth`} className={LABEL_CLASS}>Place of birth</label>
         <input
+          id={`${id}-place-of-birth`}
           name="place_of_birth"
           value={form.place_of_birth}
           onChange={onChange}
@@ -102,8 +104,9 @@ export function ProfileFormFields({ form, onChange }: Props) {
         />
       </div>
       <div className="space-y-1">
-        <label className={LABEL_CLASS}>Current location</label>
+        <label htmlFor={`${id}-current-location`} className={LABEL_CLASS}>Current location</label>
         <input
+          id={`${id}-current-location`}
           name="current_location"
           value={form.current_location}
           onChange={onChange}

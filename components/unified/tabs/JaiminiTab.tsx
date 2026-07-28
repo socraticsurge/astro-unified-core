@@ -1,149 +1,359 @@
 "use client";
-import { SectionHeading } from "@/components/unified/SectionHeading";
-import { TabSection } from "@/components/unified/TabGrid";
+
+import { Network } from "lucide-react";
+
+import toolStyles from "@/components/profiles/ToolPage.module.css";
+import styles from "./JaiminiTab.module.css";
 
 const KARAKA_ORDER = [
-  "Atmakaraka", "Amatyakaraka", "Bhratrikaraka", "Matrikaraka",
-  "Putrakaraka", "Gnatikaraka", "Darakaraka",
+  "Atmakaraka",
+  "Amatyakaraka",
+  "Bhratrikaraka",
+  "Matrikaraka",
+  "Putrakaraka",
+  "Gnatikaraka",
+  "Darakaraka",
 ];
 
-type KarakaEntry = { planet?: string; description?: string };
-type ArudhaPada  = { name?: string; sign?: string };
+const KARAKA_ABBREVIATIONS: Record<string, string> = {
+  Atmakaraka: "AK",
+  Amatyakaraka: "Am",
+  Bhratrikaraka: "Br",
+  Matrikaraka: "Ma",
+  Putrakaraka: "Pu",
+  Gnatikaraka: "Gn",
+  Darakaraka: "Da",
+};
 
-export function JaiminiTab({ chartOutput }: { chartOutput: Record<string, unknown> }) {
+type KarakaEntry = {
+  planet?: string;
+  description?: string;
+};
+
+type ArudhaPada = {
+  name?: string;
+  sign?: string;
+};
+
+type Karakamsha = {
+  atmakaraka?: string;
+  karakamsha_sign?: string;
+  karakamsha_house_from_lagna?: number;
+  ishta_devata?: string;
+  ishta_devata_sign?: string;
+  ishta_devata_lord?: string;
+  planets_in_karakamsha?: string[];
+};
+
+type Upapada = {
+  sign?: string;
+  lord?: string;
+  second_from_ul?: string;
+  description?: string;
+};
+
+function padaCode(key: string, pada: ArudhaPada) {
+  if (pada.name?.includes("(AL)")) return "AL";
+  if (pada.name?.includes("(UL)")) return "UL";
+  return `A${key}`;
+}
+
+export function JaiminiTab({
+  chartOutput,
+}: {
+  chartOutput: Record<string, unknown>;
+}) {
   const data = chartOutput?.data as Record<string, unknown> | undefined;
+  const jaiminiKarakas = data?.jaimini_karakas as
+    | Record<string, KarakaEntry>
+    | undefined;
+  const karakamsha = data?.karakamsha as Karakamsha | undefined;
+  const arudhaPadas = data?.arudha_padas as
+    | Record<string, ArudhaPada>
+    | undefined;
+  const upapada = data?.upapada as Upapada | undefined;
 
-  const jaiminiKarakas = data?.jaimini_karakas as Record<string, KarakaEntry> | undefined;
-  const karakamsha     = data?.karakamsha as {
-    atmakaraka?: string; karakamsha_sign?: string; ishta_devata?: string;
-    planets_in_karakamsha?: string[];
-  } | undefined;
-  const arudhaPadas    = data?.arudha_padas as Record<string, ArudhaPada> | undefined;
-  const upapada        = data?.upapada as {
-    sign?: string; lord?: string; second_from_ul?: string; description?: string;
-  } | undefined;
+  const orderedKarakas = KARAKA_ORDER.flatMap((name) => {
+    const entry = jaiminiKarakas?.[name];
+    return entry ? [{ name, ...entry }] : [];
+  });
+  const padas = arudhaPadas ? Object.entries(arudhaPadas) : [];
+  const karakamshaOccupants = karakamsha?.planets_in_karakamsha ?? [];
+  const ishtaValue =
+    karakamsha?.ishta_devata ?? karakamsha?.ishta_devata_sign;
+  const ishtaMeta = karakamsha?.ishta_devata_lord
+    ? `Lord ${karakamsha.ishta_devata_lord}`
+    : "Devata lord not returned";
 
-  // Reorder per PDF observation #4: data first, reference at the bottom.
-  //   Karakamsha · soul's direction  → personal-specific data
-  //   Arudha Padas                   → personal-specific data
-  //   Upapada                        → personal-specific data
-  //   Karaka reference table         → describes the karaka concept (reference)
+  if (!jaiminiKarakas && !karakamsha && !arudhaPadas && !upapada) {
+    return <p className={styles.empty}>Jaimini data not available.</p>;
+  }
 
   return (
-    <div className="space-y-6">
-      <TabSection when={!!karakamsha}>
-        <SectionHeading><span className="ac-section-title accent">Karakamsha · soul&apos;s direction</span></SectionHeading>
-        <div
-          className="ac-card ac-card-pad"
-          style={{ background: "var(--accent-bg)", borderColor: "var(--accent-line)", marginTop: "var(--sp-3)" }}
-        >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--sp-5)" }}>
-            <div>
-              <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Atmakaraka</div>
-              <div className="ac-h1" style={{ fontStyle: "italic" }}>{karakamsha?.atmakaraka ?? "—"}</div>
-            </div>
-            <div>
-              <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Karakamsha sign</div>
-              <div className="ac-h1" style={{ fontStyle: "italic" }}>{karakamsha?.karakamsha_sign ?? "—"}</div>
-            </div>
-            <div>
-              <div className="ac-eyebrow" style={{ marginBottom: 6 }}>Planets in Karakamsha</div>
-              {karakamsha?.planets_in_karakamsha && karakamsha.planets_in_karakamsha.length > 0 ? (
-                <div className="ac-pills" style={{ marginTop: 4 }}>
-                  {karakamsha.planets_in_karakamsha.map((p) => (
-                    <span key={p} className="ac-pill cool">{p}</span>
-                  ))}
-                </div>
-              ) : (
-                <div className="ac-h1" style={{ fontStyle: "italic" }}>—</div>
-              )}
-            </div>
+    <div className={toolStyles.root}>
+      <section className={toolStyles.leadCard}>
+        <div className={toolStyles.leadContent}>
+          <span className={toolStyles.leadIcon}>
+            <Network size={19} aria-hidden="true" />
+          </span>
+          <div>
+            <p className={toolStyles.leadEyebrow}>Jaimini framework</p>
+            <h2 className={toolStyles.leadTitle}>
+              Inner purpose and outward reflection
+            </h2>
+            <p className={toolStyles.leadText}>
+              Begin with Atmakaraka and Karakamsha, then read the Chara
+              Karakas, Arudha Padas, and Upapada as connected specialist
+              indicators rather than standalone verdicts.
+            </p>
           </div>
         </div>
-      </TabSection>
+        <span className={styles.sourcePill}>DashaFlow · Jaimini</span>
+      </section>
 
-      <TabSection when={!!arudhaPadas}>
-        <SectionHeading>Arudha Padas</SectionHeading>
-        {/* Loosened spacing (#4): wider minimum tile, more breathing room. */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-            gap: 10,
-            marginTop: "var(--sp-3)",
-          }}
+      {karakamsha && (
+        <section
+          className={toolStyles.section}
+          aria-labelledby="karakamsha-heading"
         >
-          {arudhaPadas &&
-            Object.entries(arudhaPadas).map(([num, v]) => (
-              <div
-                key={num}
-                className="ac-card"
-                style={{ padding: "12px 14px", textAlign: "center" }}
-              >
-                <div className="ac-eyebrow" style={{ marginBottom: 4 }}>{v.name ?? `A${num}`}</div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: "var(--color-ink-1)" }}>
-                  {v.sign ?? "—"}
-                </div>
+          <div className={toolStyles.sectionHeader}>
+            <h2 id="karakamsha-heading" className={toolStyles.sectionTitle}>
+              Atmakaraka &amp; Karakamsha
+            </h2>
+            <p className={toolStyles.sectionHint}>
+              The calculated starting points for this Jaimini reading.
+            </p>
+          </div>
+
+          <div className={styles.anchorGrid}>
+            <article className={styles.anchorCard}>
+              <span className={styles.anchorMark} aria-hidden="true">AK</span>
+              <div>
+                <p className={styles.anchorLabel}>Atmakaraka</p>
+                <p className={styles.anchorValue}>
+                  {karakamsha.atmakaraka ?? "Not returned"}
+                </p>
+                <p className={styles.anchorMeta}>Primary Chara Karaka</p>
               </div>
-            ))}
-        </div>
-      </TabSection>
+            </article>
 
-      <TabSection when={!!upapada}>
-        <SectionHeading>Upapada (A12) · spouse indicator</SectionHeading>
-        <div className="ac-card ac-card-pad ac-upapada" style={{ marginTop: "var(--sp-3)" }}>
-          <div className="ac-upapada-row">
-            <div className="ac-upapada-cell">
-              <div className="ac-eyebrow" style={{ marginBottom: 4 }}>UL sign</div>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}>{upapada?.sign ?? "—"}</div>
-            </div>
-            <div className="ac-upapada-cell">
-              <div className="ac-eyebrow" style={{ marginBottom: 4 }}>Lord</div>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--cool)" }}>{upapada?.lord ?? "—"}</div>
-            </div>
-            <div className="ac-upapada-cell">
-              <div className="ac-eyebrow" style={{ marginBottom: 4 }}>2nd from UL</div>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}>{upapada?.second_from_ul ?? "—"}</div>
+            <article className={styles.anchorCard}>
+              <span className={styles.anchorMark} aria-hidden="true">K</span>
+              <div>
+                <p className={styles.anchorLabel}>Karakamsha</p>
+                <p className={styles.anchorValue}>
+                  {karakamsha.karakamsha_sign ?? "Not returned"}
+                </p>
+                <p className={styles.anchorMeta}>
+                  {karakamsha.karakamsha_house_from_lagna !== undefined
+                    ? `House ${karakamsha.karakamsha_house_from_lagna} from Lagna`
+                    : "House from Lagna not returned"}
+                </p>
+                {karakamshaOccupants.length > 0 && (
+                  <ul
+                    className={styles.anchorPlanets}
+                    aria-label="Planets in Karakamsha"
+                  >
+                    {karakamshaOccupants.map((planet) => (
+                      <li key={planet}>{planet}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </article>
+
+            <article className={styles.anchorCard}>
+              <span className={styles.anchorMark} aria-hidden="true">ID</span>
+              <div>
+                <p className={styles.anchorLabel}>Ishta Devata</p>
+                <p className={styles.anchorValue}>
+                  {ishtaValue ?? "Not returned"}
+                </p>
+                <p className={styles.anchorMeta}>{ishtaMeta}</p>
+              </div>
+            </article>
+          </div>
+        </section>
+      )}
+
+      {orderedKarakas.length > 0 && (
+        <section
+          className={toolStyles.section}
+          aria-labelledby="chara-karakas-heading"
+        >
+          <div className={toolStyles.sectionHeader}>
+            <h2
+              id="chara-karakas-heading"
+              className={toolStyles.sectionTitle}
+            >
+              Chara Karakas
+            </h2>
+            <p className={toolStyles.sectionHint}>
+              Seven significators, kept in their traditional reading order.
+            </p>
+          </div>
+
+          <div className={styles.desktopTable}>
+            <div className={styles.tableFrame}>
+              <table className={styles.dataTable}>
+                <caption className="sr-only">Chara Karakas</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Karaka</th>
+                    <th scope="col">Planet</th>
+                    <th scope="col">What it signifies</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderedKarakas.map((karaka) => (
+                    <tr key={karaka.name}>
+                      <th scope="row">
+                        <span className={styles.identity}>
+                          <span className={styles.dataMark} aria-hidden="true">
+                            {KARAKA_ABBREVIATIONS[karaka.name]}
+                          </span>
+                          <strong>{karaka.name}</strong>
+                        </span>
+                      </th>
+                      <td>
+                        <strong className={styles.primaryValue}>
+                          {karaka.planet ?? "Not returned"}
+                        </strong>
+                      </td>
+                      <td>
+                        <span className={styles.secondaryValue}>
+                          {karaka.description ?? "No description returned."}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-          {upapada?.description && (
-            <div className="ac-upapada-desc">{upapada.description}</div>
-          )}
-        </div>
-      </TabSection>
 
-      {/* Soul Indicators — reference at the bottom (#4). */}
-      <TabSection when={!!jaiminiKarakas}>
-        <SectionHeading>Jaimini — Soul Indicators</SectionHeading>
-        <div className="ac-card overflow-x-auto" style={{ marginTop: "var(--sp-3)" }}>
-          <table className="ac-table">
-            <thead>
-              <tr>
-                {["Karaka", "Planet", "Description"].map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {jaiminiKarakas &&
-                KARAKA_ORDER.map((k) => {
-                  const entry = jaiminiKarakas[k];
-                  if (!entry) return null;
-                  return (
-                    <tr key={k}>
-                      <td>{k}</td>
-                      <td className="planet">{entry.planet ?? "—"}</td>
-                      <td className="muted">{entry.description ?? "—"}</td>
+          <div className={styles.mobileList}>
+            {orderedKarakas.map((karaka) => (
+              <article key={karaka.name} className={styles.dataCard}>
+                <div className={styles.cardHeading}>
+                  <span className={styles.dataMark} aria-hidden="true">
+                    {KARAKA_ABBREVIATIONS[karaka.name]}
+                  </span>
+                  <div>
+                    <h3>{karaka.name}</h3>
+                    <p>{karaka.planet ?? "Not returned"}</p>
+                  </div>
+                </div>
+                <p className={styles.cardDescription}>
+                  {karaka.description ?? "No description returned."}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {padas.length > 0 && (
+        <section
+          className={toolStyles.section}
+          aria-labelledby="arudha-padas-heading"
+        >
+          <div className={toolStyles.sectionHeader}>
+            <h2 id="arudha-padas-heading" className={toolStyles.sectionTitle}>
+              Arudha Padas
+            </h2>
+            <p className={toolStyles.sectionHint}>
+              The projected or outwardly encountered sign for each house.
+            </p>
+          </div>
+
+          <div className={styles.desktopTable}>
+            <div className={styles.tableFrame}>
+              <table className={styles.dataTable}>
+                <caption className="sr-only">Arudha Padas</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Pada</th>
+                    <th scope="col">Projected sign</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {padas.map(([key, pada]) => (
+                    <tr key={key}>
+                      <th scope="row">
+                        <span className={styles.identity}>
+                          <span className={styles.dataMark} aria-hidden="true">
+                            {padaCode(key, pada)}
+                          </span>
+                          <strong>
+                            {pada.name ?? `Arudha Pada ${key}`}
+                          </strong>
+                        </span>
+                      </th>
+                      <td>
+                        <strong className={styles.primaryValue}>
+                          {pada.sign ?? "Not returned"}
+                        </strong>
+                      </td>
                     </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
-      </TabSection>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-      {!jaiminiKarakas && !karakamsha && !arudhaPadas && !upapada && (
-        <p style={{ fontSize: 12, fontStyle: "italic", color: "var(--color-ink-3)" }}>Jaimini data not available.</p>
+          <div className={styles.mobileList}>
+            {padas.map(([key, pada]) => (
+              <article key={key} className={styles.padaCard}>
+                <span className={styles.dataMark} aria-hidden="true">
+                  {padaCode(key, pada)}
+                </span>
+                <div>
+                  <h3>{pada.name ?? `Arudha Pada ${key}`}</h3>
+                  <p>{pada.sign ?? "Not returned"}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {upapada && (
+        <section
+          className={toolStyles.section}
+          aria-labelledby="upapada-heading"
+        >
+          <div className={toolStyles.sectionHeader}>
+            <h2 id="upapada-heading" className={toolStyles.sectionTitle}>
+              Upapada (A12)
+            </h2>
+            <p className={toolStyles.sectionHint}>
+              A relationship indicator to read with the wider chart.
+            </p>
+          </div>
+
+          <article className={styles.upapadaPanel}>
+            <dl className={styles.contextGrid}>
+              <div>
+                <dt>Upapada sign</dt>
+                <dd>{upapada.sign ?? "Not returned"}</dd>
+              </div>
+              <div>
+                <dt>Lord</dt>
+                <dd>{upapada.lord ?? "Not returned"}</dd>
+              </div>
+              <div>
+                <dt>Second from UL</dt>
+                <dd>{upapada.second_from_ul ?? "Not returned"}</dd>
+              </div>
+            </dl>
+            {upapada.description && (
+              <p className={styles.upapadaDescription}>
+                {upapada.description}
+              </p>
+            )}
+          </article>
+        </section>
       )}
     </div>
   );

@@ -32,14 +32,14 @@ export function generateInsights(
   if (dashas?.antar?.end) {
     const weeksLeft = weeksUntil(dashas.antar.end, today)
     if (weeksLeft >= 0 && weeksLeft <= 8) {
-      const weeksDisplay = Math.round(weeksLeft)
+      const leadTime = formatImminentLeadTime(weeksLeft)
       results.push({
         id: 'dasha-transition',
         category: 'dasha',
         categoryColor: CATEGORY_COLORS.dasha,
-        title: `${dashas.antar.planet} antardasha shift in ~${weeksDisplay} week${weeksDisplay === 1 ? '' : 's'}`,
+        title: `${dashas.antar.planet} antardasha shift in ${leadTime}`,
         body: `A new antardasha period begins within the ${dashas.maha.planet} mahadasha. Transitions are important moments for reflection and intention.`,
-        cta: { label: 'Ask an expert about this →', action: 'ask' },
+        cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
       })
     }
   }
@@ -48,14 +48,14 @@ export function generateInsights(
   if (dashas?.pratyantar?.end) {
     const weeksLeft = weeksUntil(dashas.pratyantar.end, today)
     if (weeksLeft >= 0 && weeksLeft <= 4) {
-      const weeksDisplay = Math.round(weeksLeft)
+      const leadTime = formatImminentLeadTime(weeksLeft)
       results.push({
         id: 'pratyantar-transition',
         category: 'dasha',
         categoryColor: CATEGORY_COLORS.dasha,
-        title: `${dashas.pratyantar.planet} pratyantar shift in ~${weeksDisplay} week${weeksDisplay === 1 ? '' : 's'}`,
+        title: `${dashas.pratyantar.planet} pratyantar shift in ${leadTime}`,
         body: `A short sub-period transition is approaching within your current dasha. A good time to notice subtle shifts in energy and focus.`,
-        cta: { label: 'Ask an expert about this →', action: 'ask' },
+        cta: { label: 'Ask Dr Chaganti →', action: 'ask' },
       })
     }
   }
@@ -139,4 +139,10 @@ function formatLeadTime(weeks: number): string {
   }
   const months = Math.round(weeks / 4.345)
   return `${months} month${months === 1 ? '' : 's'}`
+}
+
+function formatImminentLeadTime(weeks: number): string {
+  if (weeks < 1) return 'less than a week'
+  const roundedWeeks = Math.round(weeks)
+  return `~${roundedWeeks} week${roundedWeeks === 1 ? '' : 's'}`
 }

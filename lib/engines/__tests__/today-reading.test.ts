@@ -101,7 +101,7 @@ describe("buildCurrentReading", () => {
       { temperature: 0.2, max_tokens: 1234, custom_instructions: "" },
     );
     expect(callAIForJson).toHaveBeenCalledWith(
-      "gemini-flash",
+      "groq-gpt-oss-120b",
       expect.any(String),
       expect.any(String),
       { temperature: 0.2, maxTokens: 1234 },

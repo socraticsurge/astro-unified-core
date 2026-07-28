@@ -1,8 +1,13 @@
 import type { NextAuthOptions, Session } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { ADMIN_EMAILS } from "@/lib/admin";
 import { getPostHogClient } from "@/lib/posthog-server";
+import {
+  getStagingAuthConfig,
+  validateStagingCredentials,
+} from "@/lib/staging-auth";
 
 // The session callback below stamps `id` and `isAdmin` onto `session.user`.
 // NextAuth's default Session type doesn't know about them, so use this helper
@@ -11,16 +16,34 @@ export function getUserId(session: Session): string {
   return (session.user as { id: string }).id;
 }
 
+const stagingAuth = getStagingAuthConfig();
+
+const providers = stagingAuth.enabled
+  ? [
+      CredentialsProvider({
+        id: "staging-credentials",
+        name: "Gate 7 staging account",
+        credentials: {
+          email: { label: "Synthetic email", type: "email" },
+          password: { label: "Staging password", type: "password" },
+        },
+        authorize(credentials) {
+          return validateStagingCredentials(stagingAuth, credentials);
+        },
+      }),
+    ]
+  : [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      }),
+    ];
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
+  providers,
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       if (user.email) {
         await db.users.upsert({
           id: user.id,
@@ -39,7 +62,7 @@ export const authOptions: NextAuthOptions = {
         posthog.capture({
           distinctId: user.id,
           event: "user_signed_in",
-          properties: { provider: "google" },
+          properties: { provider: account?.provider ?? "unknown" },
         });
       }
       return true;

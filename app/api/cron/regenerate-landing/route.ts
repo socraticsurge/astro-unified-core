@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 // stale by mid-day.
 //
 // Smart skip: if the moon nakshatra in today's cached payload matches the
-// CURRENT sky, we no-op. Most cron runs hit this path → no Gemini call.
+// CURRENT sky, we no-op. Most cron runs hit this path → no model call.
 // When the nakshatra has actually changed since last generation, we
 // regenerate. Net cost: 1–2 LLM calls/day on average.
 //

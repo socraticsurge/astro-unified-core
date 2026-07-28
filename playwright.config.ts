@@ -1,5 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
+const port = new URL(baseURL).port || "3000";
+const serverCommand =
+  process.env.PLAYWRIGHT_SERVER_COMMAND || `npm run dev -- -p ${port}`;
+
 // Tier-0 layout-only E2E. Vitest already covers component + API + DB
 // contracts; Playwright here exists to catch *visual layout* regressions
 // at mobile widths — the bug class we've shipped to real users (NavBar
@@ -19,7 +24,7 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
     // Capture screenshots on failure for triage — they land in
     // playwright-report/ which is gitignored.
     screenshot: "only-on-failure",
@@ -69,8 +74,8 @@ export default defineConfig({
   // iteration), otherwise spawn one. The server takes ~10s to warm
   // up on first request — bump the timeout.
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
+    command: serverCommand,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     stdout: "ignore",
@@ -83,7 +88,7 @@ export default defineConfig({
     // on the developer's local .env.
     env: {
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || "playwright-stub-secret-not-for-production",
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL || "http://localhost:3000",
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || baseURL,
       NODE_ENV: "development",
     },
   },

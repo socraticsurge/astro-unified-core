@@ -188,8 +188,15 @@ async function handleGet(req: NextRequest) {
     try {
       await Promise.all(llmPromises);
     } catch (e) {
+      console.error("[today-reading] Groq generation failed", e);
+      Sentry.captureException(e, {
+        tags: {
+          route: "GET /api/readings/today-reading",
+          phase: "llm-generation",
+        },
+      });
       return NextResponse.json(
-        { error: e instanceof Error ? e.message : "Failed to generate reading" },
+        { error: "Personal reading is temporarily unavailable. Please try again." },
         { status: 502 },
       );
     }

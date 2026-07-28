@@ -1,9 +1,14 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-05-21 -->
+<!-- last-updated: 2026-07-26 -->
 
 > **Note:** The legacy "Basic / Professional" two-mode chart view was replaced
-> with the unified 10-tab dashboard on 2026-05-19. The components below
+> with the unified dashboard on 2026-05-19. On 2026-07-26 the dashboard became
+> a responsive profile workspace. Wide screens use a persistent grouped tool
+> rail, while smaller screens use `Explore tools`; both are generated from one
+> registry so future tools do not create another navigation system. Birth details,
+> Panchang-at-birth, and D1/D9 charts live together in Natal chart. The
+> components below
 > describe the current architecture; legacy components (`ProfileDetailClient`,
 > `ProfessionalView`, `DashaflowView`, `VargaDashboard`, `AntardashaTimeline`,
 > `TransitView`, `CareerView`, `AIInsightShell`, `ProfileChat`, `LandingPage`,
@@ -42,6 +47,7 @@
 12. [User Journey Traces](#12-user-journey-traces)
 13. [Code Organisation Assessment](#13-code-organisation-assessment)
 14. [Observability & Daily Landing Engine](#14-observability--daily-landing-engine)
+15. [Unification Target Architecture](#15-unification-target-architecture)
 
 ---
 
@@ -53,7 +59,8 @@ Three personas access the app. Every feature decision and user journey should
 be reasoned against all three.
 
 ### Guest (unauthenticated)
-- Can access: `/` (landing), `/privacy`, `/terms`, `/credits`
+- Can access: `/` (current landing), `/unified` (Gate 6 staging experience),
+  `/privacy`, `/terms`, `/credits`, `/robots.txt`, `/sitemap.xml`
 - Cannot access: anything under `/dashboard`, `/profiles`, `/compatibility`, `/admin`
 - All protected routes redirect to `/auth/signin` via [`proxy.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/proxy.ts) middleware
 
@@ -121,12 +128,12 @@ Must receive data via props, `useSession()`, or fetch calls to API routes.
 | `components/CosmicLanding.tsx` | Earth-globe video, theme-aware star canvas | Public landing |
 | `components/AppShell.tsx`, `AppStarCanvas.tsx` | Persistent background canvas | |
 | `components/compatibility/CompatibilityClient.tsx` | Profile selection, check submission | Receives profiles + checks as props |
-| `components/profiles/ProfileView.tsx` + `components/unified/tabs/*` | 10-tab dashboard shell: Today, Chart, Planets, HousesVargas, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career, Compare. `ProfileView` owns the active-tab state and renders the relevant tab component. | Receives chart/transit/career output as props |
+| `components/profiles/ProfileView.tsx` + `components/unified/tabs/*` | Responsive profile workspace. `ProfileView` owns the grouped tool registry, active-tool state, persistent wide-screen rail, small-screen drawer, and relevant tool component. | Receives chart/transit/career output as props |
 | `components/tabs/CompareTab.tsx`, `TodayTab.tsx` | Multi-profile compare + Today highlights | |
 | `components/engines/MuhurthaView.tsx` | Event picker | |
-| `components/engines/TarabalamView.tsx` | Date range + multi-profile picker | |
-| `components/panels/AskPanel.tsx`, `AIAdminPanel.tsx` | Slide-out Ask + admin LLM panels | |
-| `components/profiles/ProfileNav.tsx`, `ProfileChip.tsx`, `ProfileSidebar.tsx`, `ProfileView.tsx` | Profile chip nav + sidebar info | |
+| `components/engines/TarabalamView.tsx` | Exact multi-profile day comparison, Moon policy, evidence, and responsive results | |
+| `components/panels/AskPanel.tsx`, `AIAdminPanel.tsx` | Public Ask panel + adaptive authenticated AI workspace | |
+| `components/profiles/ProfileNav.tsx`, `ProfileChip.tsx`, `ProfileSidebar.tsx`, `ProfileView.tsx` | Profile switcher + grouped tool menus + on-demand profile editor | |
 | `components/ProfileLoadingScreen.tsx` | Celestial loading screen after profile creation | |
 | `components/ThemeProvider.tsx`, `ThemeToggle.tsx` | next-themes provider + toggle (Umbra / Vellum) | |
 | `components/FeedbackWidget.tsx` | Floating overlay, form submit | |
@@ -365,7 +372,8 @@ Calls `POST ${DASHAFLOW_SIDECAR_URL}/calculate` with birth coordinates.
 Returns 17 chart sections (planets, dashas, yogas, ashtakavarga, etc.).
 Consumed by `DashboardClient` and rendered across `components/unified/tabs/*`
 (Chart, Planets, Houses, Dasha, Yogas, Jaimini, Ashtakavarga). Sidebar
-panchang + birth info comes from the same payload via `ProfileSidebar`.
+navigation and Natal birth context come from the same payload; `ProfileSidebar`
+is edit-only.
 
 ### Transit
 [`lib/engines/transit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/transit.ts)
@@ -384,26 +392,28 @@ Returns current planetary positions (sign + degree within sign, not raw longitud
 Calls `POST ${DASHAFLOW_SIDECAR_URL}/career` with birth data.
 Returns D10 chart themes and planet-domain recommendations for career guidance.
 
-### Tarabalam (TypeScript-native, no sidecar)
-[`lib/tarabalam.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/tarabalam.ts)
+### Tarabalam (canonical Telugu Calendar Utilities service)
 
-Entirely in TypeScript — no additional sidecar calls per day.
+The authenticated route
+[`app/api/readings/tarabalam/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/readings/tarabalam/route.ts)
+validates an owner-scoped request and delegates to
+[`lib/panchangam/personal-search.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/panchangam/personal-search.ts).
+The adapter prepares anonymous derived contexts for one to four owned profiles
+and calls Telugu Calendar Utilities `/v1/tarabalam`.
 
-**Exports:**
-- `NAKSHATRAS_27` — ordered list of 27 lunar mansions
-- `TARAS` — array of 9 Tara archetypes (quality: auspicious/inauspicious, description)
-- `computeTara(birthNakIdx, moonNakIdx)` — count from birth nakshatra, mod 9, 1-indexed
-- `computeTithi(moonLon, sunLon)` — `ceil((moonLon - sunLon) / 12)`, returns
-  `{ number, name, paksha, label }`
-- `extrapolateMoonLongitude(baseLon, baseDate, targetDate)` — mean Moon motion
-  (13.176°/day) from a known position
-- `extrapolateSunLongitude(baseLon, baseDate, targetDate)` — mean Sun motion
-  (0.9856°/day)
-- `taraColor(tara)` — Tailwind class string for the Tara number (green/amber/red)
+The service computes exact Drik daily Moon positions for 1–90 inclusive days.
+It returns the day star and transition time, Tithi, each participant's Tara and
+optional Chandrabalam house/verdict, plus an authoritative `good_for_all`
+decision under the selected policy:
 
-**Design note:** One sidecar call is made for *today's* positions; then all
-subsequent days in the date range are extrapolated from that single anchor
-using mean motion. Accuracy is good enough for ±14 days (Moon error < 0.5°).
+- `stars` — supportive Tara decides the shortlist; Moon-house context is shown.
+- `puja_ok` — supportive Tara is required and Moon caution houses are excluded.
+- `strict` — both supportive Tara and strong Chandrabalam are required.
+
+Profile names and birth details remain in Astro Chaganti. The upstream service
+receives only anonymous derived Nakshatra, Rasi, and Lagna context. The older
+`lib/tarabalam.ts` helpers remain only for compatibility and historical tests;
+they are not the authenticated calculation path.
 
 ### Astro Utilities
 [`lib/astro-utils.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/astro-utils.ts)
@@ -587,76 +597,88 @@ loads all of the user's profiles for the NavBar pill switcher, and renders
 **[`app/dashboard/DashboardClient.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/dashboard/DashboardClient.tsx)**
 
 Client component. Owns the active-profile state and orchestrates engine
-fetches for the entire dashboard. Renders `NavBar` + `ProfileSidebar` +
-`ProfileView`.
+fetches for the entire dashboard. Renders `NavBar` + `ProfileView`;
+`ProfileSidebar` mounts only as an on-demand profile editor.
 
 - **New profile flow** (`?new=1`): shows `ProfileLoadingScreen` while
-  chart, transit, career, and today-reading load in parallel. Minimum 2s
-  animation; lifts when all four settle.
+  chart, transit, career, and today-reading load in parallel. Minimum 1.4s
+  animation; lifts when the chart is ready while optional engines continue
+  loading in their own panels.
 - **Returning user flow**: chart + transit prefetched immediately;
   today-reading chains after chart resolves; career loads lazily on tab
   open. Toggling between profile pills is served from the in-memory
   per-profile cache (no refetch unless the user explicitly triggers refresh).
+- **Optional narrative failure**: an unavailable LLM provider does not hide
+  deterministic chart, dasha, or transit content. Today and Natal surface a
+  retryable unavailable state, while the API records the provider exception
+  without returning raw provider or environment details to the browser.
 
 **[`components/profiles/ProfileView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/profiles/ProfileView.tsx)**
 
-Hosts the 10-tab dashboard:
+Hosts the responsive profile workspace. Wide screens use a persistent,
+vertically scrollable grouped tool rail; smaller screens use one `Explore tools`
+button that opens the same registry in a drawer. This avoids horizontal clipping
+and competing navigation models as tools are added. The rail begins with static
+active-profile identity and an explicit Edit profile action. Natal chart owns birth data,
+Panchang-at-birth, and D1/D9 charts; `ProfileSidebar` is now an on-demand editor,
+not a competing information surface. The governing interaction and release
+criteria live in
+[`docs/DASHBOARD_EXPERIENCE_PRINCIPLES.md`](DASHBOARD_EXPERIENCE_PRINCIPLES.md).
 
-| Tab | Renders | Data source |
+| Group | Tools | Visibility |
 |---|---|---|
-| Today | `TodayTab` + `TodayInsightCard` | chart (dashas) + today-reading (LLM) |
-| Chart | `components/unified/tabs/ChartTab` | chart |
-| Planets | `PlanetsTab` (positions, dignity, shadbala) | chart |
-| Houses | `HousesVargasTab` (D1 + D-charts) | chart |
-| Dasha | `DashaTab` (5-level Vimshottari) | chart |
-| Yogas | `YogasTab` | chart |
-| Jaimini | `JaiminiTab` | chart |
-| Ashtakavarga | `AshtakavargaTab` | chart |
-| Transits | `TransitsTab` | transit |
-| Career | `CareerTab` | career |
-| Compare | `components/tabs/CompareTab` | sibling profiles + Ashtakoota engine |
+| Overview | Today | User + admin |
+| Birth chart | Natal chart, Planets, Divisional charts | Divisional is admin-only |
+| Timing & decisions | Dashas, Transits, Muhurtam, Tarabalam | User + admin |
+| Specialist analysis | Yogas, Jaimini, Ashtakavarga, Shadbala | Admin-only |
+| Life areas | Career | User + admin |
+| Relationships | Marriage compatibility | User + admin |
 
-Admin users also see an **AI Admin panel** (`components/panels/AIAdminPanel`)
-for inspecting / chatting with the LLM output, and an **Ask panel**
-(`components/panels/AskPanel`) for triggering a consultation request from
-any tab.
+`CHART_TABS` is the single registry for labels, descriptions, icons, visibility,
+and component IDs. `CHART_GROUPS` controls information architecture. To add a
+future tool, add one registry entry, place its ID in a group (or add a group),
+and add its panel renderer. Both desktop and mobile navigation update from those
+same arrays; do not introduce another horizontal tab strip.
+
+`TodayTab` is intentionally a decision-oriented overview rather than a data
+dump. It presents active priorities, a three-level current-period summary,
+an explicit entry into the D1/D9 natal charts, quick actions into
+Muhurtam/Tarabalam/Compatibility, and the optional personal narrative. The full
+five-level Dasha tree remains in `DashaTab`.
+
+All signed-in users can open **Explore with AI**
+(`components/panels/AIAdminPanel`) with the active profile and section context;
+admins additionally receive the summary/model controls. The separate **Ask
+panel** (`components/panels/AskPanel`) triggers a human consultation request
+from any tab.
 
 ### Compatibility
 
-**[`app/compatibility/page.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/compatibility/page.tsx)**
+Marriage compatibility is part of the active profile workspace rather than a
+separate page. `ProfileView` owns the selected partner and returned check state;
+[`components/tabs/CompareTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/CompareTab.tsx)
+renders the complete journey.
 
-Server component. Loads the user's profiles (for the dropdowns) and their
-existing compatibility checks. Renders `CompatibilityClient`.
+The current profile is fixed. The tab filters eligible saved profiles by the
+traditional groom/bride role used by the sidecar, requires an explicit
+Calculate action, then calls `POST /api/compatibility`. A saved check loaded
+through `/dashboard?compare={id}` opens the same result without recalculation.
 
-**[`components/compatibility/CompatibilityClient.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/compatibility/CompatibilityClient.tsx)**
+The result presents, in order:
 
-Client component. Provides:
-- Inline new-check form: gender-filtered Male / Female profile dropdowns
-- Limit indicator (6 checks max)
-- History cards linking to `/compatibility/[id]`
-- On submit: `POST /api/compatibility`, then `router.push('/compatibility/${data.id}')`
+- the exact classical score out of 36 and the customary 18-point reference;
+- all eight Koota points and maxima;
+- both Moon profiles (sign, Nakshatra, Gana, Nadi, and Yoni);
+- Mangal/Kuja balance and Bhakoot status;
+- exact Kuja contributors;
+- all additional Kutas and returned descriptions;
+- returned exceptions and an explicit decision boundary.
 
-**[`app/compatibility/[id]/page.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/compatibility/%5Bid%5D/page.tsx)**
-
-Server component. Loads the check + both profiles (any profile, since
-compatibility checks may involve profiles from the same user). Renders
-`CompatibilityDetailClient`.
-
-**[`app/compatibility/[id]/CompatibilityDetailClient.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/compatibility/%5Bid%5D/CompatibilityDetailClient.tsx)**
-
-Client component. Admin-only Basic / Professional toggle.
-
-**Basic view:**
-- Score ring with colour coding (emerald ≥26, green ≥18, amber ≥12, red below)
-- Ashtakoota table (8 kootas, score/max/matched)
-- Mangal Dosha + Bhakoot Dosha cards
-
-**Professional view** (admin only):
-- Match verdict banner (`is_match_approved`, Kuja balance result)
-- Natal Moon Profiles — Moon sign, Nakshatra, Gana, Nadi, Yoni per person
-- Kuja Dosha Analysis — per-planet breakdown (planet, house, sign, score) for both
-- Additional Kutas grid — Mahendra, Stree Deergha, Vedha, Rajju (body-part
-  group + effect), BadConstellations, Lagna/7th House, Sex Energy
+`POST /api/compatibility` authenticates and rate-limits the caller, rejects
+missing or identical profile IDs, scopes both profiles to the caller for
+non-admin users, preserves the six-check cap, returns an existing duplicate,
+and only then calls DashaFlow. Results remain stored in Turso under the
+authenticated user.
 - Dosha Mitigations — classical exception strings from BPHS
 
 ### Admin Panel
@@ -702,7 +724,7 @@ When a pending question exists, renders `PendingCard` instead of the form — sh
 
 The chart UI is split across two directories:
 
-**[`components/unified/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/)** — the 10-tab dashboard rendered inside `ProfileView`:
+**[`components/unified/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/)** — chart-analysis tools rendered inside `ProfileView`:
 
 | Component | What it renders |
 |---|---|
@@ -717,26 +739,27 @@ The chart UI is split across two directories:
 | [`tabs/HousesVargasTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/HousesVargasTab.tsx) | D1 + D-chart switcher |
 | [`tabs/DashaTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/DashaTab.tsx) | 5-level Vimshottari with timeline visualization |
 | [`tabs/timeline/DashaTimeline.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/timeline/DashaTimeline.tsx) + [`DashaRow.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/timeline/DashaRow.tsx) | Visual dasha row |
-| [`tabs/YogasTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/YogasTab.tsx) | Active yogas |
-| [`tabs/JaiminiTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/JaiminiTab.tsx) | Jaimini karakas + Karakamsha |
-| [`tabs/AshtakavargaTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/AshtakavargaTab.tsx) | BAV + SAV bindu tables |
+| [`tabs/YogasTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/YogasTab.tsx) | Engine-returned major and supporting yogas, forming planets, and context-separated Dosha/junction conditions |
+| [`tabs/JaiminiTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/JaiminiTab.tsx) | Engine-returned Atmakaraka/Karakamsha orientation, ordered Chara Karakas, complete Arudha Padas, and contextual Upapada |
+| [`tabs/AshtakavargaTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/AshtakavargaTab.tsx) | Lagna-mapped SAV house support, D1 chart context, and exact seven-planet BAV contributions |
+| [`tabs/ShadabalaTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/ShadabalaTab.tsx) | Total-versus-required Rupas, exact six-part Virupa evidence, paired Ishta/Kashta Phala, and secondary Bhava Chalit shifts |
 | [`tabs/TimeTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/TimeTab.tsx) | Panchang + birth time details |
 | [`tabs/TransitsTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/TransitsTab.tsx) | Compact card grid; calls `POST /api/readings/transit` |
-| [`tabs/CareerTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/CareerTab.tsx) | Two-column layout (D10 + themes + indicators \| 10th house + significators); calls `POST /api/readings/career` |
+| [`tabs/CareerTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/unified/tabs/CareerTab.tsx) | 10th-house foundation, complete D10 indicator map, exact supportive/complicating engine evidence, and unranked career domains; calls `/api/readings/career` |
 
 **[`components/tabs/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/)** — top-level tabs that compose multiple data sources:
 
 | Component | What it renders |
 |---|---|
-| [`TodayTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/TodayTab.tsx) + [`TodayInsightCard.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/TodayInsightCard.tsx) | 5-level dasha hero, pratyantar shifts, LLM-generated today-reading |
+| [`TodayTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/TodayTab.tsx) + [`TodayInsightCard.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/TodayInsightCard.tsx) | Personal overview, active priorities, three-level current-period summary, quick actions, optional LLM narrative |
 | [`CompareTab.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/tabs/CompareTab.tsx) | Inline Ashtakoota compatibility for sibling profiles |
 
-**[`components/engines/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/)** — standalone engine views (not part of the unified dashboard):
+**[`components/engines/`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/)** — reusable engine views embedded in the profile workspace:
 
 | Component | What it renders |
 |---|---|
 | [`MuhurthaView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/MuhurthaView.tsx) | Auspicious timing for event types (marriage, travel, etc.) |
-| [`TarabalamView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/TarabalamView.tsx) | Tara + Tithi calendar table, multi-profile |
+| [`TarabalamView.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/TarabalamView.tsx) | Exact day shortlist, multi-profile Tara and Chandrabalam reasoning, evidence, and sharing |
 | [`SectionShell.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/SectionShell.tsx) | Collapsible section container with ⓘ trigger |
 | [`ExplainerModal.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/ExplainerModal.tsx) | Tabbed modal: "For your chart" + "About" |
 | [`AIInsightCard.tsx`](https://github.com/socraticsurge/astro-unified-core/blob/main/components/engines/AIInsightCard.tsx) | LLM compatibility / chart insights card |
@@ -868,18 +891,14 @@ User visits https://astro-unified-core-pfni.vercel.app/
       → Loading screen dismisses when min-time AND all-settled both true
 
   ProfileView (client, inside DashboardClient)
-    → Renders 10-tab dashboard:
-        Today        → TodayTab + TodayInsightCard
-        Chart        → unified/tabs/ChartTab
-        Planets      → unified/tabs/PlanetsTab
-        Houses       → unified/tabs/HousesVargasTab
-        Dasha        → unified/tabs/DashaTab + timeline/DashaTimeline
-        Yogas        → unified/tabs/YogasTab
-        Jaimini      → unified/tabs/JaiminiTab
-        Ashtakavarga → unified/tabs/AshtakavargaTab
-        Transits     → unified/tabs/TransitsTab
-        Career       → unified/tabs/CareerTab (triggers fetchCareer on open)
-        Compare      → components/tabs/CompareTab
+    → Builds persistent grouped rail and small-screen drawer from one registry
+    → Renders the active workspace tool:
+        Overview             → TodayTab + TodayInsightCard
+        Birth chart          → NatalTab / PlanetsTab / admin Divisional charts
+        Timing & decisions   → DashaTab / TransitsTab / MuhurthaView / TarabalamView
+        Specialist analysis → admin Yogas / Jaimini / Ashtakavarga / Shadbala
+        Life areas           → CareerTab (triggers fetchCareer on open)
+        Relationships        → CompareTab
 
     → Admin only:
       → AIAdminPanel slide-out for inspecting/chatting with LLM output
@@ -888,8 +907,9 @@ User visits https://astro-unified-core-pfni.vercel.app/
     → Per-tab Ask button → AskPanel → POST /api/consultation-requests
 ```
 
-Muhurtha and Tarabalam are no longer surfaced through the chart view — they
-live on dedicated pages outside the dashboard.
+Muhurtha and Tarabalam are first-class tools inside the profile workspace.
+Their public counterparts remain available without sign-in; the authenticated
+views add selected-profile validation.
 
 ### Journey 4: Running a Compatibility Check
 
@@ -951,27 +971,25 @@ live on dedicated pages outside the dashboard.
 ### Journey 6: Tarabalam for a Family
 
 ```
-/profiles/{id} → Professional tab → Tarabalam →
+/dashboard?profile={id} → Timing & decisions → Tarabalam →
   TarabalamView
-    → Checkbox list of all profiles for this user (current profile pre-checked)
-    → Date range selector (default: today + 13 days)
-    → "Calculate" →
-      POST /api/readings/tarabalam { profileIds: [...], startDate, endDate }
-        → For each profileId:
-            db.profiles.getAny(profileId)
-            db.readings.latestByEngine(profileId, "dashaflow")  ← extract birth nakshatra
-        → fetchTransit(profiles[0]) once  ← get today's Moon + Sun longitudes
-        → toSiderealLon({ sign, degree })  ← reconstruct longitude
-        → For each date in range:
-            extrapolateMoonLongitude(moonLon, today, date)
-            extrapolateSunLongitude(sunLon, today, date)
-            For each profile:
-              computeTara(birthNakIdx, moonNakIdx)
-              computeTithi(moonLon, sunLon)
-        → Return grid: { date, moonNakshatra, tithi, taras: {[profileId]: Tara} }
+    → Active profile is always included and anchors the current location
+    → Add up to three other owned profiles
+    → Choose 1–90 inclusive days and a Chandrabalam policy
+    → "Find supportive days" →
+      POST /api/readings/tarabalam {
+        profile_ids, start_date, end_date, chandra_mode
+      }
+        → Validate auth, rate limit, range, and unique profile ownership
+        → Derive anonymous Nakshatra/Rasi/Lagna contexts from saved charts
+        → POST Telugu Calendar Utilities /v1/tarabalam
+        → Preserve canonical daily `good_for_all` decisions
+        → Reattach owner-visible profile labels in the BFF response
 
-    → Table: Date | Moon in | Tithi | [Profile columns] | All ✦
-    → "All ✦" column highlights rows where every selected profile has auspicious Tara
+    → Shortlist metrics and supportive date links
+    → Responsive comparison table: date + star transition + Tithi +
+      overall verdict + one Tara/Chandra column per selected person
+    → Evidence boundary + WhatsApp share + explicit long-result expansion
 ```
 
 ---
@@ -999,9 +1017,10 @@ component level (good trade-off for LCP).
 `ALTER TABLE … ADD COLUMN` in `try/catch` is lightweight and reliable for a
 small team — no migration runner required.
 
-**Tarabalam extrapolation.** Computing a two-week calendar with one sidecar
-call (instead of one per day) is a clean design. The accuracy trade-off
-(mean motion vs true position) is explicitly documented.
+**Canonical Tarabalam boundary.** The browser does no date extrapolation or
+group reclassification. One bounded BFF call receives exact service results,
+keeps private profile identity local, and preserves the engine's authoritative
+policy verdict.
 
 ### Resolved (2026-05-13)
 
@@ -1142,6 +1161,398 @@ Thumbs-Down to each Today-tab reading card. Reads/writes ratings via
 `lib/db/client.ts` bumped `SCHEMA_VERSION` 8 → 9 to add the
 `daily_landing` table. See Section 5 (Database Layer) for the schema
 version pattern.
+
+---
+
+## 15. Unification Target Architecture
+
+<!-- last-updated: 2026-07-22 -->
+
+This is the Gate 3 proposal for unifying Astro Chaganti with Telugu Calendar
+Utilities. It is a target architecture, not a description of already-deployed
+code. Gate 3 does not authorise a deployment, database migration, DNS change,
+or retirement action.
+
+### 15.1 Architectural decisions
+
+1. **Keep the repositories and deployments independently releasable.** A source
+   merge would mix public presentation, private data, two Python engines, MCP
+   packaging, and feed publishing into one failure domain without improving the
+   user experience.
+2. **Astro Chaganti remains the only product shell and browser-facing backend.**
+   The Next.js project owns public pages, SEO, NextAuth, Turso access, profile
+   authorisation, admin, response caching, and presentation.
+3. **Telugu Calendar Utilities gains an additive FastAPI adapter in its own
+   Vercel project.** Its frozen engines, MCP server, PyPI package, ICS generator,
+   and GitHub Pages site continue unchanged while the adapter is tested.
+4. **Telugu Calendar Utilities is authoritative for Panchangam, festivals,
+   Gochara/Rasi Phalalu, Tarabalam, Chandrabalam, Lagna/Hora, and Muhurtam.**
+   Authenticated Tarabalam and Muhurtam now use the versioned Telugu API;
+   older TypeScript and DashaFlow implementations remain compatibility paths,
+   not second browser-facing authorities.
+5. **DashaFlow remains authoritative for natal charts, Vargas, Dashas, yogas,
+   compatibility, transits, and career analysis.** Profile-aware Muhurtam may
+   consume a minimal, versioned natal context derived from DashaFlow, but its
+   electional rules live in Telugu Calendar Utilities.
+6. **Browsers never call a computation service directly.** Next.js route
+   handlers validate, authorise, rate-limit, redact, cache where safe, and attach
+   server-only credentials before calling either Python service.
+7. **Turso stores private product state, not public daily calculations.** Public
+   deterministic results use CDN caches and versioned artifacts. Private saved
+   results stay owner-scoped in Turso and are never placed in a public cache.
+8. **Batch publishing moves only when the replacement is more durable.** Moving
+   interactive calculation to Vercel does not require immediately replacing
+   healthy GitHub Actions with a less reliable scheduler.
+
+Node.js 24 LTS is the target web runtime; Node 20 reached end of life in March
+2026. Python 3.12 is the target for both computation services until their
+dependency suites prove a later runtime. All runtimes are pinned in source and
+must match Vercel project configuration.
+
+### 15.2 System topology
+
+```mermaid
+flowchart LR
+    U["Visitor / signed-in user / admin"] --> CDN["astrochaganti.com\nVercel CDN + Next.js"]
+    CDN --> PUB["Public pages and BFF routes"]
+    CDN --> PRIV["Authenticated and admin routes"]
+    PRIV --> DB["Turso\nprivate product state"]
+    PUB --> TCU["Telugu Calendar API\nFastAPI on Vercel"]
+    PRIV --> TCU
+    PRIV --> DF["DashaFlow API\nFastAPI on Vercel"]
+    JOBS["Existing GitHub Actions\nthen approved shadow jobs"] --> TCU
+    JOBS --> BLOB["Versioned public artifacts\nVercel Blob target"]
+    CDN --> BLOB
+    LEGACY["GitHub Pages + existing feeds"] --> U
+```
+
+During migration the legacy surface remains independently available. The
+diagram's Blob path is a target for shadow artifacts and eventual feed serving;
+it does not replace GitHub Pages before the later release and retirement gates.
+
+### 15.3 Ownership boundaries
+
+| Component | Owns | Must not own |
+|---|---|---|
+| `astro-unified-core` | Routes, UI, SEO, auth, Turso, user/profile ownership, admin, BFF validation, cache policy, feature flags | Panchangam or Muhurtam formulae; direct browser-side service secrets |
+| `telugu-calendar-utilities` | Three Panchangam systems, personal timing, activity catalogue/rules, provenance, API serializers, ICS generation | User accounts, profile ownership, consultations, Astro Chaganti navigation |
+| `dashaflow-sidecar` | Natal/chart computations, Vargas, Dashas, yogas, compatibility, transits, career | Canonical public Panchangam or electional-rule catalogue |
+| Turso | Users, profiles, readings, consultations, settings, private saved work, admin audit records | Public cache or generated feed storage |
+| Vercel Blob (target) | Immutable public feed and generated-data artifacts with manifests | Birth data, private readings, mutable user records |
+| GitHub Actions | Existing proven generation/release workflows and shadow comparisons | Request-time user interactions |
+
+### 15.4 Environment topology and release isolation
+
+Production and staging are separate dependency graphs, not different aliases
+sharing credentials.
+
+| Concern | Production (blue) | Stable staging (green) | Pull-request preview |
+|---|---|---|---|
+| Web | Existing `astro-unified-core-pfni` | Dedicated Vercel project and stable non-production hostname | Ephemeral Vercel preview |
+| Turso | Existing production database | Schema-identical database containing synthetic test users only | Staging/synthetic credentials only; never production credentials |
+| OAuth | Production Google client/callback | Fail-closed synthetic owner/admin identities approved for rehearsal | Protected staging sign-in or no OAuth journey |
+| Telugu computation | Existing Pages/Actions until release; later a pinned production API deployment | Dedicated Python API project/alias from `telugu-calendar-utilities` | Version-matched API preview or recorded fixtures |
+| DashaFlow | Existing sidecar until an approved release | Pinned production contract or isolated preview if its contract changes | Recorded fixtures by default |
+| Public artifacts | Existing GitHub Pages feeds | Separate Blob store/prefix for shadow artifacts | No writes, or disposable preview prefix |
+| Secrets | Production scope only | Staging scope only, independently rotatable | Minimum read-only/synthetic scope |
+
+The stable staging project is preferred over treating every `development`
+preview as staging: it provides a fixed OAuth callback, explicit credentials,
+repeatable acceptance URL, and clean audit trail. A Turso branch copied from
+production is **not** the default because it would copy birth details and
+consultation content. Staging is created from schema plus synthetic fixtures.
+
+Functions are placed after measurement. The likely starting point is `bom1` for
+the web and stateless Telugu service because the current product and principal
+audience are in India; Turso primary location must be confirmed before changing
+database-connected function placement. DashaFlow remains in `iad1` until a
+staging latency/regression comparison proves a move safe.
+
+### 15.5 Computation API contract
+
+The new Python adapter is additive and lives outside the frozen engine modules.
+It calls the same public functions used by the MCP tools and serializers rather
+than reimplementing formulae.
+
+| Service endpoint | Bounded request | Purpose |
+|---|---|---|
+| `GET /health` | None; public, minimal | Liveness and deployed package/contract versions |
+| `GET /v1/catalog` | Optional locale | Cities, systems, ayanamsas, signs, activities, and supported limits |
+| `POST /v1/panchangam/day` | One ISO date + resolved location + system | Full daily Panchangam, day/night Horas and Choghadiya, Lagnas, provenance |
+| `POST /v1/panchangam/range` | Inclusive range, maximum 31 days | Calendar and festival summaries |
+| `POST /v1/rasi-phalalu` | Date, location, Rasi, optional Nakshatra | Deterministic generic daily reading and evidence |
+| `POST /v1/tarabalam` | Maximum 90 days and four participant contexts | Exact Tara/Chandra day comparison from the canonical engine |
+| `POST /v1/muhurtam/search` | Maximum 14 days, one activity, location, zero to four participant contexts | Public baseline when participants are empty; enhanced validation when present |
+
+All `/v1/*` endpoints require an environment-specific bearer token; only
+`/health` is anonymous. CORS is disabled because the caller is the Next.js
+server. Production and staging use different tokens, rotated independently.
+
+The response envelope is stable even when the engine output grows:
+
+```json
+{
+  "contract_version": "1.0",
+  "request_id": "opaque-id",
+  "engine": {
+    "package": "mcp-server-panchangam",
+    "version": "1.13.0",
+    "system": "drik",
+    "ayanamsa": "lahiri"
+  },
+  "data": {},
+  "evidence": {
+    "evaluated_factors": [],
+    "not_evaluated": [],
+    "provenance": []
+  },
+  "warnings": []
+}
+```
+
+Errors use a non-sensitive stable code, safe message, and request ID. Python
+tracebacks and submitted values remain in redacted server logs, never in HTTP
+responses. Location uses bounded latitude/longitude plus a valid IANA timezone;
+date strings are ISO-8601; systems, ayanamsas, activities, and signs are enums.
+Pydantic validates at the service boundary and matching Zod schemas validate in
+the web BFF. Contract schemas and representative fixtures are versioned in both
+repositories; a breaking change requires `/v2`, not silent field replacement.
+
+### 15.6 Browser-facing BFF contracts
+
+Gate 6 implements the three anonymous routes below through
+`lib/panchangam/client.ts` and `lib/panchangam/public-route.ts`. Credentials and
+the upstream hostname remain server-only, Zod rejects unbounded inputs, public
+successes use the approved one-hour/24-hour cache policy, and errors are
+redacted and never cached. The authenticated contracts remain later-gate work.
+
+The browser sees Astro Chaganti APIs, not Vercel sidecar hostnames:
+
+| Route family | Access/cache | Upstream behavior |
+|---|---|---|
+| `GET /api/public/panchangam` | Anonymous; CDN-cacheable | Normalises date/location/system and calls Panchangam day/range |
+| `GET /api/public/horoscope` | Anonymous; CDN-cacheable | Calls generic Rasi Phalalu; never labels it natal-personalised |
+| `GET /api/public/muhurtam` | Anonymous; CDN-cacheable | Calls Muhurtam with no participant context; returns a useful baseline |
+| `POST /api/readings/muhurtam` | Session required; `private, no-store` | General mode loads an owned profile's current location and sends no participants; personal mode derives minimal contexts for one to four owned profiles; both call the same Muhurtam engine |
+| `POST /api/readings/tarabalam` | Session required; `private, no-store` | Loads one to four owned profiles, sends anonymous derived contexts, and preserves exact canonical Tara/Chandra group verdicts |
+| Existing `/api/readings/muhurtha` | Session required; compatibility wrapper | Retained until all clients and deep links use the canonical spelling |
+
+The public and private Muhurtam experiences therefore share one rules engine.
+The authenticated route's explicit `validation_mode` preserves the same
+participant-free general calculation inside the app; personal mode then adds
+saved-profile contexts without switching to a second algorithm.
+
+The public root is horoscope-first. It obtains generic Rasi Phalalu,
+Panchangam, and public Muhurtam through these BFF routes after the static shell
+loads. Location is inferred only from the browser timezone or a stored city
+preference—no precise-location permission is requested—and Hyderabad remains
+the safe fallback. The visible date follows that city, Drik is the default, and
+all three controls remain available through progressive disclosure.
+
+For personalised searches the browser submits profile IDs only. The BFF verifies
+ownership, reads cached DashaFlow output or obtains it server-side, and derives a
+versioned context such as Janma Nakshatra, Janma Rasi, Lagna, and later approved
+natal/Dasha factors. It sends request-local labels (`p1`, `p2`) rather than user
+names, emails, or database IDs. Telugu Calendar Utilities reports which supplied
+factors it evaluated and which validations remain manual. Raw birth time is sent
+only to DashaFlow when chart calculation genuinely requires it.
+
+### 15.7 Caching and data freshness
+
+Cache keys include contract version, engine package version, system, ayanamsa,
+date/range, normalised coordinates/timezone, sign/activity, and all other
+calculation inputs. A response produced by a new engine version cannot collide
+with an old cache entry.
+
+| Data | Proposed CDN policy | Notes |
+|---|---|---|
+| Catalogs | 24 hours + stale-while-revalidate | Explicit purge on catalogue release |
+| Today's Panchangam/Rasi Phalalu | 1 hour + 24-hour stale fallback | Revalidate after location-local date changes |
+| Other daily/range public results | 24 hours + 7-day stale fallback | Deterministic once engine version and inputs are fixed |
+| Public baseline Muhurtam | 1 hour + 24-hour stale fallback | GET only because it contains no participant/birth data |
+| Authenticated results | `private, no-store` | Optional saved result is owner-scoped in Turso |
+| Feed artifacts | Immutable versioned Blob path + manifest | Stable feed path resolves to the currently approved artifact |
+
+The web application uses a route handler rather than a direct external rewrite
+for computation because it must attach service authentication and enforce the
+cache/privacy split. If the Telugu service is unavailable, public pages may
+serve a clearly timestamped previously-valid cache entry. Personal results fail
+closed with a retry message; they never fall back silently to an approximation.
+
+### 15.8 Security and privacy controls
+
+| Threat | Required control |
+|---|---|
+| Cross-user profile access | Server loads every profile by `(profile_id, user_id)` before deriving any participant context |
+| Private response cached publicly | Personal routes set `private, no-store`; automated tests inspect headers and cross-user isolation |
+| Public calculator abuse/cost spike | One coarse Vercel WAF rate-limit rule for public computation plus a shared application limiter for per-user/per-operation quotas |
+| Direct sidecar abuse | Bearer token on all computation endpoints, no wildcard CORS, bounded bodies/ranges, generic errors |
+| Birth data in logs/analytics | Structured allowlisted fields only; Sentry scrubbing; no request-body or participant-context analytics |
+| Admin privilege misuse | Central server-side guard, environment bootstrap allowlist, audit record for mutations, confirmation/re-authentication for destructive actions |
+| Supply-chain/output drift | Pinned Python/Node runtimes and package versions, contract tests, engine version in every response |
+| Preview writes to production | No production Turso or service tokens in preview/staging scopes; CI check fails when environment identity is ambiguous |
+
+The current in-memory limiter remains useful only as a local fast path. Public
+launch requires a distributed source of truth. The economical default is
+Vercel WAF for coarse anonymous limits and Upstash Redis for user/operation
+limits; exact thresholds are tuned from staging and shadow traffic.
+
+### 15.9 Turso and schema evolution
+
+Public Panchangam pages require no new production tables. The first optional,
+additive tables are:
+
+- `saved_muhurtams` — owner ID, selected profile IDs, normalised request,
+  approved result summary, calculation/contract versions, status, timestamps.
+- `admin_audit_log` — admin user ID, allowlisted action, target type/ID,
+  non-sensitive metadata, request ID, timestamp.
+
+No table is created until its journey is implemented. New unification migrations
+move to an explicit, repeatable migration command with a recorded migration ID;
+they do not first execute during an arbitrary production request. Changes use
+expand/migrate/contract sequencing: add nullable table/column/index, deploy code
+compatible with both schemas, backfill if required, verify, and only remove old
+shape after stabilization. Existing `ensureSchema()` remains untouched until
+that migration runner is proven against the synthetic staging database.
+
+Staging is schema-identical but contains synthetic identities and profiles. No
+production database branch or dump is copied into staging by default. Before any
+production schema step, verify the current Turso PITR window, take an off-account
+snapshot, rehearse restore to a new database, and record measured recovery time.
+
+### 15.10 Jobs, Rasi Phalalu, and feed continuity
+
+1. Existing GitHub Actions and GitHub Pages remain the production publishers
+   throughout backend and public-experience development.
+2. The new service calculates interactive requests on demand. Shadow jobs call
+   the same adapter or generator and publish immutable test artifacts to a
+   staging Blob store/prefix.
+3. Parity compares semantic ICS contents, byte-sensitive compatibility fields,
+   daily JSON, dates, locations, and feed coverage before any subscriber path is
+   switched.
+4. The unified site first exposes approved artifacts at new primary-domain
+   paths while every old `panchangam.astrochaganti.com/feeds/*` URL still returns
+   200 from GitHub Pages.
+5. Only after stabilization may the old subdomain be mapped to Vercel, where the
+   exact legacy paths return the approved artifacts from Blob. Redirecting a
+   calendar subscriber is not assumed safe; same-path 200 responses are the
+   default compatibility strategy.
+6. GitHub Pages and generation workflows are disabled only at Gate 11 after a
+   fresh dependency/feed audit and separate owner approval.
+
+Vercel Hobby cron can run only daily and has no automatic retry; it is therefore
+not automatically superior to the existing scheduled Actions. Daily on-demand
+content may move to Vercel caching, while long-running or retry-sensitive feed
+generation remains in GitHub Actions until a measured durable replacement is
+approved.
+
+### 15.11 Admin architecture
+
+The current admin feature set is preserved and reorganised behind the same
+server-side admin guard:
+
+| Area | Initial scope |
+|---|---|
+| People | Paginated users/profiles, ownership context, safe links to professional view |
+| Consultations | Queues, drafts, payment/answer status, slots, notifications |
+| Content & Publishing | Daily content freshness, feed manifests, engine/provenance versions, shadow parity state |
+| Operations | Web/Turso/DashaFlow/Telugu health, latency/error summaries, deployment identity, migration readiness |
+| Settings | Existing allowlisted fees/availability/LLM settings plus safe feature display controls |
+
+Admin pages stop loading every row into a single client component as volume
+grows; list queries become paginated and server-filtered. Health panels contain
+aggregate operational data, not birth details or consultation text. Every
+mutation is server-authorised and audited; credentials never enter client props.
+No user impersonation capability is introduced by this programme without a
+separate explicit decision and audit design.
+
+Deployment-source flags such as `PANCHANGAM_BACKEND=legacy|shadow|api` remain
+environment-controlled, not casual admin toggles. This keeps a compromised or
+mistaken admin action from switching all production calculation traffic.
+
+### 15.12 Observability, failure isolation, and rollback
+
+- Generate a request ID at the BFF and propagate it through computation logs,
+  Sentry, and safe response metadata.
+- Tag Sentry and PostHog with `production`, `staging`, or `preview`; never mix
+  acceptance telemetry with production metrics.
+- Expand `/api/health` to report Turso, DashaFlow, Telugu API, artifact freshness,
+  deployed contract versions, and an overall status without exposing secrets.
+- Record cache hit/miss, upstream duration, endpoint, engine version, status, and
+  anonymous request class. Do not record dates of birth or participant factors.
+- Establish staging baselines before setting final service objectives. Initial
+  acceptance budgets are: cached public response under 1 second at p95, normal
+  calculation miss under 5 seconds at p95, bounded Muhurtam search under 15
+  seconds at p95, and no unexplained calculation mismatch.
+- A Telugu outage must not take down login, profiles, charts, or consultations;
+  a DashaFlow outage must not take down public Panchangam; a Turso outage must not
+  erase already-cached public daily content.
+
+Rollback is per component: route traffic back to `legacy`, promote the previous
+green web/API deployment, restore the prior artifact manifest, or create a new
+Turso database from the verified recovery point. Database rollback never assumes
+that reverting application code can reverse an incompatible schema change.
+
+### 15.13 Cost and platform constraints
+
+| Item | Expected starting posture | Cost/risk control |
+|---|---|---|
+| Vercel web + Python projects | Separate projects; no base project fee by itself | Production is likely commercial and should move to Pro before cutover; current published price starts at one paid seat, plus usage |
+| Python compute | Python 3.12, excluded tests/docs/assets, measured bundle and cold start | Current standard bundle limit is ample, but Swiss Ephemeris data and dependencies are verified in the preview build |
+| Vercel Blob | Public immutable artifacts; estimated feed estate remains below the published 1 GB Hobby allowance | Monitor storage, transfer, and operations; retain GitHub Pages rollback |
+| Turso | Existing production DB plus one synthetic staging DB | CLI reports `starter`; regions/quota are sufficient. Manual restore is proven, while native PITR returned an upstream internal error and remains a support follow-up. |
+| Rate limiting | Vercel WAF + Upstash | Start with staging/free allowances; production uses a budget cap and documented failure behaviour |
+| Scheduled work | Existing GitHub Actions initially | Avoid paying for or weakening healthy batch work solely for platform uniformity |
+
+At the time of this design, Vercel documents Python/FastAPI support, external
+rewrites and CDN caching, daily-only Hobby cron, Vercel Blob, and WAF rate
+limiting on all plans. These limits are rechecked at the migration-rehearsal
+gate because they are external platform facts, not permanent application
+assumptions.
+
+Platform evidence reviewed for this gate: [Vercel Python runtime](https://vercel.com/docs/functions/runtimes/python),
+[function regions](https://vercel.com/docs/functions/configuring-functions/region),
+[rewrites](https://vercel.com/docs/routing/rewrites),
+[cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing),
+[Blob pricing/limits](https://vercel.com/docs/vercel-blob/usage-and-pricing),
+[WAF rate limiting](https://vercel.com/docs/vercel-firewall/vercel-waf/rate-limiting),
+[Turso PITR](https://docs.turso.tech/features/point-in-time-recovery), and the
+[Node.js release schedule](https://nodejs.org/en/about/previous-releases).
+
+### 15.14 Gate 3 acceptance decisions
+
+Gate 3 requires explicit owner agreement that:
+
+1. The three repositories remain separate, with Astro Chaganti as the one
+   product shell and two server-only Python computation services.
+2. Telugu Calendar Utilities becomes the single source for public daily data,
+   Tarabalam/Chandrabalam, and both public and profile-aware Muhurtam.
+3. A dedicated stable staging web project, synthetic Turso database, isolated
+   staging authentication, staging Telugu API, and separate artifact scope are
+   provisioned before feature implementation previews. Gate 7 later approved
+   fail-closed synthetic identities as the OAuth alternative.
+4. Public baseline requests are CDN-cacheable and contain no participant data;
+   authenticated results are owner-scoped and `private, no-store`.
+5. Service tokens, distributed rate limits, redacted errors/logs, contract
+   versioning, explicit migrations, and admin mutation auditing are launch
+   requirements rather than later hardening.
+6. The admin workspace is improved as part of Gate 7, with operational and
+   publishing visibility but no silent production-source switch or impersonation.
+7. GitHub Actions/Pages remain live while Vercel API and Blob paths run in
+   shadow; scheduling moves only after durability and cost are proven.
+8. Node 24 LTS and Python 3.12 are the pinned target runtimes.
+9. The likely Vercel Pro production baseline and small Blob/rate-limit usage are
+   acceptable in principle, subject to an exact dashboard cost check before
+   resources or paid plans are changed.
+10. No production service, DNS record, database, user row, or feed is changed in
+    Gate 3.
+
+Gate 7 implementation note (2026-07-22): the stable web project now has the
+fresh synthetic Turso database, guarded explicit migration/seed commands,
+owner/admin review identities, owner-scoped private timing routes and grouped
+user/admin navigation. The owner approved those fail-closed synthetic identities
+as the Gate 8 rehearsal path, avoiding a separate Google staging client. The
+unchanged production Google flow remains a mandatory Gate 9 smoke test.
 
 ---
 

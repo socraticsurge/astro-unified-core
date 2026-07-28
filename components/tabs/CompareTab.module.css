@@ -1,0 +1,713 @@
+.enginePill {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  border: 1px solid var(--color-accent-dim);
+  border-radius: 999px;
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+  font: var(--type-weight-label) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.selectionCard,
+.overviewCard,
+.moonCard,
+.doshaCard,
+.tableFrame,
+.exceptionCard,
+.readingBoundary,
+.errorCard {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface-1);
+  box-shadow: var(--shadow-card);
+}
+
+.selectionCard {
+  display: grid;
+  gap: 20px;
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.selectionHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.selectionHeading h3,
+.pairHeading h3,
+.scoreReading h4,
+.exceptionCard h3,
+.readingBoundary h3 {
+  color: var(--color-ink-1);
+  font-family: var(--font-display);
+  font-weight: var(--type-weight-display);
+  letter-spacing: var(--type-track-title);
+  text-wrap: balance;
+}
+
+.selectionHeading h3 {
+  margin-top: 5px;
+  font-size: var(--type-title-size);
+  line-height: var(--type-line-title);
+}
+
+.selectionHeading > div > p:last-child {
+  max-width: 64ch;
+  margin-top: 6px;
+  color: var(--color-ink-3);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-line-body);
+  text-wrap: pretty;
+}
+
+.cardEyebrow,
+.profileColumns legend,
+.scoreEyebrow,
+.moonHeader small,
+.moonFacts dt,
+.doshaHeading p {
+  color: var(--color-ink-4);
+  font: var(--type-weight-label) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  letter-spacing: var(--type-track-label);
+  text-transform: uppercase;
+}
+
+.profileColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.profileColumns fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.profileColumns legend {
+  margin-bottom: 8px;
+}
+
+.candidateList {
+  display: grid;
+  gap: 7px;
+}
+
+.profileChoice {
+  width: 100%;
+  min-width: 0;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-ink-3);
+  background: var(--color-surface-sunk);
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+button.profileChoice:hover {
+  color: var(--color-ink-1);
+  border-color: var(--color-accent-dim);
+}
+
+.profileChoice[data-selected="true"] {
+  color: var(--color-accent);
+  border-color: var(--color-accent-dim);
+  background: var(--color-accent-faint);
+}
+
+.profileMonogram,
+.pairMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-accent-dim);
+  border-radius: 50%;
+  color: var(--color-accent);
+  background: var(--color-surface-1);
+  font-family: var(--font-display);
+  font-weight: var(--type-weight-display-strong);
+}
+
+.profileMonogram {
+  width: 36px;
+  height: 36px;
+  font-size: 15px;
+}
+
+.profileCopy {
+  min-width: 0;
+}
+
+.profileCopy strong,
+.profileCopy small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.profileCopy strong {
+  color: inherit;
+  font: var(--type-weight-label) var(--type-body-sm-size)/var(--type-line-compact) var(--font-ui);
+}
+
+.profileCopy small {
+  margin-top: 3px;
+  color: var(--color-ink-4);
+  font: var(--type-weight-body) var(--type-label-size)/var(--type-line-compact) var(--font-ui);
+}
+
+.profileState {
+  color: inherit;
+  font: var(--type-weight-label) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.profileConnector {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  margin-top: 18px;
+  border: 1px solid var(--color-accent-dim);
+  border-radius: 50%;
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+}
+
+.addProfile {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 13px;
+  border: 1px dashed var(--color-accent-dim);
+  border-radius: 12px;
+  color: var(--color-accent);
+  background: var(--color-accent-faint);
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-weight-label);
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.actionRow > p {
+  color: var(--color-ink-3);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-line-compact);
+  text-wrap: pretty;
+}
+
+.spinning {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorCard {
+  padding: 14px 16px;
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-faint);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-line-body);
+}
+
+.results {
+  display: grid;
+  gap: 24px;
+}
+
+.overviewCard {
+  overflow: hidden;
+  border-color: var(--color-accent-dim);
+  background:
+    radial-gradient(
+      circle at 100% 0,
+      var(--color-accent-faint),
+      transparent 38%
+    ),
+    var(--color-surface-1);
+}
+
+.pairHeading {
+  display: grid;
+  grid-template-columns: 34px 24px 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 17px clamp(18px, 3vw, 26px);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.pairHeading > svg {
+  color: var(--color-accent);
+}
+
+.pairMark {
+  width: 34px;
+  height: 34px;
+  font-size: var(--type-body-lg-size);
+}
+
+.pairHeading > div {
+  margin-left: 5px;
+}
+
+.pairHeading p {
+  color: var(--color-ink-4);
+  font: var(--type-weight-label) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  letter-spacing: var(--type-track-label);
+  text-transform: uppercase;
+}
+
+.pairHeading h3 {
+  margin-top: 3px;
+  font-size: var(--type-title-sm-size);
+  line-height: var(--type-line-title);
+}
+
+.scoreLayout {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.42fr) minmax(0, 1.58fr);
+  gap: clamp(20px, 4vw, 38px);
+  align-items: center;
+  padding: clamp(22px, 3.5vw, 34px);
+}
+
+.scoreBlock {
+  min-height: 152px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 15px;
+  color: var(--color-ink-2);
+  background: var(--color-surface-sunk);
+  text-align: center;
+}
+
+.scoreBlock[data-tone="supportive"] {
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+  background: var(--color-success-faint);
+}
+
+.scoreBlock[data-tone="mixed"] {
+  color: var(--color-warning);
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-faint);
+}
+
+.scoreBlock[data-tone="caution"] {
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-faint);
+}
+
+.scoreValue {
+  font: var(--type-weight-display-strong) clamp(42px, 6vw, 60px)/0.9 var(--font-display);
+  letter-spacing: -0.04em;
+}
+
+.scoreMax {
+  margin-top: 7px;
+  color: var(--color-ink-4);
+  font: var(--type-weight-title) var(--type-label-size)/var(--type-line-label) var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.scoreBlock strong {
+  margin-top: 12px;
+  color: inherit;
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-weight-label);
+}
+
+.scoreReading h4 {
+  max-width: 34ch;
+  margin-top: 7px;
+  font-size: var(--type-feature-size);
+  line-height: var(--type-line-title);
+}
+
+.scoreProgress {
+  width: min(100%, 500px);
+  height: 7px;
+  display: block;
+  margin-top: 17px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-surface-sunk);
+}
+
+.scoreProgress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--color-surface-sunk);
+}
+
+.scoreProgress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+
+.scoreProgress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+
+.scoreReading > p:last-child {
+  max-width: 70ch;
+  margin-top: 12px;
+  color: var(--color-ink-3);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-line-body);
+  text-wrap: pretty;
+}
+
+.tableFrame {
+  overflow-x: auto;
+}
+
+.dataTable {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  color: var(--color-ink-2);
+  font-family: var(--font-ui);
+  font-size: var(--type-caption-size);
+}
+
+.dataTable thead {
+  background: var(--color-surface-sunk);
+}
+
+.dataTable th,
+.dataTable td {
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.dataTable thead th {
+  color: var(--color-ink-4);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+  letter-spacing: var(--type-track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dataTable tbody th {
+  color: var(--color-ink-1);
+  font-weight: var(--type-weight-label);
+}
+
+.dataTable tbody tr:last-child th,
+.dataTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.dataTable tbody tr:hover {
+  background: var(--color-accent-faint);
+}
+
+.dataTable .numeric {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.detailCell {
+  max-width: 50ch;
+  color: var(--color-ink-3);
+  line-height: var(--type-line-compact);
+  text-wrap: pretty;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-ink-4);
+  background: var(--color-surface-sunk);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-weight-label);
+  line-height: var(--type-line-label);
+  white-space: nowrap;
+}
+
+.statusPill[data-tone="supportive"] {
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+  background: var(--color-success-faint);
+}
+
+.statusPill[data-tone="mixed"] {
+  color: var(--color-warning);
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-faint);
+}
+
+.statusPill[data-tone="caution"] {
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-faint);
+}
+
+.moonGrid,
+.doshaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.moonCard {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.moonHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-sunk);
+}
+
+.moonHeader strong,
+.moonHeader small {
+  display: block;
+}
+
+.moonHeader strong {
+  color: var(--color-ink-1);
+  font-size: var(--type-body-sm-size);
+  font-weight: var(--type-weight-label);
+}
+
+.moonHeader small {
+  margin-top: 3px;
+}
+
+.moonFacts {
+  display: grid;
+}
+
+.moonFacts > div {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.7fr) minmax(0, 1.3fr);
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.moonFacts > div:last-child {
+  border-bottom: 0;
+}
+
+.moonFacts dd {
+  overflow-wrap: anywhere;
+  color: var(--color-ink-1);
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-weight-title);
+  line-height: var(--type-line-compact);
+  text-transform: capitalize;
+}
+
+.doshaCard {
+  min-width: 0;
+  padding: 17px;
+}
+
+.doshaHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.doshaHeading strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--color-ink-1);
+  font: var(--type-weight-display) var(--type-title-sm-size)/var(--type-line-title) var(--font-display);
+  text-wrap: balance;
+}
+
+.doshaDescription {
+  margin-top: 11px;
+  color: var(--color-ink-3);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-line-body);
+  text-wrap: pretty;
+}
+
+.exceptionCard {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 14px;
+  padding: clamp(18px, 2.5vw, 23px);
+  border-color: var(--color-success-border);
+  background:
+    linear-gradient(110deg, var(--color-success-faint), transparent 55%),
+    var(--color-surface-1);
+}
+
+.exceptionCard > span {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-success-border);
+  border-radius: 12px;
+  color: var(--color-success);
+  background: var(--color-surface-1);
+}
+
+.exceptionCard h3,
+.readingBoundary h3 {
+  margin-top: 5px;
+  font-size: var(--type-title-sm-size);
+  line-height: var(--type-line-title);
+}
+
+.exceptionCard ul {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  padding-left: 17px;
+}
+
+.exceptionCard li {
+  color: var(--color-ink-3);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-line-body);
+  text-wrap: pretty;
+}
+
+.readingBoundary {
+  padding: clamp(18px, 2.5vw, 23px);
+  border-style: dashed;
+  background: var(--color-surface-sunk);
+}
+
+.readingBoundary > p:last-child {
+  max-width: 76ch;
+  margin-top: 8px;
+  color: var(--color-ink-3);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-line-body);
+  text-wrap: pretty;
+}
+
+@media (max-width: 760px) {
+  .profileColumns {
+    grid-template-columns: 1fr;
+  }
+
+  .profileConnector {
+    margin: -2px auto;
+    transform: rotate(90deg);
+  }
+
+  .scoreLayout,
+  .moonGrid,
+  .doshaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .scoreBlock {
+    min-height: 128px;
+  }
+}
+
+@media (max-width: 560px) {
+  .enginePill {
+    justify-self: start;
+  }
+
+  .selectionHeading,
+  .actionRow {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .selectionHeading button {
+    justify-self: start;
+  }
+
+  .pairHeading {
+    grid-template-columns: 32px 20px 32px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .pairHeading > div {
+    margin-left: 2px;
+  }
+
+  .pairHeading h3 {
+    font-size: var(--type-title-sm-size);
+  }
+
+  .pairMark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .moonFacts > div {
+    grid-template-columns: minmax(90px, 0.8fr) minmax(0, 1.2fr);
+  }
+
+  .doshaHeading {
+    display: grid;
+  }
+
+  .doshaHeading .statusPill {
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinning {
+    animation: none;
+  }
+}

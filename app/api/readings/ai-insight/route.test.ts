@@ -16,8 +16,8 @@ vi.mock("@/lib/ai-insight", () => ({
   buildInsightForTab: vi.fn(),
 }));
 vi.mock("@/lib/engines/models", () => ({
-  resolveModel: vi.fn().mockReturnValue("gemini-2.0-flash"),
-  DEFAULT_INSIGHT_MODEL: "gemini-2.0-flash",
+  resolveModel: vi.fn().mockReturnValue("groq-gpt-oss-120b"),
+  DEFAULT_INSIGHT_MODEL: "groq-gpt-oss-120b",
 }));
 vi.mock("@/lib/db", () => ({
   db: {

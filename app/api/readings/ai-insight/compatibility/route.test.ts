@@ -25,9 +25,9 @@ vi.mock("@/lib/ai-insight-compat", () => ({
 }));
 
 vi.mock("@/lib/engines/models", () => ({
-  DEFAULT_INSIGHT_MODEL: "gemini-flash",
+  DEFAULT_INSIGHT_MODEL: "groq-gpt-oss-120b",
   resolveModel: vi.fn((key: unknown, fallback: string) =>
-    key === "gemini-flash" || key === "gemma-4-31b-it" ? key : fallback
+    key === "groq-gpt-oss-120b" ? key : fallback
   ),
 }));
 
@@ -38,7 +38,7 @@ import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { buildCompatibilityInsight } from "@/lib/ai-insight-compat";
 
-const FAKE_INSIGHT = { summary: "Compatible", sections: [], model: "gemini-flash" };
+const FAKE_INSIGHT = { summary: "Compatible", sections: [], model: "groq-gpt-oss-120b" };
 
 describe("GET /api/readings/ai-insight/compatibility", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -151,7 +151,7 @@ describe("POST /api/readings/ai-insight/compatibility", () => {
       result_json: "{}",
     } as never);
     vi.mocked(db.profiles.getAny).mockResolvedValue({ id: "p1", name: "Alice" } as never);
-    vi.mocked(buildCompatibilityInsight).mockResolvedValue({ ...FAKE_INSIGHT, model: "gemini-flash" } as never);
+    vi.mocked(buildCompatibilityInsight).mockResolvedValue({ ...FAKE_INSIGHT, model: "groq-gpt-oss-120b" } as never);
     vi.mocked(db.readings.save).mockResolvedValue({ id: "r-new", output_data: "{}" } as never);
 
     const req = new NextRequest("http://localhost/api/readings/ai-insight/compatibility", {

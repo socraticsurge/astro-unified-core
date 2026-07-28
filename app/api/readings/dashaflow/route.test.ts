@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 vi.mock("next-auth/next", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ authOptions: {}, getUserId: (s) => s?.user?.id ?? "" }));
@@ -30,7 +30,9 @@ const cachedReading = {
   id: "read-1",
   profile_id: "prof-1",
   engine: "dashaflow",
-  output_data: JSON.stringify({ planets: {} }),
+  output_data: JSON.stringify({
+    data: { metadata: { query_date: "2026-07-27" }, planets: {} },
+  }),
   input_snapshot: JSON.stringify({
     date_of_birth: "1990-01-01",
     time_of_birth: "12:00",
@@ -42,7 +44,13 @@ const cachedReading = {
 };
 
 describe("GET /api/readings/dashaflow", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-27T06:00:00.000Z"));
+  });
+
+  afterEach(() => vi.useRealTimers());
 
   const makeReq = (params: Record<string, string> = {}) => {
     const url = new URL("http://localhost/api/readings/dashaflow");
@@ -97,6 +105,36 @@ describe("GET /api/readings/dashaflow", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.cached).toBe(false);
+    expect(fetchDashaflow).toHaveBeenCalledWith(
+      expect.objectContaining({ timezone: "Asia/Kolkata" }),
+      "2026-07-27",
+    );
+  });
+
+  it("refreshes a birth-matched chart when its Dasha query date is stale", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session as never);
+    vi.mocked(isAdmin).mockReturnValue(false);
+    vi.mocked(db.profiles.get).mockResolvedValue(profile as never);
+    vi.mocked(db.readings.latestByEngine).mockResolvedValue({
+      ...cachedReading,
+      output_data: JSON.stringify({
+        data: { metadata: { query_date: "2026-07-26" }, planets: {} },
+      }),
+    } as never);
+    vi.mocked(fetchDashaflow).mockResolvedValue({
+      data: { metadata: { query_date: "2026-07-27" }, planets: {} },
+    } as never);
+    vi.mocked(extractEngineError).mockReturnValue(null);
+    vi.mocked(db.readings.save).mockResolvedValue(cachedReading as never);
+
+    const res = await GET(makeReq({ profile_id: "prof-1" }));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).cached).toBe(false);
+    expect(fetchDashaflow).toHaveBeenCalledWith(
+      expect.objectContaining({ timezone: "Asia/Kolkata" }),
+      "2026-07-27",
+    );
   });
 
   it("returns 502 when engine returns an error", async () => {

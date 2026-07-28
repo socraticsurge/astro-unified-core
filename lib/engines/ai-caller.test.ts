@@ -1,71 +1,76 @@
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("./gemini", () => ({
-  callGemini: vi.fn(),
-  callGeminiText: vi.fn(),
+vi.mock("./groq", () => ({
+  callGroq: vi.fn(),
 }));
 
 import { callAIForJson, callAIForText } from "./ai-caller";
-import { callGemini, callGeminiText } from "./gemini";
+import { callGroq } from "./groq";
 
 describe("callAIForJson", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("routes gemini-flash to callGemini with its model id", async () => {
-    vi.mocked(callGemini).mockResolvedValue({ summary: "test" });
+  it("routes structured generation through the Groq production model", async () => {
+    vi.mocked(callGroq).mockResolvedValue('{"summary":"test"}');
 
-    const result = await callAIForJson("gemini-flash", "sys", "user", { temperature: 0.5, maxTokens: 1024 });
+    const result = await callAIForJson(
+      "groq-gpt-oss-120b",
+      "sys",
+      "user",
+      { temperature: 0.5, maxTokens: 1024, topP: 0.8 },
+    );
 
-    expect(callGemini).toHaveBeenCalledWith("gemini-3.1-flash-lite", "sys", "user", {
-      temperature: 0.5,
-      maxOutputTokens: 1024,
-    });
+    expect(callGroq).toHaveBeenCalledWith(
+      "openai/gpt-oss-120b",
+      "sys",
+      [{ role: "user", content: "user" }],
+      {
+        temperature: 0.5,
+        maxTokens: 1024,
+        topP: 0.8,
+        jsonMode: true,
+      },
+    );
     expect(result).toEqual({ summary: "test" });
   });
 
-  it("routes gemma-4-31b-it to callGemini with its model id", async () => {
-    vi.mocked(callGemini).mockResolvedValue({ score: 28 });
+  it("parses JSON from a fenced fallback response", async () => {
+    vi.mocked(callGroq).mockResolvedValue('```json\n{"summary":"fallback"}\n```');
 
-    const result = await callAIForJson("gemma-4-31b-it", "sys", "user", { temperature: 0.4 });
-
-    expect(callGemini).toHaveBeenCalledWith("gemma-4-31b-it", "sys", "user", {
-      temperature: 0.4,
-      maxOutputTokens: undefined,
-    });
-    expect(result).toEqual({ score: 28 });
+    await expect(
+      callAIForJson("groq-gpt-oss-120b", "sys", "user"),
+    ).resolves.toEqual({ summary: "fallback" });
   });
 });
 
 describe("callAIForText", () => {
-  const msgs = [{ role: "user" as const, content: "hello" }];
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("routes gemini-flash to callGeminiText with its model id", async () => {
-    vi.mocked(callGeminiText).mockResolvedValue("Gemini response");
+  it("routes prose generation through the Groq production model", async () => {
+    const messages = [{ role: "user" as const, content: "hello" }];
+    vi.mocked(callGroq).mockResolvedValue("Groq response");
 
-    const result = await callAIForText("gemini-flash", "sys", msgs, { temperature: 0.6, maxTokens: 2048 });
+    const result = await callAIForText(
+      "groq-gpt-oss-120b",
+      "sys",
+      messages,
+      { temperature: 0.6, maxTokens: 2048 },
+    );
 
-    expect(callGeminiText).toHaveBeenCalledWith("gemini-3.1-flash-lite", "sys", msgs, {
-      temperature: 0.6,
-      maxOutputTokens: 2048,
-    });
-    expect(result).toBe("Gemini response");
-  });
-
-  it("routes gemma-4-31b-it to callGeminiText with its model id", async () => {
-    vi.mocked(callGeminiText).mockResolvedValue("Gemma reply");
-
-    const result = await callAIForText("gemma-4-31b-it", "sys", msgs, { temperature: 0.65 });
-
-    expect(callGeminiText).toHaveBeenCalledWith("gemma-4-31b-it", "sys", msgs, {
-      temperature: 0.65,
-      maxOutputTokens: undefined,
-    });
-    expect(result).toBe("Gemma reply");
+    expect(callGroq).toHaveBeenCalledWith(
+      "openai/gpt-oss-120b",
+      "sys",
+      messages,
+      {
+        temperature: 0.6,
+        maxTokens: 2048,
+        topP: undefined,
+      },
+    );
+    expect(result).toBe("Groq response");
   });
 });

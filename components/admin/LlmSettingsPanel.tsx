@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { AiInsightsLlmConfig, ChatLlmConfig, DraftLlmConfig, TodayReadingLlmConfig } from "@/lib/db";
-import { AI_MODELS } from "@/lib/engines/models";
+import { AI_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/engines/models";
 
 type Props = {
   initialAiInsights: AiInsightsLlmConfig;
@@ -41,7 +41,12 @@ function NumberInput({
 
 export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft, initialTodayReading }: Props) {
   const [aiConfig, setAiConfig] = useState<AiInsightsLlmConfig>(initialAiInsights);
-  const [chatConfig, setChatConfig] = useState<ChatLlmConfig>(initialChat);
+  const [chatConfig, setChatConfig] = useState<ChatLlmConfig>(() => ({
+    ...initialChat,
+    user_model: Object.hasOwn(AI_MODELS, initialChat.user_model)
+      ? initialChat.user_model
+      : DEFAULT_CHAT_MODEL,
+  }));
   const [draftConfig, setDraftConfig] = useState<DraftLlmConfig>(initialDraft);
   const [todayConfig, setTodayConfig] = useState<TodayReadingLlmConfig>(initialTodayReading);
   const [aiSaving, setAiSaving] = useState(false);
@@ -141,10 +146,10 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft,
     <div className="max-w-2xl space-y-8">
       <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">LLM Settings</h2>
 
-      {/* AI Insights — Gemini */}
+      {/* AI Insights — Groq */}
       <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5 space-y-5">
         <div>
-          <p className="text-sm font-medium">AI Insights — Gemini</p>
+          <p className="text-sm font-medium">AI Insights — Groq</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             Used when generating tab summaries (natal, dashas, career, etc.).
             Changes apply to newly generated insights; cached ones are unaffected.
@@ -194,8 +199,8 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft,
         <div>
           <p className="text-sm font-medium">Chat — Groq</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Used for the per-profile Chat tab. Applies to all new messages; model selection
-            (Scout / Gemma 4 31B) remains in the chat UI.
+            Used for Explore with AI. Applies to all new messages; the permitted Groq
+            production model is selected below.
           </p>
         </div>
 
@@ -239,7 +244,11 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft,
           <div className="space-y-1.5">
             <label className="text-xs text-muted-foreground">Model for regular users</label>
             <select
-              value={chatConfig.user_model ?? "gemma-4-31b-it"}
+              value={
+                Object.hasOwn(AI_MODELS, chatConfig.user_model)
+                  ? chatConfig.user_model
+                  : DEFAULT_CHAT_MODEL
+              }
               onChange={e => setChatConfig(c => ({ ...c, user_model: e.target.value }))}
               className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-1)] px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/50"
             >
@@ -329,10 +338,10 @@ export function LlmSettingsPanel({ initialAiInsights, initialChat, initialDraft,
         </button>
       </div>
 
-      {/* Today Reading — Gemini */}
+      {/* Today Reading — Groq */}
       <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5 space-y-5">
         <div>
-          <p className="text-sm font-medium">Today Reading — Gemini</p>
+          <p className="text-sm font-medium">Today Reading — Groq</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             Used for the dasha period + natal chart reading shown in the Today tab.
             Cached per pratyantar period; invalidated when birth data or pratyantar period changes.

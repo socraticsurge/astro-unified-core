@@ -16,7 +16,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/engines/ai-caller", () => ({ callAIForText: vi.fn() }));
 
 vi.mock("@/lib/engines/models", () => ({
-  DEFAULT_DRAFT_MODEL: "gemma-4-31b-it",
+  DEFAULT_DRAFT_MODEL: "groq-gpt-oss-120b",
   resolveModel: vi.fn((_key: unknown, fallback: string) => fallback),
 }));
 

@@ -12,6 +12,7 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
   const [writtenConsultation, setWrittenConsultation] = useState(appSettings.written_consultation_enabled);
   const [liveConsultation, setLiveConsultation] = useState(appSettings.live_consultation_enabled);
   const [settingSaving, setSettingSaving] = useState(false);
+  const [settingStatus, setSettingStatus] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [writtenFeeRs, setWrittenFeeRs] = useState(Math.round(appSettings.written_fee_paise / 100));
   const [liveFeeRs, setLiveFeeRs] = useState(Math.round(appSettings.live_fee_paise / 100));
   const [feeSaving, setFeeSaving] = useState(false);
@@ -20,6 +21,7 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
   const [newSlotInput, setNewSlotInput] = useState("");
   const [slotAdding, setSlotAdding] = useState(false);
   const [slotDeletingId, setSlotDeletingId] = useState<string | null>(null);
+  const [slotStatus, setSlotStatus] = useState<{ kind: "success" | "error"; message: string } | null>(null);
 
   const saveFees = async () => {
     setFeeSaving(true);
@@ -39,16 +41,27 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
 
   const toggleSetting = async (key: "written_consultation_enabled" | "live_consultation_enabled") => {
     setSettingSaving(true);
+    setSettingStatus(null);
     const current = key === "written_consultation_enabled" ? writtenConsultation : liveConsultation;
     const next = !current;
     try {
-      await fetch("/api/admin/settings", {
+      const response = await fetch("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [key]: next }),
       });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? "Unable to update consultation availability.");
+      }
       if (key === "written_consultation_enabled") setWrittenConsultation(next);
       else setLiveConsultation(next);
+      setSettingStatus({ kind: "success", message: "Consultation availability updated." });
+    } catch (error) {
+      setSettingStatus({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Unable to update consultation availability.",
+      });
     } finally {
       setSettingSaving(false);
     }
@@ -57,6 +70,7 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
   const addSlot = async () => {
     if (!newSlotInput) return;
     setSlotAdding(true);
+    setSlotStatus(null);
     try {
       const startsAt = new Date(newSlotInput + ":00+05:30").toISOString();
       const res = await fetch("/api/admin/consultation-slots", {
@@ -64,11 +78,21 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ starts_at: startsAt }),
       });
-      if (res.ok) {
-        const slot = (await res.json()) as ConsultationSlot;
-        setSlots((prev) => [...prev, slot].sort((a, b) => a.starts_at.localeCompare(b.starts_at)));
-        setNewSlotInput("");
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          (body as { error?: string }).error ?? "Unable to add the consultation slot.",
+        );
       }
+      const slot = body as ConsultationSlot;
+      setSlots((prev) => [...prev, slot].sort((a, b) => a.starts_at.localeCompare(b.starts_at)));
+      setNewSlotInput("");
+      setSlotStatus({ kind: "success", message: "Consultation slot added." });
+    } catch (error) {
+      setSlotStatus({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Unable to add the consultation slot.",
+      });
     } finally {
       setSlotAdding(false);
     }
@@ -76,9 +100,20 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
 
   const deleteSlot = async (id: string) => {
     setSlotDeletingId(id);
+    setSlotStatus(null);
     try {
       const res = await fetch(`/api/admin/consultation-slots?id=${id}`, { method: "DELETE" });
-      if (res.ok) setSlots((prev) => prev.filter((s) => s.id !== id));
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? "Unable to delete the consultation slot.");
+      }
+      setSlots((prev) => prev.filter((s) => s.id !== id));
+      setSlotStatus({ kind: "success", message: "Consultation slot deleted." });
+    } catch (error) {
+      setSlotStatus({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Unable to delete the consultation slot.",
+      });
     } finally {
       setSlotDeletingId(null);
     }
@@ -107,6 +142,18 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
             disabled={settingSaving}
           />
         </div>
+        {settingStatus && (
+          <p
+            role={settingStatus.kind === "error" ? "alert" : "status"}
+            className={`text-xs ${
+              settingStatus.kind === "error"
+                ? "text-[var(--color-danger)]"
+                : "text-[var(--color-success)]"
+            }`}
+          >
+            {settingStatus.message}
+          </p>
+        )}
 
         {/* Pricing section is dormant until PAYMENT_FLOW_ENABLED is flipped on.
             Payment is currently handled out-of-band (email reply). */}
@@ -158,8 +205,14 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
           </p>
           <div className="flex gap-2 items-end">
             <div className="space-y-1 flex-1">
-              <label className="text-xs text-muted-foreground">Date &amp; Time (IST)</label>
+              <label
+                htmlFor="consultation-slot-start"
+                className="text-xs text-muted-foreground"
+              >
+                Date &amp; Time (IST)
+              </label>
               <input
+                id="consultation-slot-start"
                 type="datetime-local"
                 value={newSlotInput}
                 onChange={(e) => setNewSlotInput(e.target.value)}
@@ -220,6 +273,18 @@ export function SettingsTab({ appSettings, initialSlots }: SettingsTabProps) {
               );
             })}
           </div>
+          {slotStatus && (
+            <p
+              role={slotStatus.kind === "error" ? "alert" : "status"}
+              className={`text-xs ${
+                slotStatus.kind === "error"
+                  ? "text-[var(--color-danger)]"
+                  : "text-[var(--color-success)]"
+              }`}
+            >
+              {slotStatus.message}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -240,9 +305,13 @@ function Toggle({ label, description, enabled, onToggle, disabled }: {
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
       </div>
       <button
+        type="button"
+        role="switch"
+        aria-label={label}
+        aria-checked={enabled}
         disabled={disabled}
         onClick={onToggle}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-50 ${enabled ? "bg-[var(--color-accent)]" : "bg-[var(--color-surface-hover)]"}`}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:opacity-50 ${enabled ? "bg-[var(--color-accent)]" : "bg-[var(--color-surface-hover)]"}`}
       >
         <span className={`inline-block h-5 w-5 transform rounded-full bg-[var(--color-ink-1)] shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
       </button>

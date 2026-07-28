@@ -2,15 +2,17 @@
 
 import * as React from "react"
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { CalendarDays, Check, MessageSquareText, Send, Sparkles, Video } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/Toast"
 import { PAYMENT_FLOW_ENABLED } from "@/lib/constants"
+import styles from "./AskPanel.module.css"
 
 export interface AskContext {
   profileName: string
@@ -25,11 +27,11 @@ interface AskPanelProps {
   open: boolean
   onClose: () => void
   context: AskContext
-  writtenEnabled: boolean
-  liveEnabled: boolean
-  writtenFeePaise: number
-  liveFeePaise: number
-  onSubmit: (question: string) => Promise<void>
+  writtenEnabled?: boolean
+  liveEnabled?: boolean
+  writtenFeePaise?: number
+  liveFeePaise?: number
+  onSubmit?: (question: string) => Promise<void>
 }
 
 const MIN_LENGTH = 30
@@ -43,11 +45,11 @@ export function AskPanel({
   open,
   onClose,
   context,
-  writtenEnabled,
-  liveEnabled,
-  writtenFeePaise,
-  liveFeePaise,
-  onSubmit,
+  writtenEnabled = false,
+  liveEnabled = false,
+  writtenFeePaise = 0,
+  liveFeePaise = 0,
+  onSubmit = async () => undefined,
 }: AskPanelProps) {
   const isFree = !writtenEnabled && !liveEnabled
   const hasWritten = writtenEnabled || isFree
@@ -60,9 +62,6 @@ export function AskPanel({
   const [sent, setSent] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
-  // Reset the form whenever the panel closes so the next open shows a clean
-  // state. setState-in-effect is intentional here — these aren't derived
-  // values, they're persistent user input that should be cleared on close.
   React.useEffect(() => {
     if (!open) {
       /* eslint-disable react-hooks/set-state-in-effect */
@@ -88,151 +87,155 @@ export function AskPanel({
     try {
       await onSubmit(question.trim())
       setSent(true)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to submit. Please try again."
-      setError(msg)
-      toast(msg, "error")
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "Failed to submit. Please try again."
+      setError(message)
+      toast(message, "error")
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <Sheet open={open} onOpenChange={(isOpen: boolean) => { if (!isOpen) onClose() }}>
-      <SheetContent side="right" className="sm:max-w-sm w-full flex flex-col gap-4 overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>✦ Ask Dr Chaganti</SheetTitle>
-        </SheetHeader>
+    <Dialog open={open} onOpenChange={(isOpen: boolean) => { if (!isOpen) onClose() }}>
+      <DialogContent className={styles.dialog}>
+        <header className={styles.header}>
+          <span className={styles.headerIcon}>
+            <MessageSquareText size={20} aria-hidden="true" />
+          </span>
+          <div>
+            <p className={styles.eyebrow}>Human astrological guidance</p>
+            <DialogTitle className={styles.title}>Ask Dr Chaganti</DialogTitle>
+            <DialogDescription className={styles.description}>
+              Bring a focused question from this chart to a practising astrologer.
+            </DialogDescription>
+          </div>
+        </header>
 
         {sent ? (
-          <div className="flex flex-col items-center justify-center flex-1 gap-5 text-center py-10">
-            <div className="text-3xl text-[var(--color-accent)]">✦</div>
+          <div className={styles.success}>
+            <span className={styles.successMark}><Check size={22} aria-hidden="true" /></span>
             <div>
-              <p className="text-sm font-semibold text-[var(--color-ink-1)] mb-1">Question submitted</p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                You&apos;ll receive a response at your email address within 2 days.
-                If you need to reach Dr. Chaganti sooner, write directly to{" "}
-                <a
-                  href="mailto:astrochaganti@gmail.com"
-                  className="underline underline-offset-2 hover:text-[var(--color-ink-1)] transition-colors"
-                >
+              <p className={styles.successTitle}>Question submitted</p>
+              <p className={styles.successText}>
+                You&apos;ll receive a response at your email address within two days.
+                If you need to reach Dr Chaganti sooner, write directly to{" "}
+                <a href="mailto:astrochaganti@gmail.com" className={styles.textLink}>
                   astrochaganti@gmail.com
                 </a>
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="mt-2">
-              Close
-            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
           </div>
         ) : (
-          <>
-            {/* Context block */}
-            <div className="rounded-md border p-3 text-sm bg-[var(--color-ask-ctx-bg)] border-[var(--color-ask-ctx-border)]">
-              <div className="font-medium text-[var(--color-ask-ctx-name)]">
-                {context.profileName}
-                {context.relationship && (
-                  <span className="ml-1 font-normal opacity-70">· {context.relationship}</span>
-                )}
+          <div className={styles.body}>
+            <section className={styles.context} aria-label="Question context">
+              <span className={styles.contextGlyph}><Sparkles size={16} aria-hidden="true" /></span>
+              <div>
+                <p className={styles.contextLabel}>Question context</p>
+                <p className={styles.contextName}>
+                  {context.profileName}
+                  {context.relationship && <span> · {context.relationship}</span>}
+                </p>
+                <p className={styles.contextMeta}>
+                  {context.tab} · {context.mahadasha} · {context.antardasha} dasha
+                </p>
+                {context.insightTitle && <p className={styles.contextInsight}>{context.insightTitle}</p>}
               </div>
-              <div className="mt-0.5 text-xs opacity-80">
-                {context.mahadasha} · {context.antardasha} dasha
-              </div>
-              {context.insightTitle && (
-                <div className="mt-1 text-xs italic opacity-70">{context.insightTitle}</div>
-              )}
-            </div>
+            </section>
 
-            {/* Delivery mode toggle — only when both options are available.
-                Fee labels are hidden when PAYMENT_FLOW_ENABLED=false. */}
             {showToggle && (
-              <div className="grid grid-cols-2 gap-2">
-                {(["written", "live"] as const).map(m => {
-                  const label = m === "written" ? "Written Response" : "Live Session"
-                  const fee = m === "written"
+              <div className={styles.modes} aria-label="Response format">
+                {(["written", "live"] as const).map((candidate) => {
+                  const isWritten = candidate === "written"
+                  const label = isWritten ? "Written response" : "Live session"
+                  const detail = isWritten ? "A considered answer by email" : "A 25-minute conversation"
+                  const fee = isWritten
                     ? (isFree ? "Free" : fmtRupees(writtenFeePaise))
                     : fmtRupees(liveFeePaise)
                   return (
                     <button
-                      key={m}
+                      key={candidate}
                       type="button"
-                      onClick={() => setMode(m)}
-                      className={cn(
-                        "flex flex-col items-start gap-0.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
-                        mode === m
-                          ? "border-[var(--color-accent-dim)] bg-[var(--color-accent-faint)] text-[var(--color-ink-1)]"
-                          : "border-[var(--color-border)] bg-transparent text-muted-foreground hover:border-[var(--color-border-subtle)] hover:text-[var(--color-ink-2)]"
-                      )}
+                      onClick={() => setMode(candidate)}
+                      className={cn(styles.mode, mode === candidate && styles.modeActive)}
+                      aria-pressed={mode === candidate}
                     >
-                      <span className="text-xs font-medium">{label}</span>
-                      {PAYMENT_FLOW_ENABLED && (
-                        <span className={cn("text-[11px]", mode === m ? "text-[var(--color-accent)]" : "text-muted-foreground/60")}>
-                          {fee}
-                        </span>
-                      )}
+                      <span className={styles.modeIcon}>
+                        {isWritten
+                          ? <MessageSquareText size={15} aria-hidden="true" />
+                          : <Video size={15} aria-hidden="true" />}
+                      </span>
+                      <span>
+                        <strong>{label}</strong>
+                        <small>{detail}</small>
+                      </span>
+                      {PAYMENT_FLOW_ENABLED && <em>{fee}</em>}
                     </button>
                   )
                 })}
               </div>
             )}
 
-            {/* Written mode */}
             {(mode === "written" || !hasLive) && hasWritten && (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="ask-question" className="text-xs font-medium uppercase tracking-wide opacity-60">
-                    Your question
-                  </label>
+              <section className={styles.formSection}>
+                <div className={styles.questionField}>
+                  <label htmlFor="ask-question">Your question</label>
                   <textarea
                     id="ask-question"
-                    rows={4}
-                    className="w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:opacity-40 focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                    rows={5}
+                    className={styles.textarea}
                     placeholder={placeholder}
                     value={question}
                     maxLength={MAX_LENGTH}
-                    onChange={(e) => setQuestion(e.target.value)}
+                    onChange={(event) => setQuestion(event.target.value)}
                   />
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground/60">
+                  <div className={styles.counter}>
                     <span>{charCount < MIN_LENGTH ? `${MIN_LENGTH - charCount} more chars needed` : ""}</span>
                     <span>{charCount}/{MAX_LENGTH}</span>
                   </div>
                 </div>
 
-                {error && (
-                  <p className="text-xs text-[var(--color-danger)]">{error}</p>
-                )}
+                {error && <p className={styles.error} role="alert">{error}</p>}
 
-                <Button
-                  className="w-full"
+                <button
+                  className={styles.submit}
                   type="button"
                   disabled={!canSubmit}
                   onClick={handleSubmit}
                 >
+                  <Send size={14} aria-hidden="true" />
                   {submitting
                     ? "Submitting…"
                     : !PAYMENT_FLOW_ENABLED || isFree
                       ? "Submit question"
                       : `Submit · ${fmtRupees(writtenFeePaise)}`}
-                </Button>
-              </>
+                </button>
+                <p className={styles.responseNote}>
+                  <CalendarDays size={13} aria-hidden="true" />
+                  Written responses normally arrive within two days.
+                </p>
+              </section>
             )}
 
-            {/* Live mode */}
             {(mode === "live" || !hasWritten) && hasLive && (
-              <div className="flex flex-col gap-3">
-                <p className="text-sm text-[var(--color-ink-2)] leading-relaxed">
-                  Book a 25-minute live consultation with our astrologer. You&apos;ll pick a slot on the next page.
-                </p>
-                <a
-                  href="/consultation"
-                  className="inline-flex items-center justify-center w-full rounded-md bg-[var(--color-accent-faint)] border border-[var(--color-accent-dim)] text-[var(--color-accent)] text-sm font-medium px-4 py-2.5 hover:bg-[var(--color-accent-faint)]/80 transition-colors"
-                >
-                  Book a live session{PAYMENT_FLOW_ENABLED ? ` · ${fmtRupees(liveFeePaise)}` : ""} →
-                </a>
-              </div>
+              <section className={styles.liveSection}>
+                <span className={styles.liveIcon}><Video size={19} aria-hidden="true" /></span>
+                <div>
+                  <h3>Talk through the chart live</h3>
+                  <p>
+                    Book a 25-minute live consultation. You&apos;ll choose an available
+                    time on the next page.
+                  </p>
+                  <a href="/consultation" className={styles.liveAction}>
+                    Book a live session{PAYMENT_FLOW_ENABLED ? ` · ${fmtRupees(liveFeePaise)}` : ""} →
+                  </a>
+                </div>
+              </section>
             )}
-          </>
+          </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

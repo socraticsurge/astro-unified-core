@@ -2,7 +2,7 @@
 
 Vedic-astrology birth-chart application by Dr. Vinay Kumar Chaganti.
 
-- **Live**: https://astro-unified-core-pfni.vercel.app/
+- **Live**: https://astrochaganti.com/
 - **Docs**:
   - [`CHANGELOG.md`](CHANGELOG.md) — what changed in every push
   - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — module reference, user types, user journey traces, code organisation

@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { AdminTables } from "./AdminTables";
-import { textStyles } from "@/lib/typography";
+import { Activity, Bot, MessageSquareText, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import styles from "./AdminPage.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -31,40 +32,43 @@ export default async function AdminPage() {
     db.settings.getTodayReadingLlm(),
   ]);
 
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 style={textStyles.pageTitle}>Admin Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Admin access only</p>
-      </div>
+  const openQuestions = consultationRequests.filter((request) => request.status !== "answered").length;
+  const stats = [
+    { label: "People", value: users.length, detail: `${profiles.length} saved profiles`, icon: UsersRound },
+    { label: "Open questions", value: openQuestions, detail: "Awaiting attention", icon: MessageSquareText },
+    { label: "Compatibility", value: compatibilityChecks.length, detail: "Recorded checks", icon: Activity },
+    { label: "AI conversations", value: chatUsageStats.overview.total_user_messages, detail: "User messages", icon: Bot },
+  ];
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 max-w-4xl">
-        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
-          <div className="text-3xl font-bold">{users.length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Users</div>
+  return (
+    <div className={styles.root}>
+      <section className={styles.hero}>
+        <div className={styles.heroCopy}>
+          <span className={styles.heroIcon}><ShieldCheck size={21} aria-hidden="true" /></span>
+          <div>
+            <p className={styles.eyebrow}>Astro Chaganti operations</p>
+            <h1>Admin workspace</h1>
+            <p>People, consultations, publishing, AI operations, and service settings in one calm control surface.</p>
+          </div>
         </div>
-        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
-          <div className="text-3xl font-bold">{profiles.length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Profiles</div>
+        <div className={styles.owner}>
+          <UserRound size={15} aria-hidden="true" />
+          <span><strong>Administrator</strong>{session?.user?.email}</span>
         </div>
-        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
-          <div className="text-3xl font-bold">{compatibilityChecks.length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Compat Checks</div>
-        </div>
-        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
-          <div className="text-3xl font-bold">{feedback.length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Feedback</div>
-        </div>
-        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
-          <div className="text-3xl font-bold">{consultationRequests.filter(r => r.delivery_mode === "written").length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Written Q&apos;s</div>
-        </div>
-        <div className="border border-[var(--color-border)] rounded-lg p-4 bg-[var(--color-surface-1)] text-center">
-          <div className="text-3xl font-bold">{consultationRequests.filter(r => r.delivery_mode === "appointment").length}</div>
-          <div className="text-xs text-muted-foreground mt-1">Live Sessions</div>
-        </div>
-      </div>
+      </section>
+
+      <section className={styles.stats} aria-label="Operational summary">
+        {stats.map(({ label, value, detail, icon: Icon }) => (
+          <article key={label} className={styles.stat}>
+            <span className={styles.statIcon}><Icon size={16} aria-hidden="true" /></span>
+            <div>
+              <p>{label}</p>
+              <strong>{value}</strong>
+              <small>{detail}</small>
+            </div>
+          </article>
+        ))}
+      </section>
 
       <AdminTables
         users={users}

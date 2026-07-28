@@ -6,7 +6,7 @@ import Link from "next/link"
 import { NavBar } from "@/components/NavBar"
 import { ProfileView } from "@/components/profiles/ProfileView"
 import type { AIOpenPayload } from "@/components/profiles/ProfileView"
-import { ProfileSidebar, ProfileSidebarCreate } from "@/components/profiles/ProfileSidebar"
+import { ProfileCreateExperience } from "@/components/profiles/ProfileCreateExperience"
 import { ProfileLoadingScreen } from "@/components/ProfileLoadingScreen"
 import { AskPanel } from "@/components/panels/AskPanel"
 import type { AskContext } from "@/components/panels/AskPanel"
@@ -84,7 +84,6 @@ export function DashboardClient({
   const [askCtx,  setAskCtx]  = useState<Partial<AskContext>>({})
   const [aiOpen,  setAiOpen]  = useState(false)
   const [aiCtx,   setAiCtx]   = useState<AIPanelContext | null>(null)
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   // Loading screen state — only shown once for new profiles
   const [showLoadingScreen, setShowLoadingScreen] = useState(isNewProfile)
@@ -107,6 +106,17 @@ export function DashboardClient({
   }
 
   const activeProfile = profiles.find(p => p.id === activeProfileId) ?? null
+
+  const handleProfileChange = useCallback((profileId: string) => {
+    setActiveProfileId(profileId)
+
+    const params = new URLSearchParams(window.location.search)
+    params.set("profile", profileId)
+    params.delete("compare")
+    params.delete("create")
+    params.delete("new")
+    router.replace(`/dashboard?${params.toString()}`, { scroll: false })
+  }, [router])
 
   // New profile: parallel prefetch of all engines, loading screen waits for completion
   useEffect(() => {
@@ -287,6 +297,25 @@ export function DashboardClient({
       .catch(e => setCareer({ data: null, loading: false, error: String(e) }))
   }, [activeProfileId, career.data])
 
+  function retryTodayReading() {
+    if (!activeProfileId) return
+    setTodayReading(s => ({ ...s, loading: true, error: null }))
+    fetch(`/api/readings/today-reading?profile_id=${activeProfileId}`)
+      .then(r => r.json())
+      .then(d => {
+        const output: TodayReadingData | null = d.output
+          ? { ...d.output, meta: d.meta as TodayReadingMeta | undefined }
+          : null
+        setTodayReading({ data: output, loading: false, error: d.error ?? null })
+        if (output) updateCache(activeProfileId, { todayReading: output })
+      })
+      .catch(() => setTodayReading({
+        data: null,
+        loading: false,
+        error: "Personal reading is temporarily unavailable. Please try again.",
+      }))
+  }
+
   const handleAIOpen = useCallback((payload: AIOpenPayload) => {
     if (!activeProfile) return
     posthog.capture("ai_insight_panel_opened", {
@@ -362,7 +391,7 @@ export function DashboardClient({
           relationship: p.relationship ?? null,
         }))}
         activeProfileId={activeProfileId}
-        onProfileChange={(id) => { setActiveProfileId(id); setMobileSidebarOpen(false) }}
+        onProfileChange={handleProfileChange}
         onAskOpen={() => handleAskOpen()}
       />
 
@@ -381,35 +410,14 @@ export function DashboardClient({
         </div>
       )}
 
-      <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
-        {isCreating ? (
-          <ProfileSidebarCreate onCancel={profiles.length > 0 ? cancelCreate : undefined} />
-        ) : (
-          activeProfile && (
-            <ProfileSidebar
-              profile={activeProfile}
-              chartOutput={chart.data}
-              mobileOpen={mobileSidebarOpen}
-              onMobileClose={() => setMobileSidebarOpen(false)}
-            />
-          )
-        )}
-        <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-hidden">
           {/* isCreating takes precedence: even if an activeProfile is set
               (e.g. user navigated from /dashboard?profile=A to
               /dashboard?create=1), we must NOT render the previous
               profile's chart underneath the create form. */}
           {isCreating ? (
-            <div className="flex items-center justify-center h-full px-4 text-center">
-              <div className="space-y-2 max-w-sm">
-                <p className="text-sm text-[var(--color-ink-2)]">
-                  {profiles.length === 0 ? "Your cosmic story starts here." : "Add another profile"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Enter the birth details in the sidebar. Everything else flows from there.
-                </p>
-              </div>
-            </div>
+            <ProfileCreateExperience onCancel={profiles.length > 0 ? cancelCreate : undefined} />
           ) : activeProfile ? (
             <div key={activeProfileId} className="animate-profile-enter h-full">
               <ProfileView
@@ -420,15 +428,16 @@ export function DashboardClient({
                 careerOutput={career.data}
                 todayReadingOutput={todayReading.data}
                 isTodayReadingLoading={todayReading.loading}
+                todayReadingError={todayReading.error}
                 isTransitLoading={transit.loading}
                 isCareerLoading={career.loading}
                 transitError={transit.error}
                 careerError={career.error}
                 onFetchTransit={fetchTransit}
                 onFetchCareer={fetchCareer}
+                onRetryTodayReading={retryTodayReading}
                 onAskOpen={handleAskOpen}
                 onAIOpen={handleAIOpen}
-                onOpenSidebar={() => setMobileSidebarOpen(true)}
                 isAdmin={isAdmin}
                 defaultTab={defaultTab}
                 initialCompareCheck={initialCompareCheck}

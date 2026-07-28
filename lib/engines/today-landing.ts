@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { callAIForJson } from "./ai-caller";
+import { DEFAULT_INSIGHT_MODEL } from "./models";
 import { fetchDashaflow } from "./dashaflow";
 import { lookupAscendant } from "@/lib/content/lookup";
 
@@ -9,7 +10,7 @@ import { lookupAscendant } from "@/lib/content/lookup";
 // Bump when prompt template / output shape changes meaningfully.
 // v2 (2026-05-20): tightened length to 1-2 sentences ≤ 40 words.
 // v3 (2026-05-21): hard cap of 300 chars / 45 words in prompt + Zod
-// .max(320) schema so an over-long Gemini response fails validation and
+// .max(320) schema so an over-long model response fails validation and
 // retries — no more brutal client-side mid-sentence truncation.
 // v4 (2026-05-21): explicitly forbid restating today's transit data
 // (Sun sign, Moon nakshatra, retrogrades). The landing already displays
@@ -38,7 +39,7 @@ export type LandingPayload = {
 };
 
 // Each snippet must fit the landing's fixed-height box. .max(320) hard-fails
-// a Gemini response that ignored the prompt's word/char limits, so the route
+// a model response that ignored the prompt's word/char limits, so the route
 // triggers a retry (we have 3 attempts/day) instead of shipping a snippet
 // that gets clipped client-side.
 const SNIPPET_SCHEMA = z.string().min(20).max(320);
@@ -164,12 +165,12 @@ Return strict JSON in this exact shape (no other keys, no nesting beyond this):
 }`;
 }
 
-// Single Gemini Flash Lite call returning 12 ascendant paragraphs grounded
-// in (a) the authored ascendant content blocks and (b) today's actual sky.
+// Single structured AI call returning 12 ascendant paragraphs grounded in
+// (a) the authored ascendant content blocks and (b) today's actual sky.
 // Throws on malformed output — caller handles retry/fallback.
 export async function buildDailyLandingContent(sky: TodaySky): Promise<LandingPayload> {
   const raw = await callAIForJson(
-    "gemini-flash",
+    DEFAULT_INSIGHT_MODEL,
     buildSystemPrompt(),
     buildUserPrompt(sky),
     { temperature: 0.8, maxTokens: 2400 },

@@ -6,6 +6,291 @@
 
 ---
 
+## Unification Gate 8 migration rehearsal
+
+This rehearsal proves the release and rollback mechanics without touching the
+production Vercel project, production Turso database, custom domains, Google
+OAuth client, GitHub Pages deployment, feeds, or GitHub Actions.
+
+### Hard boundary
+
+The unified homepage can replace `/` only when `UNIFIED_RELEASE_MODE` is
+`rehearsal` and all four independent staging facts match:
+
+- `NEXTAUTH_URL=https://astro-unified-staging.vercel.app`
+- `VERCEL_PROJECT_PRODUCTION_URL=astro-unified-staging.vercel.app`
+- Turso host is `astro-unified-staging-vkchaganti.aws-ap-south-1.turso.io`
+- `PANCHANGAM_API_URL=https://telugu-calendar-api-staging.vercel.app`
+
+Any mismatch serves the existing `CosmicLanding`. Rehearsal metadata is
+`noindex,nofollow`, and `/robots.txt` disallows `/`.
+
+The code now also contains a fail-closed `production` mode for constructing a
+Gate 9 release candidate. It activates only when the exact production web URL,
+Vercel project host, Turso host and dedicated production Panchangam API URL all
+match. The switch must remain unset in the production project until the owner
+gives an explicit Gate 9 go/no-go approval; its presence in source is not
+release authority.
+
+### Forward rehearsal
+
+1. Confirm `.vercel/project.json` names `astro-unified-staging`; stop if it does
+   not.
+2. Run tests, TypeScript, lint, palette, route and production-build checks.
+3. Confirm only the dedicated staging project has
+   `UNIFIED_RELEASE_MODE=rehearsal`.
+4. Deploy that linked project with `vercel deploy --prod`. Here `--prod` means
+   the stable alias of the staging project, never `astrochaganti.com`.
+5. Require `/api/health` to return HTTP 200 with database, DashaFlow and Telugu
+   Panchangam healthy, `unification.mode=rehearsal`, and staging auth ready.
+6. Require `/` to show the unified home and `/robots.txt` to contain
+   `Disallow: /`.
+7. Exercise the synthetic owner/admin paths, public Panchangam/Rasi Phalalu,
+   public Muhurtam and authenticated multi-profile timing.
+8. Recheck `astrochaganti.com`, the Panchangam root and durable feed paths. They
+   must remain HTTP 200 and independent of the rehearsal.
+
+Vercel marks sensitive environment values as non-downloadable, so
+`vercel env run` cannot supply the Turso token to local migration commands.
+Operators must not weaken that setting. Run guarded migration commands only
+with an explicitly provisioned one-purpose staging token, or use the
+authenticated Turso CLI for non-sensitive schema/count verification.
+
+### URL and subscriber compatibility during rehearsal
+
+| Current URL family | Gate 8 behavior | Later cutover rule |
+|---|---|---|
+| `astrochaganti.com/` | Existing production homepage remains unchanged | Gate 9 approval is required before replacement |
+| `astro-unified-staging.vercel.app/` | Unified homepage at the real root | Remains non-canonical and non-indexed |
+| `astro-unified-staging.vercel.app/unified` | Review fallback remains available | Remove only after stabilization |
+| `panchangam.astrochaganti.com/` | Existing GitHub Pages site remains HTTP 200 | No redirect before a separately approved mapping |
+| `panchangam.astrochaganti.com/feeds/*` | Exact same-path HTTP 200; no redirect | Preserve same-path responses for subscribers |
+| `panchangam.astrochaganti.com/rasi_phalalu/YYYY-MM-DD.json` | Exact same-path HTTP 200 | Preserve until every consumer is migrated |
+
+### Rollback drill
+
+1. Record the rehearsal deployment ID and the previous approved deployment ID.
+2. Promote the previous deployment with
+   `vercel promote <previous-id> --scope vinay-chagantis-projects --yes`.
+3. Measure wall-clock recovery; require the stable staging alias and health
+   endpoint to return HTTP 200 and confirm the rehearsal marker is absent.
+4. Re-promote the rehearsal deployment, measure recovery again, and require
+   `unification.mode=rehearsal` plus the unified root marker.
+5. A production cutover must use the same deployment-level rollback pattern.
+   Database restore is a separate action and is never inferred from an app
+   rollback.
+
+Initial release triggers are any dependency health failure, auth failure,
+cross-user privacy failure, calculation mismatch, broken legacy feed path,
+unexpected indexing, or sustained error/latency regression. The deployment
+rollback target is under five minutes; the database recovery target remains
+under one hour.
+
+---
+
+## Unification Gate 9 production release
+
+Gate 9 is a controlled application cutover, not a retirement. The Panchangam
+GitHub Pages site, Actions, calendar feeds, dated Rasi artifacts and previous
+green Vercel deployments remain intact through stabilization.
+
+### Current verified baseline (2026-07-22)
+
+- Existing Astro production deployment:
+  `dpl_F6yWeNZ2Mx9fzdjwMnan19cM9HdY`.
+- Production Turso database: `astrounified-live`, schema 11, 11 application
+  tables, 105 users and 125 profiles. Only aggregate counts were queried.
+- Turso delete protection is `On`. A 2026-07-22 export passed SQLite integrity
+  and exact aggregate parity after restoration to a disposable Turso database;
+  this is the proven recovery path for Gate 9. The CLI reports the account plan
+  as `starter`. Two native PITR clone attempts returned a Turso internal-server
+  error and created no database, so native PITR remains an explicit operational
+  caveat rather than claimed release evidence.
+- Production Google provider advertises
+  `https://astrochaganti.com/api/auth/callback/google`.
+- Existing production `/robots.txt` and `/sitemap.xml` incorrectly redirect to
+  sign-in. The release candidate makes both public and serves a sitemap.
+- Telugu Calendar production API deployment
+  `dpl_2WpDHW73JjfAc6ENG3L88vdYNL92` is `Ready` in `bom1` at
+  `https://telugu-calendar-api-production.vercel.app`. Its fresh bearer token
+  is sensitive and production-scoped in both Vercel projects; Astro production
+  also has the exact API URL. Only the unaliased Gate 9 candidate consumes those
+  values; current public traffic does not.
+- Current Gate 9 staging deployment:
+  `dpl_AbPww4DyMhD9D2QU4LntfcVh9RoU` on
+  `https://astro-unified-staging.vercel.app`.
+- Final unaliased Astro release candidate:
+  `dpl_3VQvBeJransUK8MnN7QB6ksRSUQt` at
+  `https://astro-unified-core-pfni-8h5ofdia0-vinay-chagantis-projects.vercel.app`.
+  It is `Ready`; neither `astrochaganti.com` nor
+  `astro-unified-core-pfni.vercel.app` points to it.
+
+### Hard stops before go/no-go
+
+Do not promote a production candidate until all of these are recorded:
+
+1. **Complete 2026-07-22:** owner-approved portrait and public claims are in the
+   candidate; the biography distinguishes owner-approved astrology experience
+   from independently recorded academic credentials.
+2. **Manual recovery complete 2026-07-22:** production delete protection is on;
+   the owner-only export is gitignored on a FileVault-encrypted disk; integrity,
+   schema and aggregate parity passed after a 4.916-second restore. Confirm the
+   native PITR entitlement with Turso support/dashboard as an operational
+   follow-up; its CLI restore path currently returns an internal-server error.
+3. **Complete 2026-07-22:** deployed `telugu-calendar-api-production` from the
+   reviewed Telugu Calendar Utilities source with a new shared bearer token.
+   The same sensitive token exists only in the API and Astro production
+   environments. Public health, rejected unauthenticated catalog,
+   authenticated catalog and daily Panchangam contract checks passed.
+4. **Candidate checks complete 2026-07-22:** Astro regression/build, public
+   route/SEO, dependency health, protected-route and public-computation checks
+   pass. Authenticated profile/chart/timing and admin journeys passed in the
+   isolated Gate 8 rehearsal and must be repeated against the apex immediately
+   after promotion because Google does not authorize generated candidate URLs.
+5. **Monitoring path complete 2026-07-22:** Vercel runtime logs, health,
+   Sentry, PostHog, Web Analytics and Speed Insights are wired; source maps
+   uploaded and post-QA error-log scans were empty. The release owner watches
+   the first hour. Roll back for dependency-health failure, elevated 5xx,
+   Google sign-in failure, data-access regression or unusable public routes.
+6. Receive explicit owner Gate 9 go/no-go approval. Staging approval and source
+   readiness do not satisfy this condition.
+
+### Candidate and cutover sequence
+
+1. Deploy the Telugu Calendar production API first without changing any public
+   domain. Verify authentication, health, Panchangam, Rasi Phalalu and personal
+   timing responses against frozen fixtures.
+2. Configure Astro production with the exact API URL/token and
+   `UNIFIED_RELEASE_MODE=production`; build a deployment without assigning the
+   apex domain.
+3. On that deployment URL, verify the public homepage, Panchangam, horoscope,
+   Muhurtam, robots, sitemap, health, error handling and responsive layout.
+   Confirm the health response says `unification.mode=production`.
+4. Give the owner the dated evidence and request the one explicit go/no-go.
+5. After approval, promote the already-tested deployment to the production
+   aliases. Do not run database migrations during the alias promotion.
+6. Smoke-test production Google login with the owner's real account; create,
+   read and delete a disposable profile; generate a chart and authenticated
+   timing validation; verify owner admin access and a non-admin denial.
+7. Watch health, Vercel functions, Sentry and analytics continuously for the
+   first hour, then at 24 and 72 hours. Keep the old services publishing.
+
+Steps 1–3 were completed on 2026-07-22 for candidate
+`dpl_3VQvBeJransUK8MnN7QB6ksRSUQt`. Subsequent owner-review and resilience
+changes mean that candidate is historical evidence, not the artifact to
+promote. The production release environment retains the exact URL/token and
+fail-closed switch, while `astrochaganti.com` still resolves to
+`dpl_F6yWeNZ2Mx9fzdjwMnan19cM9HdY`.
+
+After hosted review, freeze both dirty worktrees into reviewed Git commits,
+then repeat Steps 1–3 from those exact SHAs. Step 4 is requested only for that
+fresh, clean and fully verified candidate; no traffic moves before it.
+
+### 2026-07-22 Astro release-candidate evidence
+
+- Deployment `dpl_3VQvBeJransUK8MnN7QB6ksRSUQt` is `Ready`, unaliased from the
+  apex and canonical project URL. Sentry source-map upload completed.
+- `/api/health` is HTTP 200: Turso, DashaFlow and Panchangam are healthy and the
+  release guard reports `production-boundary-confirmed`.
+- `/`, `/robots.txt`, `/sitemap.xml`, Google provider discovery, Panchangam,
+  Rasi Phalalu and public Muhurtam are HTTP 200. The root contains the unified
+  brand/profile/Muhurtam markers and no rehearsal banner.
+- Hyderabad Panchangam returned contract 1.0 with 24 Horas and 13 Lagna
+  transitions. Mesha Rasi returned one evaluated condition. Three-day travel
+  Muhurtam returned 12 public slots, an empty participant list and explicit
+  disclosure that natal/dasha/participant factors were not evaluated.
+- Anonymous `/dashboard` and `/admin` requests redirect to sign-in. A real
+  Google login must be checked only after promotion on the already-authorized
+  apex callback; generated deployment-host callbacks are not release evidence.
+- 62 Vitest files / 481 tests, TypeScript, palette and all 27 internal routes
+  pass. ESLint has zero errors and one pre-existing unused-type warning.
+- Candidate and Telugu API runtime error-log scans after QA returned no errors.
+
+### Hosted owner review
+
+Gate 9 promotion is paused while the owner tests the durable rehearsal at
+`https://astro-unified-staging.vercel.app`. Localhost is no longer the
+acceptance handoff.
+
+The stable alias currently resolves to
+`dpl_AbPww4DyMhD9D2QU4LntfcVh9RoU`. It reports:
+
+- `unification.mode=rehearsal` and `staging-boundary-confirmed`;
+- healthy isolated Turso, DashaFlow and Telugu Calendar dependencies;
+- synthetic staging auth ready;
+- HTTP 200 for the root, sign-in, Panchangam and Rasi Phalalu routes;
+- successful synthetic owner and admin login;
+- non-admin denial and owner redirection away from `/admin`.
+
+The deployment was produced by CLI from a dirty local worktree. It is valid for
+owner review but cannot become the production source. After feedback is closed,
+the web and Telugu API work must be committed, pushed, reviewed and rebuilt from
+exact clean Git SHAs before a new unaliased production candidate is considered.
+Any owner feedback will be implemented and the clean candidate reverified
+before a go/no-go request.
+
+The 2026-07-26 acceptance pass has one explicit limitation: the isolated
+review graph has no `GOOGLE_GEMINI_API_KEY`. Optional Today/Natal prose therefore
+shows a redacted retry state when regeneration is required; calculated chart,
+dasha, transit, Muhurtam, and Tarabalam remain available. Do not represent this
+as a successful non-production LLM-generation check. Provision a dedicated
+staging key or repeat that journey only on an approved candidate with its
+production-scoped key before closing the acceptance item. The current source
+passes 63 Vitest files / 487 tests after the graceful-degradation coverage.
+
+### 2026-07-22 Telugu Calendar production API evidence
+
+- Deployment: `dpl_2WpDHW73JjfAc6ENG3L88vdYNL92`, `Ready`, FastAPI on Python
+  3.12, function region `bom1`, 60-second maximum.
+- Stable alias: `https://telugu-calendar-api-production.vercel.app`.
+- `GET /health`: HTTP 200, contract `1.0`, `private, no-store`.
+- `GET /v1/catalog` without a token: HTTP 401 with the stable `unauthorized`
+  error shape; with the production token: HTTP 200, 22 cities and all three
+  calculation systems. An untrusted Origin received no CORS allowance.
+- `POST /v1/panchangam/day` for Hyderabad on 2026-07-22: HTTP 200, request ID
+  propagated, 24 Horas and 13 Lagna transitions.
+- Authenticated Rasi Phalalu, two-day single-profile Tarabalam and two-day
+  single-profile travel Muhurtam checks each returned HTTP 200. Only the
+  request-local label `p1` crossed the service boundary; the Muhurtam response
+  contained nine slots and the expected evaluated/not-evaluated disclosures.
+- Vercel historical error-log scan after the smoke tests returned no errors.
+- The secret was generated locally, sent only through stdin, never printed or
+  committed, and removed from the workstation after verification.
+
+### Rollback
+
+Promote `dpl_F6yWeNZ2Mx9fzdjwMnan19cM9HdY` back to the Astro production aliases
+if a release trigger fires. Disable traffic to the new Panchangam API only after
+the Astro rollback is healthy. Application rollback does not imply database
+restore; use PITR/export recovery only for proven data corruption and only with
+an incident record. GitHub Pages, feeds and Actions remain the compatibility
+fallback throughout Gate 9 and Gate 10.
+
+### 2026-07-22 Turso recovery evidence
+
+- Production source: `astrounified-live`; delete protection verified `On`
+  before and after the exercise.
+- Export directory: `backups/gate9-2026-07-22/` (gitignored, mode 700,
+  FileVault on); database artifacts are mode 600.
+- Self-contained recovery image SHA-256:
+  `7cf73903a84382578b2dce148d29dff765f44e0c354a0187023684f4cd2d5b8e`.
+- Local integrity: `ok`; schema 11; 105 users and 125 profiles.
+- Disposable clone: `astrounified-gate9-recovery-20260722`, created from the
+  consolidated SQLite image in 4.916 seconds.
+- Remote integrity: `ok`; 11 tables; exact parity of 105 users, 125 profiles,
+  743 readings and 27 consultation requests. Only aggregates were queried.
+- Clone destroyed in 1.149 seconds after verification; the final inventory is
+  again staging, development and protected production only.
+- The local recovery image remains the dated off-account artifact. Move a copy
+  to a second encrypted device/location according to the weekly backup cadence.
+- The Turso CLI identifies the account as `starter`, with overages disabled.
+  Native PITR clone attempts at two timestamps returned `internal server error`;
+  inventory checks confirmed no partial clone was created. Use the proven manual
+  image workflow for Gate 9 recovery and raise the native PITR failure with
+  Turso before treating PITR as an available rollback mechanism.
+
+---
+
 ## Health monitoring
 
 ### `/api/health`
@@ -44,10 +329,13 @@ interval. Alert on non-2xx.
 
 ### Backups — what Turso provides
 
-Turso runs continuous point-in-time recovery (PITR) on all paid plans.
-Free-tier databases get periodic snapshots only. Confirm the current
-retention window in the Turso dashboard under the database's **Settings →
-Backups** page; do not rely on numbers cached here, they drift.
+Turso documents point-in-time recovery with plan-dependent retention and a
+restore that creates a new database. The public documentation currently lists
+24 hours for Free, 10 days for Developer, 30 days for Scaler and 90 days for
+Pro, with a possible gap of up to 15 seconds. The local CLI calls this account
+`starter`, so do not infer an entitlement mapping from that label. The 2026-07-22
+native restore test failed as recorded above; manual export/restore remains the
+verified recovery path.
 
 ### Taking a manual snapshot
 
