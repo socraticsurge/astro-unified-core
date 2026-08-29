@@ -5,6 +5,7 @@ vi.mock("server-only", () => ({}));
 import {
   DashaflowElectionChartContract,
   DashaflowElectionChartInput,
+  ELECTION_SIDECAR_ATTEMPT_TIMEOUT_MS,
   deriveDashaflowElectionCharts,
 } from "./dashaflow-election";
 
@@ -87,6 +88,30 @@ describe("deriveDashaflowElectionCharts", () => {
     expect(init?.redirect).toBe("error");
     expect(JSON.parse(String(init?.body))).toEqual(input);
     expect(String(init?.body)).not.toMatch(/activity|profile|birth|natal|name/i);
+  });
+
+  it("keeps two transient attempts inside the browser request deadline", async () => {
+    process.env.DASHAFLOW_SIDECAR_TOKEN = "service-token";
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    const fetchSpy = vi.spyOn(global, "fetch")
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        headers: new Headers(),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => contract,
+      } as Response);
+
+    await deriveDashaflowElectionCharts(input);
+
+    expect(ELECTION_SIDECAR_ATTEMPT_TIMEOUT_MS * 2 + 500).toBeLessThan(20_000);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(timeoutSpy).toHaveBeenNthCalledWith(1, ELECTION_SIDECAR_ATTEMPT_TIMEOUT_MS);
+    expect(timeoutSpy).toHaveBeenNthCalledWith(2, ELECTION_SIDECAR_ATTEMPT_TIMEOUT_MS);
   });
 
   it("re-projects the wire request so structurally compatible extras cannot cross", async () => {

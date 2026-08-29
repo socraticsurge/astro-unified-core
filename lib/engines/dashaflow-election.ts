@@ -5,6 +5,9 @@ import { fetchWithRetry } from "./fetch-with-retry";
 
 const DEFAULT_SIDECAR = "https://dashaflow-sidecar.vercel.app";
 const ELECTION_CHART_PATH = "/v1/election-chart/derive";
+// Two transient-error attempts plus the retry delay stay below the browser's
+// 20-second request deadline: 8s + 0.5s + 8s = 16.5s maximum.
+export const ELECTION_SIDECAR_ATTEMPT_TIMEOUT_MS = 8_000;
 
 const RashiSchema = z.enum([
   "Mesha",
@@ -175,7 +178,7 @@ export async function deriveDashaflowElectionCharts(
       cache: "no-store",
       credentials: "omit",
       redirect: "error",
-    });
+    }, ELECTION_SIDECAR_ATTEMPT_TIMEOUT_MS);
   } catch {
     throw new DashaflowElectionChartError("unavailable", 5);
   }
