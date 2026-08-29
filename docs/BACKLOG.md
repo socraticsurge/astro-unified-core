@@ -28,7 +28,7 @@ so future agents don't re-open the conversation unnecessarily.
 
 | # | Feature | Why deferred | Notes |
 |---|---|---|---|
-| D1 | Legacy sidecar authentication | The versioned `/v1/profile/derive` operation is bearer-authenticated as of 2026-08-29; legacy `/calculate` and other registered-user operations remain unchanged for rollout compatibility. | Coordinate a separate migration before requiring credentials on legacy callers. Do not treat the protected guest projection as protection for every sidecar route. |
+| D1 | Legacy sidecar authentication | The versioned `/v1/profile/derive` and `/v1/election-chart/derive` operations are bearer-authenticated as of 2026-08-29; legacy `/calculate` and other registered-user operations remain unchanged for rollout compatibility. | Coordinate a separate migration before requiring credentials on legacy callers. Do not treat the protected guest projections as protection for every sidecar route. |
 | D3 | Lead capture / email sign-up | Contact CTA is currently a `mailto:` link. | Could be wired to Resend or Formspree without backend changes. |
 | D4 | Live consultation booking | Users email for a calendar link. | Cal.com or Calendly embed is the low-friction path. No DB changes needed. |
 | D5 | Profile sharing (public profile links) | Profiles are private to owner + admin. | Would require a `is_public` flag on profiles and an unauthenticated route. |

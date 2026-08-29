@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-08-29] — Stateless guest Muhurtam election-chart gateway
+
+### Added
+- **`POST/OPTIONS /api/guest/muhurta/election-charts`** — stateless, IP-rate-limited gateway for up to 24 minute-precision election-chart instants at one location. It accepts only the versioned location-and-instants contract, rejects activity/profile/birth/natal data and unknown fields, and returns the validated DashaFlow contract without persistence.
+- **`lib/engines/dashaflow-election.ts`** — server-only, bearer-authenticated client for `POST /v1/election-chart/derive`. Runtime validation requires request-ordered charts, Lahiri provenance, whole-sign houses, and the canonical nine-planet projection before any response reaches the browser.
+- Vitest coverage for strict RFC3339 and time-window bounds, semantic instant uniqueness, exact response ordering, canonical planet order, origin/body/rate controls, omitted cookies, and safe upstream failures.
+
+### Changed
+- Extended the existing guest-gateway security boundary and coordinated rollout documentation to cover election charts. The route remains independent of NextAuth, Turso, PostHog, activity selection, saved profiles, and natal charts.
+
 ## [2026-08-29] — Stateless guest birthplace and profile gateway
 
 ### Added

@@ -75,6 +75,8 @@ app/
     ├── auth/[...nextauth]/route.ts     # NextAuth handler
     ├── profiles/route.ts               # List / create profiles
     ├── profiles/[id]/route.ts          # Get / delete one profile
+    ├── guest/profile/derive/route.ts   # Stateless birth-profile projection
+    ├── guest/muhurta/election-charts/  # Stateless election-chart projection
     ├── content/[type]/[key]/route.ts   # Lazy fetch for per-row interpretive content
     └── readings/dashaflow/route.ts     # Sidecar proxy + cache
 
@@ -106,7 +108,8 @@ lib/
 ├── auth.ts                             # Shared authOptions for getServerSession
 ├── admin.ts                            # ADMIN_EMAILS + isAdmin helper
 ├── db.ts                               # Turso client, schema, queries
-├── engines/dashaflow.ts                # HTTP client for the sidecar
+├── engines/dashaflow.ts                # Full-chart + guest profile sidecar client
+├── engines/dashaflow-election.ts       # Guest election-chart sidecar client
 ├── chart-summary.ts                    # Text summary for clipboard / LLM
 ├── geocode.ts                          # Nominatim wrapper
 └── content/                            # Server-only loaders and renderers
@@ -123,6 +126,8 @@ proxy.ts                                # NextAuth middleware (matcher + authori
 
 ```
 api/index.py             # FastAPI: GET /health, POST /calculate
+api/profile.py           # Authenticated /v1/profile/derive projection
+api/election_chart.py    # Authenticated /v1/election-chart/derive projection
 requirements.txt         # fastapi==0.115.0, dashaflow==1.1.0
 vercel.json              # Subpath rewrite so /api/python/:path* hits the function
 ```
@@ -142,7 +147,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `TURSO_DATABASE_URL`       | libSQL DSN                                                    |
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
 | `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`                        |
-| `DASHAFLOW_SIDECAR_TOKEN`  | Server-only bearer credential sent to the sidecar's `/v1/profile/derive`; must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
+| `DASHAFLOW_SIDECAR_TOKEN`  | Server-only bearer credential sent to the sidecar's `/v1/profile/derive` and `/v1/election-chart/derive`; must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
 | `GROQ_API_KEY`             | Secondary LLM provider used by chat / draft generation (`lib/engines/groq.ts`). Get from console.groq.com. |
 | `ADMIN_EMAILS` (required)  | Comma-separated list of admin email addresses. If unset, no one has admin access. |
@@ -156,9 +161,9 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 
 | Variable | Purpose |
 |---|---|
-| `DASHAFLOW_API_TOKEN` | Required bearer-token verifier for `/v1/profile/derive`. Legacy operations remain compatible during rollout. Use the same secret value as the main app's `DASHAFLOW_SIDECAR_TOKEN`. |
+| `DASHAFLOW_API_TOKEN` | Required bearer-token verifier for `/v1/profile/derive` and `/v1/election-chart/derive`. Legacy operations remain compatible during rollout. Use the same secret value as the main app's `DASHAFLOW_SIDECAR_TOKEN`. |
 
-### Guest profile gateway rollout (approval-gated)
+### Guest calculation gateway rollout (approval-gated)
 
 This is a coordinated three-service change; a code merge by itself is not a
 release. Use this order so no public browser can reach an uncredentialed or
@@ -166,22 +171,23 @@ missing calculation operation:
 
 1. Generate one long random service credential. Configure it as
    `DASHAFLOW_API_TOKEN` on the sidecar and deploy the sidecar implementation
-   that exposes `POST /v1/profile/derive`. Verify its public health route and
-   legacy `/calculate` callers remain compatible.
+   that exposes `POST /v1/profile/derive` and
+   `POST /v1/election-chart/derive`. Verify its public health route and legacy
+   `/calculate` callers remain compatible.
 2. Configure the same value as `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti
    Preview and Production. Deploy the gateway and verify allowed/disallowed
    OPTIONS, `private, no-store`, 4 KiB rejection, rate-limit retry headers, and
-   a fixture derivation. The token must never appear in a browser bundle or
-   response.
+   fixture profile and election-chart derivations, including chart order and
+   whole-sign provenance. The token must never appear in a browser bundle or response.
 3. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
    that consumer only after the gateway fixture passes from
    `https://panchangam.astrochaganti.com`.
 
-Rollback is stateless: keep the Panchangam manual-profile path available,
-remove or disable its birth-details API entry point, then roll back the gateway
-if needed. There are no Astro Chaganti profile rows, sessions, caches, or
-analytics events to delete. Rotate both token variables together if either
-value may have been exposed.
+Rollback is stateless: keep the Panchangam manual-profile and base Muhurtam
+ranking paths available, disable their optional guest API entry points, then
+roll back the gateway if needed. There are no Astro Chaganti profile rows,
+sessions, caches, intent records, or analytics events to delete. Rotate both
+token variables together if either value may have been exposed.
 
 ### Google Cloud Console — OAuth consent
 
@@ -495,6 +501,14 @@ fetch `GET /v13/deployments/{id}` from the Vercel API, read `readyState`,
    → POST /api/guest/profile/derive with exact date/time and selected place
    → main app sends DASHAFLOW_SIDECAR_TOKEN to sidecar /v1/profile/derive
    → return only normalized contract v1; Panchangam stores it locally
+
+5. Panchangam guest requests election charts for Muhurtam screening
+   → POST /api/guest/muhurta/election-charts from an approved Origin
+   → main app validates location + at most 24 bounded, ordered instants
+   → main app omits browser credentials and sends DASHAFLOW_SIDECAR_TOKEN to
+     sidecar /v1/election-chart/derive
+   → validate and return only contract v1; no activity, person, natal chart,
+     auth session, intent, or result is persisted
 ```
 
 ---
@@ -517,7 +531,8 @@ uvicorn api.index:app --reload  # http://localhost:8000
 
 For local main-app dev you don't need the local sidecar — `DASHAFLOW_SIDECAR_URL`
 in `.env.local` (or the Vercel-pulled one) can point to the production sidecar.
-Guest profile derivation additionally requires `DASHAFLOW_SIDECAR_TOKEN` to
+Guest profile and election-chart derivation additionally require
+`DASHAFLOW_SIDECAR_TOKEN` to
 match the selected sidecar's `DASHAFLOW_API_TOKEN`. Local browser requests are
 accepted only from HTTP `localhost` or `127.0.0.1` origins.
 
@@ -527,7 +542,8 @@ accepted only from HTTP `localhost` or `127.0.0.1` origins.
 
 These came up but were left out of scope. None block the live site.
 
-- **Legacy sidecar auth**: `/v1/profile/derive` is bearer-authenticated. The
+- **Legacy sidecar auth**: `/v1/profile/derive` and
+  `/v1/election-chart/derive` are bearer-authenticated. The
   legacy full-chart and registered-user operations remain unchanged for
   compatibility and need a separate coordinated migration before they can
   require a service credential.

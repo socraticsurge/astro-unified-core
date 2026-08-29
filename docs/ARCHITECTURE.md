@@ -54,7 +54,7 @@ be reasoned against all three.
 
 ### Guest (unauthenticated)
 - Can access: `/` (landing), `/privacy`, `/terms`, `/credits`
-- Can call only the stateless cross-origin profile helpers under
+- Can call only the stateless cross-origin profile and election-chart helpers under
   `/api/guest/*` from the exact approved Panchangam production/local origins
 - Cannot access: anything under `/dashboard`, `/profiles`, `/compatibility`, `/admin`
 - All protected routes redirect to `/auth/signin` via [`proxy.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/proxy.ts) middleware
@@ -376,6 +376,16 @@ client for `POST /v1/profile/derive`. It sends the
 bounded guest projection: engine provenance, Nakshatra/Pada, Janma Rashi,
 Lagna, and nine D1 planets. It never returns the raw 17-section chart.
 
+### DashaFlow Election Charts
+[`lib/engines/dashaflow-election.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/dashaflow-election.ts)
+
+Calls the bearer-authenticated `POST /v1/election-chart/derive` projection for
+one location and 1–24 request-ordered, minute-precision instants. Its runtime
+contract requires DashaFlow/Lahiri provenance, `whole_sign` houses, Lagna, and
+the canonical Surya-through-Ketu nine-planet sequence for every chart. The
+client rejects response expansion, changed location, missing/reordered instants,
+or planet drift and explicitly omits browser credentials.
+
 ### Transit
 [`lib/engines/transit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/transit.ts)
 
@@ -438,11 +448,11 @@ surface a human-readable error instead of rendering broken data.
 ## 7. API Routes
 
 Registered-user routes authenticate via `getServerSession(authOptions)` and
-return JSON. Admin routes additionally check `isAdmin(session)`. The two
+return JSON. Admin routes additionally check `isAdmin(session)`. The three
 explicit `/api/guest/*` exceptions below are stateless and use strict origin,
 input, no-store, and IP-rate-limit guards instead of a session.
 
-### Guest Birth-Profile Gateway
+### Guest Panchangam Gateway
 
 **[`app/api/guest/places/search/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/places/search/route.ts)**
 
@@ -460,7 +470,16 @@ input, no-store, and IP-rate-limit guards instead of a session.
   rejected. Calls the credentialed sidecar projection and returns its direct
   `contract_version` / `engine` / `data` contract.
 
-Both routes cap JSON request bodies at 4 KiB, use `private, no-store` on every
+**[`app/api/guest/muhurta/election-charts/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/muhurta/election-charts/route.ts)**
+
+- `OPTIONS` — same exact-origin, side-effect-free preflight contract.
+- `POST` — accepts only contract v1, numeric coordinates, an IANA timezone,
+  and 1–24 semantically unique offset-aware RFC3339 instants at minute
+  precision. Instants are limited to 366 days in the past through 1,830 days
+  in the future. It rejects activity, names, profile IDs, birth details, natal
+  charts, and all other unknown fields before calling the sidecar.
+
+All three routes cap JSON request bodies at 4 KiB, use `private, no-store` on every
 response, provide `Retry-After` on throttled/transient failures, and do not
 touch NextAuth, Turso, PostHog, or request-body logging.
 
@@ -1033,6 +1052,29 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
 The Astro Chaganti gateway stores nothing: no server profile, session, DB row,
 cache entry, or analytics event is created. The Panchangam profile name never
 crosses this boundary.
+
+### Journey 8: Panchangam Screens Muhurtam Candidate Charts
+
+```
+Guest runs Muhurtam ranking on https://panchangam.astrochaganti.com
+  → browser selects at most 24 candidate instants for one event location
+  → POST https://astrochaganti.com/api/guest/muhurta/election-charts
+    → exact Origin check + 4 KiB cap + per-IP rate limit
+    → reject activity/profile/name/birth/natal fields and unknown fields
+    → validate location + unique, bounded, minute-precision RFC3339 instants
+    → deriveDashaflowElectionCharts(input)
+      → credentials: omit
+      → Authorization: Bearer ${DASHAFLOW_SIDECAR_TOKEN}
+      → POST ${DASHAFLOW_SIDECAR_URL}/v1/election-chart/derive
+    ← contract v1 with echoed location, DashaFlow/Lahiri provenance,
+       whole-sign houses, and request-ordered Lagna + nine-planet charts
+  → Panchangam evaluates its source-backed Muhurtam predicates locally
+```
+
+The gateway knows neither the activity nor any participant. It does not read
+auth cookies and stores no intent or chart data. Source rules and ranking remain
+the Panchangam application's responsibility; this service supplies only the
+validated astronomical projection.
 
 ---
 

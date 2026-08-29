@@ -5,7 +5,8 @@
 > This file tracks: (1) test coverage status per module, (2) how to run tests,
 > (3) a manual QA log, and (4) test plans linked to the user journey traces in
 > `PRODUCT.md`. Journey IDs (J1–J8) correspond to the numbered journeys there;
-> G1 covers the cross-site guest gateway traced in `ARCHITECTURE.md` Journey 7.
+> G1–G2 cover the cross-site guest gateways traced in `ARCHITECTURE.md`
+> Journeys 7–8.
 
 ---
 
@@ -67,6 +68,8 @@ Last assessed: **2026-08-29** (guest gateway rows; older rows retain their prior
 | `lib/engines/dashaflow.ts` guest projection | `lib/engines/dashaflow.test.ts` | Unit / contract | Bearer credential, exact body, strict normalized response, redacted auth failures, transient retry guidance |
 | `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, query/body bounds, IP rate limit, attribution, no-store, safe upstream failure |
 | `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
+| `lib/engines/dashaflow-election.ts` | `lib/engines/dashaflow-election.test.ts` | Unit / contract | Bearer credential, cookie omission, exact request, strict chart/provenance validation, order/location binding, safe failures |
+| `app/api/guest/muhurta/election-charts/route.ts` | `app/api/guest/muhurta/election-charts/route.test.ts` | Route | Exact origin/body/rate controls, strict private-field rejection, minute/time-window/uniqueness bounds, direct contract, safe failures |
 | `components/NavBar.tsx` | — | None | UI; manual only |
 | `components/unified/tabs/*` | — | `ChartTab`, `PlanetsTab`, `TimeTab`, `IdentityStrip`, `HouseGrid` have render tests | Add coverage for `DashaTab`, `YogasTab`, `JaiminiTab` |
 
@@ -221,6 +224,26 @@ before releasing any change that touches the journey's code path.
 | G1-8 | Valid exact birth input | Sidecar receives only five approved fields with bearer credential; client receives direct contract v1 projection | Unit / contract / route |
 | G1-9 | Sidecar auth, validation, projection, timeout, or transient failure | Sanitized error only; retryable statuses include bounded `Retry-After`; raw upstream body is never read or echoed | Unit / route |
 | G1-10 | Static dependency review | Guest route module graph contains no DB, NextAuth, PostHog, Sentry logging, or server profile persistence | Review |
+
+---
+
+### G2 — Cross-Site Guest Muhurtam Election-Chart Gateway
+
+**Code path:** Panchangam browser →
+`app/api/guest/muhurta/election-charts/route.ts` →
+`lib/engines/dashaflow-election.ts` → sidecar `/v1/election-chart/derive`
+
+| # | Test | Expected | Type |
+|---|---|---|---|
+| G2-1 | Approved production or HTTP localhost/127.0.0.1 preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no calculation/rate side effect | Unit / route |
+| G2-2 | Missing, malformed, lookalike Origin, body over 4 KiB, or sixth request per minute | Rejected before the sidecar; responses remain `private, no-store`; throttles include `Retry-After` | Route |
+| G2-3 | Activity, profile ID/name, birth details, natal chart, nested label, or any unknown field | `400`; no field is forwarded | Route |
+| G2-4 | Invalid contract/location/timezone, empty or >24 instants, non-minute/non-offset timestamp, or semantic duplicate | `400`; no sidecar call | Route |
+| G2-5 | Instant older than 366 days or beyond 1,830 days | `400`; no sidecar call | Route |
+| G2-6 | Valid request with inbound auth cookie | Sidecar receives only contract version, location, and ordered instants with bearer auth and `credentials: omit` | Unit / contract / route |
+| G2-7 | Valid sidecar response | Browser receives the unchanged v1 contract only after exact location/order, Lahiri, `whole_sign`, Lagna, and canonical nine-planet validation | Unit / contract / route |
+| G2-8 | Expanded, malformed, reordered, auth, timeout, or transient sidecar response | Safe `422`/`429`/`502`/`503`; bounded retry guidance; no upstream body or diagnostic leaks | Unit / route |
+| G2-9 | Static dependency review | Route module graph contains no DB, NextAuth, PostHog, request logging, activity/profile/natal model, or persistence | Review |
 
 ---
 
