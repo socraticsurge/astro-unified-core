@@ -69,7 +69,8 @@ Last assessed: **2026-08-29** (guest gateway rows; older rows retain their prior
 | `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, query/body bounds, IP rate limit, attribution, no-store, safe upstream failure |
 | `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
 | `lib/engines/dashaflow-election.ts` | `lib/engines/dashaflow-election.test.ts` | Unit / contract | Bearer credential, cookie omission, exact request, strict chart/provenance validation, order/location binding, safe failures |
-| `app/api/guest/muhurta/election-charts/route.ts` | `app/api/guest/muhurta/election-charts/route.test.ts` | Route | Exact origin/body/rate controls, strict private-field rejection, minute/time-window/uniqueness bounds, direct contract, safe failures |
+| `lib/distributed-rate-limit.ts` | `lib/distributed-rate-limit.test.ts` | Unit | Atomic Redis command, HMAC-pseudonymized key, TTL mapping, local bypass, and Production fail-closed behavior |
+| `app/api/guest/muhurta/election-charts/route.ts` | `app/api/guest/muhurta/election-charts/route.test.ts` | Route | Exact origin/body/local-and-shared-rate controls, shared unavailable/TTL mapping before parsing, strict private-field rejection, minute/time-window/uniqueness bounds, direct contract, safe failures |
 | `components/NavBar.tsx` | — | None | UI; manual only |
 | `components/unified/tabs/*` | — | `ChartTab`, `PlanetsTab`, `TimeTab`, `IdentityStrip`, `HouseGrid` have render tests | Add coverage for `DashaTab`, `YogasTab`, `JaiminiTab` |
 
@@ -241,9 +242,10 @@ before releasing any change that touches the journey's code path.
 | G2-4 | Invalid contract/location/timezone, empty or >24 instants, non-minute/non-offset timestamp, or semantic duplicate | `400`; no sidecar call | Route |
 | G2-5 | Instant older than 366 days or beyond 1,830 days | `400`; no sidecar call | Route |
 | G2-6 | Valid request with inbound auth cookie | Sidecar receives only contract version, location, and ordered instants with bearer auth and `credentials: omit` | Unit / contract / route |
-| G2-7 | Valid sidecar response | Browser receives the unchanged v1 contract only after exact location/order, Lahiri, `whole_sign`, Lagna, and canonical nine-planet validation | Unit / contract / route |
+| G2-7 | Valid sidecar response | Browser receives the unchanged v1 contract only after exact location/order, Lahiri, `mean` lunar nodes, `whole_sign`, Lagna, and canonical nine-planet validation | Unit / contract / route |
 | G2-8 | Expanded, malformed, reordered, auth, timeout, or transient sidecar response | Safe `422`/`429`/`502`/`503`; bounded retry guidance; no upstream body or diagnostic leaks | Unit / route |
-| G2-9 | Static dependency review | Route module graph contains no DB, NextAuth, PostHog, request logging, activity/profile/natal model, or persistence | Review |
+| G2-9 | Production shared limiter missing, unavailable, or exhausted | Fail closed before body parsing or sidecar access; `503` for unavailable and `429` with Redis TTL for exhausted | Unit / route |
+| G2-10 | Static dependency review | Route module graph contains no DB, NextAuth, PostHog, request logging, activity/profile/natal model, or persistence | Review |
 
 ---
 

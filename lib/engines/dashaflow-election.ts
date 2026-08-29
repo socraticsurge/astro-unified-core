@@ -76,6 +76,7 @@ export const DashaflowElectionChartContractSchema = z.object({
     version: z.string().min(1).max(40).refine((value) => value === value.trim()),
     ayanamsha: z.literal("Lahiri"),
     ephemeris: z.enum(["swiss", "moshier", "mixed", "unknown"]),
+    node_convention: z.literal("mean"),
   }).strict(),
   house_system: z.literal("whole_sign"),
   location: ElectionLocationSchema,

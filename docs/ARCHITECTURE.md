@@ -349,9 +349,13 @@ db.consultationRequests — getPending, listByUser, listAllWithUser, create, mar
 ```
 
 ### Rate Limiting
-[`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts) — unified in-memory rate limiter: `rateLimit(key, limit, windowMs)` → `{ success, limit, remaining }`. Per-instance (not shared across Lambdas); adequate for abuse prevention on a small app.
+[`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts) — unified in-memory rate limiter: `rateLimit(key, limit, windowMs)` → `{ success, limit, remaining }`. It remains per-instance for most routes.
 
-> For global enforcement at scale, replace with Redis/Upstash.
+The guest election-chart route adds a second, atomic fixed-window limit through
+`lib/distributed-rate-limit.ts` and the Upstash Redis REST API. Production
+requires the Marketplace Redis credentials and fails closed if shared
+enforcement is absent or unavailable; local/test runs retain the process-local
+layer. D7 remains open for extending this protection to the rest of the app.
 
 ---
 
@@ -381,7 +385,8 @@ Lagna, and nine D1 planets. It never returns the raw 17-section chart.
 
 Calls the bearer-authenticated `POST /v1/election-chart/derive` projection for
 one location and 1–24 request-ordered, minute-precision instants. Its runtime
-contract requires DashaFlow/Lahiri provenance, `whole_sign` houses, Lagna, and
+contract requires DashaFlow/Lahiri provenance, the explicit `mean` lunar-node
+convention, `whole_sign` houses, Lagna, and
 the canonical Surya-through-Ketu nine-planet sequence for every chart. The
 client rejects response expansion, changed location, missing/reordered instants,
 or planet drift and explicitly omits browser credentials.
@@ -1114,7 +1119,9 @@ call (instead of one per day) is a clean design. The accuracy trade-off
 
 ### Still to address
 
-**In-memory rate limiting** — per Lambda instance, not global. See `BACKLOG.md` item D7 for the Upstash Redis upgrade path.
+**Mostly in-memory rate limiting** — the election-chart guest route now adds
+required fail-closed Upstash enforcement, but other routes remain per Lambda
+instance. See `BACKLOG.md` item D7 for the remaining migration.
 
 **Sidecar unauthenticated** — low risk currently. See `BACKLOG.md` item D1.
 

@@ -52,6 +52,7 @@ const contract: DashaflowElectionChartContract = {
     version: "1.1.0",
     ayanamsha: "Lahiri",
     ephemeris: "swiss",
+    node_convention: "mean",
   },
   house_system: "whole_sign",
   location: input.location,
@@ -176,8 +177,12 @@ describe("deriveDashaflowElectionCharts", () => {
         })),
       },
     };
+    const wrongNodeConvention = {
+      ...contract,
+      engine: { ...contract.engine, node_convention: "true" },
+    };
 
-    for (const payload of [expanded, wrongOrder, wrongPlanets]) {
+    for (const payload of [expanded, wrongOrder, wrongPlanets, wrongNodeConvention]) {
       vi.spyOn(global, "fetch").mockResolvedValueOnce({
         ok: true,
         status: 200,

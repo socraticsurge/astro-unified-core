@@ -249,9 +249,10 @@ if (!result.success) {
 | `POST /api/readings/tarabalam` | user email | 20 / min |
 | `GET/POST /api/readings/dashaflow` | user email | implicit via profile cap |
 
-**Known limitation:** rate limits are per-Lambda instance, not global (see
-`BACKLOG.md` D7). Adequate for current traffic; replace with Upstash Redis for
-global enforcement at scale.
+**Known limitation:** most rate limits are per-Lambda instance, not global (see
+`BACKLOG.md` D7). The guest election-chart route is the scoped exception: it
+adds required, fail-closed Upstash enforcement in Production. Extend that
+pattern deliberately rather than assuming every route is globally limited.
 
 ---
 

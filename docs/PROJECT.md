@@ -148,6 +148,8 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
 | `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`                        |
 | `DASHAFLOW_SIDECAR_TOKEN`  | Server-only bearer credential sent to the sidecar's `/v1/profile/derive` and `/v1/election-chart/derive`; must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
+| `UPSTASH_REDIS_REST_URL` | Server-only HTTPS endpoint injected by the Vercel Upstash Redis Marketplace integration; required in Production for the election-chart global rate limit. |
+| `UPSTASH_REDIS_REST_TOKEN` | Standard server-only REST token for the same Redis database. Client keys are HMAC-pseudonymized with this token and expire after the one-minute window. Never prefix with `NEXT_PUBLIC_`. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
 | `GROQ_API_KEY`             | Secondary LLM provider used by chat / draft generation (`lib/engines/groq.ts`). Get from console.groq.com. |
 | `ADMIN_EMAILS` (required)  | Comma-separated list of admin email addresses. If unset, no one has admin access. |
@@ -174,12 +176,18 @@ missing calculation operation:
    that exposes `POST /v1/profile/derive` and
    `POST /v1/election-chart/derive`. Verify its public health route and legacy
    `/calculate` callers remain compatible.
-2. Configure the same value as `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti
+2. Install the Upstash Redis Marketplace integration on the Astro Chaganti
+   Vercel project so `UPSTASH_REDIS_REST_URL` and
+   `UPSTASH_REDIS_REST_TOKEN` are injected. Production election-chart calls
+   fail closed with `503` when this shared limit is absent or unavailable;
+   local/test runs keep the existing per-process limiter.
+3. Configure the same value as `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti
    Preview and Production. Deploy the gateway and verify allowed/disallowed
-   OPTIONS, `private, no-store`, 4 KiB rejection, rate-limit retry headers, and
-   fixture profile and election-chart derivations, including chart order and
-   whole-sign provenance. The token must never appear in a browser bundle or response.
-3. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
+   OPTIONS, `private, no-store`, 4 KiB rejection, local and global rate-limit
+   retry headers, and fixture profile and election-chart derivations,
+   including chart order and whole-sign provenance. Tokens must never appear
+   in a browser bundle or response.
+4. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
    that consumer only after the gateway fixture passes from
    `https://panchangam.astrochaganti.com`.
 

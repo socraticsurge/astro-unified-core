@@ -6,6 +6,7 @@ vi.mock("@/lib/engines/dashaflow-election", async (importOriginal) => {
   return { ...actual, deriveDashaflowElectionCharts: vi.fn() };
 });
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
+vi.mock("@/lib/distributed-rate-limit", () => ({ distributedRateLimit: vi.fn() }));
 
 import { OPTIONS, POST } from "./route";
 import {
@@ -14,6 +15,7 @@ import {
   deriveDashaflowElectionCharts,
 } from "@/lib/engines/dashaflow-election";
 import { rateLimit } from "@/lib/rate-limit";
+import { distributedRateLimit } from "@/lib/distributed-rate-limit";
 
 const ORIGIN = "https://panchangam.astrochaganti.com";
 const input = {
@@ -45,6 +47,7 @@ const contract: DashaflowElectionChartContract = {
     version: "1.1.0",
     ayanamsha: "Lahiri",
     ephemeris: "swiss",
+    node_convention: "mean",
   },
   house_system: "whole_sign",
   location: input.location,
@@ -82,6 +85,13 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-29T00:00:00.000Z"));
     vi.mocked(rateLimit).mockReturnValue({ success: true, limit: 5, remaining: 4 });
+    vi.mocked(distributedRateLimit).mockResolvedValue({
+      success: true,
+      remaining: 4,
+      retryAfterSeconds: 60,
+      configured: true,
+      unavailable: false,
+    });
   });
 
   afterEach(() => {
@@ -96,6 +106,9 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     expect(await response.json()).toEqual(contract);
     expect(deriveDashaflowElectionCharts).toHaveBeenCalledWith(input);
     expect(rateLimit).toHaveBeenCalledWith("guest:election-charts:203.0.113.21", 5, 60_000);
+    expect(distributedRateLimit).toHaveBeenCalledWith(
+      "guest:election-charts:203.0.113.21", 5, 60_000,
+    );
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
@@ -155,6 +168,38 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     const response = await POST(request(input));
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("60");
+    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before body parsing when the shared limiter is unavailable", async () => {
+    vi.mocked(distributedRateLimit).mockResolvedValue({
+      success: false,
+      remaining: 0,
+      retryAfterSeconds: 10,
+      configured: true,
+      unavailable: true,
+    });
+    const response = await POST(request('{"private-invalid-json"'));
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("10");
+    expect(await response.json()).toEqual({
+      error: "Chart screening is temporarily unavailable. Please try again.",
+    });
+    expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
+  });
+
+  it("maps a shared limit to 429 with the distributed TTL before parsing", async () => {
+    vi.mocked(distributedRateLimit).mockResolvedValue({
+      success: false,
+      remaining: 0,
+      retryAfterSeconds: 17,
+      configured: true,
+      unavailable: false,
+    });
+    const response = await POST(request('{"private-invalid-json"'));
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("17");
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
   });
 
@@ -163,6 +208,7 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     expect(response.status).toBe(403);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
     expect(rateLimit).not.toHaveBeenCalled();
+    expect(distributedRateLimit).not.toHaveBeenCalled();
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
   });
 
@@ -205,5 +251,6 @@ describe("OPTIONS /api/guest/muhurta/election-charts", () => {
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
     expect(rateLimit).not.toHaveBeenCalled();
+    expect(distributedRateLimit).not.toHaveBeenCalled();
   });
 });

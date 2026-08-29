@@ -16,7 +16,7 @@ Issues that are currently broken or produce incorrect behaviour.
 
 | # | Description | File(s) | Severity |
 |---|---|---|---|
-| B1 | In-memory rate limiting is per Lambda instance, not global. Rapid requests from the same user hitting different Lambda instances bypass the limit. | `lib/rate-limit.ts` | Low (current traffic is low) |
+| B1 | Most in-memory rate limits are per Lambda instance, not global. Rapid requests hitting different instances can bypass those limits; the election-chart guest route is already protected by its additional fail-closed Upstash layer. | `lib/rate-limit.ts`, `lib/distributed-rate-limit.ts` | Low (current traffic is low) |
 | B2 | Old `readings` rows from removed engines (`bazi`, `vedastro`, `western`, `panchangam`) sit in the DB. Never served but waste storage; could confuse queries if an engine name is reused. | Turso DB | Low |
 
 ---
@@ -33,7 +33,7 @@ so future agents don't re-open the conversation unnecessarily.
 | D4 | Live consultation booking | Users email for a calendar link. | Cal.com or Calendly embed is the low-friction path. No DB changes needed. |
 | D5 | Profile sharing (public profile links) | Profiles are private to owner + admin. | Would require a `is_public` flag on profiles and an unauthenticated route. |
 | D6 | Family / relationship graph | Profiles are flat. No way to mark "this is spouse of profile X". | A `profile_relationships` join table would enable this. Tarabalam family selector is a workaround. |
-| D7 | Global rate limiting | Current limiters are per-Lambda instance. | Requires Upstash Redis + one env var (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`). Drop-in swap in `lib/rate-limit.ts`. |
+| D7 | Complete global rate limiting | The election-chart guest route has required fail-closed Upstash enforcement; other route limiters remain per-Lambda instance. | Generalize the proven helper and migrate remaining routes with route-specific rollout tests. Requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. |
 | D8 | More DashaFlow endpoints in Professional view | Sidecar exposes `evaluate_muhurtha`, deeper career details, more compatibility fields. | Check `dashaflow/__init__.py` for what's available. |
 
 ---
@@ -86,7 +86,7 @@ Near-term and medium-term feature intentions. For full context see `PRODUCT.md Â
 - [ ] Email notification when consultation is answered (D3 variant)
 
 ### Medium-term
-- [ ] Global rate limiting via Upstash Redis (D7)
+- [ ] Extend the election route's Upstash enforcement to remaining routes (D7)
 - [ ] Family relationship graph (D6)
 - [ ] Public profile sharing (D5)
 
