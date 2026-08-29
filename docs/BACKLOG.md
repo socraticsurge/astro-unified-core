@@ -1,6 +1,6 @@
 # Backlog
 
-<!-- last-updated: 2026-05-19 -->
+<!-- last-updated: 2026-08-29 -->
 
 Tracks known bugs, deferred features, tech debt, and session decisions.
 
@@ -28,8 +28,7 @@ so future agents don't re-open the conversation unnecessarily.
 
 | # | Feature | Why deferred | Notes |
 |---|---|---|---|
-| D1 | Sidecar authentication | Low risk — sidecar is stateless, read-only, no PII stored. | Add a shared-secret header (`X-Sidecar-Secret`) in `lib/engines/*.ts` and validate in Python sidecar when traffic grows. |
-| D2 | Custom domain (`astrochaganti.com`) | Using `astro-unified-core-pfni.vercel.app` for now. | Must update `NEXTAUTH_URL` env var and Google OAuth redirect URIs when switching. |
+| D1 | Legacy sidecar authentication | The versioned `/v1/profile/derive` operation is bearer-authenticated as of 2026-08-29; legacy `/calculate` and other registered-user operations remain unchanged for rollout compatibility. | Coordinate a separate migration before requiring credentials on legacy callers. Do not treat the protected guest projection as protection for every sidecar route. |
 | D3 | Lead capture / email sign-up | Contact CTA is currently a `mailto:` link. | Could be wired to Resend or Formspree without backend changes. |
 | D4 | Live consultation booking | Users email for a calendar link. | Cal.com or Calendly embed is the low-friction path. No DB changes needed. |
 | D5 | Profile sharing (public profile links) | Profiles are private to owner + admin. | Would require a `is_public` flag on profiles and an unauthenticated route. |
@@ -73,6 +72,7 @@ future agents understand the reasoning and don't relitigate resolved discussions
 | S5 | 2026-05-13 | Rate limiter consolidated in `lib/rate-limit.ts`; `lib/security.ts` deleted | Two rate-limiter modules with similar APIs created confusion. One canonical module reduces the surface area. |
 | S6 | 2026-05-13 | `DASHAFLOW_SIDECAR_URL` — removed `NEXT_PUBLIC_` prefix | The sidecar URL is a server secret (points to an internal service). `NEXT_PUBLIC_` would have bundled it into browser JS, making it publicly visible in the page source. |
 | S7 | 2026-05-14 | Documentation reorganised into 9 files with a strict ceiling | More than ~8–9 docs becomes unmaintainable for a small team with multi-agent collaboration. STANDARDS.md is the new cross-agent source of truth. |
+| S8 | 2026-08-29 | `https://astrochaganti.com` is the verified production custom domain | The linked Vercel project `astro-unified-core-pfni` currently serves this domain; guest Panchangam clients use its `/api/guest` routes. OAuth environment and redirect values remain separately controlled and must not be inferred from the browser API base. |
 
 ---
 
@@ -91,10 +91,9 @@ Near-term and medium-term feature intentions. For full context see `PRODUCT.md �
 - [ ] Public profile sharing (D5)
 
 ### Long-term / Under review
-- [ ] Custom domain — `astrochaganti.com` (D2)
 - [ ] Mobile-first redesign
 - [ ] Payment integration (Razorpay/Stripe) for consultations
 
 ---
 
-*Last updated: 2026-05-19*
+*Last updated: 2026-08-29*

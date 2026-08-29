@@ -1,10 +1,11 @@
 # Astro Chaganti — Testing Log & Coverage
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-08-29 -->
 
 > This file tracks: (1) test coverage status per module, (2) how to run tests,
 > (3) a manual QA log, and (4) test plans linked to the user journey traces in
-> `PRODUCT.md`. Journey IDs (J1–J8) correspond to the numbered journeys there.
+> `PRODUCT.md`. Journey IDs (J1–J8) correspond to the numbered journeys there;
+> G1 covers the cross-site guest gateway traced in `ARCHITECTURE.md` Journey 7.
 
 ---
 
@@ -45,7 +46,7 @@ mapping. Config is in `vitest.config.ts`. Globals are enabled — no imports nee
 
 ## 2. Test Coverage Status
 
-Last assessed: **2026-05-14**
+Last assessed: **2026-08-29** (guest gateway rows; older rows retain their prior assessment)
 
 | Module | Test file | Coverage | Notes |
 |---|---|---|---|
@@ -61,6 +62,11 @@ Last assessed: **2026-05-14**
 | `app/api/compatibility/route.ts` | — | None | Integration |
 | `app/api/feedback/route.ts` | — | None | Integration |
 | `app/api/consultation-requests/route.ts` | — | None | Integration |
+| `lib/geocode.ts` | `lib/geocode.test.ts` | Unit | Guest search asserts one upstream call, limit five, selectable coordinates/timezone, and malformed-row filtering; legacy cascade remains covered |
+| `lib/guest-api.ts` | `lib/guest-api.test.ts` | Unit | Exact production/local origins, safe preflight, JSON media type, 4 KiB stream cap, and trusted forwarded IP |
+| `lib/engines/dashaflow.ts` guest projection | `lib/engines/dashaflow.test.ts` | Unit / contract | Bearer credential, exact body, strict normalized response, redacted auth failures, transient retry guidance |
+| `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, query/body bounds, IP rate limit, attribution, no-store, safe upstream failure |
+| `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
 | `components/NavBar.tsx` | — | None | UI; manual only |
 | `components/unified/tabs/*` | — | `ChartTab`, `PlanetsTab`, `TimeTab`, `IdentityStrip`, `HouseGrid` have render tests | Add coverage for `DashaTab`, `YogasTab`, `JaiminiTab` |
 
@@ -194,6 +200,27 @@ before releasing any change that touches the journey's code path.
 | J8-1 | Profile has current location; request muhurtha | Quality rating + reasoning shown | Manual |
 | J8-2 | Profile missing current location | UI shows "Complete Profile" nudge | Manual |
 | J8-3 | Invalid event type | API returns 400 | Unit |
+
+---
+
+### G1 — Cross-Site Guest Birth-Profile Gateway (Story #227)
+
+**Code path:** Panchangam browser → `app/api/guest/places/search/route.ts` →
+`lib/geocode.ts` → `app/api/guest/profile/derive/route.ts` →
+`lib/engines/dashaflow.ts` → sidecar `/v1/profile/derive`
+
+| # | Test | Expected | Type |
+|---|---|---|---|
+| G1-1 | Approved production or HTTP localhost/127.0.0.1 preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no handler side effect | Unit / route |
+| G1-2 | Missing, malformed, or lookalike Origin | `403`; no CORS allow-origin header; no geocoder/sidecar/rate-limit call | Unit / route |
+| G1-3 | Submit a 2–120 character place query | One Nominatim request; at most five results with ID, label, coordinates, IANA timezone, attribution | Unit / route |
+| G1-4 | Body exceeds 4 KiB with or without Content-Length | `413` before geocoder or sidecar call | Unit / route |
+| G1-5 | Sixth place search or derivation in one minute from one IP | `429`, `Retry-After: 60`, private no-store | Route |
+| G1-6 | Derivation includes `name` or any unknown field | `400`; field is not forwarded | Route |
+| G1-7 | Non-calendar date, non-`HH:MM` time, string/out-of-range coordinate, or unknown timezone | `400`; no sidecar call | Route |
+| G1-8 | Valid exact birth input | Sidecar receives only five approved fields with bearer credential; client receives direct contract v1 projection | Unit / contract / route |
+| G1-9 | Sidecar auth, validation, projection, timeout, or transient failure | Sanitized error only; retryable statuses include bounded `Retry-After`; raw upstream body is never read or echoed | Unit / route |
+| G1-10 | Static dependency review | Guest route module graph contains no DB, NextAuth, PostHog, Sentry logging, or server profile persistence | Review |
 
 ---
 

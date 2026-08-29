@@ -1,6 +1,6 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-05-21 -->
+<!-- last-updated: 2026-08-29 -->
 
 > **Note:** The legacy "Basic / Professional" two-mode chart view was replaced
 > with the unified 10-tab dashboard on 2026-05-19. The components below
@@ -47,13 +47,15 @@
 
 ## 0. User Types
 
-<!-- last-updated: 2026-05-13 -->
+<!-- last-updated: 2026-08-29 -->
 
 Three personas access the app. Every feature decision and user journey should
 be reasoned against all three.
 
 ### Guest (unauthenticated)
 - Can access: `/` (landing), `/privacy`, `/terms`, `/credits`
+- Can call only the stateless cross-origin profile helpers under
+  `/api/guest/*` from the exact approved Panchangam production/local origins
 - Cannot access: anything under `/dashboard`, `/profiles`, `/compatibility`, `/admin`
 - All protected routes redirect to `/auth/signin` via [`proxy.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/proxy.ts) middleware
 
@@ -74,7 +76,7 @@ be reasoned against all three.
 
 ## 1. Server / Client Boundary Map
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-08-29 -->
 
 This is the most important section for anyone touching the codebase. Understanding
 what runs where prevents the class of bugs where env vars are missing, `getServerSession`
@@ -166,6 +168,7 @@ cause is almost always `isAdmin(session)` being called in a client component.
 | `NEXTAUTH_SECRET` | Yes | Yes | No (never expose) |
 | `ADMIN_EMAILS` | Yes | Yes | No (never expose) |
 | `DASHAFLOW_SIDECAR_URL` | Yes | Yes | No |
+| `DASHAFLOW_SIDECAR_TOKEN` | Yes | Yes | No (server-to-server bearer secret) |
 | `GOOGLE_CLIENT_ID` | Yes | Yes | No |
 | `NEXTAUTH_URL` | Yes | Yes | No |
 | `NEXT_PUBLIC_SENTRY_DSN` | Yes | Yes | Yes (`NEXT_PUBLIC_` is bundled) |
@@ -177,7 +180,7 @@ cause is almost always `isAdmin(session)` being called in a client component.
 ```
 astrounified/
 ├── app/                    # Next.js App Router — pages, layouts, API routes
-│   ├── api/                # Server-side API handlers
+│   ├── api/                # Server-side API handlers, including stateless guest gateway
 │   ├── admin/              # Admin-only panel
 │   ├── auth/               # Sign-in page
 │   ├── compatibility/      # Compatibility checker + detail views
@@ -367,6 +370,12 @@ Consumed by `DashboardClient` and rendered across `components/unified/tabs/*`
 (Chart, Planets, Houses, Dasha, Yogas, Jaimini, Ashtakavarga). Sidebar
 panchang + birth info comes from the same payload via `ProfileSidebar`.
 
+The same module also exposes `deriveDashaflowProfile()`, a separate server-only
+client for `POST /v1/profile/derive`. It sends the
+`DASHAFLOW_SIDECAR_TOKEN` bearer credential and accepts only the versioned,
+bounded guest projection: engine provenance, Nakshatra/Pada, Janma Rashi,
+Lagna, and nine D1 planets. It never returns the raw 17-section chart.
+
 ### Transit
 [`lib/engines/transit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/transit.ts)
 
@@ -428,8 +437,32 @@ surface a human-readable error instead of rendering broken data.
 
 ## 7. API Routes
 
-All routes authenticate via `getServerSession(authOptions)` and return JSON.
-Admin routes additionally check `isAdmin(session)`.
+Registered-user routes authenticate via `getServerSession(authOptions)` and
+return JSON. Admin routes additionally check `isAdmin(session)`. The two
+explicit `/api/guest/*` exceptions below are stateless and use strict origin,
+input, no-store, and IP-rate-limit guards instead of a session.
+
+### Guest Birth-Profile Gateway
+
+**[`app/api/guest/places/search/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/places/search/route.ts)**
+
+- `OPTIONS` — returns a no-body preflight only for
+  `https://panchangam.astrochaganti.com` and HTTP localhost/127.0.0.1 origins.
+- `POST` — accepts only `{ query }` (2–120 characters), rate-limits by client
+  IP, and makes exactly one Nominatim request with `limit=5`. Returns
+  `{ data: { results: [{ id, label, latitude, longitude, timezone }], attribution } }`.
+
+**[`app/api/guest/profile/derive/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/profile/derive/route.ts)**
+
+- `OPTIONS` — same exact-origin, side-effect-free preflight contract.
+- `POST` — accepts only exact `date_of_birth`, `time_of_birth`, numeric
+  coordinates, and an IANA timezone. Unknown fields (including `name`) are
+  rejected. Calls the credentialed sidecar projection and returns its direct
+  `contract_version` / `engine` / `data` contract.
+
+Both routes cap JSON request bodies at 4 KiB, use `private, no-store` on every
+response, provide `Retry-After` on throttled/transient failures, and do not
+touch NextAuth, Turso, PostHog, or request-body logging.
 
 ### Profile Management
 
@@ -794,7 +827,8 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 | Module | Purpose |
 |---|---|
-| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text)` → calls Nominatim, resolves IANA timezone via `geo-tz` |
+| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text)` keeps the registered-profile fallback cascade; `searchPlaces(text)` performs one bounded guest search. Both resolve IANA timezone via `geo-tz`. |
+| [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, and trusted client-IP extraction for `/api/guest/*` |
 | [`lib/utils.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/utils.ts) | `cn(...classes)` — `clsx` + `tailwind-merge` |
 | [`lib/chart-summary.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/chart-summary.ts) | Generates a plain-text summary of chart data for clipboard or LLM consumption |
 | [`lib/sanitize.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/sanitize.ts) | Dual client/server HTML sanitizer to prevent XSS in `dangerouslySetInnerHTML` |
@@ -973,6 +1007,32 @@ live on dedicated pages outside the dashboard.
     → Table: Date | Moon in | Tithi | [Profile columns] | All ✦
     → "All ✦" column highlights rows where every selected profile has auspicious Tara
 ```
+
+### Journey 7: Panchangam Guest Derives a Local Birth Profile
+
+```
+Guest on https://panchangam.astrochaganti.com opens profile creation
+  → name remains in that browser and is never included in an API request
+  → submit place text
+    → POST https://astrochaganti.com/api/guest/places/search
+      → exact Origin check + 4 KiB cap + per-IP rate limit
+      → searchPlaces(query) → one Nominatim request, at most five results
+      → geo-tz adds an IANA timezone to each selectable place
+      ← labels, coordinates, timezones, OpenStreetMap attribution
+  → guest selects one result and enters exact local birth date/time
+    → POST https://astrochaganti.com/api/guest/profile/derive
+      → reject name/unknown fields; validate date, time, coordinates, timezone
+      → deriveDashaflowProfile(input)
+        → Authorization: Bearer ${DASHAFLOW_SIDECAR_TOKEN}
+        → POST ${DASHAFLOW_SIDECAR_URL}/v1/profile/derive
+      ← contract v1 engine provenance + Nakshatra/Pada + Janma Rashi + Lagna
+         + nine-planet D1 projection
+  → Panchangam UI reviews and stores the profile in browser-local storage
+```
+
+The Astro Chaganti gateway stores nothing: no server profile, session, DB row,
+cache entry, or analytics event is created. The Panchangam profile name never
+crosses this boundary.
 
 ---
 

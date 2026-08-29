@@ -8,6 +8,21 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-08-29] — Stateless guest birthplace and profile gateway
+
+### Added
+- **`POST/OPTIONS /api/guest/places/search`** — submit-only, IP-rate-limited Nominatim search for the Panchangam guest-profile journey. Requests are capped at 4 KiB and 120 query characters; one upstream request returns at most five selectable places with stable IDs, coordinates, IANA timezones, and OpenStreetMap attribution.
+- **`POST/OPTIONS /api/guest/profile/derive`** — stateless projection gateway for exact birth date/time and a previously selected place. It rejects names and unknown fields, validates civil inputs, and sends only date, time, coordinates, and timezone to the credentialed DashaFlow `/v1/profile/derive` operation.
+- **`lib/guest-api.ts`** — shared exact-origin CORS, safe preflight, bounded streaming JSON parsing, no-store response, and trusted-forwarded-IP helpers for both guest routes.
+- Vitest coverage for origin enforcement, body and query limits, IP rate limiting, single-request geocoding, exact input validation, service authentication, normalized response projection, and safe retryable errors.
+
+### Changed
+- **`lib/geocode.ts`** now exposes a single-request `searchPlaces()` path while preserving the existing relaxed-query `geocodePlace()` behavior for authenticated profile creation.
+- **`lib/engines/dashaflow.ts`** now exposes a bearer-authenticated, schema-validated profile derivation client without changing the legacy full-chart client.
+- Added `DASHAFLOW_SIDECAR_TOKEN` as a server-only main-app secret and documented the coordinated sidecar → gateway → Panchangam rollout. No database, session, analytics, or server-side profile persistence was added.
+
+---
+
 ## [2026-06-24] — Admin dashboard: AI chat usage view
 
 Until now we shipped the chat feature without any admin-side visibility into who's using it. This adds a dedicated tab with the aggregated stats an admin needs to gauge adoption, see which model is doing the work, and spot specific sessions.

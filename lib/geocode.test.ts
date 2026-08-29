@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { queryVariants, geocodePlace } from "./geocode";
+import { queryVariants, geocodePlace, searchPlaces } from "./geocode";
 
 global.fetch = vi.fn();
 
@@ -81,5 +81,74 @@ describe("geocodePlace", () => {
     expect(result.longitude).toBe(78.4867);
     expect(result.display_name).toBe("Hyderabad");
     expect(result.timezone).toBe("Asia/Kolkata");
+  });
+});
+
+describe("searchPlaces", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("uses one bounded upstream request and returns selectable IANA-timezone results", async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: async () => [{
+        place_id: 123,
+        osm_type: "relation",
+        osm_id: 456,
+        lat: "17.3850",
+        lon: "78.4867",
+        display_name: "Hyderabad, Telangana, India",
+      }],
+    } as Response);
+
+    await expect(searchPlaces("  Hyderabad  ")).resolves.toEqual([{
+      id: "osm:relation:456",
+      label: "Hyderabad, Telangana, India",
+      latitude: 17.385,
+      longitude: 78.4867,
+      timezone: "Asia/Kolkata",
+    }]);
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = vi.mocked(global.fetch).mock.calls[0];
+    expect(String(url)).toContain("q=Hyderabad");
+    expect(String(url)).toContain("limit=5");
+    expect(String(url)).toContain("format=json");
+    expect(init).toMatchObject({ cache: "no-store" });
+  });
+
+  it("returns at most five valid results", async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: async () => Array.from({ length: 7 }, (_, index) => ({
+        place_id: index,
+        lat: String(10 + index),
+        lon: String(70 + index),
+        display_name: `Place ${index}`,
+      })),
+    } as Response);
+
+    const results = await searchPlaces("Places");
+    expect(results).toHaveLength(5);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops malformed upstream rows", async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: async () => [
+        { place_id: 1, lat: "not-a-number", lon: "78", display_name: "Bad" },
+        { place_id: 2, lat: "17", lon: "78", display_name: "  " },
+      ],
+    } as Response);
+
+    await expect(searchPlaces("Bad rows")).resolves.toEqual([]);
+  });
+
+  it("does not cascade into relaxed queries after an upstream failure", async () => {
+    vi.mocked(global.fetch).mockRejectedValue(new Error("Network Error"));
+    await expect(searchPlaces("Hyderabad, Telangana")).rejects.toThrow("Network Error");
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });

@@ -8,7 +8,20 @@ export type GeoResult = {
   display_name: string;
 };
 
+export type PlaceSearchResult = {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+};
+
+export const GEOCODER_ATTRIBUTION = "© OpenStreetMap contributors";
+
 type NominatimRow = {
+  place_id?: number | string;
+  osm_type?: string;
+  osm_id?: number | string;
   lat: string;
   lon: string;
   display_name: string;
@@ -19,13 +32,71 @@ const UA = "AstroChaganti/1.0 (https://astrochaganti.com)";
 const NOMINATIM = "https://nominatim.openstreetmap.org/search";
 
 async function nominatimQuery(query: string, limit = 3): Promise<NominatimRow[]> {
-  const url = `${NOMINATIM}?q=${encodeURIComponent(query)}&format=json&limit=${limit}&addressdetails=0`;
+  const boundedLimit = Math.max(1, Math.min(5, Math.floor(limit)));
+  const url = `${NOMINATIM}?q=${encodeURIComponent(query)}&format=json&limit=${boundedLimit}&addressdetails=0&dedupe=1`;
   const res = await fetch(url, {
-    headers: { "User-Agent": UA },
+    headers: {
+      Accept: "application/json",
+      "User-Agent": UA,
+    },
     cache: "no-store",
+    signal: AbortSignal.timeout(8_000),
   });
   if (!res.ok) throw new Error(`Geocoder HTTP ${res.status}`);
   return (await res.json()) as NominatimRow[];
+}
+
+function timezoneAt(latitude: number, longitude: number): string {
+  return findTimezone(latitude, longitude)[0] ?? "UTC";
+}
+
+function placeResultId(row: NominatimRow, latitude: number, longitude: number): string {
+  const osmType = row.osm_type;
+  const osmId = row.osm_id === undefined ? "" : String(row.osm_id);
+  if ((osmType === "node" || osmType === "way" || osmType === "relation") && /^\d+$/.test(osmId)) {
+    return `osm:${osmType}:${osmId}`;
+  }
+  const placeId = row.place_id === undefined ? "" : String(row.place_id);
+  if (/^\d+$/.test(placeId)) return `nominatim:${placeId}`;
+  return `coordinates:${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+}
+
+/**
+ * Submit-based guest search. Unlike geocodePlace(), this deliberately sends
+ * exactly one bounded Nominatim request and never cascades into relaxed
+ * autocomplete-style queries.
+ */
+export async function searchPlaces(query: string): Promise<PlaceSearchResult[]> {
+  const normalized = query.trim();
+  if (!normalized) return [];
+
+  const rows = await nominatimQuery(normalized, 5);
+  const results: PlaceSearchResult[] = [];
+
+  for (const row of rows.slice(0, 5)) {
+    const latitude = Number(row.lat);
+    const longitude = Number(row.lon);
+    const label = typeof row.display_name === "string"
+      ? row.display_name.trim().slice(0, 240)
+      : "";
+    if (
+      !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+      !Number.isFinite(longitude) || longitude < -180 || longitude > 180 ||
+      !label
+    ) {
+      continue;
+    }
+
+    results.push({
+      id: placeResultId(row, latitude, longitude),
+      label,
+      latitude,
+      longitude,
+      timezone: timezoneAt(latitude, longitude),
+    });
+  }
+
+  return results;
 }
 
 // Build a cascade of progressively-relaxed query variants.
@@ -91,8 +162,7 @@ export async function geocodePlace(place: string): Promise<GeoResult> {
   const latitude = parseFloat(row.lat);
   const longitude = parseFloat(row.lon);
 
-  const timezones = findTimezone(latitude, longitude);
-  const timezone = timezones[0] ?? "UTC";
+  const timezone = timezoneAt(latitude, longitude);
 
   const now = new Date();
   const formatter = new Intl.DateTimeFormat("en", {
