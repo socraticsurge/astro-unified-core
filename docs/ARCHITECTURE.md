@@ -359,13 +359,16 @@ credentials, and fail closed if shared enforcement is absent or unavailable;
 local/test runs retain the process-local layer. D7 remains open for extending
 this protection to the rest of the app.
 
-Nominatim access is separately serialized through one process-global scheduler in
-`lib/geocode.ts`: each process starts at most one provider request per second.
-Concurrent duplicate queries share one promise, and successful responses live
-in a bounded 24-hour in-process cache. Public Nominatim is a local-development
-default only. `lib/geocoder-config.ts` requires an explicitly configured HTTPS
-provider base and application identity in Vercel Preview/Production and rejects
-the public Nominatim host there.
+Geocoder access is separately serialized through one process-global scheduler
+in `lib/geocode.ts`: each process starts at most one provider request per
+second. Concurrent duplicate queries share one promise, and successful
+responses live in a bounded 24-hour in-process cache. The unauthenticated guest
+search uses public Nominatim only in local development; `lib/geocoder-config.ts`
+requires an explicitly configured HTTPS provider base and application identity
+for that route in Vercel Preview/Production and rejects the public Nominatim
+host there. The pre-existing authenticated profile form remains on its
+disclosed public-Nominatim path until the separately tracked provider migration;
+the guest route cannot fall back to it.
 
 ---
 
@@ -886,7 +889,7 @@ interpretation (uses chart-specific facts) and a generic educational section.
 | Module | Purpose |
 |---|---|
 | [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text)` keeps the registered-profile fallback cascade; `searchPlaces(text)` performs one bounded guest search. Both share a process-wide one-request-per-second provider queue, in-flight coalescing, bounded 24-hour cache, and `geo-tz` IANA resolution. |
-| `lib/geocoder-config.ts` | Server-only provider base/identity validation. Public Nominatim is local-only; Preview/Production require an explicit HTTPS managed provider. |
+| `lib/geocoder-config.ts` | Server-only guest provider validation plus an explicit legacy authenticated-profile boundary. Guest public Nominatim is local-only; Preview/Production guest search requires an HTTPS managed provider and cannot fall back to the legacy path. |
 | `lib/guest-calculation-gates.ts` | Independent server-only birth-profile and election-chart activation flags; local default on, deployed default off, exact `true` opt-in. |
 | [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, and trusted client-IP extraction for `/api/guest/*` |
 | [`lib/utils.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/utils.ts) | `cn(...classes)` — `clsx` + `tailwind-merge` |
@@ -1078,7 +1081,7 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
     → POST https://astrochaganti.com/api/guest/places/search
       → exact Origin check + 4 KiB cap + per-IP rate limit
       → searchPlaces(query) → coalesced/cached provider request, at most five results
-        → local public Nominatim starts at most one request per second
+        → local guest public Nominatim starts at most one request per second
         → Preview/Production require the configured managed provider
       → geo-tz adds an IANA timezone to each selectable place
       ← labels, coordinates, timezones, OpenStreetMap attribution

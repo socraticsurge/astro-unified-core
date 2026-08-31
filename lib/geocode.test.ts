@@ -105,6 +105,22 @@ describe("geocodePlace", () => {
     expect(result.display_name).toBe("Hyderabad");
     expect(result.timezone).toBe("Asia/Kolkata");
   });
+
+  it("does not make existing authenticated profiles depend on the guest provider", async () => {
+    process.env.VERCEL_ENV = "production";
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      json: async () => [{ lat: "17.3850", lon: "78.4867", display_name: "Hyderabad" }],
+    } as Response);
+
+    await expect(geocodePlace("Authenticated Hyderabad")).resolves.toMatchObject({
+      latitude: 17.385,
+      longitude: 78.4867,
+    });
+    expect(String(vi.mocked(global.fetch).mock.calls[0][0])).toMatch(
+      /^https:\/\/nominatim\.openstreetmap\.org\/search\?/,
+    );
+  });
 });
 
 describe("searchPlaces", () => {
@@ -179,6 +195,15 @@ describe("searchPlaces", () => {
     vi.mocked(global.fetch).mockRejectedValue(new Error("Network Error"));
     await expect(searchPlaces("Hyderabad, Telangana")).rejects.toThrow("Network Error");
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed in a deployed environment without a managed guest provider", async () => {
+    process.env.VERCEL_ENV = "production";
+
+    await expect(searchPlaces("Hyderabad")).rejects.toThrow(
+      "Geocoder configuration unavailable",
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("coalesces duplicate work, caches success, and starts distinct requests at most once per second", async () => {

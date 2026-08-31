@@ -5,12 +5,12 @@ vi.mock("@/lib/geocode", () => ({
   GEOCODER_ATTRIBUTION: "© OpenStreetMap contributors",
   searchPlaces: vi.fn(),
 }));
-vi.mock("@/lib/geocoder-config", () => ({ geocoderConfigured: vi.fn() }));
+vi.mock("@/lib/geocoder-config", () => ({ guestGeocoderConfigured: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
 
 import { OPTIONS, POST } from "./route";
 import { searchPlaces } from "@/lib/geocode";
-import { geocoderConfigured } from "@/lib/geocoder-config";
+import { guestGeocoderConfigured } from "@/lib/geocoder-config";
 import { rateLimit } from "@/lib/rate-limit";
 
 const ORIGIN = "https://panchangam.astrochaganti.com";
@@ -32,7 +32,7 @@ describe("POST /api/guest/places/search", () => {
     vi.clearAllMocks();
     delete process.env.VERCEL_ENV;
     delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
-    vi.mocked(geocoderConfigured).mockReturnValue(true);
+    vi.mocked(guestGeocoderConfigured).mockReturnValue(true);
     vi.mocked(rateLimit).mockReturnValue({ success: true, limit: 5, remaining: 4 });
   });
 
@@ -118,7 +118,7 @@ describe("POST /api/guest/places/search", () => {
     expect(await response.json()).toEqual({
       error: "This calculation is temporarily unavailable. Please try again later.",
     });
-    expect(geocoderConfigured).not.toHaveBeenCalled();
+    expect(guestGeocoderConfigured).not.toHaveBeenCalled();
     expect(rateLimit).not.toHaveBeenCalled();
     expect(searchPlaces).not.toHaveBeenCalled();
   });
@@ -126,7 +126,7 @@ describe("POST /api/guest/places/search", () => {
   it("cannot activate publicly with an unsafe geocoder configuration", async () => {
     process.env.VERCEL_ENV = "preview";
     process.env.GUEST_BIRTH_PROFILE_ENABLED = "true";
-    vi.mocked(geocoderConfigured).mockReturnValue(false);
+    vi.mocked(guestGeocoderConfigured).mockReturnValue(false);
 
     const response = await POST(request('{"private-invalid-json"'));
     expect(response.status).toBe(503);

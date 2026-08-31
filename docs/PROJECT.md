@@ -46,7 +46,7 @@ Vercel project (with no Next.js) gives it sole ownership of `/api/*`.
 | Database              | Turso (libSQL, hosted)                                                 |
 | Astrology engine      | DashaFlow 1.1.0 (PyPI) — Swiss Ephemeris, Lahiri sidereal              |
 | Sidecar runtime       | FastAPI on Vercel Python serverless                                    |
-| Geocoding             | Local: rate-limited OpenStreetMap Nominatim; Preview/Production: explicitly configured managed provider |
+| Geocoding             | Registered profiles: disclosed legacy OpenStreetMap Nominatim path; guest search: local Nominatim or an explicitly configured managed provider in Preview/Production |
 | UI                    | Tailwind v4, shadcn/ui                                                 |
 | Fonts                 | Inter (body) + Cormorant Garamond (headings) via `next/font`           |
 | Hosting               | Vercel (both projects, Hobby plan)                                     |
@@ -150,8 +150,8 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `DASHAFLOW_SIDECAR_TOKEN`  | Server-only 32–256 character printable non-space ASCII bearer credential sent to the sidecar's `/v1/profile/derive` and `/v1/election-chart/derive`; must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
 | `GUEST_BIRTH_PROFILE_ENABLED` | Server-only guest place-search/profile-derive gate. Omission defaults on only outside Vercel or in `VERCEL_ENV=development`; Preview/Production require the exact value `true`. Keep off until Panchangam #231 and #233 close. |
 | `GUEST_ELECTION_CHART_ENABLED` | Independent server-only election-chart gate with the same local default and exact deployed opt-in. Keep off until Panchangam #231 closes. |
-| `GEOCODER_BASE_URL` | Server-only managed provider base. Optional locally, where public Nominatim is the default; required in Preview/Production for guest place search and may not use `nominatim.openstreetmap.org`. HTTPS is mandatory when deployed. |
-| `GEOCODER_USER_AGENT` | Server-only, non-secret provider application identity. Optional locally and required with the managed provider in Preview/Production. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
+| `GEOCODER_BASE_URL` | Server-only managed provider base for guest place search. Optional locally, where public Nominatim is the guest default; required in Preview/Production for guest place search and may not use `nominatim.openstreetmap.org`. HTTPS is mandatory when deployed. It does not gate the pre-existing authenticated profile form. |
+| `GEOCODER_USER_AGENT` | Server-only, non-secret guest-provider application identity. Optional locally and required with the managed provider in Preview/Production. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
 | `UPSTASH_REDIS_REST_URL` | Server-only HTTPS endpoint injected by the Vercel Upstash Redis Marketplace integration; required in Preview and Production for the election-chart global rate limit. |
 | `UPSTASH_REDIS_REST_TOKEN` | Standard server-only REST token for the same Redis database. Client keys are HMAC-pseudonymized with this token and expire after the one-minute window. Never prefix with `NEXT_PUBLIC_`. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
@@ -179,8 +179,10 @@ missing calculation operation:
    absent or false in Vercel Preview and Production. Close Panchangam #231 with
    the owner-recorded Swiss Ephemeris license decision. Close #233 with the
    approved managed geocoder choice; configure its HTTPS `GEOCODER_BASE_URL`
-   and `GEOCODER_USER_AGENT`. The public Nominatim default is deliberately
-   local-only and cannot satisfy deployed configuration.
+   and `GEOCODER_USER_AGENT`. The public Nominatim default for the guest route
+   is deliberately local-only and cannot satisfy deployed configuration. The
+   existing authenticated profile path remains independent; #233 also tracks
+   migrating that disclosed legacy path to the approved provider.
 2. Generate one random 32–256 character printable non-space service credential. Configure it as
    `DASHAFLOW_API_TOKEN` on the sidecar and deploy the sidecar implementation
    that exposes `POST /v1/profile/derive` and

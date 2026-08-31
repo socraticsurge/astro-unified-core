@@ -8,6 +8,13 @@ export type GeocoderConfig = {
   identity: string;
 };
 
+function publicNominatimConfig(): GeocoderConfig {
+  return {
+    searchUrl: `${PUBLIC_NOMINATIM_BASE_URL}/search`,
+    identity: LOCAL_GEOCODER_IDENTITY,
+  };
+}
+
 function isLoopbackHostname(hostname: string): boolean {
   const normalized = hostname.toLowerCase();
   return normalized === "localhost"
@@ -32,15 +39,16 @@ function validIdentity(value: string): boolean {
 }
 
 /**
- * Resolve the server-side geocoder endpoint and provider identity.
+ * Resolve the guest geocoder endpoint and provider identity.
  *
  * Local development may use the public Nominatim service under the shared
  * process limiter in `lib/geocode.ts`. Vercel Preview and Production require
  * an explicit, non-public provider base and explicit identity. This prevents a
  * feature-flag change from silently directing production traffic at the
- * community Nominatim endpoint.
+ * community Nominatim endpoint. This policy applies only to the
+ * unauthenticated guest place-search gateway.
  */
-export function geocoderConfig(
+export function guestGeocoderConfig(
   env: Record<string, string | undefined> = process.env,
 ): GeocoderConfig | null {
   const deployed = isDeployedVercelEnvironment(env.VERCEL_ENV);
@@ -77,8 +85,20 @@ export function geocoderConfig(
   }
 }
 
-export function geocoderConfigured(
+export function guestGeocoderConfigured(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
-  return geocoderConfig(env) !== null;
+  return guestGeocoderConfig(env) !== null;
+}
+
+/**
+ * Preserve the registered-profile geocoder used before the guest gateway.
+ *
+ * This is intentionally separate from `guestGeocoderConfig`: a disabled guest
+ * feature must not make an existing authenticated profile journey depend on a
+ * new environment variable. The disclosed legacy provider remains tracked for
+ * migration; unauthenticated guest routes never fall back to this function.
+ */
+export function authenticatedProfileGeocoderConfig(): GeocoderConfig {
+  return publicNominatimConfig();
 }

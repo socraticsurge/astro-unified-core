@@ -1,5 +1,9 @@
 import { find as findTimezone } from "geo-tz";
-import { geocoderConfig } from "./geocoder-config";
+import {
+  authenticatedProfileGeocoderConfig,
+  guestGeocoderConfig,
+  type GeocoderConfig,
+} from "./geocoder-config";
 
 export type GeoResult = {
   latitude: number;
@@ -102,10 +106,10 @@ async function waitForProviderSlot(): Promise<void> {
   await slot;
 }
 
-async function fetchProviderRows(query: string): Promise<NominatimRow[]> {
-  const config = geocoderConfig();
-  if (!config) throw new Error("Geocoder configuration unavailable");
-
+async function fetchProviderRows(
+  query: string,
+  config: GeocoderConfig,
+): Promise<NominatimRow[]> {
   const key = `${config.searchUrl}\u0000${normalizedCacheQuery(query)}`;
   const cached = cachedRows(key);
   if (cached) return cached;
@@ -147,9 +151,13 @@ async function fetchProviderRows(query: string): Promise<NominatimRow[]> {
   }
 }
 
-async function nominatimQuery(query: string, limit = 3): Promise<NominatimRow[]> {
+async function providerQuery(
+  query: string,
+  config: GeocoderConfig,
+  limit = 3,
+): Promise<NominatimRow[]> {
   const boundedLimit = Math.max(1, Math.min(5, Math.floor(limit)));
-  return (await fetchProviderRows(query)).slice(0, boundedLimit);
+  return (await fetchProviderRows(query, config)).slice(0, boundedLimit);
 }
 
 /** Clears only process-local limiter/cache state. Used by deterministic tests. */
@@ -177,14 +185,16 @@ function placeResultId(row: NominatimRow, latitude: number, longitude: number): 
 
 /**
  * Submit-based guest search. Unlike geocodePlace(), this deliberately sends
- * exactly one bounded Nominatim request and never cascades into relaxed
+ * exactly one bounded provider request and never cascades into relaxed
  * autocomplete-style queries.
  */
 export async function searchPlaces(query: string): Promise<PlaceSearchResult[]> {
   const normalized = query.trim();
   if (!normalized) return [];
 
-  const rows = await nominatimQuery(normalized, 5);
+  const config = guestGeocoderConfig();
+  if (!config) throw new Error("Geocoder configuration unavailable");
+  const rows = await providerQuery(normalized, config, 5);
   const results: PlaceSearchResult[] = [];
 
   for (const row of rows.slice(0, 5)) {
@@ -249,11 +259,12 @@ export function queryVariants(input: string): string[] {
 
 async function bestMatch(input: string): Promise<NominatimRow> {
   const variants = queryVariants(input);
+  const config = authenticatedProfileGeocoderConfig();
   let lastError: Error | null = null;
 
   for (const q of variants) {
     try {
-      const rows = await nominatimQuery(q, 3);
+      const rows = await providerQuery(q, config, 3);
       if (rows.length > 0) {
         // Pick the highest-importance result; Nominatim usually orders
         // them already, so rows[0] is fine.
