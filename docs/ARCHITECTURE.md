@@ -1,6 +1,6 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-08-29 -->
+<!-- last-updated: 2026-08-31 -->
 
 > **Note:** The legacy "Basic / Professional" two-mode chart view was replaced
 > with the unified 10-tab dashboard on 2026-05-19. The components below
@@ -169,6 +169,7 @@ cause is almost always `isAdmin(session)` being called in a client component.
 | `ADMIN_EMAILS` | Yes | Yes | No (never expose) |
 | `DASHAFLOW_SIDECAR_URL` | Yes | Yes | No |
 | `DASHAFLOW_SIDECAR_TOKEN` | Yes | Yes | No (server-to-server bearer secret) |
+| `VERCEL_ENV` | Yes | Yes | No (Vercel-provided deployment scope) |
 | `GOOGLE_CLIENT_ID` | Yes | Yes | No |
 | `NEXTAUTH_URL` | Yes | Yes | No |
 | `NEXT_PUBLIC_SENTRY_DSN` | Yes | Yes | Yes (`NEXT_PUBLIC_` is bundled) |
@@ -352,10 +353,11 @@ db.consultationRequests — getPending, listByUser, listAllWithUser, create, mar
 [`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts) — unified in-memory rate limiter: `rateLimit(key, limit, windowMs)` → `{ success, limit, remaining }`. It remains per-instance for most routes.
 
 The guest election-chart route adds a second, atomic fixed-window limit through
-`lib/distributed-rate-limit.ts` and the Upstash Redis REST API. Production
-requires the Marketplace Redis credentials and fails closed if shared
-enforcement is absent or unavailable; local/test runs retain the process-local
-layer. D7 remains open for extending this protection to the rest of the app.
+`lib/distributed-rate-limit.ts` and the Upstash Redis REST API. Vercel Preview
+and Production are detected through `VERCEL_ENV`, require the Marketplace Redis
+credentials, and fail closed if shared enforcement is absent or unavailable;
+local/test runs retain the process-local layer. D7 remains open for extending
+this protection to the rest of the app.
 
 ---
 
@@ -379,6 +381,12 @@ client for `POST /v1/profile/derive`. It sends the
 `DASHAFLOW_SIDECAR_TOKEN` bearer credential and accepts only the versioned,
 bounded guest projection: engine provenance, Nakshatra/Pada, Janma Rashi,
 Lagna, and nine D1 planets. It never returns the raw 17-section chart.
+
+Both guest projection clients resolve credentials through the server-only
+`lib/engines/dashaflow-config.ts` boundary. It requires a 32–512 character
+printable non-space token and validates the destination before creating an
+Authorization header: HTTPS is mandatory in Vercel Preview/Production, while
+local HTTP is restricted to exact IPv4/IPv6 loopback hosts.
 
 ### DashaFlow Election Charts
 [`lib/engines/dashaflow-election.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/dashaflow-election.ts)
@@ -462,7 +470,8 @@ input, no-store, and IP-rate-limit guards instead of a session.
 **[`app/api/guest/places/search/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/places/search/route.ts)**
 
 - `OPTIONS` — returns a no-body preflight only for
-  `https://panchangam.astrochaganti.com` and HTTP localhost/127.0.0.1 origins.
+  `https://panchangam.astrochaganti.com` and exact HTTP localhost/127.0.0.1/[::1]
+  origins.
 - `POST` — accepts only `{ query }` (2–120 characters), rate-limits by client
   IP, and makes exactly one Nominatim request with `limit=5`. Returns
   `{ data: { results: [{ id, label, latitude, longitude, timezone }], attribution } }`.
@@ -1047,6 +1056,7 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
     → POST https://astrochaganti.com/api/guest/profile/derive
       → reject name/unknown fields; validate date, time, coordinates, timezone
       → deriveDashaflowProfile(input)
+        → validate server-only URL + 32–512 character credential
         → Authorization: Bearer ${DASHAFLOW_SIDECAR_TOKEN}
         → POST ${DASHAFLOW_SIDECAR_URL}/v1/profile/derive
       ← contract v1 engine provenance + Nakshatra/Pada + Janma Rashi + Lagna
@@ -1068,6 +1078,7 @@ Guest runs Muhurtam ranking on https://panchangam.astrochaganti.com
     → reject activity/profile/name/birth/natal fields and unknown fields
     → validate location + unique, bounded, minute-precision RFC3339 instants
     → deriveDashaflowElectionCharts(input)
+      → validate server-only URL + 32–512 character credential
       → credentials: omit
       → Authorization: Bearer ${DASHAFLOW_SIDECAR_TOKEN}
       → POST ${DASHAFLOW_SIDECAR_URL}/v1/election-chart/derive

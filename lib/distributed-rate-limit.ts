@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createHmac } from "node:crypto";
 
 export interface DistributedRateLimitResult {
@@ -11,7 +13,7 @@ export interface DistributedRateLimitResult {
 interface DistributedRateLimitOptions {
   env?: Record<string, string | undefined>;
   fetcher?: typeof fetch;
-  runtime?: string;
+  vercelEnv?: string;
   timeoutMs?: number;
 }
 
@@ -48,10 +50,11 @@ function unavailable(configured: boolean): DistributedRateLimitResult {
 /**
  * Atomic fixed-window limit shared across Vercel instances.
  *
- * Production fails closed if the Marketplace Redis integration is absent or
- * unavailable. Local/test runs retain the existing process-local limiter and
- * skip this second layer. The client identifier is HMAC-pseudonymized before
- * leaving the function and expires with the short Redis window.
+ * Vercel Preview and Production fail closed if the Marketplace Redis
+ * integration is absent or unavailable. Local/test runs retain the existing
+ * process-local limiter and skip this second layer. The client identifier is
+ * HMAC-pseudonymized before leaving the function and expires with the short
+ * Redis window.
  */
 export async function distributedRateLimit(
   key: string,
@@ -60,8 +63,9 @@ export async function distributedRateLimit(
   options: DistributedRateLimitOptions = {},
 ): Promise<DistributedRateLimitResult> {
   const env = options.env || process.env;
-  const production = (options.runtime || process.env.NODE_ENV) === "production";
-  if (!production) {
+  const vercelEnv = options.vercelEnv ?? env.VERCEL_ENV;
+  const deployed = vercelEnv === "preview" || vercelEnv === "production";
+  if (!deployed) {
     return {
       success: true,
       remaining: limit,

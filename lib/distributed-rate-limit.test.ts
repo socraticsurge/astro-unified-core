@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
+
 import { distributedRateLimit } from "./distributed-rate-limit";
 
 const ENV = {
@@ -8,17 +10,20 @@ const ENV = {
 };
 
 describe("distributedRateLimit", () => {
-  it("fails closed in production when shared storage is not configured", async () => {
-    await expect(distributedRateLimit("client", 5, 60_000, {
-      env: {}, runtime: "production",
-    })).resolves.toEqual(expect.objectContaining({
-      success: false, configured: false, unavailable: true,
-    }));
-  });
+  it.each(["preview", "production"])(
+    "fails closed in Vercel %s when shared storage is not configured",
+    async (vercelEnv) => {
+      await expect(distributedRateLimit("client", 5, 60_000, {
+        env: {}, vercelEnv,
+      })).resolves.toEqual(expect.objectContaining({
+        success: false, configured: false, unavailable: true,
+      }));
+    },
+  );
 
   it("lets local development rely on the existing process limiter", async () => {
     await expect(distributedRateLimit("client", 5, 60_000, {
-      env: {}, runtime: "test",
+      env: {}, vercelEnv: "development",
     })).resolves.toEqual({
       success: true,
       remaining: 5,
@@ -38,7 +43,7 @@ describe("distributedRateLimit", () => {
       "guest:election-charts:203.0.113.21",
       5,
       60_000,
-      { env: ENV, runtime: "production", fetcher },
+      { env: ENV, vercelEnv: "production", fetcher },
     );
 
     expect(result).toEqual({
@@ -66,7 +71,7 @@ describe("distributedRateLimit", () => {
       JSON.stringify({ result: [6, 1_001] }), { status: 200 },
     ));
     await expect(distributedRateLimit("client", 5, 60_000, {
-      env: ENV, runtime: "production", fetcher: limited,
+      env: ENV, vercelEnv: "production", fetcher: limited,
     })).resolves.toEqual(expect.objectContaining({
       success: false, remaining: 0, retryAfterSeconds: 2,
       configured: true, unavailable: false,
@@ -76,7 +81,7 @@ describe("distributedRateLimit", () => {
       JSON.stringify({ result: "unexpected" }), { status: 200 },
     ));
     await expect(distributedRateLimit("client", 5, 60_000, {
-      env: ENV, runtime: "production", fetcher: malformed,
+      env: ENV, vercelEnv: "production", fetcher: malformed,
     })).resolves.toEqual(expect.objectContaining({
       success: false, configured: true, unavailable: true,
     }));

@@ -1,9 +1,15 @@
 import { vi, describe, it, expect, afterEach } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
 import {
   deriveDashaflowProfile,
   fetchDashaflow,
   DashaflowInput,
 } from "./dashaflow";
+
+const SERVICE_TOKEN = "test-service-token-that-is-at-least-32-characters";
+const WRONG_SERVICE_TOKEN = "wrong-service-token-that-is-at-least-32-characters";
 
 const profileContract = {
   contract_version: "1.0" as const,
@@ -119,10 +125,11 @@ describe("deriveDashaflowProfile", () => {
     vi.restoreAllMocks();
     delete process.env.DASHAFLOW_SIDECAR_TOKEN;
     delete process.env.DASHAFLOW_SIDECAR_URL;
+    delete process.env.VERCEL_ENV;
   });
 
   it("sends the exact input to the versioned sidecar with its bearer credential", async () => {
-    process.env.DASHAFLOW_SIDECAR_TOKEN = "service-token";
+    process.env.DASHAFLOW_SIDECAR_TOKEN = SERVICE_TOKEN;
     process.env.DASHAFLOW_SIDECAR_URL = "https://sidecar.example/";
     const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
@@ -136,10 +143,13 @@ describe("deriveDashaflowProfile", () => {
     const [url, init] = fetchSpy.mock.calls[0];
     expect(url).toBe("https://sidecar.example/v1/profile/derive");
     expect(init?.headers).toEqual({
-      Authorization: "Bearer service-token",
+      Authorization: `Bearer ${SERVICE_TOKEN}`,
       "Content-Type": "application/json",
     });
     expect(JSON.parse(String(init?.body))).toEqual(mockInput);
+    expect(init?.credentials).toBe("omit");
+    expect(init?.cache).toBe("no-store");
+    expect(init?.redirect).toBe("error");
   });
 
   it("fails closed without a configured credential", async () => {
@@ -151,7 +161,7 @@ describe("deriveDashaflowProfile", () => {
   });
 
   it("does not read or expose an upstream authentication error body", async () => {
-    process.env.DASHAFLOW_SIDECAR_TOKEN = "wrong-token";
+    process.env.DASHAFLOW_SIDECAR_TOKEN = WRONG_SERVICE_TOKEN;
     const json = vi.fn(async () => ({ detail: "expected super-secret-value" }));
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: false,
@@ -168,7 +178,7 @@ describe("deriveDashaflowProfile", () => {
   });
 
   it("rejects a malformed or expanded sidecar contract", async () => {
-    process.env.DASHAFLOW_SIDECAR_TOKEN = "service-token";
+    process.env.DASHAFLOW_SIDECAR_TOKEN = SERVICE_TOKEN;
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -182,7 +192,7 @@ describe("deriveDashaflowProfile", () => {
   });
 
   it("returns bounded retry guidance after transient sidecar failure", async () => {
-    process.env.DASHAFLOW_SIDECAR_TOKEN = "service-token";
+    process.env.DASHAFLOW_SIDECAR_TOKEN = SERVICE_TOKEN;
     const unavailable = {
       ok: false,
       status: 503,
@@ -196,5 +206,27 @@ describe("deriveDashaflowProfile", () => {
       code: "unavailable",
       retryAfterSeconds: 12,
     });
+  });
+
+  it("rejects an insecure deployed sidecar URL before attaching the credential", async () => {
+    process.env.VERCEL_ENV = "preview";
+    process.env.DASHAFLOW_SIDECAR_TOKEN = SERVICE_TOKEN;
+    process.env.DASHAFLOW_SIDECAR_URL = "http://127.0.0.1:8000";
+    const fetchSpy = vi.spyOn(global, "fetch");
+
+    await expect(deriveDashaflowProfile(mockInput)).rejects.toMatchObject({
+      code: "configuration",
+      message: "configuration",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects a short credential without exposing its value", async () => {
+    const shortToken = "private-short-token";
+    process.env.DASHAFLOW_SIDECAR_TOKEN = shortToken;
+
+    const rejection = deriveDashaflowProfile(mockInput).catch((error: unknown) => error);
+    await expect(rejection).resolves.toMatchObject({ code: "configuration" });
+    await expect(rejection).resolves.not.toMatchObject({ message: expect.stringContaining(shortToken) });
   });
 });

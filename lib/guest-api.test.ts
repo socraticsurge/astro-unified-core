@@ -17,6 +17,7 @@ describe("guest API boundary", () => {
     "https://panchangam.astrochaganti.com",
     "http://localhost:5173",
     "http://127.0.0.1:4173",
+    "http://[::1]:4173",
     "http://localhost",
   ])("allows the approved origin %s", (origin) => {
     expect(allowedGuestOrigin(request(origin))).toBe(origin);
@@ -28,6 +29,7 @@ describe("guest API boundary", () => {
     "https://panchangam.astrochaganti.com.evil.example",
     "https://localhost:5173",
     "http://127.0.0.2:5173",
+    "http://[::2]:5173",
     "http://panchangam.astrochaganti.com",
   ])("rejects the unapproved origin %s", (origin) => {
     expect(allowedGuestOrigin(request(origin))).toBeNull();

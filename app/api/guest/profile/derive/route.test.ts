@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/engines/dashaflow", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/engines/dashaflow")>();
   return { ...actual, deriveDashaflowProfile: vi.fn() };

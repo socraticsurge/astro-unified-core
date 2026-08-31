@@ -3,7 +3,10 @@
 // Calls our self-hosted Python sidecar (separate Vercel project, no Next.js)
 // which wraps the DashaFlow library (Swiss Ephemeris + Lahiri ayanamsha).
 // Computes locally — no third-party API rate limits.
+import "server-only";
+
 import { z } from "zod";
+import { credentialedDashaflowSidecarConfig } from "./dashaflow-config";
 import { fetchWithRetry } from "./fetch-with-retry";
 
 const DEFAULT_SIDECAR = "https://dashaflow-sidecar.vercel.app";
@@ -110,19 +113,20 @@ export async function fetchDashaflow(input: DashaflowInput): Promise<DashaflowOu
 export async function deriveDashaflowProfile(
   input: DashaflowInput,
 ): Promise<DashaflowProfileContract> {
-  const token = process.env.DASHAFLOW_SIDECAR_TOKEN?.trim();
-  if (!token) throw new DashaflowProfileError("configuration");
+  const config = credentialedDashaflowSidecarConfig("/v1/profile/derive");
+  if (!config) throw new DashaflowProfileError("configuration");
 
   let response: Response;
   try {
-    response = await fetchWithRetry(sidecarUrl("/v1/profile/derive"), {
+    response = await fetchWithRetry(config.url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${config.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(input),
       cache: "no-store",
+      credentials: "omit",
       redirect: "error",
     });
   } catch {

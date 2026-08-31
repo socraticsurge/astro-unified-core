@@ -1,6 +1,6 @@
 # Astro Chaganti — Testing Log & Coverage
 
-<!-- last-updated: 2026-08-29 -->
+<!-- last-updated: 2026-08-31 -->
 
 > This file tracks: (1) test coverage status per module, (2) how to run tests,
 > (3) a manual QA log, and (4) test plans linked to the user journey traces in
@@ -47,7 +47,7 @@ mapping. Config is in `vitest.config.ts`. Globals are enabled — no imports nee
 
 ## 2. Test Coverage Status
 
-Last assessed: **2026-08-29** (guest gateway rows; older rows retain their prior assessment)
+Last assessed: **2026-08-31** (guest gateway rows; older rows retain their prior assessment)
 
 | Module | Test file | Coverage | Notes |
 |---|---|---|---|
@@ -69,7 +69,8 @@ Last assessed: **2026-08-29** (guest gateway rows; older rows retain their prior
 | `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, query/body bounds, IP rate limit, attribution, no-store, safe upstream failure |
 | `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
 | `lib/engines/dashaflow-election.ts` | `lib/engines/dashaflow-election.test.ts` | Unit / contract | Bearer credential, cookie omission, exact request, strict chart/provenance validation, order/location binding, safe failures |
-| `lib/distributed-rate-limit.ts` | `lib/distributed-rate-limit.test.ts` | Unit | Atomic Redis command, HMAC-pseudonymized key, TTL mapping, local bypass, and Production fail-closed behavior |
+| `lib/distributed-rate-limit.ts` | `lib/distributed-rate-limit.test.ts` | Unit | Atomic Redis command, HMAC-pseudonymized key, TTL mapping, local bypass, and Vercel Preview/Production fail-closed behavior |
+| `lib/engines/dashaflow-config.ts` | `lib/engines/dashaflow-config.test.ts` | Unit | Server-only token bounds, HTTPS-before-credential policy, exact local IPv4/IPv6 loopback allowance, and unsafe URL rejection |
 | `app/api/guest/muhurta/election-charts/route.ts` | `app/api/guest/muhurta/election-charts/route.test.ts` | Route | Exact origin/body/local-and-shared-rate controls, shared unavailable/TTL mapping before parsing, strict private-field rejection, minute/time-window/uniqueness bounds, direct contract, safe failures |
 | `components/NavBar.tsx` | — | None | UI; manual only |
 | `components/unified/tabs/*` | — | `ChartTab`, `PlanetsTab`, `TimeTab`, `IdentityStrip`, `HouseGrid` have render tests | Add coverage for `DashaTab`, `YogasTab`, `JaiminiTab` |
@@ -215,14 +216,14 @@ before releasing any change that touches the journey's code path.
 
 | # | Test | Expected | Type |
 |---|---|---|---|
-| G1-1 | Approved production or HTTP localhost/127.0.0.1 preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no handler side effect | Unit / route |
+| G1-1 | Approved production or exact HTTP localhost/127.0.0.1/[::1] preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no handler side effect | Unit / route |
 | G1-2 | Missing, malformed, or lookalike Origin | `403`; no CORS allow-origin header; no geocoder/sidecar/rate-limit call | Unit / route |
 | G1-3 | Submit a 2–120 character place query | One Nominatim request; at most five results with ID, label, coordinates, IANA timezone, attribution | Unit / route |
 | G1-4 | Body exceeds 4 KiB with or without Content-Length | `413` before geocoder or sidecar call | Unit / route |
 | G1-5 | Sixth place search or derivation in one minute from one IP | `429`, `Retry-After: 60`, private no-store | Route |
 | G1-6 | Derivation includes `name` or any unknown field | `400`; field is not forwarded | Route |
 | G1-7 | Non-calendar date, non-`HH:MM` time, string/out-of-range coordinate, or unknown timezone | `400`; no sidecar call | Route |
-| G1-8 | Valid exact birth input | Sidecar receives only five approved fields with bearer credential; client receives direct contract v1 projection | Unit / contract / route |
+| G1-8 | Valid exact birth input | Only after HTTPS/loopback URL and 32–512 character token validation, sidecar receives five approved fields with bearer credential; client receives direct contract v1 projection | Unit / contract / route |
 | G1-9 | Sidecar auth, validation, projection, timeout, or transient failure | Sanitized error only; retryable statuses include bounded `Retry-After`; raw upstream body is never read or echoed | Unit / route |
 | G1-10 | Static dependency review | Guest route module graph contains no DB, NextAuth, PostHog, Sentry logging, or server profile persistence | Review |
 
@@ -236,15 +237,15 @@ before releasing any change that touches the journey's code path.
 
 | # | Test | Expected | Type |
 |---|---|---|---|
-| G2-1 | Approved production or HTTP localhost/127.0.0.1 preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no calculation/rate side effect | Unit / route |
+| G2-1 | Approved production or exact HTTP localhost/127.0.0.1/[::1] preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no calculation/rate side effect | Unit / route |
 | G2-2 | Missing, malformed, lookalike Origin, body over 4 KiB, or sixth request per minute | Rejected before the sidecar; responses remain `private, no-store`; throttles include `Retry-After` | Route |
 | G2-3 | Activity, profile ID/name, birth details, natal chart, nested label, or any unknown field | `400`; no field is forwarded | Route |
 | G2-4 | Invalid contract/location/timezone, empty or >24 instants, non-minute/non-offset timestamp, or semantic duplicate | `400`; no sidecar call | Route |
 | G2-5 | Instant older than 366 days or beyond 1,830 days | `400`; no sidecar call | Route |
-| G2-6 | Valid request with inbound auth cookie | Sidecar receives only contract version, location, and ordered instants with bearer auth and `credentials: omit` | Unit / contract / route |
+| G2-6 | Valid request with inbound auth cookie | After HTTPS/loopback URL and token-bound validation, sidecar receives only contract version, location, and ordered instants with bearer auth and `credentials: omit` | Unit / contract / route |
 | G2-7 | Valid sidecar response | Browser receives the unchanged v1 contract only after exact location/order, Lahiri, `mean` lunar nodes, `whole_sign`, Lagna, and canonical nine-planet validation | Unit / contract / route |
 | G2-8 | Expanded, malformed, reordered, auth, timeout, or transient sidecar response | Safe `422`/`429`/`502`/`503`; bounded retry guidance; no upstream body or diagnostic leaks | Unit / route |
-| G2-9 | Production shared limiter missing, unavailable, or exhausted | Fail closed before body parsing or sidecar access; `503` for unavailable and `429` with Redis TTL for exhausted | Unit / route |
+| G2-9 | Vercel Preview/Production shared limiter missing, unavailable, or exhausted | Fail closed before body parsing or sidecar access; `503` for unavailable and `429` with Redis TTL for exhausted | Unit / route |
 | G2-10 | Static dependency review | Route module graph contains no DB, NextAuth, PostHog, request logging, activity/profile/natal model, or persistence | Review |
 
 ---

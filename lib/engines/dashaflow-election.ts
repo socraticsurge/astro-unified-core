@@ -1,9 +1,9 @@
 import "server-only";
 
 import { z } from "zod";
+import { credentialedDashaflowSidecarConfig } from "./dashaflow-config";
 import { fetchWithRetry } from "./fetch-with-retry";
 
-const DEFAULT_SIDECAR = "https://dashaflow-sidecar.vercel.app";
 const ELECTION_CHART_PATH = "/v1/election-chart/derive";
 // Two transient-error attempts plus the retry delay stay below the browser's
 // 20-second request deadline: 8s + 0.5s + 8s = 16.5s maximum.
@@ -116,11 +116,6 @@ export class DashaflowElectionChartError extends Error {
   }
 }
 
-function sidecarUrl(): string {
-  const base = (process.env.DASHAFLOW_SIDECAR_URL || DEFAULT_SIDECAR).replace(/\/+$/, "");
-  return `${base}${ELECTION_CHART_PATH}`;
-}
-
 function retryAfterSeconds(response: Response, fallback: number): number {
   const value = Number(response.headers.get("Retry-After"));
   return Number.isInteger(value) && value > 0 && value <= 300 ? value : fallback;
@@ -148,11 +143,8 @@ function responseMatchesRequest(
 export async function deriveDashaflowElectionCharts(
   input: DashaflowElectionChartInput,
 ): Promise<DashaflowElectionChartContract> {
-  const token = process.env.DASHAFLOW_SIDECAR_TOKEN;
-  const validToken = token
-    && token === token.trim()
-    && /^[\x21-\x7E]+$/.test(token);
-  if (!validToken) throw new DashaflowElectionChartError("configuration");
+  const config = credentialedDashaflowSidecarConfig(ELECTION_CHART_PATH);
+  if (!config) throw new DashaflowElectionChartError("configuration");
 
   // Re-project at the final network boundary. TypeScript's structural typing
   // allows an object with extra properties to satisfy this function's type;
@@ -169,10 +161,10 @@ export async function deriveDashaflowElectionCharts(
 
   let response: Response;
   try {
-    response = await fetchWithRetry(sidecarUrl(), {
+    response = await fetchWithRetry(config.url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${config.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(wireInput),

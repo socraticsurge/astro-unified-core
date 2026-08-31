@@ -1,6 +1,6 @@
 # Astro Chaganti — Project Standards
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-08-31 -->
 
 > **Agent-neutral.** These rules apply to Claude Code, Jules, Gemini, and any
 > future agent. They are the single source of truth for all coding standards.
@@ -251,8 +251,9 @@ if (!result.success) {
 
 **Known limitation:** most rate limits are per-Lambda instance, not global (see
 `BACKLOG.md` D7). The guest election-chart route is the scoped exception: it
-adds required, fail-closed Upstash enforcement in Production. Extend that
-pattern deliberately rather than assuming every route is globally limited.
+adds required, fail-closed Upstash enforcement in Vercel Preview and
+Production. Extend that pattern deliberately rather than assuming every route
+is globally limited.
 
 ---
 

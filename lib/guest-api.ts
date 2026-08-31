@@ -13,7 +13,10 @@ export function allowedGuestOrigin(request: Request): string | null {
 
   try {
     const url = new URL(origin);
-    const localHost = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    const localHost = url.hostname === "localhost"
+      || url.hostname === "127.0.0.1"
+      || url.hostname === "[::1]"
+      || url.hostname === "::1";
     if (url.protocol === "http:" && localHost && url.origin === origin) return origin;
   } catch {
     // Invalid Origin header.
