@@ -1,7 +1,30 @@
-import { vi, describe, it, expect, beforeEach } from "vitest";
-import { queryVariants, geocodePlace, searchPlaces } from "./geocode";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
+import {
+  queryVariants,
+  geocodePlace,
+  resetGeocoderProcessStateForTests,
+  searchPlaces,
+} from "./geocode";
 
 global.fetch = vi.fn();
+
+function resetLocalGeocoder(): void {
+  vi.resetAllMocks();
+  delete process.env.VERCEL_ENV;
+  delete process.env.GEOCODER_BASE_URL;
+  delete process.env.GEOCODER_USER_AGENT;
+  resetGeocoderProcessStateForTests();
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+  delete process.env.VERCEL_ENV;
+  delete process.env.GEOCODER_BASE_URL;
+  delete process.env.GEOCODER_USER_AGENT;
+});
 
 describe("queryVariants", () => {
   it("handles a simple string without comma", () => {
@@ -45,7 +68,7 @@ describe("queryVariants", () => {
 
 describe("geocodePlace", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    resetLocalGeocoder();
   });
 
   it("throws the last error if all fetch attempts fail", async () => {
@@ -86,7 +109,7 @@ describe("geocodePlace", () => {
 
 describe("searchPlaces", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    resetLocalGeocoder();
   });
 
   it("uses one bounded upstream request and returns selectable IANA-timezone results", async () => {
@@ -115,7 +138,13 @@ describe("searchPlaces", () => {
     expect(String(url)).toContain("q=Hyderabad");
     expect(String(url)).toContain("limit=5");
     expect(String(url)).toContain("format=json");
-    expect(init).toMatchObject({ cache: "no-store" });
+    expect(init).toMatchObject({
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "AstroChaganti/1.0 (https://astrochaganti.com)",
+      },
+    });
   });
 
   it("returns at most five valid results", async () => {
@@ -150,5 +179,43 @@ describe("searchPlaces", () => {
     vi.mocked(global.fetch).mockRejectedValue(new Error("Network Error"));
     await expect(searchPlaces("Hyderabad, Telangana")).rejects.toThrow("Network Error");
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("coalesces duplicate work, caches success, and starts distinct requests at most once per second", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-31T00:00:00.000Z"));
+    const startedAt: number[] = [];
+
+    vi.mocked(global.fetch).mockImplementation(async (input) => {
+      startedAt.push(Date.now());
+      const query = new URL(String(input)).searchParams.get("q") ?? "Unknown";
+      return {
+        ok: true,
+        json: async () => [{
+          place_id: query === "Beta" ? 2 : 1,
+          lat: query === "Beta" ? "18" : "17",
+          lon: "78",
+          display_name: query,
+        }],
+      } as Response;
+    });
+
+    const alpha = searchPlaces("Alpha");
+    const duplicateAlpha = searchPlaces("  ALPHA  ");
+    const beta = searchPlaces("Beta");
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(999);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await Promise.all([alpha, duplicateAlpha, beta]);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(startedAt[1] - startedAt[0]).toBe(1_000);
+
+    await expect(searchPlaces("alpha")).resolves.toHaveLength(1);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });

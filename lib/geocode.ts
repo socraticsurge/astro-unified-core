@@ -1,4 +1,5 @@
 import { find as findTimezone } from "geo-tz";
+import { geocoderConfig } from "./geocoder-config";
 
 export type GeoResult = {
   latitude: number;
@@ -28,22 +29,135 @@ type NominatimRow = {
   importance?: number;
 };
 
-const UA = "AstroChaganti/1.0 (https://astrochaganti.com)";
-const NOMINATIM = "https://nominatim.openstreetmap.org/search";
+const PROVIDER_MIN_INTERVAL_MS = 1_000;
+const PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
+const PROVIDER_CACHE_MAX_ENTRIES = 256;
+
+type CachedRows = {
+  expiresAt: number;
+  rows: NominatimRow[];
+};
+
+type GeocoderProcessState = {
+  cache: Map<string, CachedRows>;
+  requests: Map<string, Promise<NominatimRow[]>>;
+  queue: Promise<void>;
+  lastRequestStartedAt: number | null;
+};
+
+const processGlobal = globalThis as typeof globalThis & {
+  __astroChagantiGeocoderState?: GeocoderProcessState;
+};
+const processState = processGlobal.__astroChagantiGeocoderState ?? {
+  cache: new Map<string, CachedRows>(),
+  requests: new Map<string, Promise<NominatimRow[]>>(),
+  queue: Promise.resolve(),
+  lastRequestStartedAt: null,
+};
+processGlobal.__astroChagantiGeocoderState = processState;
+
+function normalizedCacheQuery(query: string): string {
+  return query.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+
+function cachedRows(key: string): NominatimRow[] | null {
+  const cached = processState.cache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    processState.cache.delete(key);
+    return null;
+  }
+
+  // Refresh insertion order so the bounded map behaves like a small LRU.
+  processState.cache.delete(key);
+  processState.cache.set(key, cached);
+  return cached.rows;
+}
+
+function cacheRows(key: string, rows: NominatimRow[]): void {
+  if (processState.cache.size >= PROVIDER_CACHE_MAX_ENTRIES) {
+    const oldest = processState.cache.keys().next().value;
+    if (typeof oldest === "string") processState.cache.delete(oldest);
+  }
+  processState.cache.set(key, {
+    expiresAt: Date.now() + PROVIDER_CACHE_TTL_MS,
+    rows,
+  });
+}
+
+async function waitForProviderSlot(): Promise<void> {
+  const slot = processState.queue.then(async () => {
+    if (processState.lastRequestStartedAt !== null) {
+      const waitMs = Math.max(
+        0,
+        processState.lastRequestStartedAt + PROVIDER_MIN_INTERVAL_MS - Date.now(),
+      );
+      if (waitMs > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
+      }
+    }
+    processState.lastRequestStartedAt = Date.now();
+  });
+  processState.queue = slot.catch(() => undefined);
+  await slot;
+}
+
+async function fetchProviderRows(query: string): Promise<NominatimRow[]> {
+  const config = geocoderConfig();
+  if (!config) throw new Error("Geocoder configuration unavailable");
+
+  const key = `${config.searchUrl}\u0000${normalizedCacheQuery(query)}`;
+  const cached = cachedRows(key);
+  if (cached) return cached;
+
+  const pending = processState.requests.get(key);
+  if (pending) return pending;
+
+  const request = (async () => {
+    await waitForProviderSlot();
+
+    const url = new URL(config.searchUrl);
+    url.searchParams.set("q", query);
+    url.searchParams.set("format", "json");
+    url.searchParams.set("limit", "5");
+    url.searchParams.set("addressdetails", "0");
+    url.searchParams.set("dedupe", "1");
+
+    const res = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": config.identity,
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) throw new Error(`Geocoder HTTP ${res.status}`);
+    const rows: unknown = await res.json();
+    if (!Array.isArray(rows)) throw new Error("Geocoder response was invalid");
+    const typedRows = (rows as NominatimRow[]).slice(0, 5);
+    cacheRows(key, typedRows);
+    return typedRows;
+  })();
+
+  processState.requests.set(key, request);
+  try {
+    return await request;
+  } finally {
+    if (processState.requests.get(key) === request) processState.requests.delete(key);
+  }
+}
 
 async function nominatimQuery(query: string, limit = 3): Promise<NominatimRow[]> {
   const boundedLimit = Math.max(1, Math.min(5, Math.floor(limit)));
-  const url = `${NOMINATIM}?q=${encodeURIComponent(query)}&format=json&limit=${boundedLimit}&addressdetails=0&dedupe=1`;
-  const res = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      "User-Agent": UA,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!res.ok) throw new Error(`Geocoder HTTP ${res.status}`);
-  return (await res.json()) as NominatimRow[];
+  return (await fetchProviderRows(query)).slice(0, boundedLimit);
+}
+
+/** Clears only process-local limiter/cache state. Used by deterministic tests. */
+export function resetGeocoderProcessStateForTests(): void {
+  processState.cache.clear();
+  processState.requests.clear();
+  processState.queue = Promise.resolve();
+  processState.lastRequestStartedAt = null;
 }
 
 function timezoneAt(latitude: number, longitude: number): string {

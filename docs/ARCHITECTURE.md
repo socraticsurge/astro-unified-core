@@ -359,6 +359,14 @@ credentials, and fail closed if shared enforcement is absent or unavailable;
 local/test runs retain the process-local layer. D7 remains open for extending
 this protection to the rest of the app.
 
+Nominatim access is separately serialized through one process-global scheduler in
+`lib/geocode.ts`: each process starts at most one provider request per second.
+Concurrent duplicate queries share one promise, and successful responses live
+in a bounded 24-hour in-process cache. Public Nominatim is a local-development
+default only. `lib/geocoder-config.ts` requires an explicitly configured HTTPS
+provider base and application identity in Vercel Preview/Production and rejects
+the public Nominatim host there.
+
 ---
 
 ## 6. Astrology Engine Layer
@@ -469,6 +477,15 @@ return JSON. Admin routes additionally check `isAdmin(session)`. The three
 explicit `/api/guest/*` exceptions below are stateless and use strict origin,
 input, no-store, and IP-rate-limit guards instead of a session.
 
+`lib/guest-calculation-gates.ts` keeps these release surfaces inactive by
+default in Vercel Preview and Production. Birth-profile routes share
+`GUEST_BIRTH_PROFILE_ENABLED`; election charts use the independent
+`GUEST_ELECTION_CHART_ENABLED`. Each must equal the exact string `true` when
+deployed. After the unchanged exact-origin check, a disabled POST returns a
+sanitized `private, no-store` `503` before body parsing, local rate limiting,
+Redis, geocoding, or sidecar access. OPTIONS remains side-effect-free and keeps
+the existing exact CORS contract.
+
 ### Guest Panchangam Gateway
 
 **[`app/api/guest/places/search/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/places/search/route.ts)**
@@ -477,7 +494,10 @@ input, no-store, and IP-rate-limit guards instead of a session.
   `https://panchangam.astrochaganti.com` and exact HTTP localhost/127.0.0.1/[::1]
   origins.
 - `POST` — accepts only `{ query }` (2–120 characters), rate-limits by client
-  IP, and makes exactly one Nominatim request with `limit=5`. Returns
+  IP, and makes at most one coalesced provider request with `limit=5`. Locally,
+  public Nominatim use shares the application-wide one-request-per-second
+  scheduler and bounded cache; deployed traffic requires an explicitly
+  configured managed provider. Returns
   `{ data: { results: [{ id, label, latitude, longitude, timezone }], attribution } }`.
 
 **[`app/api/guest/profile/derive/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/profile/derive/route.ts)**
@@ -865,7 +885,9 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 | Module | Purpose |
 |---|---|
-| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text)` keeps the registered-profile fallback cascade; `searchPlaces(text)` performs one bounded guest search. Both resolve IANA timezone via `geo-tz`. |
+| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text)` keeps the registered-profile fallback cascade; `searchPlaces(text)` performs one bounded guest search. Both share a process-wide one-request-per-second provider queue, in-flight coalescing, bounded 24-hour cache, and `geo-tz` IANA resolution. |
+| `lib/geocoder-config.ts` | Server-only provider base/identity validation. Public Nominatim is local-only; Preview/Production require an explicit HTTPS managed provider. |
+| `lib/guest-calculation-gates.ts` | Independent server-only birth-profile and election-chart activation flags; local default on, deployed default off, exact `true` opt-in. |
 | [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, and trusted client-IP extraction for `/api/guest/*` |
 | [`lib/utils.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/utils.ts) | `cn(...classes)` — `clsx` + `tailwind-merge` |
 | [`lib/chart-summary.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/chart-summary.ts) | Generates a plain-text summary of chart data for clipboard or LLM consumption |
@@ -1050,11 +1072,14 @@ live on dedicated pages outside the dashboard.
 
 ```
 Guest on https://panchangam.astrochaganti.com opens profile creation
+  → Vercel route remains unavailable unless GUEST_BIRTH_PROFILE_ENABLED=true
   → name remains in that browser and is never included in an API request
   → submit place text
     → POST https://astrochaganti.com/api/guest/places/search
       → exact Origin check + 4 KiB cap + per-IP rate limit
-      → searchPlaces(query) → one Nominatim request, at most five results
+      → searchPlaces(query) → coalesced/cached provider request, at most five results
+        → local public Nominatim starts at most one request per second
+        → Preview/Production require the configured managed provider
       → geo-tz adds an IANA timezone to each selectable place
       ← labels, coordinates, timezones, OpenStreetMap attribution
   → guest selects one result and enters exact local birth date/time
@@ -1078,6 +1103,7 @@ crosses this boundary.
 
 ```
 Guest runs Muhurtam ranking on https://panchangam.astrochaganti.com
+  → Vercel route remains unavailable unless GUEST_ELECTION_CHART_ENABLED=true
   → browser selects at most 24 candidate instants for one event location
   → POST https://astrochaganti.com/api/guest/muhurta/election-charts
     → exact Origin check + 4 KiB cap + per-IP rate limit

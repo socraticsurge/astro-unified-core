@@ -82,6 +82,8 @@ function request(body: unknown, origin = ORIGIN): Request {
 describe("POST /api/guest/muhurta/election-charts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.VERCEL_ENV;
+    delete process.env.GUEST_ELECTION_CHART_ENABLED;
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-29T00:00:00.000Z"));
     vi.mocked(rateLimit).mockReturnValue({ success: true, limit: 5, remaining: 4 });
@@ -95,6 +97,8 @@ describe("POST /api/guest/muhurta/election-charts", () => {
   });
 
   afterEach(() => {
+    delete process.env.VERCEL_ENV;
+    delete process.env.GUEST_ELECTION_CHART_ENABLED;
     vi.useRealTimers();
   });
 
@@ -212,6 +216,21 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
   });
 
+  it("fails before parsing, Redis, rate limiting, or sidecar access when disabled publicly", async () => {
+    process.env.VERCEL_ENV = "production";
+    const response = await POST(request('{"private-invalid-json"'));
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("300");
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await response.json()).toEqual({
+      error: "This calculation is temporarily unavailable. Please try again later.",
+    });
+    expect(rateLimit).not.toHaveBeenCalled();
+    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
+  });
+
   it("maps invalid sidecar responses to a safe 502 without diagnostics", async () => {
     vi.mocked(deriveDashaflowElectionCharts).mockRejectedValue(
       new DashaflowElectionChartError("invalid-response"),
@@ -240,8 +259,14 @@ describe("POST /api/guest/muhurta/election-charts", () => {
 });
 
 describe("OPTIONS /api/guest/muhurta/election-charts", () => {
+  afterEach(() => {
+    delete process.env.VERCEL_ENV;
+    delete process.env.GUEST_ELECTION_CHART_ENABLED;
+  });
+
   it("answers allowed preflights without invoking calculation or rate limiting", () => {
     vi.clearAllMocks();
+    process.env.VERCEL_ENV = "production";
     const response = OPTIONS(new Request(
       "https://astrochaganti.com/api/guest/muhurta/election-charts",
       { method: "OPTIONS", headers: { Origin: ORIGIN } },

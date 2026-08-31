@@ -66,11 +66,15 @@ function request(body: unknown, origin = ORIGIN): Request {
 describe("POST /api/guest/profile/derive", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.VERCEL_ENV;
+    delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
     vi.mocked(rateLimit).mockReturnValue({ success: true, limit: 5, remaining: 4 });
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    delete process.env.VERCEL_ENV;
+    delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
   });
 
   it("returns only the normalized sidecar contract", async () => {
@@ -159,6 +163,20 @@ describe("POST /api/guest/profile/derive", () => {
     expect(deriveDashaflowProfile).not.toHaveBeenCalled();
   });
 
+  it("fails before parsing, rate limiting, or sidecar access when disabled publicly", async () => {
+    process.env.VERCEL_ENV = "production";
+    const response = await POST(request('{"private-invalid-json"'));
+
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("300");
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await response.json()).toEqual({
+      error: "This calculation is temporarily unavailable. Please try again later.",
+    });
+    expect(rateLimit).not.toHaveBeenCalled();
+    expect(deriveDashaflowProfile).not.toHaveBeenCalled();
+  });
+
   it("maps transient sidecar failures to safe retryable errors", async () => {
     vi.mocked(deriveDashaflowProfile).mockRejectedValue(
       new DashaflowProfileError("unavailable", 12),
@@ -193,8 +211,14 @@ describe("POST /api/guest/profile/derive", () => {
 });
 
 describe("OPTIONS /api/guest/profile/derive", () => {
+  afterEach(() => {
+    delete process.env.VERCEL_ENV;
+    delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
+  });
+
   it("answers allowed preflights without invoking the calculation path", () => {
     vi.clearAllMocks();
+    process.env.VERCEL_ENV = "production";
     const response = OPTIONS(new Request(
       "https://astrochaganti.com/api/guest/profile/derive",
       { method: "OPTIONS", headers: { Origin: ORIGIN } },

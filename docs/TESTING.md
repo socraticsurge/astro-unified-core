@@ -66,12 +66,14 @@ Last assessed: **2026-08-31** (guest gateway rows; older rows retain their prior
 | `lib/geocode.ts` | `lib/geocode.test.ts` | Unit | Guest search asserts one upstream call, limit five, selectable coordinates/timezone, and malformed-row filtering; legacy cascade remains covered |
 | `lib/guest-api.ts` | `lib/guest-api.test.ts` | Unit | Exact production/local origins, safe preflight, JSON media type, 4 KiB stream cap, and trusted forwarded IP |
 | `lib/engines/dashaflow.ts` guest projection | `lib/engines/dashaflow.test.ts` | Unit / contract | Bearer credential, exact body, strict normalized response, redacted auth failures, transient retry guidance |
-| `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, query/body bounds, IP rate limit, attribution, no-store, safe upstream failure |
-| `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
+| `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, deployed activation/provider gates before side effects, query/body bounds, IP rate limit, attribution, no-store, safe upstream failure |
+| `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Deployed activation gate before side effects, exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
+| `lib/guest-calculation-gates.ts` | `lib/guest-calculation-gates.test.ts` | Unit | Local default, explicit local false, independent flags, deployed exact-`true` opt-in, unknown-environment fail-closed |
+| `lib/geocoder-config.ts`, `lib/geocode.ts` | `lib/geocoder-config.test.ts`, `lib/geocode.test.ts` | Unit | Local public default, deployed managed-provider requirement, unsafe base rejection, 1 rps scheduling, duplicate coalescing, success cache |
 | `lib/engines/dashaflow-election.ts` | `lib/engines/dashaflow-election.test.ts` | Unit / contract | Bearer credential, cookie omission, exact request, strict chart/provenance validation, order/location binding, safe failures |
 | `lib/distributed-rate-limit.ts` | `lib/distributed-rate-limit.test.ts` | Unit | Atomic Redis command, HMAC-pseudonymized key, TTL mapping, local bypass, and Vercel Preview/Production fail-closed behavior |
 | `lib/engines/dashaflow-config.ts` | `lib/engines/dashaflow-config.test.ts` | Unit | Server-only token bounds, HTTPS-before-credential policy, exact local IPv4/IPv6 loopback allowance, and unsafe URL rejection |
-| `app/api/guest/muhurta/election-charts/route.ts` | `app/api/guest/muhurta/election-charts/route.test.ts` | Route | Exact origin/body/local-and-shared-rate controls, shared unavailable/TTL mapping before parsing, strict private-field rejection, minute/time-window/uniqueness bounds, direct contract, safe failures |
+| `app/api/guest/muhurta/election-charts/route.ts` | `app/api/guest/muhurta/election-charts/route.test.ts` | Route | Exact origin and deployed activation before body/Redis/rate work, shared unavailable/TTL mapping, strict private-field rejection, minute/time-window/uniqueness bounds, direct contract, safe failures |
 | `components/NavBar.tsx` | — | None | UI; manual only |
 | `components/unified/tabs/*` | — | `ChartTab`, `PlanetsTab`, `TimeTab`, `IdentityStrip`, `HouseGrid` have render tests | Add coverage for `DashaTab`, `YogasTab`, `JaiminiTab` |
 
@@ -218,7 +220,10 @@ before releasing any change that touches the journey's code path.
 |---|---|---|---|
 | G1-1 | Approved production or exact HTTP localhost/127.0.0.1/[::1] preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no handler side effect | Unit / route |
 | G1-2 | Missing, malformed, or lookalike Origin | `403`; no CORS allow-origin header; no geocoder/sidecar/rate-limit call | Unit / route |
-| G1-3 | Submit a 2–120 character place query | One Nominatim request; at most five results with ID, label, coordinates, IANA timezone, attribution | Unit / route |
+| G1-2a | Birth-profile flag omitted in Preview/Production, explicitly false locally, or not exact `true` when deployed | Sanitized `503`, `private, no-store`, before body parsing, rate limiting, geocoding, or sidecar access; OPTIONS remains unchanged | Unit / route |
+| G1-2b | Deployed birth-profile flag is `true` but provider is absent, unsafe, HTTP, or public Nominatim | Place search remains `503`; no rate or upstream call. Managed provider base and identity are required | Unit / route |
+| G1-3 | Submit a 2–120 character place query | At most one provider request; locally this is the policy-bounded Nominatim path. Returns at most five results with ID, label, coordinates, IANA timezone, attribution | Unit / route |
+| G1-3a | Duplicate/concurrent and distinct local place queries | Duplicate work coalesces and later hits cache; distinct provider request starts are at least one second apart process-wide | Unit |
 | G1-4 | Body exceeds 4 KiB with or without Content-Length | `413` before geocoder or sidecar call | Unit / route |
 | G1-5 | Sixth place search or derivation in one minute from one IP | `429`, `Retry-After: 60`, private no-store | Route |
 | G1-6 | Derivation includes `name` or any unknown field | `400`; field is not forwarded | Route |
@@ -238,6 +243,7 @@ before releasing any change that touches the journey's code path.
 | # | Test | Expected | Type |
 |---|---|---|---|
 | G2-1 | Approved production or exact HTTP localhost/127.0.0.1/[::1] preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no calculation/rate side effect | Unit / route |
+| G2-1a | Election-chart flag omitted in Preview/Production, explicitly false locally, or not exact `true` when deployed | Sanitized `503`, `private, no-store`, before body parsing, local rate limiting, Redis, or sidecar access; birth-profile flag remains independent | Unit / route |
 | G2-2 | Missing, malformed, lookalike Origin, body over 4 KiB, or sixth request per minute | Rejected before the sidecar; responses remain `private, no-store`; throttles include `Retry-After` | Route |
 | G2-3 | Activity, profile ID/name, birth details, natal chart, nested label, or any unknown field | `400`; no field is forwarded | Route |
 | G2-4 | Invalid contract/location/timezone, empty or >24 instants, non-minute/non-offset timestamp, or semantic duplicate | `400`; no sidecar call | Route |

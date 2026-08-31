@@ -1,6 +1,6 @@
 # Backlog
 
-<!-- last-updated: 2026-08-29 -->
+<!-- last-updated: 2026-08-31 -->
 
 Tracks known bugs, deferred features, tech debt, and session decisions.
 
@@ -35,6 +35,8 @@ so future agents don't re-open the conversation unnecessarily.
 | D6 | Family / relationship graph | Profiles are flat. No way to mark "this is spouse of profile X". | A `profile_relationships` join table would enable this. Tarabalam family selector is a workaround. |
 | D7 | Complete global rate limiting | The election-chart guest route has required fail-closed Upstash enforcement; other route limiters remain per-Lambda instance. | Generalize the proven helper and migrate remaining routes with route-specific rollout tests. Requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. |
 | D8 | More DashaFlow endpoints in Professional view | Sidecar exposes `evaluate_muhurtha`, deeper career details, more compatibility fields. | Check `dashaflow/__init__.py` for what's available. |
+| D9 | Guest Swiss Ephemeris production clearance (Panchangam #231) | Distribution/public-service licensing for the Swiss Ephemeris dependency is not yet recorded as resolved. | Keep `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED` off in Vercel Preview/Production until the owner closes #231 with the selected license path. Local verification remains available. |
+| D10 | Production geocoder/provider selection (Panchangam #233) | The public Nominatim endpoint is suitable only for the rate-limited local workflow, not this public service traffic. | Select and approve a managed provider, then configure server-only `GEOCODER_BASE_URL` and `GEOCODER_USER_AGENT`. Production code rejects the public Nominatim host even when the birth-profile flag is enabled. |
 
 ---
 
@@ -81,6 +83,8 @@ future agents understand the reasoning and don't relitigate resolved discussions
 Near-term and medium-term feature intentions. For full context see `PRODUCT.md ยง7`.
 
 ### Near-term
+- [ ] Close Panchangam licensing issue #231 before enabling either guest calculation route in Vercel
+- [ ] Close Panchangam geocoder/provider issue #233 and configure the managed provider before enabling guest birth profiles
 - [ ] Expose more DashaFlow sidecar endpoints (D8) in Professional view
 - [ ] Live consultation booking via Cal.com embed (D4)
 - [ ] Email notification when consultation is answered (D3 variant)
@@ -96,4 +100,4 @@ Near-term and medium-term feature intentions. For full context see `PRODUCT.md ย
 
 ---
 
-*Last updated: 2026-08-29*
+*Last updated: 2026-08-31*

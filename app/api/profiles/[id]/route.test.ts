@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 
 // Mock dependencies
+vi.mock("server-only", () => ({}));
 vi.mock("next-auth/next", () => ({
   getServerSession: vi.fn(),
 }));

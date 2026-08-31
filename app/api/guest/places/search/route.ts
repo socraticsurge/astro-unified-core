@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { GEOCODER_ATTRIBUTION, searchPlaces } from "@/lib/geocode";
+import { geocoderConfigured } from "@/lib/geocoder-config";
+import { guestBirthProfileEnabled } from "@/lib/guest-calculation-gates";
 import {
   guestClientIp,
   guestJson,
@@ -25,6 +27,14 @@ export function OPTIONS(request: Request): Response {
 export async function POST(request: Request): Promise<Response> {
   const originError = rejectDisallowedGuestOrigin(request);
   if (originError) return originError;
+
+  if (!guestBirthProfileEnabled() || !geocoderConfigured()) {
+    return guestJson(
+      request,
+      { error: "This calculation is temporarily unavailable. Please try again later." },
+      { status: 503, headers: { "Retry-After": "300" } },
+    );
+  }
 
   const ip = guestClientIp(request);
   const limit = rateLimit(

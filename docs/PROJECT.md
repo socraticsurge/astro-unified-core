@@ -46,7 +46,7 @@ Vercel project (with no Next.js) gives it sole ownership of `/api/*`.
 | Database              | Turso (libSQL, hosted)                                                 |
 | Astrology engine      | DashaFlow 1.1.0 (PyPI) — Swiss Ephemeris, Lahiri sidereal              |
 | Sidecar runtime       | FastAPI on Vercel Python serverless                                    |
-| Geocoding             | OpenStreetMap Nominatim                                                |
+| Geocoding             | Local: rate-limited OpenStreetMap Nominatim; Preview/Production: explicitly configured managed provider |
 | UI                    | Tailwind v4, shadcn/ui                                                 |
 | Fonts                 | Inter (body) + Cormorant Garamond (headings) via `next/font`           |
 | Hosting               | Vercel (both projects, Hobby plan)                                     |
@@ -148,6 +148,10 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
 | `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`. Vercel Preview/Production require HTTPS; local HTTP is restricted to exact loopback hosts. |
 | `DASHAFLOW_SIDECAR_TOKEN`  | Server-only 32–256 character printable non-space ASCII bearer credential sent to the sidecar's `/v1/profile/derive` and `/v1/election-chart/derive`; must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
+| `GUEST_BIRTH_PROFILE_ENABLED` | Server-only guest place-search/profile-derive gate. Omission defaults on only outside Vercel or in `VERCEL_ENV=development`; Preview/Production require the exact value `true`. Keep off until Panchangam #231 and #233 close. |
+| `GUEST_ELECTION_CHART_ENABLED` | Independent server-only election-chart gate with the same local default and exact deployed opt-in. Keep off until Panchangam #231 closes. |
+| `GEOCODER_BASE_URL` | Server-only managed provider base. Optional locally, where public Nominatim is the default; required in Preview/Production for guest place search and may not use `nominatim.openstreetmap.org`. HTTPS is mandatory when deployed. |
+| `GEOCODER_USER_AGENT` | Server-only, non-secret provider application identity. Optional locally and required with the managed provider in Preview/Production. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
 | `UPSTASH_REDIS_REST_URL` | Server-only HTTPS endpoint injected by the Vercel Upstash Redis Marketplace integration; required in Preview and Production for the election-chart global rate limit. |
 | `UPSTASH_REDIS_REST_TOKEN` | Standard server-only REST token for the same Redis database. Client keys are HMAC-pseudonymized with this token and expire after the one-minute window. Never prefix with `NEXT_PUBLIC_`. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
@@ -171,24 +175,34 @@ This is a coordinated three-service change; a code merge by itself is not a
 release. Use this order so no public browser can reach an uncredentialed or
 missing calculation operation:
 
-1. Generate one random 32–256 character printable non-space service credential. Configure it as
+1. Keep `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED`
+   absent or false in Vercel Preview and Production. Close Panchangam #231 with
+   the owner-recorded Swiss Ephemeris license decision. Close #233 with the
+   approved managed geocoder choice; configure its HTTPS `GEOCODER_BASE_URL`
+   and `GEOCODER_USER_AGENT`. The public Nominatim default is deliberately
+   local-only and cannot satisfy deployed configuration.
+2. Generate one random 32–256 character printable non-space service credential. Configure it as
    `DASHAFLOW_API_TOKEN` on the sidecar and deploy the sidecar implementation
    that exposes `POST /v1/profile/derive` and
    `POST /v1/election-chart/derive`. Verify its public health route and legacy
    `/calculate` callers remain compatible.
-2. Install the Upstash Redis Marketplace integration on the Astro Chaganti
+3. Install the Upstash Redis Marketplace integration on the Astro Chaganti
    Vercel project so `UPSTASH_REDIS_REST_URL` and
    `UPSTASH_REDIS_REST_TOKEN` are injected. Preview and Production
    election-chart calls fail closed with `503` when this shared limit is absent
    or unavailable; local/test runs keep the existing per-process limiter.
-3. Configure the same value as `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti
+4. Configure the same value as `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti
    Preview and Production. Confirm the configured sidecar URL is HTTPS in both
    environments. Deploy the gateway and verify allowed/disallowed
    OPTIONS, `private, no-store`, 4 KiB rejection, local and global rate-limit
    retry headers, and fixture profile and election-chart derivations,
    including chart order and whole-sign provenance. Tokens must never appear
    in a browser bundle or response.
-4. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
+5. Enable only the route being released by setting its server-only flag to the
+   exact value `true`. Verify disabled routes still return a sanitized
+   `private, no-store` `503` without consuming request bodies, local limits,
+   Redis, geocoder, or sidecar capacity.
+6. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
    that consumer only after the gateway fixture passes from
    `https://panchangam.astrochaganti.com`.
 
@@ -546,6 +560,11 @@ match the selected sidecar's `DASHAFLOW_API_TOKEN`. Local browser requests are
 accepted only from exact HTTP `localhost`, `127.0.0.1`, or `[::1]` origins.
 Local sidecar HTTP follows the same exact-loopback rule; Preview and Production
 always require an HTTPS sidecar URL before bearer credentials are attached.
+Guest calculations default on locally when their server-only flags are omitted;
+set either flag to `false` to test its disabled state. Public Nominatim calls
+share one process-wide request-per-second scheduler and a bounded 24-hour cache.
+Preview and Production default both guest routes off, and guest place search
+also requires a managed non-public-Nominatim provider configuration.
 
 ---
 

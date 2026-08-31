@@ -3,6 +3,7 @@ import {
   DashaflowProfileError,
   deriveDashaflowProfile,
 } from "@/lib/engines/dashaflow";
+import { guestBirthProfileEnabled } from "@/lib/guest-calculation-gates";
 import {
   guestClientIp,
   guestJson,
@@ -74,6 +75,14 @@ export function OPTIONS(request: Request): Response {
 export async function POST(request: Request): Promise<Response> {
   const originError = rejectDisallowedGuestOrigin(request);
   if (originError) return originError;
+
+  if (!guestBirthProfileEnabled()) {
+    return guestJson(
+      request,
+      { error: "This calculation is temporarily unavailable. Please try again later." },
+      { status: 503, headers: { "Retry-After": "300" } },
+    );
+  }
 
   const ip = guestClientIp(request);
   const limit = rateLimit(

@@ -3,6 +3,7 @@ import {
   DashaflowElectionChartError,
   deriveDashaflowElectionCharts,
 } from "@/lib/engines/dashaflow-election";
+import { guestElectionChartEnabled } from "@/lib/guest-calculation-gates";
 import {
   guestClientIp,
   guestJson,
@@ -88,6 +89,14 @@ export function OPTIONS(request: Request): Response {
 export async function POST(request: Request): Promise<Response> {
   const originError = rejectDisallowedGuestOrigin(request);
   if (originError) return originError;
+
+  if (!guestElectionChartEnabled()) {
+    return guestJson(
+      request,
+      { error: "This calculation is temporarily unavailable. Please try again later." },
+      { status: 503, headers: { "Retry-After": "300" } },
+    );
+  }
 
   const ip = guestClientIp(request);
   const limit = rateLimit(
