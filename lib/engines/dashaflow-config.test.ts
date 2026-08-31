@@ -18,6 +18,20 @@ function env(
 }
 
 describe("credentialedDashaflowSidecarConfig", () => {
+  it.each([32, 256])(
+    "accepts a visible ASCII token at the shared %i-character boundary",
+    (length) => {
+      const token = "x".repeat(length);
+      expect(credentialedDashaflowSidecarConfig(
+        "/v1/profile/derive",
+        env("https://sidecar.example", { DASHAFLOW_SIDECAR_TOKEN: token }),
+      )).toEqual({
+        url: "https://sidecar.example/v1/profile/derive",
+        token,
+      });
+    },
+  );
+
   it("resolves an HTTPS sidecar path in every Vercel environment", () => {
     for (const vercelEnv of [undefined, "development", "preview", "production"]) {
       expect(credentialedDashaflowSidecarConfig(
@@ -76,7 +90,7 @@ describe("credentialedDashaflowSidecarConfig", () => {
     ` ${TOKEN}`,
     `${TOKEN} `,
     `${TOKEN}\n`,
-    "x".repeat(513),
+    "x".repeat(257),
   ])("rejects an absent, short, non-printable, or unbounded token", (token) => {
     const result = credentialedDashaflowSidecarConfig(
       "/v1/profile/derive",

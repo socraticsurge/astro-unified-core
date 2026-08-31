@@ -380,10 +380,14 @@ The same module also exposes `deriveDashaflowProfile()`, a separate server-only
 client for `POST /v1/profile/derive`. It sends the
 `DASHAFLOW_SIDECAR_TOKEN` bearer credential and accepts only the versioned,
 bounded guest projection: engine provenance, Nakshatra/Pada, Janma Rashi,
-Lagna, and nine D1 planets. It never returns the raw 17-section chart.
+Lagna, and nine D1 planets. Runtime validation requires the literal DashaFlow
+engine, Lahiri ayanamsha, canonical Panchangam Nakshatra/Rashi spellings, and
+the exact ordered, unique Surya-through-Ketu sequence. It never returns the raw
+17-section chart. Its two-attempt upstream budget is 12.5 seconds, safely below
+the Panchangam browser's 15-second request deadline.
 
 Both guest projection clients resolve credentials through the server-only
-`lib/engines/dashaflow-config.ts` boundary. It requires a 32–512 character
+`lib/engines/dashaflow-config.ts` boundary. It requires a 32–256 character
 printable non-space token and validates the destination before creating an
 Authorization header: HTTPS is mandatory in Vercel Preview/Production, while
 local HTTP is restricted to exact IPv4/IPv6 loopback hosts.
@@ -481,8 +485,9 @@ input, no-store, and IP-rate-limit guards instead of a session.
 - `OPTIONS` — same exact-origin, side-effect-free preflight contract.
 - `POST` — accepts only exact `date_of_birth`, `time_of_birth`, numeric
   coordinates, and an IANA timezone. Unknown fields (including `name`) are
-  rejected. Calls the credentialed sidecar projection and returns its direct
-  `contract_version` / `engine` / `data` contract.
+  rejected. A future date is evaluated in the supplied birthplace timezone.
+  Calls the credentialed sidecar projection and returns its direct
+  strictly validated `contract_version` / `engine` / `data` contract.
 
 **[`app/api/guest/muhurta/election-charts/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/muhurta/election-charts/route.ts)**
 
@@ -1056,7 +1061,8 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
     → POST https://astrochaganti.com/api/guest/profile/derive
       → reject name/unknown fields; validate date, time, coordinates, timezone
       → deriveDashaflowProfile(input)
-        → validate server-only URL + 32–512 character credential
+        → validate server-only URL + 32–256 character credential
+        → keep both attempts inside a 12.5-second total deadline
         → Authorization: Bearer ${DASHAFLOW_SIDECAR_TOKEN}
         → POST ${DASHAFLOW_SIDECAR_URL}/v1/profile/derive
       ← contract v1 engine provenance + Nakshatra/Pada + Janma Rashi + Lagna
@@ -1078,7 +1084,7 @@ Guest runs Muhurtam ranking on https://panchangam.astrochaganti.com
     → reject activity/profile/name/birth/natal fields and unknown fields
     → validate location + unique, bounded, minute-precision RFC3339 instants
     → deriveDashaflowElectionCharts(input)
-      → validate server-only URL + 32–512 character credential
+      → validate server-only URL + 32–256 character credential
       → credentials: omit
       → Authorization: Bearer ${DASHAFLOW_SIDECAR_TOKEN}
       → POST ${DASHAFLOW_SIDECAR_URL}/v1/election-chart/derive

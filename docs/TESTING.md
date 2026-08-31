@@ -222,8 +222,8 @@ before releasing any change that touches the journey's code path.
 | G1-4 | Body exceeds 4 KiB with or without Content-Length | `413` before geocoder or sidecar call | Unit / route |
 | G1-5 | Sixth place search or derivation in one minute from one IP | `429`, `Retry-After: 60`, private no-store | Route |
 | G1-6 | Derivation includes `name` or any unknown field | `400`; field is not forwarded | Route |
-| G1-7 | Non-calendar date, non-`HH:MM` time, string/out-of-range coordinate, or unknown timezone | `400`; no sidecar call | Route |
-| G1-8 | Valid exact birth input | Only after HTTPS/loopback URL and 32–512 character token validation, sidecar receives five approved fields with bearer credential; client receives direct contract v1 projection | Unit / contract / route |
+| G1-7 | Non-calendar date, future date in the supplied birthplace timezone, non-`HH:MM` time, string/out-of-range coordinate, or unknown timezone | `400`; no sidecar call | Route |
+| G1-8 | Valid exact birth input | Only after HTTPS/loopback URL and 32–256 character token validation, sidecar receives five approved fields with bearer credential; client receives direct contract v1 projection within a 12.5-second maximum retry budget | Unit / contract / route |
 | G1-9 | Sidecar auth, validation, projection, timeout, or transient failure | Sanitized error only; retryable statuses include bounded `Retry-After`; raw upstream body is never read or echoed | Unit / route |
 | G1-10 | Static dependency review | Guest route module graph contains no DB, NextAuth, PostHog, Sentry logging, or server profile persistence | Review |
 

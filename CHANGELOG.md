@@ -11,12 +11,14 @@ All notable changes to Astro Chaganti are recorded here.
 ## [2026-08-31] — Guest calculation gateway pre-release hardening
 
 ### Changed
-- **Credentialed DashaFlow boundary** — added a shared `server-only` configuration resolver for the guest profile and election-chart clients. Bearer credentials must be 32–512 printable non-space ASCII characters and are attached only after the sidecar base URL is validated. Vercel Preview and Production require HTTPS; local development permits HTTP only for exact `localhost`, `127.0.0.1`, or `[::1]` loopback hosts. Userinfo, paths, query strings, fragments, whitespace-padded URLs, and ambiguous configuration fail closed without exposing token values.
+- **Credentialed DashaFlow boundary** — added a shared `server-only` configuration resolver for the guest profile and election-chart clients. Bearer credentials must be 32–256 printable non-space ASCII characters and are attached only after the sidecar base URL is validated. Vercel Preview and Production require HTTPS; local development permits HTTP only for exact `localhost`, `127.0.0.1`, or `[::1]` loopback hosts. Userinfo, paths, query strings, fragments, whitespace-padded URLs, and ambiguous configuration fail closed without exposing token values.
+- **Profile contract parity** — profile responses now fail closed unless they identify DashaFlow with Lahiri ayanamsha, use canonical Panchangam Nakshatra/Rashi spellings, and contain the exact ordered, unique Surya-through-Ketu sequence. The caller and sidecar now share the same 32–256-character token contract.
+- **Profile deadline and local-date validation** — two profile-sidecar attempts now have a deterministic 12.5-second maximum budget, below the Panchangam browser's 15-second deadline. Future birth dates are evaluated in the supplied birthplace timezone rather than against the gateway's UTC date.
 - **Distributed election-chart limiting** — deployment detection now uses Vercel's `VERCEL_ENV`, not Next.js `NODE_ENV`. Both Preview and Production fail closed when shared Upstash enforcement is missing or unavailable; ordinary local builds and tests retain the process-local layer.
 - **Guest CORS parity** — exact reflected-origin handling now includes IPv6 loopback (`http://[::1]`) for local Panchangam development while preserving the production origin allowlist, `private, no-store`, 4 KiB body cap, and privacy projection.
 
 ### Added
-- Focused tests for HTTPS-before-credential enforcement, bearer-token bounds and redaction, Preview/Production fail-closed behavior, unsafe URL rejection, IPv4/IPv6 loopback policy, and unchanged guest route contracts.
+- Focused tests for HTTPS-before-credential enforcement, shared bearer-token boundaries and redaction, profile deadline arithmetic, strict profile response invariants, birthplace-date-line boundaries, Preview/Production fail-closed behavior, unsafe URL rejection, IPv4/IPv6 loopback policy, and unchanged guest route contracts.
 
 ## [2026-08-29] — Stateless guest Muhurtam election-chart gateway
 

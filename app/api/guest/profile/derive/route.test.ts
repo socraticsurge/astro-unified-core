@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/engines/dashaflow", async (importOriginal) => {
@@ -12,6 +12,7 @@ import {
   DashaflowProfileError,
   deriveDashaflowProfile,
 } from "@/lib/engines/dashaflow";
+import type { DashaflowProfileContract } from "@/lib/engines/dashaflow";
 import { rateLimit } from "@/lib/rate-limit";
 
 const ORIGIN = "https://panchangam.astrochaganti.com";
@@ -22,7 +23,7 @@ const input = {
   longitude: 78.4867,
   timezone: "Asia/Kolkata",
 };
-const contract = {
+const contract: DashaflowProfileContract = {
   contract_version: "1.0" as const,
   engine: {
     name: "DashaFlow",
@@ -36,13 +37,17 @@ const contract = {
     janma_rashi: "Vrishabha",
     lagna: "Karka",
     lagna_degree: 12.5,
-    planets: Array.from({ length: 9 }, (_, index) => ({
-      name: `Planet ${index + 1}`,
-      rashi: "Mesha",
-      degree: index + 0.5,
-      house: index + 1,
-      retrograde: false,
-    })),
+    planets: [
+      { name: "Surya", rashi: "Mesha", degree: 0.5, house: 1, retrograde: false },
+      { name: "Chandra", rashi: "Vrishabha", degree: 1.5, house: 2, retrograde: false },
+      { name: "Kuja", rashi: "Mithuna", degree: 2.5, house: 3, retrograde: true },
+      { name: "Budha", rashi: "Karka", degree: 3.5, house: 4, retrograde: false },
+      { name: "Guru", rashi: "Simha", degree: 4.5, house: 5, retrograde: false },
+      { name: "Shukra", rashi: "Kanya", degree: 5.5, house: 6, retrograde: false },
+      { name: "Shani", rashi: "Tula", degree: 6.5, house: 7, retrograde: true },
+      { name: "Rahu", rashi: "Vrischika", degree: 7.5, house: 8, retrograde: true },
+      { name: "Ketu", rashi: "Dhanu", degree: 8.5, house: 9, retrograde: true },
+    ],
   },
 };
 
@@ -62,6 +67,10 @@ describe("POST /api/guest/profile/derive", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(rateLimit).mockReturnValue({ success: true, limit: 5, remaining: 4 });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("returns only the normalized sidecar contract", async () => {
@@ -90,11 +99,42 @@ describe("POST /api/guest/profile/derive", () => {
     [{ ...input, latitude: 91 }, "out-of-range latitude"],
     [{ ...input, longitude: -181 }, "out-of-range longitude"],
     [{ ...input, timezone: "Not/A_Timezone" }, "unknown timezone"],
+    [{ ...input, timezone: " Asia/Kolkata" }, "whitespace-padded timezone"],
     [{ ...input, latitude: "17.385" }, "string coordinate"],
   ])("rejects %s (%s)", async (body) => {
     const response = await POST(request(body));
     expect(response.status).toBe(400);
     expect(deriveDashaflowProfile).not.toHaveBeenCalled();
+  });
+
+  it("rejects a date that is still tomorrow in the supplied birthplace timezone", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-01T00:30:00.000Z"));
+
+    const response = await POST(request({
+      ...input,
+      date_of_birth: "2026-09-01",
+      timezone: "America/Los_Angeles",
+    }));
+
+    expect(response.status).toBe(400);
+    expect(deriveDashaflowProfile).not.toHaveBeenCalled();
+  });
+
+  it("accepts the current birthplace date across the UTC date line", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-31T10:30:00.000Z"));
+    vi.mocked(deriveDashaflowProfile).mockResolvedValue(contract);
+    const birthInput = {
+      ...input,
+      date_of_birth: "2026-09-01",
+      timezone: "Pacific/Kiritimati",
+    };
+
+    const response = await POST(request(birthInput));
+
+    expect(response.status).toBe(200);
+    expect(deriveDashaflowProfile).toHaveBeenCalledWith(birthInput);
   });
 
   it("rejects a body over 4 KiB", async () => {

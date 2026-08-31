@@ -13,7 +13,7 @@ import {
 import { rateLimit } from "@/lib/rate-limit";
 import { RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 
-function exactDate(value: string): boolean {
+function exactCalendarDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return false;
   const year = Number(match[1]);
@@ -22,7 +22,7 @@ function exactDate(value: string): boolean {
   if (year < 1 || month < 1 || month > 12 || day < 1) return false;
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return day <= days[month - 1] && value <= new Date().toISOString().slice(0, 10);
+  return day <= days[month - 1];
 }
 
 function ianaTimezone(value: string): boolean {
@@ -34,13 +34,38 @@ function ianaTimezone(value: string): boolean {
   }
 }
 
+function dateInTimezone(timezone: string, instant = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 const DeriveBodySchema = z.object({
-  date_of_birth: z.string().refine(exactDate),
+  date_of_birth: z.string().refine(exactCalendarDate),
   time_of_birth: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
   latitude: z.number().finite().min(-90).max(90),
   longitude: z.number().finite().min(-180).max(180),
-  timezone: z.string().trim().min(1).max(80).refine(ianaTimezone),
-}).strict();
+  timezone: z.string().min(1).max(80)
+    .refine((value) => value === value.trim())
+    .refine(ianaTimezone),
+}).strict().superRefine((value, context) => {
+  if (
+    exactCalendarDate(value.date_of_birth)
+    && ianaTimezone(value.timezone)
+    && value.date_of_birth > dateInTimezone(value.timezone)
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["date_of_birth"],
+      message: "Birth date must not be in the future at the birthplace",
+    });
+  }
+});
 
 export function OPTIONS(request: Request): Response {
   return guestOptions(request);

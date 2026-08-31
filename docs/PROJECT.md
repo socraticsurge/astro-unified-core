@@ -147,7 +147,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `TURSO_DATABASE_URL`       | libSQL DSN                                                    |
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
 | `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`. Vercel Preview/Production require HTTPS; local HTTP is restricted to exact loopback hosts. |
-| `DASHAFLOW_SIDECAR_TOKEN`  | Server-only 32–512 character printable non-space ASCII bearer credential sent to the sidecar's `/v1/profile/derive` and `/v1/election-chart/derive`; must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
+| `DASHAFLOW_SIDECAR_TOKEN`  | Server-only 32–256 character printable non-space ASCII bearer credential sent to the sidecar's `/v1/profile/derive` and `/v1/election-chart/derive`; must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
 | `UPSTASH_REDIS_REST_URL` | Server-only HTTPS endpoint injected by the Vercel Upstash Redis Marketplace integration; required in Preview and Production for the election-chart global rate limit. |
 | `UPSTASH_REDIS_REST_TOKEN` | Standard server-only REST token for the same Redis database. Client keys are HMAC-pseudonymized with this token and expire after the one-minute window. Never prefix with `NEXT_PUBLIC_`. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
@@ -163,7 +163,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 
 | Variable | Purpose |
 |---|---|
-| `DASHAFLOW_API_TOKEN` | Required 32–512 character bearer-token verifier for `/v1/profile/derive` and `/v1/election-chart/derive`. Legacy operations remain compatible during rollout. Use the same secret value as the main app's `DASHAFLOW_SIDECAR_TOKEN`. |
+| `DASHAFLOW_API_TOKEN` | Required 32–256 character bearer-token verifier for `/v1/profile/derive` and `/v1/election-chart/derive`. Legacy operations remain compatible during rollout. Use the same secret value as the main app's `DASHAFLOW_SIDECAR_TOKEN`. |
 
 ### Guest calculation gateway rollout (approval-gated)
 
@@ -171,7 +171,7 @@ This is a coordinated three-service change; a code merge by itself is not a
 release. Use this order so no public browser can reach an uncredentialed or
 missing calculation operation:
 
-1. Generate one random 32–512 character printable non-space service credential. Configure it as
+1. Generate one random 32–256 character printable non-space service credential. Configure it as
    `DASHAFLOW_API_TOKEN` on the sidecar and deploy the sidecar implementation
    that exposes `POST /v1/profile/derive` and
    `POST /v1/election-chart/derive`. Verify its public health route and legacy

@@ -5,13 +5,17 @@ vi.mock("server-only", () => ({}));
 import {
   deriveDashaflowProfile,
   fetchDashaflow,
+  PROFILE_SIDECAR_ATTEMPT_TIMEOUT_MS,
+  PROFILE_SIDECAR_RETRY_DELAY_MS,
+  PROFILE_SIDECAR_TOTAL_DEADLINE_MS,
   DashaflowInput,
+  DashaflowProfileContract,
 } from "./dashaflow";
 
 const SERVICE_TOKEN = "test-service-token-that-is-at-least-32-characters";
 const WRONG_SERVICE_TOKEN = "wrong-service-token-that-is-at-least-32-characters";
 
-const profileContract = {
+const profileContract: DashaflowProfileContract = {
   contract_version: "1.0" as const,
   engine: {
     name: "DashaFlow",
@@ -25,13 +29,17 @@ const profileContract = {
     janma_rashi: "Vrishabha",
     lagna: "Karka",
     lagna_degree: 12.5,
-    planets: Array.from({ length: 9 }, (_, index) => ({
-      name: `Planet ${index + 1}`,
-      rashi: "Mesha",
-      degree: index + 0.5,
-      house: index + 1,
-      retrograde: false,
-    })),
+    planets: [
+      { name: "Surya", rashi: "Mesha", degree: 0.5, house: 1, retrograde: false },
+      { name: "Chandra", rashi: "Vrishabha", degree: 1.5, house: 2, retrograde: false },
+      { name: "Kuja", rashi: "Mithuna", degree: 2.5, house: 3, retrograde: true },
+      { name: "Budha", rashi: "Karka", degree: 3.5, house: 4, retrograde: false },
+      { name: "Guru", rashi: "Simha", degree: 4.5, house: 5, retrograde: false },
+      { name: "Shukra", rashi: "Kanya", degree: 5.5, house: 6, retrograde: false },
+      { name: "Shani", rashi: "Tula", degree: 6.5, house: 7, retrograde: true },
+      { name: "Rahu", rashi: "Vrischika", degree: 7.5, house: 8, retrograde: true },
+      { name: "Ketu", rashi: "Dhanu", degree: 8.5, house: 9, retrograde: true },
+    ],
   },
 };
 
@@ -45,6 +53,7 @@ describe("fetchDashaflow", () => {
   };
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -191,21 +200,108 @@ describe("deriveDashaflowProfile", () => {
     });
   });
 
-  it("returns bounded retry guidance after transient sidecar failure", async () => {
+  it.each([
+    [
+      "engine identity",
+      { ...profileContract, engine: { ...profileContract.engine, name: "OtherEngine" } },
+    ],
+    [
+      "ayanamsha",
+      { ...profileContract, engine: { ...profileContract.engine, ayanamsha: "Raman" } },
+    ],
+    [
+      "Nakshatra spelling",
+      { ...profileContract, data: { ...profileContract.data, nakshatra: "Ashwini" } },
+    ],
+    [
+      "Janma Rashi spelling",
+      { ...profileContract, data: { ...profileContract.data, janma_rashi: "Taurus" } },
+    ],
+    [
+      "Lagna spelling",
+      { ...profileContract, data: { ...profileContract.data, lagna: "Cancer" } },
+    ],
+    [
+      "planet Rashi spelling",
+      {
+        ...profileContract,
+        data: {
+          ...profileContract.data,
+          planets: [
+            { ...profileContract.data.planets[0], rashi: "Aries" },
+            ...profileContract.data.planets.slice(1),
+          ],
+        },
+      },
+    ],
+    [
+      "graha order",
+      {
+        ...profileContract,
+        data: {
+          ...profileContract.data,
+          planets: [
+            profileContract.data.planets[1],
+            profileContract.data.planets[0],
+            ...profileContract.data.planets.slice(2),
+          ],
+        },
+      },
+    ],
+    [
+      "graha uniqueness",
+      {
+        ...profileContract,
+        data: {
+          ...profileContract.data,
+          planets: [
+            profileContract.data.planets[0],
+            profileContract.data.planets[0],
+            ...profileContract.data.planets.slice(2),
+          ],
+        },
+      },
+    ],
+  ])("rejects sidecar profile contract drift in %s", async (_label, payload) => {
     process.env.DASHAFLOW_SIDECAR_TOKEN = SERVICE_TOKEN;
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: async () => payload,
+    } as Response);
+
+    await expect(deriveDashaflowProfile(mockInput)).rejects.toMatchObject({
+      code: "invalid-response",
+    });
+  });
+
+  it("keeps the full retry budget safely below the browser deadline", async () => {
+    vi.useFakeTimers();
+    process.env.DASHAFLOW_SIDECAR_TOKEN = SERVICE_TOKEN;
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
     const unavailable = {
       ok: false,
       status: 503,
       headers: new Headers({ "Retry-After": "12" }),
     } as Response;
-    vi.spyOn(global, "fetch")
+    const fetchSpy = vi.spyOn(global, "fetch")
       .mockResolvedValueOnce(unavailable)
       .mockResolvedValueOnce(unavailable);
 
-    await expect(deriveDashaflowProfile(mockInput)).rejects.toMatchObject({
+    const result = expect(deriveDashaflowProfile(mockInput)).rejects.toMatchObject({
       code: "unavailable",
       retryAfterSeconds: 12,
     });
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(PROFILE_SIDECAR_RETRY_DELAY_MS);
+
+    await result;
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(timeoutSpy).toHaveBeenNthCalledWith(1, PROFILE_SIDECAR_ATTEMPT_TIMEOUT_MS);
+    expect(timeoutSpy).toHaveBeenNthCalledWith(2, PROFILE_SIDECAR_ATTEMPT_TIMEOUT_MS);
+    expect(PROFILE_SIDECAR_TOTAL_DEADLINE_MS).toBe(12_500);
+    expect(PROFILE_SIDECAR_TOTAL_DEADLINE_MS).toBeLessThan(15_000);
   });
 
   it("rejects an insecure deployed sidecar URL before attaching the credential", async () => {

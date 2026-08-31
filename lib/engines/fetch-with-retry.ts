@@ -5,12 +5,13 @@ export async function fetchWithRetry(
   url: string,
   init: Omit<RequestInit, "signal">,
   timeoutMs = 20_000,
+  retryDelayMs = 500,
 ): Promise<Response> {
   const attempt = () => fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
 
   const res = await attempt();
   if (res.status === 502 || res.status === 503 || res.status === 504) {
-    await new Promise<void>((r) => setTimeout(r, 500));
+    await new Promise<void>((r) => setTimeout(r, retryDelayMs));
     return attempt();
   }
   return res;

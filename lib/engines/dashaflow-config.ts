@@ -2,7 +2,7 @@ import "server-only";
 
 const DEFAULT_SIDECAR = "https://dashaflow-sidecar.vercel.app";
 const MIN_SERVICE_TOKEN_LENGTH = 32;
-const MAX_SERVICE_TOKEN_LENGTH = 512;
+const MAX_SERVICE_TOKEN_LENGTH = 256;
 
 export type DashaflowSidecarConfig = {
   url: string;

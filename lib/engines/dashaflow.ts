@@ -29,29 +29,97 @@ export type DashaflowOutput = {
   error?: string;
 };
 
-const ProfilePlanetSchema = z.object({
-  name: z.string().trim().min(1).max(40),
-  rashi: z.string().trim().min(1).max(40),
+const CanonicalNakshatraSchema = z.enum([
+  "Ashvini",
+  "Bharani",
+  "Krittika",
+  "Rohini",
+  "Mrigashira",
+  "Ardra",
+  "Punarvasu",
+  "Pushya",
+  "Ashlesha",
+  "Magha",
+  "Purva Phalguni",
+  "Uttara Phalguni",
+  "Hasta",
+  "Chitra",
+  "Swati",
+  "Vishakha",
+  "Anuradha",
+  "Jyeshtha",
+  "Mula",
+  "Purva Ashadha",
+  "Uttara Ashadha",
+  "Shravana",
+  "Dhanishtha",
+  "Shatabhisha",
+  "Purva Bhadrapada",
+  "Uttara Bhadrapada",
+  "Revati",
+]);
+
+const CanonicalRashiSchema = z.enum([
+  "Mesha",
+  "Vrishabha",
+  "Mithuna",
+  "Karka",
+  "Simha",
+  "Kanya",
+  "Tula",
+  "Vrischika",
+  "Dhanu",
+  "Makara",
+  "Kumbha",
+  "Meena",
+]);
+
+const ProfilePlanetShape = {
+  rashi: CanonicalRashiSchema,
   degree: z.number().finite().min(0).lt(30),
   house: z.number().int().min(1).max(12),
   retrograde: z.boolean(),
-}).strict();
+};
+
+function profilePlanetSchema<const Name extends string>(name: Name) {
+  return z.object({
+    name: z.literal(name),
+    ...ProfilePlanetShape,
+  }).strict();
+}
+
+const ProfilePlanetsSchema = z.tuple([
+  profilePlanetSchema("Surya"),
+  profilePlanetSchema("Chandra"),
+  profilePlanetSchema("Kuja"),
+  profilePlanetSchema("Budha"),
+  profilePlanetSchema("Guru"),
+  profilePlanetSchema("Shukra"),
+  profilePlanetSchema("Shani"),
+  profilePlanetSchema("Rahu"),
+  profilePlanetSchema("Ketu"),
+]);
+
+export const PROFILE_SIDECAR_ATTEMPT_TIMEOUT_MS = 6_000;
+export const PROFILE_SIDECAR_RETRY_DELAY_MS = 500;
+export const PROFILE_SIDECAR_TOTAL_DEADLINE_MS =
+  (PROFILE_SIDECAR_ATTEMPT_TIMEOUT_MS * 2) + PROFILE_SIDECAR_RETRY_DELAY_MS;
 
 export const DashaflowProfileContractSchema = z.object({
   contract_version: z.literal("1.0"),
   engine: z.object({
-    name: z.string().trim().min(1).max(60),
+    name: z.literal("DashaFlow"),
     version: z.string().trim().min(1).max(40),
-    ayanamsha: z.string().trim().min(1).max(40),
+    ayanamsha: z.literal("Lahiri"),
     ephemeris: z.enum(["swiss", "moshier", "unknown"]),
   }).strict(),
   data: z.object({
-    nakshatra: z.string().trim().min(1).max(60),
+    nakshatra: CanonicalNakshatraSchema,
     pada: z.number().int().min(1).max(4),
-    janma_rashi: z.string().trim().min(1).max(40),
-    lagna: z.string().trim().min(1).max(40),
+    janma_rashi: CanonicalRashiSchema,
+    lagna: CanonicalRashiSchema,
     lagna_degree: z.number().finite().min(0).lt(30),
-    planets: z.array(ProfilePlanetSchema).length(9),
+    planets: ProfilePlanetsSchema,
   }).strict(),
 }).strict();
 
@@ -118,17 +186,22 @@ export async function deriveDashaflowProfile(
 
   let response: Response;
   try {
-    response = await fetchWithRetry(config.url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        "Content-Type": "application/json",
+    response = await fetchWithRetry(
+      config.url,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+        cache: "no-store",
+        credentials: "omit",
+        redirect: "error",
       },
-      body: JSON.stringify(input),
-      cache: "no-store",
-      credentials: "omit",
-      redirect: "error",
-    });
+      PROFILE_SIDECAR_ATTEMPT_TIMEOUT_MS,
+      PROFILE_SIDECAR_RETRY_DELAY_MS,
+    );
   } catch {
     throw new DashaflowProfileError("unavailable", 5);
   }
