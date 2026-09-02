@@ -47,7 +47,7 @@ mapping. Config is in `vitest.config.ts`. Globals are enabled — no imports nee
 
 ## 2. Test Coverage Status
 
-Last assessed: **2026-08-31** (guest gateway rows; older rows retain their prior assessment)
+Last assessed: **2026-09-02** (guest gateway rows; older rows retain their prior assessment)
 
 | Module | Test file | Coverage | Notes |
 |---|---|---|---|
@@ -63,15 +63,17 @@ Last assessed: **2026-08-31** (guest gateway rows; older rows retain their prior
 | `app/api/compatibility/route.ts` | — | None | Integration |
 | `app/api/feedback/route.ts` | — | None | Integration |
 | `app/api/consultation-requests/route.ts` | — | None | Integration |
-| `lib/geocode.ts` | `lib/geocode.test.ts` | Unit | Guest search asserts one upstream call, limit five, selectable coordinates/timezone, and malformed-row filtering; legacy cascade remains covered |
+| `lib/geocode.ts` | `lib/geocode.test.ts` | Unit | Guest search asserts fixed LocationIQ EU/US and Geoapify endpoints, safe query/key encoding, provider envelope normalization, LocationIQ 404 no-result behavior, scoped IDs, one upstream call, limit five, selectable coordinates/timezone, semantic malformed-row filtering, redirect rejection, pre-parse 64 KiB response cap, eight-work cap with six-guest reservation, end-to-end deadline, cancellation both before and during a shared-cache read, local hashed cache expiry, deployed shared-cache fail-closed behavior, gated authenticated single-query reuse, and safe provider errors |
 | `lib/guest-api.ts` | `lib/guest-api.test.ts` | Unit | Exact production/local origins, safe preflight, JSON media type, 4 KiB stream cap, and trusted forwarded IP |
 | `lib/engines/dashaflow.ts` guest projection | `lib/engines/dashaflow.test.ts` | Unit / contract | Bearer credential, exact body, strict normalized response, redacted auth failures, transient retry guidance |
-| `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, deployed activation/provider gates before side effects, query/body bounds, IP rate limit, attribution, no-store, safe upstream failure |
+| `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, deployed activation/provider gates before side effects, query/body bounds, IP rate limit, backward-compatible attribution text plus structured label/URL metadata, no-store, safe upstream failure |
 | `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Deployed activation gate before side effects, exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
-| `lib/guest-calculation-gates.ts` | `lib/guest-calculation-gates.test.ts` | Unit | Local default, explicit local false, independent flags, deployed exact-`true` opt-in, unknown-environment fail-closed |
-| `lib/geocoder-config.ts`, `lib/geocode.ts` | `lib/geocoder-config.test.ts`, `lib/geocode.test.ts` | Unit | Guest local public default, deployed guest managed-provider requirement, unsafe base rejection, authenticated-profile independence, 1 rps scheduling, duplicate coalescing, success cache |
+| `lib/deployment-environment.ts`, `lib/guest-calculation-gates.ts` | `lib/deployment-environment.test.ts`, `lib/guest-calculation-gates.test.ts` | Unit | Tri-state local/deployed/unknown classification, contradictions, local default, malformed flags, independent controls, deployed exact-`true` opt-in, unknown-runtime fail-closed |
+| `lib/geocoder-config.ts`, `lib/geocode.ts` | `lib/geocoder-config.test.ts`, `lib/geocode.test.ts` | Unit | Local public default, deployed fixed-provider enum/key requirement, arbitrary-base non-use, exact LocationIQ/Geoapify request and response contracts, exact authenticated-migration gate, preservation of the deployed legacy authenticated path while off, independence from guest flags, no public fallback after activation, reserved capacity, 1 rps scheduling, duplicate coalescing, cancellation, normalized-field cache, and scheduled expiry |
 | `lib/engines/dashaflow-election.ts` | `lib/engines/dashaflow-election.test.ts` | Unit / contract | Bearer credential, cookie omission, exact request, strict chart/provenance validation, order/location binding, safe failures |
-| `lib/distributed-rate-limit.ts` | `lib/distributed-rate-limit.test.ts` | Unit | Atomic Redis command, HMAC-pseudonymized key, TTL mapping, local bypass, and Vercel Preview/Production fail-closed behavior |
+| `lib/distributed-rate-limit.ts`, `lib/guest-rate-limit.ts`, `lib/authenticated-geocoder-rate-limit.ts` | corresponding limiter tests | Unit | Atomic Redis command, same-token HMAC key, atomic credential pairs, TTL mapping, ordered local/shared-client-or-user/fleet budgets, one fleet key shared by guest and authenticated geocoding, local bypass, and deployed/unknown fail-closed behavior |
+| `lib/redis-rest.ts`, `lib/shared-geocode-cache.ts` | `lib/shared-geocode-cache.test.ts`, distributed/geocode tests | Unit | Complete Redis pair resolution, bounded responses/values, HMAC cache keys, fixed 24-hour expiry, normalized-field-only storage, hit/miss distinction, and fail-closed missing/malformed/unavailable behavior |
+| `lib/sentry-privacy.ts`, `sentry.server.config.ts` | `lib/sentry-privacy.test.ts` | Unit / configuration | Exact geocoder endpoint suppression, default NodeFetch/Http replacement, server request-body capture disabled, and final URL/query span scrubbing |
 | `lib/engines/dashaflow-config.ts` | `lib/engines/dashaflow-config.test.ts` | Unit | Server-only token bounds, HTTPS-before-credential policy, exact local IPv4/IPv6 loopback allowance, and unsafe URL rejection |
 | `app/api/guest/muhurta/election-charts/route.ts` | `app/api/guest/muhurta/election-charts/route.test.ts` | Route | Exact origin and deployed activation before body/Redis/rate work, shared unavailable/TTL mapping, strict private-field rejection, minute/time-window/uniqueness bounds, direct contract, safe failures |
 | `components/NavBar.tsx` | — | None | UI; manual only |
@@ -83,7 +85,7 @@ Last assessed: **2026-08-31** (guest gateway rows; older rows retain their prior
 2. `lib/astro-utils.ts` — pure functions, no mocking needed.
 3. `lib/engine-error.ts` — trivial to test, good CI safety net.
 4. `lib/admin.ts` — email-list parsing with edge cases.
-5. `app/api/profiles/route.ts` — validates auth gate, cap check, geocoding mock.
+5. `app/api/profiles/route.ts` and `app/api/profiles/[id]/route.ts` — validate auth gate, cap/missing-place checks, managed-geocoder success/failure, birth/current-location create/edit projection, timezone fields, and reading invalidation.
 
 ---
 
@@ -221,11 +223,11 @@ before releasing any change that touches the journey's code path.
 | G1-1 | Approved production or exact HTTP localhost/127.0.0.1/[::1] preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no handler side effect | Unit / route |
 | G1-2 | Missing, malformed, or lookalike Origin | `403`; no CORS allow-origin header; no geocoder/sidecar/rate-limit call | Unit / route |
 | G1-2a | Birth-profile flag omitted in Preview/Production, explicitly false locally, or not exact `true` when deployed | Sanitized `503`, `private, no-store`, before body parsing, rate limiting, geocoding, or sidecar access; OPTIONS remains unchanged | Unit / route |
-| G1-2b | Deployed birth-profile flag is `true` but provider is absent, unsafe, HTTP, or public Nominatim | Place search remains `503`; no rate or upstream call. Managed provider base and identity are required | Unit / route |
-| G1-3 | Submit a 2–120 character place query | At most one provider request; locally this is the policy-bounded Nominatim path. Returns at most five results with ID, label, coordinates, IANA timezone, attribution | Unit / route |
+| G1-2b | Deployed birth-profile flag is `true` but provider enum/key is absent, malformed, or unknown | Place search remains `503`; no rate or upstream call. Exactly one fixed LocationIQ/Geoapify adapter and server-only key are required | Unit / route |
+| G1-3 | Submit a 2–120 character place query | At most one provider request; locally this is the policy-bounded Nominatim path. Managed paths use exact code-owned endpoints, normalize their documented envelope, and return at most five results with provider-scoped ID, label, coordinates, IANA timezone, plus attribution text and links | Unit / route |
 | G1-3a | Duplicate/concurrent and distinct local place queries | Duplicate work coalesces and later hits cache; distinct provider request starts are at least one second apart process-wide | Unit |
 | G1-4 | Body exceeds 4 KiB with or without Content-Length | `413` before geocoder or sidecar call | Unit / route |
-| G1-5 | Sixth place search or derivation in one minute from one IP | `429`, `Retry-After: 60`, private no-store | Route |
+| G1-5 | Per-client or route-wide fleet budget is exhausted, or shared storage is unavailable | `429` with Redis TTL for an exhausted limit; retryable `503` for unavailable enforcement; private no-store; no body/geocoder/sidecar work | Unit / route |
 | G1-6 | Derivation includes `name` or any unknown field | `400`; field is not forwarded | Route |
 | G1-7 | Non-calendar date, future date in the supplied birthplace timezone, non-`HH:MM` time, string/out-of-range coordinate, or unknown timezone | `400`; no sidecar call | Route |
 | G1-8 | Valid exact birth input | Only after HTTPS/loopback URL and 32–256 character token validation, sidecar receives five approved fields with bearer credential; client receives direct contract v1 projection within a 12.5-second maximum retry budget | Unit / contract / route |
@@ -251,7 +253,7 @@ before releasing any change that touches the journey's code path.
 | G2-6 | Valid request with inbound auth cookie | After HTTPS/loopback URL and token-bound validation, sidecar receives only contract version, location, and ordered instants with bearer auth and `credentials: omit` | Unit / contract / route |
 | G2-7 | Valid sidecar response | Browser receives the unchanged v1 contract only after exact location/order, Lahiri, `mean` lunar nodes, `whole_sign`, Lagna, and canonical nine-planet validation | Unit / contract / route |
 | G2-8 | Expanded, malformed, reordered, auth, timeout, or transient sidecar response | Safe `422`/`429`/`502`/`503`; bounded retry guidance; no upstream body or diagnostic leaks | Unit / route |
-| G2-9 | Vercel Preview/Production shared limiter missing, unavailable, or exhausted | Fail closed before body parsing or sidecar access; `503` for unavailable and `429` with Redis TTL for exhausted | Unit / route |
+| G2-9 | Deployed shared client/fleet limiter missing, unavailable, or exhausted | Fail closed before body parsing or sidecar access; `503` for unavailable and `429` with Redis TTL for exhausted | Unit / route |
 | G2-10 | Static dependency review | Route module graph contains no DB, NextAuth, PostHog, request logging, activity/profile/natal model, or persistence | Review |
 
 ---

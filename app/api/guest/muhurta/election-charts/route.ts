@@ -11,9 +11,7 @@ import {
   readLimitedJson,
   rejectDisallowedGuestOrigin,
 } from "@/lib/guest-api";
-import { rateLimit } from "@/lib/rate-limit";
-import { RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
-import { distributedRateLimit } from "@/lib/distributed-rate-limit";
+import { enforceGuestRateLimit } from "@/lib/guest-rate-limit";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
 const MAX_PAST_MS = 366 * DAY_MS;
@@ -99,41 +97,24 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const ip = guestClientIp(request);
-  const limit = rateLimit(
-    `guest:election-charts:${ip}`,
-    RATE_LIMIT_DEFAULT_COUNT,
-    RATE_LIMIT_WINDOW_MS,
-  );
-  if (!limit.success) {
-    return guestJson(
-      request,
-      { error: "Too many chart calculations. Please wait a minute and try again." },
-      { status: 429, headers: { "Retry-After": "60" } },
-    );
-  }
-
-  const sharedLimit = await distributedRateLimit(
-    `guest:election-charts:${ip}`,
-    RATE_LIMIT_DEFAULT_COUNT,
-    RATE_LIMIT_WINDOW_MS,
-  );
-  if (sharedLimit.unavailable) {
+  const limit = await enforceGuestRateLimit("election-charts", ip);
+  if (limit.unavailable) {
     return guestJson(
       request,
       { error: "Chart screening is temporarily unavailable. Please try again." },
       {
         status: 503,
-        headers: { "Retry-After": String(sharedLimit.retryAfterSeconds) },
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
       },
     );
   }
-  if (!sharedLimit.success) {
+  if (!limit.success) {
     return guestJson(
       request,
       { error: "Too many chart calculations. Please wait a minute and try again." },
       {
         status: 429,
-        headers: { "Retry-After": String(sharedLimit.retryAfterSeconds) },
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
       },
     );
   }

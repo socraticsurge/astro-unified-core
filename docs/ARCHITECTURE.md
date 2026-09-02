@@ -352,23 +352,44 @@ db.consultationRequests — getPending, listByUser, listAllWithUser, create, mar
 ### Rate Limiting
 [`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts) — unified in-memory rate limiter: `rateLimit(key, limit, windowMs)` → `{ success, limit, remaining }`. It remains per-instance for most routes.
 
-The guest election-chart route adds a second, atomic fixed-window limit through
-`lib/distributed-rate-limit.ts` and the Upstash Redis REST API. Vercel Preview
-and Production are detected through `VERCEL_ENV`, require the Marketplace Redis
-credentials, and fail closed if shared enforcement is absent or unavailable;
-local/test runs retain the process-local layer. D7 remains open for extending
-this protection to the rest of the app.
+The three Panchangam guest routes add shared fixed-window limits through
+`lib/guest-rate-limit.ts`, `lib/distributed-rate-limit.ts`, and the Upstash
+Redis REST API. Each request passes the process-local client guard, a shared
+per-client guard, then a route-wide fleet budget (60 geocoder calls shared with
+the managed authenticated path, 30 profile derivations, or 10 election-chart
+requests per minute). Managed authenticated geocoding separately applies a
+process-local and shared ten-call-per-user limit before joining that same
+60-call geocoder fleet budget. Only consistent Vercel
+Preview/Production markers classify as deployed. Ambiguous runtimes, including
+self-hosted `NODE_ENV=production` without an explicit trusted-proxy contract,
+fail closed; local/test runs retain only the process-local layer. Redis aliases
+are accepted only as complete URL/token pairs. D7 remains open for extending
+this protection beyond the guest gateway.
 
 Geocoder access is separately serialized through one process-global scheduler
 in `lib/geocode.ts`: each process starts at most one provider request per
-second. Concurrent duplicate queries share one promise, and successful
-responses live in a bounded 24-hour in-process cache. The unauthenticated guest
-search uses public Nominatim only in local development; `lib/geocoder-config.ts`
-requires an explicitly configured HTTPS provider base and application identity
-for that route in Vercel Preview/Production and rejects the public Nominatim
-host there. The pre-existing authenticated profile form remains on its
-disclosed public-Nominatim path until the separately tracked provider migration;
-the guest route cannot fall back to it.
+second, accepts at most eight distinct outstanding operations, and reserves two
+of those slots from guest search for authenticated profile geocoding. One
+eight-second deadline covers queue wait and fetch. Concurrent duplicate queries
+share one promise; a caller abort removes only that subscriber and cancels
+underlying work when none remain. Semantically valid normalized rows live in a
+bounded 24-hour in-process cache under hashed keys during local development; an
+active timer removes idle expired rows. Deployed managed-provider requests
+instead require a bounded Redis read/write under token-HMAC keys, store only
+those normalized rows for 24 hours, and fail closed when shared storage is
+missing, malformed, or unavailable. Provider responses are capped at 64 KiB before JSON parsing;
+invalid nonempty responses are not cached. Provider redirects are rejected and
+raw provider failures are never propagated. The unauthenticated guest search
+uses the fixed public Nominatim endpoint only in local development. In Vercel
+Preview/Production, `lib/geocoder-config.ts` accepts only the code-owned
+`locationiq-eu`, `locationiq-us`, or `geoapify` adapter plus a server-only API
+key; arbitrary provider URLs are not configuration. Existing authenticated
+profile creation/editing retains its legacy Nominatim path until the separate
+`AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` value is exactly `true`. The enabled
+migration reuses the fixed adapter independently of guest flags, performs one
+bounded query per place, and fails closed on provider, Redis, per-user, or fleet
+enforcement failure. Guest search and an enabled authenticated migration cannot
+fall back to public Nominatim.
 
 ---
 
@@ -484,10 +505,11 @@ input, no-store, and IP-rate-limit guards instead of a session.
 default in Vercel Preview and Production. Birth-profile routes share
 `GUEST_BIRTH_PROFILE_ENABLED`; election charts use the independent
 `GUEST_ELECTION_CHART_ENABLED`. Each must equal the exact string `true` when
-deployed. After the unchanged exact-origin check, a disabled POST returns a
-sanitized `private, no-store` `503` before body parsing, local rate limiting,
-Redis, geocoding, or sidecar access. OPTIONS remains side-effect-free and keeps
-the existing exact CORS contract.
+deployed. Missing, unknown, or contradictory runtime markers are not local and
+fail closed even when a flag says `true`. After the unchanged exact-origin
+check, a disabled POST returns a sanitized `private, no-store` `503` before body
+parsing, local rate limiting, Redis, geocoding, or sidecar access. OPTIONS
+remains side-effect-free and keeps the existing exact CORS contract.
 
 ### Guest Panchangam Gateway
 
@@ -497,11 +519,13 @@ the existing exact CORS contract.
   `https://panchangam.astrochaganti.com` and exact HTTP localhost/127.0.0.1/[::1]
   origins.
 - `POST` — accepts only `{ query }` (2–120 characters), rate-limits by client
-  IP, and makes at most one coalesced provider request with `limit=5`. Locally,
+  IP and route-wide fleet budget, and makes at most one coalesced provider
+  request with `limit=5`. Deployed limits run before the body is read. Locally,
   public Nominatim use shares the application-wide one-request-per-second
-  scheduler and bounded cache; deployed traffic requires an explicitly
-  configured managed provider. Returns
-  `{ data: { results: [{ id, label, latitude, longitude, timezone }], attribution } }`.
+  scheduler and bounded cache; deployed traffic requires one fixed managed
+  adapter plus its key. Returns the backward-compatible attribution string and
+  structured links:
+  `{ data: { results: [{ id, label, latitude, longitude, timezone }], attribution, attributions: [{ label, url }] } }`.
 
 **[`app/api/guest/profile/derive/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/profile/derive/route.ts)**
 
@@ -888,8 +912,9 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 | Module | Purpose |
 |---|---|
-| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text)` keeps the registered-profile fallback cascade; `searchPlaces(text)` performs one bounded guest search. Both share a process-wide one-request-per-second provider queue, in-flight coalescing, bounded 24-hour cache, and `geo-tz` IANA resolution. |
-| `lib/geocoder-config.ts` | Server-only guest provider validation plus an explicit legacy authenticated-profile boundary. Guest public Nominatim is local-only; Preview/Production guest search requires an HTTPS managed provider and cannot fall back to the legacy path. |
+| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after separate activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a one-request-per-second queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, local active cache expiry or deployed shared-cache enforcement, semantic provider validation, and `geo-tz` IANA resolution. |
+| `lib/geocoder-config.ts` | Server-only fixed LocationIQ/Geoapify adapters, exact authenticated-migration activation, and public attribution metadata. Guest Preview/Production and the enabled authenticated migration require a named adapter plus its key and cannot use an arbitrary URL. |
+| `lib/authenticated-geocoder-rate-limit.ts` | Pseudonymous process and distributed per-user controls plus the 60-call fleet key shared with guest place search; used only by the activated managed authenticated path. |
 | `lib/guest-calculation-gates.ts` | Independent server-only birth-profile and election-chart activation flags; local default on, deployed default off, exact `true` opt-in. |
 | [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, and trusted client-IP extraction for `/api/guest/*` |
 | [`lib/utils.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/utils.ts) | `cn(...classes)` — `clsx` + `tailwind-merge` |
@@ -922,7 +947,7 @@ User visits https://astro-unified-core-pfni.vercel.app/
     → submit → POST /api/profiles
       → app/api/profiles/route.ts
         → rate limit check (lib/rate-limit.ts)
-        → geocodePlace(place) → lib/geocode.ts → Nominatim + geo-tz
+        → geocodePlace(place) → lib/geocode.ts → configured provider + geo-tz
         → db.profiles.create(userId, data)
         → 201 + profile JSON
   → redirect to /profiles/{id}
@@ -1079,12 +1104,16 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
   → name remains in that browser and is never included in an API request
   → submit place text
     → POST https://astrochaganti.com/api/guest/places/search
-      → exact Origin check + 4 KiB cap + per-IP rate limit
-      → searchPlaces(query) → coalesced/cached provider request, at most five results
-        → local guest public Nominatim starts at most one request per second
-        → Preview/Production require the configured managed provider
+      → exact Origin and activation/provider gates
+      → process-local plus shared per-client/fleet limits before the 4 KiB body
+      → searchPlaces(query, request.signal)
+        → coalesced provider request, at most five valid results
+        → caller disconnect stops queued work when no duplicate caller remains
+        → local public Nominatim uses a bounded process cache
+        → Preview/Production require a fixed LocationIQ/Geoapify adapter, key,
+          and normalized-row Redis cache under token-HMAC keys
       → geo-tz adds an IANA timezone to each selectable place
-      ← labels, coordinates, timezones, OpenStreetMap attribution
+      ← labels, coordinates, timezones, provider-scoped IDs, and linked attribution
   → guest selects one result and enters exact local birth date/time
     → POST https://astrochaganti.com/api/guest/profile/derive
       → reject name/unknown fields; validate date, time, coordinates, timezone
@@ -1098,8 +1127,10 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
   → Panchangam UI reviews and stores the profile in browser-local storage
 ```
 
-The Astro Chaganti gateway stores nothing: no server profile, session, DB row,
-cache entry, or analytics event is created. The Panchangam profile name never
+The Astro Chaganti gateway creates no server profile, session, DB row, or
+analytics event. Geocoder queries may create only bounded, hashed-key,
+normalized process-cache or Redis entries that expire after 24 hours; no
+profile name is accepted or cached, and the Panchangam profile name never
 crosses this boundary.
 
 ### Journey 8: Panchangam Screens Muhurtam Candidate Charts
@@ -1109,7 +1140,8 @@ Guest runs Muhurtam ranking on https://panchangam.astrochaganti.com
   → Vercel route remains unavailable unless GUEST_ELECTION_CHART_ENABLED=true
   → browser selects at most 24 candidate instants for one event location
   → POST https://astrochaganti.com/api/guest/muhurta/election-charts
-    → exact Origin check + 4 KiB cap + per-IP rate limit
+    → exact Origin and activation gates
+    → process-local plus shared per-client/fleet limits before the 4 KiB body
     → reject activity/profile/name/birth/natal fields and unknown fields
     → validate location + unique, bounded, minute-precision RFC3339 instants
     → deriveDashaflowElectionCharts(input)
@@ -1165,9 +1197,10 @@ call (instead of one per day) is a clean design. The accuracy trade-off
 
 ### Still to address
 
-**Mostly in-memory rate limiting** — the election-chart guest route now adds
-required fail-closed Upstash enforcement, but other routes remain per Lambda
-instance. See `BACKLOG.md` item D7 for the remaining migration.
+**Mostly in-memory rate limiting** — all three Panchangam guest routes and the
+activation-gated managed authenticated geocoder add required fail-closed
+Upstash per-client/per-user and fleet enforcement, but other routes remain per
+Lambda instance. See `BACKLOG.md` item D7 for the remaining migration.
 
 **Sidecar unauthenticated** — low risk currently. See `BACKLOG.md` item D1.
 
@@ -1198,9 +1231,12 @@ single section above, so they live here.
 | `next.config.ts` | Wrapped with `withSentryConfig` for build-time source map upload |
 
 **Tuned defaults (DO NOT regress):** `tracesSampleRate: 0.1`,
-`sendDefaultPii: false`, `enableLogs: false`. Free tier ≈ 5k events/month
-— pure abuse defense. See `lib/posthog-server.ts` and the three Sentry
-configs.
+`sendDefaultPii: false`, `enableLogs: false`. Server request-body capture is
+disabled. Fixed geocoder endpoints are excluded from HTTP/native-fetch tracing
+and a final span scrubber removes provider query strings as defense in depth,
+so neither place text nor a query-string provider key is sent to Sentry. Free
+tier ≈ 5k events/month — pure abuse defense. See `lib/posthog-server.ts`,
+`lib/sentry-privacy.ts`, and the three Sentry configs.
 
 **Build-time env:** `SENTRY_AUTH_TOKEN` (Vercel-only, never in client
 bundle). Without it source maps don't upload; runtime capture still works

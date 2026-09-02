@@ -143,6 +143,9 @@ describe("POST /api/profiles", () => {
     const data = await res.json();
     expect(data.name).toBe("Test User");
     expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(geocodePlace).toHaveBeenCalledWith("Mumbai", {
+      authenticatedUserId: "user-1",
+    });
   });
 
   it("returns 400 when geocoding fails", async () => {

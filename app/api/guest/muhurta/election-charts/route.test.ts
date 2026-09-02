@@ -5,8 +5,7 @@ vi.mock("@/lib/engines/dashaflow-election", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/engines/dashaflow-election")>();
   return { ...actual, deriveDashaflowElectionCharts: vi.fn() };
 });
-vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
-vi.mock("@/lib/distributed-rate-limit", () => ({ distributedRateLimit: vi.fn() }));
+vi.mock("@/lib/guest-rate-limit", () => ({ enforceGuestRateLimit: vi.fn() }));
 
 import { OPTIONS, POST } from "./route";
 import {
@@ -14,8 +13,7 @@ import {
   DashaflowElectionChartError,
   deriveDashaflowElectionCharts,
 } from "@/lib/engines/dashaflow-election";
-import { rateLimit } from "@/lib/rate-limit";
-import { distributedRateLimit } from "@/lib/distributed-rate-limit";
+import { enforceGuestRateLimit } from "@/lib/guest-rate-limit";
 
 const ORIGIN = "https://panchangam.astrochaganti.com";
 const input = {
@@ -86,17 +84,13 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     delete process.env.GUEST_ELECTION_CHART_ENABLED;
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-29T00:00:00.000Z"));
-    vi.mocked(rateLimit).mockReturnValue({ success: true, limit: 5, remaining: 4 });
-    vi.mocked(distributedRateLimit).mockResolvedValue({
-      success: true,
-      remaining: 4,
-      retryAfterSeconds: 60,
-      configured: true,
-      unavailable: false,
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: true, unavailable: false, retryAfterSeconds: 0, scope: null,
     });
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     delete process.env.VERCEL_ENV;
     delete process.env.GUEST_ELECTION_CHART_ENABLED;
     vi.useRealTimers();
@@ -109,9 +103,9 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(contract);
     expect(deriveDashaflowElectionCharts).toHaveBeenCalledWith(input);
-    expect(rateLimit).toHaveBeenCalledWith("guest:election-charts:203.0.113.21", 5, 60_000);
-    expect(distributedRateLimit).toHaveBeenCalledWith(
-      "guest:election-charts:203.0.113.21", 5, 60_000,
+    expect(enforceGuestRateLimit).toHaveBeenCalledWith(
+      "election-charts",
+      "203.0.113.21",
     );
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
@@ -168,21 +162,21 @@ describe("POST /api/guest/muhurta/election-charts", () => {
   });
 
   it("rate-limits calculations before calling the sidecar", async () => {
-    vi.mocked(rateLimit).mockReturnValue({ success: false, limit: 5, remaining: 0 });
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: false, unavailable: false, retryAfterSeconds: 19, scope: "client",
+    });
     const response = await POST(request(input));
     expect(response.status).toBe(429);
-    expect(response.headers.get("Retry-After")).toBe("60");
-    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(response.headers.get("Retry-After")).toBe("19");
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
   });
 
   it("fails closed before body parsing when the shared limiter is unavailable", async () => {
-    vi.mocked(distributedRateLimit).mockResolvedValue({
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
       success: false,
-      remaining: 0,
       retryAfterSeconds: 10,
-      configured: true,
       unavailable: true,
+      scope: "shared-storage",
     });
     const response = await POST(request('{"private-invalid-json"'));
     expect(response.status).toBe(503);
@@ -194,12 +188,11 @@ describe("POST /api/guest/muhurta/election-charts", () => {
   });
 
   it("maps a shared limit to 429 with the distributed TTL before parsing", async () => {
-    vi.mocked(distributedRateLimit).mockResolvedValue({
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
       success: false,
-      remaining: 0,
       retryAfterSeconds: 17,
-      configured: true,
       unavailable: false,
+      scope: "fleet",
     });
     const response = await POST(request('{"private-invalid-json"'));
     expect(response.status).toBe(429);
@@ -211,13 +204,13 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     const response = await POST(request(input, "https://evil.example"));
     expect(response.status).toBe(403);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
-    expect(rateLimit).not.toHaveBeenCalled();
-    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
   });
 
   it("fails before parsing, Redis, rate limiting, or sidecar access when disabled publicly", async () => {
-    process.env.VERCEL_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     const response = await POST(request('{"private-invalid-json"'));
 
     expect(response.status).toBe(503);
@@ -226,8 +219,7 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     expect(await response.json()).toEqual({
       error: "This calculation is temporarily unavailable. Please try again later.",
     });
-    expect(rateLimit).not.toHaveBeenCalled();
-    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
   });
 
@@ -260,13 +252,15 @@ describe("POST /api/guest/muhurta/election-charts", () => {
 
 describe("OPTIONS /api/guest/muhurta/election-charts", () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     delete process.env.VERCEL_ENV;
     delete process.env.GUEST_ELECTION_CHART_ENABLED;
   });
 
   it("answers allowed preflights without invoking calculation or rate limiting", () => {
     vi.clearAllMocks();
-    process.env.VERCEL_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     const response = OPTIONS(new Request(
       "https://astrochaganti.com/api/guest/muhurta/election-charts",
       { method: "OPTIONS", headers: { Origin: ORIGIN } },
@@ -275,7 +269,6 @@ describe("OPTIONS /api/guest/muhurta/election-charts", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
-    expect(rateLimit).not.toHaveBeenCalled();
-    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
   });
 });

@@ -250,10 +250,12 @@ if (!result.success) {
 | `GET/POST /api/readings/dashaflow` | user email | implicit via profile cap |
 
 **Known limitation:** most rate limits are per-Lambda instance, not global (see
-`BACKLOG.md` D7). The guest election-chart route is the scoped exception: it
-adds required, fail-closed Upstash enforcement in Vercel Preview and
-Production. Extend that pattern deliberately rather than assuming every route
-is globally limited.
+`BACKLOG.md` D7). The three approval-gated Panchangam guest routes and the
+separately gated managed authenticated geocoder are scoped exceptions: they add
+required, fail-closed Upstash identity and fleet enforcement in deployed
+runtimes. Guest search and managed authenticated geocoding share one fleet key.
+Extend that pattern deliberately rather than assuming every route is globally
+limited.
 
 ---
 

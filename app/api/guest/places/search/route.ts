@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { GEOCODER_ATTRIBUTION, searchPlaces } from "@/lib/geocode";
-import { guestGeocoderConfigured } from "@/lib/geocoder-config";
+import { searchPlaces } from "@/lib/geocode";
+import { guestGeocoderPublicMetadata } from "@/lib/geocoder-config";
 import { guestBirthProfileEnabled } from "@/lib/guest-calculation-gates";
 import {
   guestClientIp,
@@ -9,8 +9,7 @@ import {
   readLimitedJson,
   rejectDisallowedGuestOrigin,
 } from "@/lib/guest-api";
-import { rateLimit } from "@/lib/rate-limit";
-import { RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { enforceGuestRateLimit } from "@/lib/guest-rate-limit";
 
 const SearchBodySchema = z.object({
   query: z.string()
@@ -28,7 +27,10 @@ export async function POST(request: Request): Promise<Response> {
   const originError = rejectDisallowedGuestOrigin(request);
   if (originError) return originError;
 
-  if (!guestBirthProfileEnabled() || !guestGeocoderConfigured()) {
+  const geocoderMetadata = guestBirthProfileEnabled()
+    ? guestGeocoderPublicMetadata()
+    : null;
+  if (!geocoderMetadata) {
     return guestJson(
       request,
       { error: "This calculation is temporarily unavailable. Please try again later." },
@@ -37,16 +39,25 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const ip = guestClientIp(request);
-  const limit = rateLimit(
-    `guest:places:${ip}`,
-    RATE_LIMIT_DEFAULT_COUNT,
-    RATE_LIMIT_WINDOW_MS,
-  );
+  const limit = await enforceGuestRateLimit("places", ip);
+  if (limit.unavailable) {
+    return guestJson(
+      request,
+      { error: "Place search is temporarily unavailable. Please try again." },
+      {
+        status: 503,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
+    );
+  }
   if (!limit.success) {
     return guestJson(
       request,
       { error: "Too many place searches. Please wait a minute and try again." },
-      { status: 429, headers: { "Retry-After": "60" } },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
     );
   }
 
@@ -65,11 +76,12 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const results = await searchPlaces(parsed.data.query);
+    const results = await searchPlaces(parsed.data.query, request.signal);
     return guestJson(request, {
       data: {
         results,
-        attribution: GEOCODER_ATTRIBUTION,
+        attribution: geocoderMetadata.attribution,
+        attributions: geocoderMetadata.attributions,
       },
     });
   } catch {

@@ -1,15 +1,13 @@
 import "server-only";
 
+import { deploymentEnvironment } from "./deployment-environment";
+
 export const GUEST_BIRTH_PROFILE_FLAG = "GUEST_BIRTH_PROFILE_ENABLED";
 export const GUEST_ELECTION_CHART_FLAG = "GUEST_ELECTION_CHART_ENABLED";
 
 type GuestCalculationFlag =
   | typeof GUEST_BIRTH_PROFILE_FLAG
   | typeof GUEST_ELECTION_CHART_FLAG;
-
-function isLocalEnvironment(vercelEnv: string | undefined): boolean {
-  return vercelEnv === undefined || vercelEnv === "development";
-}
 
 /**
  * Guest calculation routes are convenient by default only in local
@@ -21,9 +19,14 @@ function guestCalculationEnabled(
   flag: GuestCalculationFlag,
   env: Record<string, string | undefined>,
 ): boolean {
+  const runtime = deploymentEnvironment(env);
+  if (runtime === "unknown") return false;
+
   const configured = env[flag];
-  if (configured !== undefined) return configured === "true";
-  return isLocalEnvironment(env.VERCEL_ENV);
+  if (runtime === "local") {
+    return configured === undefined || configured === "true";
+  }
+  return configured === "true";
 }
 
 export function guestBirthProfileEnabled(

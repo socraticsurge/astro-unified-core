@@ -9,8 +9,9 @@ import {
 
 describe("guest calculation production gates", () => {
   it.each([
-    {},
-    { VERCEL_ENV: "development" },
+    { NODE_ENV: "development" },
+    { NODE_ENV: "test" },
+    { NODE_ENV: "development", VERCEL_ENV: "development" },
   ])("defaults both routes on only in local development: %j", (env) => {
     expect(guestBirthProfileEnabled(env)).toBe(true);
     expect(guestElectionChartEnabled(env)).toBe(true);
@@ -47,8 +48,31 @@ describe("guest calculation production gates", () => {
 
   it("honors an explicit false locally", () => {
     const env = {
+      NODE_ENV: "development",
       GUEST_BIRTH_PROFILE_ENABLED: "false",
       GUEST_ELECTION_CHART_ENABLED: "false",
+    };
+    expect(guestBirthProfileEnabled(env)).toBe(false);
+    expect(guestElectionChartEnabled(env)).toBe(false);
+  });
+
+  it("rejects every malformed explicit value locally", () => {
+    for (const configured of ["TRUE", " true", "true ", "1", "yes", ""]) {
+      const env = {
+        NODE_ENV: "test",
+        GUEST_BIRTH_PROFILE_ENABLED: configured,
+        GUEST_ELECTION_CHART_ENABLED: configured,
+      };
+      expect(guestBirthProfileEnabled(env)).toBe(false);
+      expect(guestElectionChartEnabled(env)).toBe(false);
+    }
+  });
+
+  it("keeps self-hosted production closed until trusted-proxy policy exists", () => {
+    const env = {
+      NODE_ENV: "production",
+      GUEST_BIRTH_PROFILE_ENABLED: "true",
+      GUEST_ELECTION_CHART_ENABLED: "true",
     };
     expect(guestBirthProfileEnabled(env)).toBe(false);
     expect(guestElectionChartEnabled(env)).toBe(false);
@@ -72,8 +96,19 @@ describe("guest calculation production gates", () => {
     expect(guestElectionChartEnabled(electionOnly)).toBe(true);
   });
 
-  it("fails closed for an unknown Vercel environment", () => {
-    expect(guestBirthProfileEnabled({ VERCEL_ENV: "staging" })).toBe(false);
-    expect(guestElectionChartEnabled({ VERCEL_ENV: "staging" })).toBe(false);
+  it.each([
+    {},
+    { VERCEL_ENV: "staging" },
+    { NODE_ENV: "production", VERCEL_ENV: "development" },
+    { NODE_ENV: "development", VERCEL_ENV: "production" },
+    { VERCEL: "1" },
+  ])("fails closed for an unknown runtime even with explicit true: %j", (markers) => {
+    const env = {
+      ...markers,
+      GUEST_BIRTH_PROFILE_ENABLED: "true",
+      GUEST_ELECTION_CHART_ENABLED: "true",
+    };
+    expect(guestBirthProfileEnabled(env)).toBe(false);
+    expect(guestElectionChartEnabled(env)).toBe(false);
   });
 });

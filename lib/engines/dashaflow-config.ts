@@ -1,5 +1,7 @@
 import "server-only";
 
+import { deploymentEnvironment } from "../deployment-environment";
+
 const DEFAULT_SIDECAR = "https://dashaflow-sidecar.vercel.app";
 const MIN_SERVICE_TOKEN_LENGTH = 32;
 const MAX_SERVICE_TOKEN_LENGTH = 256;
@@ -15,10 +17,6 @@ function isLoopbackHostname(hostname: string): boolean {
     || normalized === "127.0.0.1"
     || normalized === "[::1]"
     || normalized === "::1";
-}
-
-function isDeployedVercelEnvironment(value: string | undefined): boolean {
-  return value === "preview" || value === "production";
 }
 
 function validServiceToken(value: string | undefined): value is string {
@@ -55,9 +53,9 @@ export function credentialedDashaflowSidecarConfig(
       || base.hash
     ) return null;
 
-    const deployed = isDeployedVercelEnvironment(env.VERCEL_ENV);
+    const runtime = deploymentEnvironment(env);
     const secure = base.protocol === "https:";
-    const localLoopback = !deployed
+    const localLoopback = runtime === "local"
       && base.protocol === "http:"
       && isLoopbackHostname(base.hostname);
     if (!secure && !localLoopback) return null;

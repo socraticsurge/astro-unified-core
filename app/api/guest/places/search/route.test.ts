@@ -2,16 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/geocode", () => ({
-  GEOCODER_ATTRIBUTION: "© OpenStreetMap contributors",
   searchPlaces: vi.fn(),
 }));
-vi.mock("@/lib/geocoder-config", () => ({ guestGeocoderConfigured: vi.fn() }));
-vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
+vi.mock("@/lib/geocoder-config", () => ({ guestGeocoderPublicMetadata: vi.fn() }));
+vi.mock("@/lib/guest-rate-limit", () => ({ enforceGuestRateLimit: vi.fn() }));
 
 import { OPTIONS, POST } from "./route";
 import { searchPlaces } from "@/lib/geocode";
-import { guestGeocoderConfigured } from "@/lib/geocoder-config";
-import { rateLimit } from "@/lib/rate-limit";
+import { guestGeocoderPublicMetadata } from "@/lib/geocoder-config";
+import { enforceGuestRateLimit } from "@/lib/guest-rate-limit";
 
 const ORIGIN = "https://panchangam.astrochaganti.com";
 
@@ -32,11 +31,20 @@ describe("POST /api/guest/places/search", () => {
     vi.clearAllMocks();
     delete process.env.VERCEL_ENV;
     delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
-    vi.mocked(guestGeocoderConfigured).mockReturnValue(true);
-    vi.mocked(rateLimit).mockReturnValue({ success: true, limit: 5, remaining: 4 });
+    vi.mocked(guestGeocoderPublicMetadata).mockReturnValue({
+      attribution: "© OpenStreetMap contributors",
+      attributions: [{
+        label: "© OpenStreetMap contributors",
+        url: "https://www.openstreetmap.org/copyright",
+      }],
+    });
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: true, unavailable: false, retryAfterSeconds: 0, scope: null,
+    });
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     delete process.env.VERCEL_ENV;
     delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
   });
@@ -57,10 +65,20 @@ describe("POST /api/guest/places/search", () => {
       data: {
         results: places,
         attribution: "© OpenStreetMap contributors",
+        attributions: [{
+          label: "© OpenStreetMap contributors",
+          url: "https://www.openstreetmap.org/copyright",
+        }],
       },
     });
-    expect(searchPlaces).toHaveBeenCalledWith("Hyderabad");
-    expect(rateLimit).toHaveBeenCalledWith("guest:places:198.51.100.10", 5, 60_000);
+    expect(searchPlaces).toHaveBeenCalledWith(
+      "Hyderabad",
+      expect.any(AbortSignal),
+    );
+    expect(enforceGuestRateLimit).toHaveBeenCalledWith(
+      "places",
+      "198.51.100.10",
+    );
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
@@ -87,14 +105,32 @@ describe("POST /api/guest/places/search", () => {
   });
 
   it("rate-limits by the trusted client IP and includes retry guidance", async () => {
-    vi.mocked(rateLimit).mockReturnValue({ success: false, limit: 5, remaining: 0 });
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: false, unavailable: false, retryAfterSeconds: 17, scope: "client",
+    });
     const response = await POST(request({ query: "Hyderabad" }, {
       ip: "spoofed, 203.0.113.42",
     }));
     expect(response.status).toBe(429);
-    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(response.headers.get("Retry-After")).toBe("17");
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(rateLimit).toHaveBeenCalledWith("guest:places:203.0.113.42", 5, 60_000);
+    expect(enforceGuestRateLimit).toHaveBeenCalledWith(
+      "places",
+      "203.0.113.42",
+    );
+    expect(searchPlaces).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before parsing when shared abuse controls are unavailable", async () => {
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: false,
+      unavailable: true,
+      retryAfterSeconds: 10,
+      scope: "shared-storage",
+    });
+    const response = await POST(request('{"private-invalid-json"'));
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("10");
     expect(searchPlaces).not.toHaveBeenCalled();
   });
 
@@ -104,12 +140,13 @@ describe("POST /api/guest/places/search", () => {
     }));
     expect(response.status).toBe(403);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
-    expect(rateLimit).not.toHaveBeenCalled();
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
     expect(searchPlaces).not.toHaveBeenCalled();
   });
 
   it("fails before parsing, rate limiting, or geocoding when disabled publicly", async () => {
-    process.env.VERCEL_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     const response = await POST(request('{"private-invalid-json"'));
 
     expect(response.status).toBe(503);
@@ -118,19 +155,21 @@ describe("POST /api/guest/places/search", () => {
     expect(await response.json()).toEqual({
       error: "This calculation is temporarily unavailable. Please try again later.",
     });
-    expect(guestGeocoderConfigured).not.toHaveBeenCalled();
-    expect(rateLimit).not.toHaveBeenCalled();
+    expect(guestGeocoderPublicMetadata).not.toHaveBeenCalled();
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
     expect(searchPlaces).not.toHaveBeenCalled();
   });
 
   it("cannot activate publicly with an unsafe geocoder configuration", async () => {
-    process.env.VERCEL_ENV = "preview";
-    process.env.GUEST_BIRTH_PROFILE_ENABLED = "true";
-    vi.mocked(guestGeocoderConfigured).mockReturnValue(false);
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("GUEST_BIRTH_PROFILE_ENABLED", "true");
+    vi.mocked(guestGeocoderPublicMetadata).mockReturnValue(null);
 
     const response = await POST(request('{"private-invalid-json"'));
     expect(response.status).toBe(503);
-    expect(rateLimit).not.toHaveBeenCalled();
+    expect(guestGeocoderPublicMetadata).toHaveBeenCalledTimes(1);
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
     expect(searchPlaces).not.toHaveBeenCalled();
   });
 
@@ -146,13 +185,15 @@ describe("POST /api/guest/places/search", () => {
 
 describe("OPTIONS /api/guest/places/search", () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     delete process.env.VERCEL_ENV;
     delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
   });
 
   it("answers allowed preflights without invoking search or rate limiting", () => {
     vi.clearAllMocks();
-    process.env.VERCEL_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     const response = OPTIONS(new Request(
       "https://astrochaganti.com/api/guest/places/search",
       { method: "OPTIONS", headers: { Origin: ORIGIN } },
@@ -160,6 +201,6 @@ describe("OPTIONS /api/guest/places/search", () => {
     expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
     expect(searchPlaces).not.toHaveBeenCalled();
-    expect(rateLimit).not.toHaveBeenCalled();
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
   });
 });

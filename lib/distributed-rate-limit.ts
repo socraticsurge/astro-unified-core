@@ -1,6 +1,8 @@
 import "server-only";
 
 import { createHmac } from "node:crypto";
+import { deploymentEnvironment } from "./deployment-environment";
+import { redisRestCommand, redisRestConfig } from "./redis-rest";
 
 export interface DistributedRateLimitResult {
   success: boolean;
@@ -13,7 +15,6 @@ export interface DistributedRateLimitResult {
 interface DistributedRateLimitOptions {
   env?: Record<string, string | undefined>;
   fetcher?: typeof fetch;
-  vercelEnv?: string;
   timeoutMs?: number;
 }
 
@@ -23,19 +24,6 @@ const FIXED_WINDOW_SCRIPT = [
   "local ttl = redis.call('PTTL', KEYS[1])",
   "return {current, ttl}",
 ].join("\n");
-
-function credentials(env: Record<string, string | undefined>) {
-  const rawUrl = env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL;
-  const token = env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN;
-  if (!rawUrl || !token || token !== token.trim()) return null;
-  try {
-    const url = new URL(rawUrl);
-    if (url.protocol !== "https:" || url.username || url.password) return null;
-    return { url: url.toString().replace(/\/+$/, ""), token };
-  } catch {
-    return null;
-  }
-}
 
 function unavailable(configured: boolean): DistributedRateLimitResult {
   return {
@@ -63,9 +51,8 @@ export async function distributedRateLimit(
   options: DistributedRateLimitOptions = {},
 ): Promise<DistributedRateLimitResult> {
   const env = options.env || process.env;
-  const vercelEnv = options.vercelEnv ?? env.VERCEL_ENV;
-  const deployed = vercelEnv === "preview" || vercelEnv === "production";
-  if (!deployed) {
+  const runtime = deploymentEnvironment(env);
+  if (runtime === "local") {
     return {
       success: true,
       remaining: limit,
@@ -74,37 +61,26 @@ export async function distributedRateLimit(
       unavailable: false,
     };
   }
-  const config = credentials(env);
+  if (runtime === "unknown") return unavailable(false);
+  const config = redisRestConfig(env);
   if (!config) {
     return unavailable(false);
   }
 
   const digest = createHmac("sha256", config.token).update(key).digest("hex");
   const redisKey = `astrochaganti:rate-limit:${digest}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    options.timeoutMs ?? 1_500,
+  const command = await redisRestCommand(
+    ["EVAL", FIXED_WINDOW_SCRIPT, "1", redisKey, String(windowMs)],
+    {
+      config,
+      fetcher: options.fetcher,
+      timeoutMs: options.timeoutMs,
+    },
   );
   try {
-    const response = await (options.fetcher || fetch)(config.url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify([
-        "EVAL", FIXED_WINDOW_SCRIPT, "1", redisKey, String(windowMs),
-      ]),
-      cache: "no-store",
-      signal: controller.signal,
-    });
-    const payload: unknown = await response.json().catch(() => null);
-    const result = payload && typeof payload === "object" && "result" in payload
-      ? (payload as { result?: unknown }).result
-      : null;
+    const result = command.ok ? command.result : null;
     if (
-      !response.ok || !Array.isArray(result) || result.length !== 2
+      !command.ok || !Array.isArray(result) || result.length !== 2
       || !result.every(value => typeof value === "number" && Number.isFinite(value))
     ) return unavailable(true);
 
@@ -122,7 +98,5 @@ export async function distributedRateLimit(
     };
   } catch {
     return unavailable(true);
-  } finally {
-    clearTimeout(timeout);
   }
 }

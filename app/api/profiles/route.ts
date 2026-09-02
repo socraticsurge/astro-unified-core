@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     let geo;
     try {
-      geo = await geocodePlace(place_of_birth);
+      geo = await geocodePlace(place_of_birth, { authenticatedUserId: userId });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Geocoding birth place failed";
       return NextResponse.json({ error: msg }, { status: 400 });
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     let currentGeo = null;
     if (current_location) {
       try {
-        currentGeo = await geocodePlace(current_location);
+        currentGeo = await geocodePlace(current_location, { authenticatedUserId: userId });
       } catch (e) {
         // We allow creating the profile even if current location geocoding fails,
         // but we return an error to the user if they specifically tried to set it.

@@ -5,7 +5,7 @@ vi.mock("@/lib/engines/dashaflow", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/engines/dashaflow")>();
   return { ...actual, deriveDashaflowProfile: vi.fn() };
 });
-vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
+vi.mock("@/lib/guest-rate-limit", () => ({ enforceGuestRateLimit: vi.fn() }));
 
 import { OPTIONS, POST } from "./route";
 import {
@@ -13,7 +13,7 @@ import {
   deriveDashaflowProfile,
 } from "@/lib/engines/dashaflow";
 import type { DashaflowProfileContract } from "@/lib/engines/dashaflow";
-import { rateLimit } from "@/lib/rate-limit";
+import { enforceGuestRateLimit } from "@/lib/guest-rate-limit";
 
 const ORIGIN = "https://panchangam.astrochaganti.com";
 const input = {
@@ -68,10 +68,13 @@ describe("POST /api/guest/profile/derive", () => {
     vi.clearAllMocks();
     delete process.env.VERCEL_ENV;
     delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
-    vi.mocked(rateLimit).mockReturnValue({ success: true, limit: 5, remaining: 4 });
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: true, unavailable: false, retryAfterSeconds: 0, scope: null,
+    });
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.useRealTimers();
     delete process.env.VERCEL_ENV;
     delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
@@ -83,7 +86,10 @@ describe("POST /api/guest/profile/derive", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(contract);
     expect(deriveDashaflowProfile).toHaveBeenCalledWith(input);
-    expect(rateLimit).toHaveBeenCalledWith("guest:profile-derive:203.0.113.20", 5, 60_000);
+    expect(enforceGuestRateLimit).toHaveBeenCalledWith(
+      "profile-derive",
+      "203.0.113.20",
+    );
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   });
@@ -148,10 +154,25 @@ describe("POST /api/guest/profile/derive", () => {
   });
 
   it("rate-limits calculations before calling the sidecar", async () => {
-    vi.mocked(rateLimit).mockReturnValue({ success: false, limit: 5, remaining: 0 });
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: false, unavailable: false, retryAfterSeconds: 23, scope: "client",
+    });
     const response = await POST(request(input));
     expect(response.status).toBe(429);
-    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(response.headers.get("Retry-After")).toBe("23");
+    expect(deriveDashaflowProfile).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before parsing when shared abuse controls are unavailable", async () => {
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: false,
+      unavailable: true,
+      retryAfterSeconds: 10,
+      scope: "shared-storage",
+    });
+    const response = await POST(request('{"private-invalid-json"'));
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("10");
     expect(deriveDashaflowProfile).not.toHaveBeenCalled();
   });
 
@@ -159,12 +180,13 @@ describe("POST /api/guest/profile/derive", () => {
     const response = await POST(request(input, "https://evil.example"));
     expect(response.status).toBe(403);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
-    expect(rateLimit).not.toHaveBeenCalled();
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
     expect(deriveDashaflowProfile).not.toHaveBeenCalled();
   });
 
   it("fails before parsing, rate limiting, or sidecar access when disabled publicly", async () => {
-    process.env.VERCEL_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     const response = await POST(request('{"private-invalid-json"'));
 
     expect(response.status).toBe(503);
@@ -173,7 +195,7 @@ describe("POST /api/guest/profile/derive", () => {
     expect(await response.json()).toEqual({
       error: "This calculation is temporarily unavailable. Please try again later.",
     });
-    expect(rateLimit).not.toHaveBeenCalled();
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
     expect(deriveDashaflowProfile).not.toHaveBeenCalled();
   });
 
@@ -212,13 +234,15 @@ describe("POST /api/guest/profile/derive", () => {
 
 describe("OPTIONS /api/guest/profile/derive", () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     delete process.env.VERCEL_ENV;
     delete process.env.GUEST_BIRTH_PROFILE_ENABLED;
   });
 
   it("answers allowed preflights without invoking the calculation path", () => {
     vi.clearAllMocks();
-    process.env.VERCEL_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
     const response = OPTIONS(new Request(
       "https://astrochaganti.com/api/guest/profile/derive",
       { method: "OPTIONS", headers: { Origin: ORIGIN } },
@@ -226,6 +250,6 @@ describe("OPTIONS /api/guest/profile/derive", () => {
     expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
     expect(deriveDashaflowProfile).not.toHaveBeenCalled();
-    expect(rateLimit).not.toHaveBeenCalled();
+    expect(enforceGuestRateLimit).not.toHaveBeenCalled();
   });
 });

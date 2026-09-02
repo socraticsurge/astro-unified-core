@@ -11,8 +11,7 @@ import {
   readLimitedJson,
   rejectDisallowedGuestOrigin,
 } from "@/lib/guest-api";
-import { rateLimit } from "@/lib/rate-limit";
-import { RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { enforceGuestRateLimit } from "@/lib/guest-rate-limit";
 
 function exactCalendarDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -85,16 +84,25 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const ip = guestClientIp(request);
-  const limit = rateLimit(
-    `guest:profile-derive:${ip}`,
-    RATE_LIMIT_DEFAULT_COUNT,
-    RATE_LIMIT_WINDOW_MS,
-  );
+  const limit = await enforceGuestRateLimit("profile-derive", ip);
+  if (limit.unavailable) {
+    return guestJson(
+      request,
+      { error: "The calculation service is temporarily unavailable. Please try again." },
+      {
+        status: 503,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
+    );
+  }
   if (!limit.success) {
     return guestJson(
       request,
       { error: "Too many calculations. Please wait a minute and try again." },
-      { status: 429, headers: { "Retry-After": "60" } },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
     );
   }
 

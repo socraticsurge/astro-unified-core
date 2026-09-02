@@ -11,6 +11,7 @@ function env(
   overrides: Record<string, string | undefined> = {},
 ): Record<string, string | undefined> {
   return {
+    NODE_ENV: "development",
     DASHAFLOW_SIDECAR_URL: url,
     DASHAFLOW_SIDECAR_TOKEN: TOKEN,
     ...overrides,
@@ -67,6 +68,13 @@ describe("credentialedDashaflowSidecarConfig", () => {
       )).toBeNull();
     },
   );
+
+  it("rejects HTTP loopback in self-hosted production", () => {
+    expect(credentialedDashaflowSidecarConfig(
+      "/v1/profile/derive",
+      env("http://127.0.0.1:8000", { NODE_ENV: "production" }),
+    )).toBeNull();
+  });
 
   it.each([
     "http://sidecar.example",
