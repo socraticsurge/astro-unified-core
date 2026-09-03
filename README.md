@@ -27,5 +27,7 @@ Required env (production values are set on Vercel; for local dev pull with
 - `NEXTAUTH_URL` (must equal the canonical Vercel alias), `NEXTAUTH_SECRET`
 - `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`
 - `DASHAFLOW_SIDECAR_URL` (defaults to the deployed sidecar)
+- `DASHAFLOW_SIDECAR_TOKEN` (server-only bearer credential required for every
+  sidecar compute call; must match the sidecar's `DASHAFLOW_API_TOKEN`)
 
 See [`docs/PROJECT.md`](docs/PROJECT.md) for everything else.

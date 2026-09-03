@@ -1,10 +1,12 @@
 // Transit engine client — calls the /transit endpoint on our Python sidecar.
 // Returns cast_transit() output: planetary transits, Sade Sati, Rahu-Ketu axis.
+import "server-only";
 
+import { credentialedDashaflowSidecarConfig } from "./dashaflow-config";
 import { fetchWithRetry } from "./fetch-with-retry";
 
-const SIDECAR =
-  process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
+const TRANSIT_UNAVAILABLE =
+  "Transit calculation is temporarily unavailable. Please try again.";
 
 export type TransitInput = {
   date_of_birth: string;
@@ -22,19 +24,23 @@ export type TransitOutput = {
 };
 
 export async function fetchTransit(input: TransitInput): Promise<TransitOutput> {
+  const config = credentialedDashaflowSidecarConfig("/transit");
+  if (!config) return { data: null, error: TRANSIT_UNAVAILABLE };
+
   try {
-    const res = await fetchWithRetry(`${SIDECAR}/transit`, {
+    const res = await fetchWithRetry(config.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(input),
       cache: "no-store",
+      credentials: "omit",
+      redirect: "error",
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: res.statusText }));
-      return {
-        data: null,
-        error: (err as { detail?: string }).detail ?? `Sidecar HTTP ${res.status}`,
-      };
+      return { data: null, error: TRANSIT_UNAVAILABLE };
     }
     const json = (await res.json()) as { status?: string; data?: unknown; transit_date?: string };
     return { data: json.data ?? null, transit_date: json.transit_date };
@@ -42,7 +48,9 @@ export async function fetchTransit(input: TransitInput): Promise<TransitOutput> 
     const isTimeout = e instanceof Error && e.name === "TimeoutError";
     return {
       data: null,
-      error: isTimeout ? "Sidecar request timed out. Please try again." : (e instanceof Error ? e.message : String(e)),
+      error: isTimeout
+        ? "Sidecar request timed out. Please try again."
+        : TRANSIT_UNAVAILABLE,
     };
   }
 }

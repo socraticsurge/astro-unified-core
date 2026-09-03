@@ -76,7 +76,7 @@ be reasoned against all three.
 
 ## 1. Server / Client Boundary Map
 
-<!-- last-updated: 2026-08-29 -->
+<!-- last-updated: 2026-09-03 -->
 
 This is the most important section for anyone touching the codebase. Understanding
 what runs where prevents the class of bugs where env vars are missing, `getServerSession`
@@ -415,7 +415,7 @@ The TypeScript layer is purely HTTP client + cache + TypeScript-native calculati
 ### DashaFlow (Full Chart)
 [`lib/engines/dashaflow.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/dashaflow.ts)
 
-Calls `POST ${DASHAFLOW_SIDECAR_URL}/calculate` with birth coordinates.
+Calls bearer-authenticated `POST ${DASHAFLOW_SIDECAR_URL}/calculate` with birth coordinates.
 Returns 17 chart sections (planets, dashas, yogas, ashtakavarga, etc.).
 Consumed by `DashboardClient` and rendered across `components/unified/tabs/*`
 (Chart, Planets, Houses, Dasha, Yogas, Jaimini, Ashtakavarga). Sidebar
@@ -431,11 +431,15 @@ the exact ordered, unique Surya-through-Ketu sequence. It never returns the raw
 17-section chart. Its two-attempt upstream budget is 12.5 seconds, safely below
 the Panchangam browser's 15-second request deadline.
 
-Both guest projection clients resolve credentials through the server-only
+All compute clients resolve credentials through the server-only
 `lib/engines/dashaflow-config.ts` boundary. It requires a 32–256 character
 printable non-space token and validates the destination before creating an
 Authorization header: HTTPS is mandatory in Vercel Preview/Production, while
-local HTTP is restricted to exact IPv4/IPv6 loopback hosts.
+local HTTP is restricted to exact IPv4/IPv6 loopback hosts. Full chart,
+transit, career, compatibility, registered-user Muhurtha, and both versioned
+guest projections omit browser credentials, reject redirects, and fail closed
+without reading or exposing upstream error bodies. Only sidecar health is
+intentionally unauthenticated.
 
 ### DashaFlow Election Charts
 [`lib/engines/dashaflow-election.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/dashaflow-election.ts)
@@ -451,7 +455,8 @@ or planet drift and explicitly omits browser credentials.
 ### Transit
 [`lib/engines/transit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/transit.ts)
 
-Calls `POST ${DASHAFLOW_SIDECAR_URL}/transit` with birth data + a target date.
+Calls bearer-authenticated `POST ${DASHAFLOW_SIDECAR_URL}/transit` with birth
+data + a target date.
 Returns current planetary positions (sign + degree within sign, not raw longitude).
 
 > **Key gotcha**: the sidecar returns `{ sign: "Taurus", degree: 14.3 }` per
@@ -462,7 +467,7 @@ Returns current planetary positions (sign + degree within sign, not raw longitud
 ### Career (D10 Analysis)
 [`lib/engines/career.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/career.ts)
 
-Calls `POST ${DASHAFLOW_SIDECAR_URL}/career` with birth data.
+Calls bearer-authenticated `POST ${DASHAFLOW_SIDECAR_URL}/career` with birth data.
 Returns D10 chart themes and planet-domain recommendations for career guidance.
 
 ### Tarabalam (TypeScript-native, no sidecar)
@@ -604,7 +609,12 @@ touch NextAuth, Turso, PostHog, or request-body logging.
 
 **[`app/api/readings/muhurtha/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/readings/muhurtha/route.ts)**
 
-- `POST` — auspicious timing check for an event type + date/time/location
+- `POST` — bearer-authenticated auspicious timing check for an event type,
+  date window, and event location. No profile birth value is transmitted
+  because this sidecar operation does not use natal data. Until the relaxed
+  sidecar schema is deployed, its required `birth_data` object and the event
+  location's date/time slots receive fixed non-personal placeholders; only
+  event coordinates and timezone affect the calculation.
 
 **[`app/api/readings/tarabalam/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/readings/tarabalam/route.ts)**
 
@@ -624,7 +634,7 @@ touch NextAuth, Turso, PostHog, or request-body logging.
 - `POST` — run a new check:
   1. Load both profiles from DB (verifies ownership)
   2. Check limit (6 checks per user)
-  3. `POST ${DASHAFLOW_SIDECAR_URL}/compatibility` with both profiles' birth data
+  3. Bearer-authenticated `POST ${DASHAFLOW_SIDECAR_URL}/compatibility` with both profiles' birth data
   4. `db.compatibility.save(userId, { profile_id_1, profile_id_2, score, result_json })`
   5. Return saved check record
 
@@ -1217,7 +1227,11 @@ activation-gated managed authenticated geocoder add required fail-closed
 Upstash per-client/per-user and fleet enforcement, but other routes remain per
 Lambda instance. See `BACKLOG.md` item D7 for the remaining migration.
 
-**Sidecar unauthenticated** — low risk currently. See `BACKLOG.md` item D1.
+**Sidecar authentication rollout staged (2026-09-03)** — all non-health
+compute callers now use the shared validated bearer boundary on the release
+branch. Production remains open in `BACKLOG.md` D1 until the credentialed
+caller deploy is followed by verified sidecar enforcement without a cutover
+gap.
 
 **`scratch_test_rate_limit.ts`** at project root — dev scratch file, should be deleted. See `BACKLOG.md` T1.
 

@@ -1,5 +1,6 @@
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
+vi.mock("server-only", () => ({}));
 vi.mock("next-auth/next", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ authOptions: {}, getUserId: (s) => s?.user?.id ?? "" }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
@@ -28,6 +29,7 @@ import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 
 const session = { user: { id: "user-1" } };
+const serviceToken = "test-service-token-that-is-at-least-32-characters";
 
 const p1 = { id: "prof-1", user_id: "user-1", date_of_birth: "1990-01-01", time_of_birth: "12:00", latitude: 19, longitude: 72, timezone: "Asia/Kolkata" };
 const p2 = { id: "prof-2", user_id: "user-1", date_of_birth: "1992-06-15", time_of_birth: "08:30", latitude: 28, longitude: 77, timezone: "Asia/Kolkata" };
@@ -59,7 +61,19 @@ describe("GET /api/compatibility", () => {
 });
 
 describe("POST /api/compatibility", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(fetch as ReturnType<typeof vi.fn>).mockReset();
+    process.env.DASHAFLOW_SIDECAR_TOKEN = serviceToken;
+    process.env.DASHAFLOW_SIDECAR_URL = "https://sidecar.example/";
+    delete process.env.VERCEL_ENV;
+  });
+
+  afterEach(() => {
+    delete process.env.DASHAFLOW_SIDECAR_TOKEN;
+    delete process.env.DASHAFLOW_SIDECAR_URL;
+    delete process.env.VERCEL_ENV;
+  });
 
   const makeReq = (body: object) =>
     new NextRequest("http://localhost/api/compatibility", {
@@ -141,5 +155,77 @@ describe("POST /api/compatibility", () => {
     expect(res.headers.get("Cache-Control")).toBe("private, no-store");
     const data = await res.json();
     expect(data.id).toBe("compat-1");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = vi.mocked(fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(url).toBe("https://sidecar.example/compatibility");
+    expect(init).toEqual(expect.objectContaining({
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${serviceToken}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+      credentials: "omit",
+      redirect: "error",
+    }));
+  });
+
+  it("fails closed before fetch when sidecar credentials are missing", async () => {
+    delete process.env.DASHAFLOW_SIDECAR_TOKEN;
+    vi.mocked(getServerSession).mockResolvedValue(session as never);
+    vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
+    vi.mocked(db.compatibility.findDuplicate).mockResolvedValue(undefined as never);
+    vi.mocked(db.compatibility.countByUser).mockResolvedValue(0 as never);
+    vi.mocked(db.profiles.get).mockResolvedValueOnce(p1 as never).mockResolvedValueOnce(p2 as never);
+
+    const res = await POST(makeReq({ profile_id_1: "prof-1", profile_id_2: "prof-2" }));
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({
+      error: "Compatibility calculation is temporarily unavailable. Please try again.",
+    });
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("does not read or expose an upstream error body", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session as never);
+    vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
+    vi.mocked(db.compatibility.findDuplicate).mockResolvedValue(undefined as never);
+    vi.mocked(db.compatibility.countByUser).mockResolvedValue(0 as never);
+    vi.mocked(db.profiles.get).mockResolvedValueOnce(p1 as never).mockResolvedValueOnce(p2 as never);
+    const text = vi.fn(async () => "private-sidecar-diagnostic");
+    vi.mocked(fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      status: 400,
+      text,
+    } as never);
+
+    const res = await POST(makeReq({ profile_id_1: "prof-1", profile_id_2: "prof-2" }));
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({
+      error: "Compatibility calculation is temporarily unavailable. Please try again.",
+    });
+    expect(text).not.toHaveBeenCalled();
+  });
+
+  it("does not expose an upstream network exception", async () => {
+    vi.mocked(getServerSession).mockResolvedValue(session as never);
+    vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
+    vi.mocked(db.compatibility.findDuplicate).mockResolvedValue(undefined as never);
+    vi.mocked(db.compatibility.countByUser).mockResolvedValue(0 as never);
+    vi.mocked(db.profiles.get).mockResolvedValueOnce(p1 as never).mockResolvedValueOnce(p2 as never);
+    vi.mocked(fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("private-network-diagnostic"),
+    );
+
+    const res = await POST(makeReq({ profile_id_1: "prof-1", profile_id_2: "prof-2" }));
+
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({
+      error: "Compatibility calculation is temporarily unavailable. Please try again.",
+    });
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
   });
 });

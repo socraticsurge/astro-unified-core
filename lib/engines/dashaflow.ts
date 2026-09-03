@@ -9,12 +9,8 @@ import { z } from "zod";
 import { credentialedDashaflowSidecarConfig } from "./dashaflow-config";
 import { fetchWithRetry } from "./fetch-with-retry";
 
-const DEFAULT_SIDECAR = "https://dashaflow-sidecar.vercel.app";
-
-function sidecarUrl(path: string): string {
-  const base = (process.env.DASHAFLOW_SIDECAR_URL || DEFAULT_SIDECAR).replace(/\/+$/, "");
-  return `${base}${path}`;
-}
+const FULL_CHART_UNAVAILABLE =
+  "Chart calculation is temporarily unavailable. Please try again.";
 
 export type DashaflowInput = {
   date_of_birth: string;   // YYYY-MM-DD
@@ -148,19 +144,23 @@ function retryAfterSeconds(response: Response, fallback: number): number {
 }
 
 export async function fetchDashaflow(input: DashaflowInput): Promise<DashaflowOutput> {
+  const config = credentialedDashaflowSidecarConfig("/calculate");
+  if (!config) return { data: null, error: FULL_CHART_UNAVAILABLE };
+
   try {
-    const res = await fetchWithRetry(sidecarUrl("/calculate"), {
+    const res = await fetchWithRetry(config.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(input),
       cache: "no-store",
+      credentials: "omit",
+      redirect: "error",
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: res.statusText }));
-      return {
-        data: null,
-        error: (err as { detail?: string }).detail ?? `Sidecar HTTP ${res.status}`,
-      };
+      return { data: null, error: FULL_CHART_UNAVAILABLE };
     }
     const json = (await res.json()) as { status?: string; data?: unknown };
     return { data: json.data ?? null };
@@ -168,7 +168,9 @@ export async function fetchDashaflow(input: DashaflowInput): Promise<DashaflowOu
     const isTimeout = e instanceof Error && e.name === "TimeoutError";
     return {
       data: null,
-      error: isTimeout ? "Sidecar request timed out. Please try again." : (e instanceof Error ? e.message : String(e)),
+      error: isTimeout
+        ? "Sidecar request timed out. Please try again."
+        : FULL_CHART_UNAVAILABLE,
     };
   }
 }

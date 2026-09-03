@@ -8,6 +8,19 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-09-03] — Authenticated sidecar compute boundary
+
+### Changed
+- **All non-health DashaFlow calls now use one credential boundary** — full-chart (`/calculate`), transit, career, compatibility, and registered-user Muhurtha callers resolve their destination through `credentialedDashaflowSidecarConfig(path)` and attach `DASHAFLOW_SIDECAR_TOKEN` only after HTTPS/exact-loopback validation. Every request explicitly omits browser credentials, rejects redirects, and avoids framework caching; missing or unsafe configuration fails closed before network access.
+- **Muhurtam data minimization** — the registered-user Muhurtha request no longer sends the profile's natal values. The currently deployed legacy sidecar still requires a `birth_data` object even though the operation uses only event location and date window, so the caller sends a fixed non-personal placeholder object until the relaxed schema is live. Required event-location date/time slots are synthetic too.
+
+### Fixed
+- **Upstream detail redaction** — legacy engine clients and routes no longer read or return sidecar error bodies or network exception messages. Users receive operation-specific, stable availability messages while existing successful response shapes and reading-cache behavior remain unchanged.
+- **Coordinated rollout contract** — deployment documentation now requires the Astro caller migration to land before the sidecar begins enforcing bearer authentication on all compute routes. `/health` remains the only public operational route.
+
+### Added
+- Focused client and route tests for validated destinations, bearer headers, omitted credentials, fail-closed configuration, upstream-body redaction, and Muhurtha wire-data minimization.
+
 ## [2026-09-03] — Upstash geocoder data minimization
 
 ### Changed
