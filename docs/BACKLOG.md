@@ -1,6 +1,6 @@
 # Backlog
 
-<!-- last-updated: 2026-05-19 -->
+<!-- last-updated: 2026-08-31 -->
 
 Tracks known bugs, deferred features, tech debt, and session decisions.
 
@@ -16,7 +16,7 @@ Issues that are currently broken or produce incorrect behaviour.
 
 | # | Description | File(s) | Severity |
 |---|---|---|---|
-| B1 | In-memory rate limiting is per Lambda instance, not global. Rapid requests from the same user hitting different Lambda instances bypass the limit. | `lib/rate-limit.ts` | Low (current traffic is low) |
+| B1 | Most authenticated and legacy route limits remain per Lambda instance. The three approval-gated Panchangam guest routes and the separately gated managed authenticated geocoder have fail-closed shared identity/fleet limits, but other routes can still be spread across instances. | `lib/rate-limit.ts`, `lib/guest-rate-limit.ts`, `lib/authenticated-geocoder-rate-limit.ts`, `lib/distributed-rate-limit.ts` | Low (current traffic is low) |
 | B2 | Old `readings` rows from removed engines (`bazi`, `vedastro`, `western`, `panchangam`) sit in the DB. Never served but waste storage; could confuse queries if an engine name is reused. | Turso DB | Low |
 
 ---
@@ -28,14 +28,15 @@ so future agents don't re-open the conversation unnecessarily.
 
 | # | Feature | Why deferred | Notes |
 |---|---|---|---|
-| D1 | Sidecar authentication | Low risk — sidecar is stateless, read-only, no PII stored. | Add a shared-secret header (`X-Sidecar-Secret`) in `lib/engines/*.ts` and validate in Python sidecar when traffic grows. |
-| D2 | Custom domain (`astrochaganti.com`) | Using `astro-unified-core-pfni.vercel.app` for now. | Must update `NEXTAUTH_URL` env var and Google OAuth redirect URIs when switching. |
+| D1 | Legacy sidecar authentication | The versioned `/v1/profile/derive` and `/v1/election-chart/derive` operations are bearer-authenticated as of 2026-08-29; legacy `/calculate` and other registered-user operations remain unchanged for rollout compatibility. | Coordinate a separate migration before requiring credentials on legacy callers. Do not treat the protected guest projections as protection for every sidecar route. |
 | D3 | Lead capture / email sign-up | Contact CTA is currently a `mailto:` link. | Could be wired to Resend or Formspree without backend changes. |
 | D4 | Live consultation booking | Users email for a calendar link. | Cal.com or Calendly embed is the low-friction path. No DB changes needed. |
 | D5 | Profile sharing (public profile links) | Profiles are private to owner + admin. | Would require a `is_public` flag on profiles and an unauthenticated route. |
 | D6 | Family / relationship graph | Profiles are flat. No way to mark "this is spouse of profile X". | A `profile_relationships` join table would enable this. Tarabalam family selector is a workaround. |
-| D7 | Global rate limiting | Current limiters are per-Lambda instance. | Requires Upstash Redis + one env var (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`). Drop-in swap in `lib/rate-limit.ts`. |
+| D7 | Complete global rate limiting | All three Panchangam guest routes have required fail-closed shared per-client and route-wide fleet enforcement. The managed authenticated geocoder candidate adds per-user enforcement and shares the guest-search provider fleet ceiling, but its migration flag is off. Other authenticated and legacy route limiters remain per-Lambda instance. | Migrate remaining routes deliberately with route-specific identity and rollout tests. Requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. |
 | D8 | More DashaFlow endpoints in Professional view | Sidecar exposes `evaluate_muhurtha`, deeper career details, more compatibility fields. | Check `dashaflow/__init__.py` for what's available. |
+| D9 | Guest Swiss Ephemeris production clearance (Panchangam #231) | Distribution/public-service licensing for the Swiss Ephemeris dependency is not yet recorded as resolved. | Keep `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED` off in Vercel Preview/Production until the owner closes #231 with the selected license path. Local verification remains available. |
+| D10 | Production geocoder/provider selection (Panchangam #233) | Fixed adapters now exist for LocationIQ EU/US and Geoapify; the same boundary supports guest search and a separately gated authenticated migration, deployed normalized-result caching, structured attribution, per-user/fleet budgets, and no public-Nominatim fallback after activation. Existing authenticated profiles retain their legacy path while the new auth flag is off. No provider, Redis processor terms, billing posture, daily quota acceptance, or live key is approved. | Select and approve one adapter and Redis host with their retention/quota terms, configure server-only provider/storage values, verify guest Preview, then separately verify and activate `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true` without tying it to guest flags. Obtain owner approval before merge or deployment. |
 
 ---
 
@@ -73,6 +74,7 @@ future agents understand the reasoning and don't relitigate resolved discussions
 | S5 | 2026-05-13 | Rate limiter consolidated in `lib/rate-limit.ts`; `lib/security.ts` deleted | Two rate-limiter modules with similar APIs created confusion. One canonical module reduces the surface area. |
 | S6 | 2026-05-13 | `DASHAFLOW_SIDECAR_URL` — removed `NEXT_PUBLIC_` prefix | The sidecar URL is a server secret (points to an internal service). `NEXT_PUBLIC_` would have bundled it into browser JS, making it publicly visible in the page source. |
 | S7 | 2026-05-14 | Documentation reorganised into 9 files with a strict ceiling | More than ~8–9 docs becomes unmaintainable for a small team with multi-agent collaboration. STANDARDS.md is the new cross-agent source of truth. |
+| S8 | 2026-08-29 | `https://astrochaganti.com` is the verified production custom domain | The linked Vercel project `astro-unified-core-pfni` currently serves this domain; guest Panchangam clients use its `/api/guest` routes. OAuth environment and redirect values remain separately controlled and must not be inferred from the browser API base. |
 
 ---
 
@@ -81,20 +83,21 @@ future agents understand the reasoning and don't relitigate resolved discussions
 Near-term and medium-term feature intentions. For full context see `PRODUCT.md §7`.
 
 ### Near-term
+- [ ] Close Panchangam licensing issue #231 before enabling either guest calculation route in Vercel
+- [ ] Close Panchangam geocoder/provider issue #233 and configure the managed provider before enabling guest birth profiles
 - [ ] Expose more DashaFlow sidecar endpoints (D8) in Professional view
 - [ ] Live consultation booking via Cal.com embed (D4)
 - [ ] Email notification when consultation is answered (D3 variant)
 
 ### Medium-term
-- [ ] Global rate limiting via Upstash Redis (D7)
+- [ ] Extend the election route's Upstash enforcement to remaining routes (D7)
 - [ ] Family relationship graph (D6)
 - [ ] Public profile sharing (D5)
 
 ### Long-term / Under review
-- [ ] Custom domain — `astrochaganti.com` (D2)
 - [ ] Mobile-first redesign
 - [ ] Payment integration (Razorpay/Stripe) for consultations
 
 ---
 
-*Last updated: 2026-05-19*
+*Last updated: 2026-08-31*

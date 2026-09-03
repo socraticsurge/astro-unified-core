@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
     "/api/profiles/[id]": [
       "./node_modules/geo-tz/data/timezones-1970.geojson.*",
     ],
+    "/api/guest/places/search": [
+      "./node_modules/geo-tz/data/timezones-1970.geojson.*",
+    ],
   },
   async headers() {
     return [

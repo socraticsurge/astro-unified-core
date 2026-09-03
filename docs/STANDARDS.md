@@ -1,6 +1,6 @@
 # Astro Chaganti — Project Standards
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-08-31 -->
 
 > **Agent-neutral.** These rules apply to Claude Code, Jules, Gemini, and any
 > future agent. They are the single source of truth for all coding standards.
@@ -249,9 +249,13 @@ if (!result.success) {
 | `POST /api/readings/tarabalam` | user email | 20 / min |
 | `GET/POST /api/readings/dashaflow` | user email | implicit via profile cap |
 
-**Known limitation:** rate limits are per-Lambda instance, not global (see
-`BACKLOG.md` D7). Adequate for current traffic; replace with Upstash Redis for
-global enforcement at scale.
+**Known limitation:** most rate limits are per-Lambda instance, not global (see
+`BACKLOG.md` D7). The three approval-gated Panchangam guest routes and the
+separately gated managed authenticated geocoder are scoped exceptions: they add
+required, fail-closed Upstash identity and fleet enforcement in deployed
+runtimes. Guest search and managed authenticated geocoding share one fleet key.
+Extend that pattern deliberately rather than assuming every route is globally
+limited.
 
 ---
 

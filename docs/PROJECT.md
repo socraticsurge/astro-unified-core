@@ -4,7 +4,7 @@ A Vedic-astrology birth-chart application by Dr. Vinay Kumar Chaganti.
 Users sign in with Google, save profiles for themselves and family
 members, and see a detailed chart for each profile.
 
-- **Live site**: https://astro-unified-core-pfni.vercel.app/
+- **Live site**: https://astrochaganti.com/
 - **Main repo**: https://github.com/socraticsurge/astro-unified-core (this repo)
 - **Sidecar repo**: https://github.com/socraticsurge/dashaflow-sidecar (private)
 
@@ -25,7 +25,7 @@ GitHub: astro-unified-core      GitHub: dashaflow-sidecar (private)
 │ Next.js 16, NextAuth, │         │ (Swiss Ephemeris,     │
 │ shadcn/ui, Tailwind   │         │ Lahiri ayanamsha)     │
 │                       │         │                       │
-│ DB: Turso (libSQL)    │         │ No DB, no auth        │
+│ DB: Turso (libSQL)    │         │ No DB; v1 bearer auth │
 └───────────────────────┘         └───────────────────────┘
 ```
 
@@ -46,7 +46,7 @@ Vercel project (with no Next.js) gives it sole ownership of `/api/*`.
 | Database              | Turso (libSQL, hosted)                                                 |
 | Astrology engine      | DashaFlow 1.1.0 (PyPI) — Swiss Ephemeris, Lahiri sidereal              |
 | Sidecar runtime       | FastAPI on Vercel Python serverless                                    |
-| Geocoding             | OpenStreetMap Nominatim                                                |
+| Geocoding             | Local development: fixed OpenStreetMap Nominatim; Preview/Production: one fixed LocationIQ/Geoapify adapter shared by guest and registered-profile journeys |
 | UI                    | Tailwind v4, shadcn/ui                                                 |
 | Fonts                 | Inter (body) + Cormorant Garamond (headings) via `next/font`           |
 | Hosting               | Vercel (both projects, Hobby plan)                                     |
@@ -75,6 +75,8 @@ app/
     ├── auth/[...nextauth]/route.ts     # NextAuth handler
     ├── profiles/route.ts               # List / create profiles
     ├── profiles/[id]/route.ts          # Get / delete one profile
+    ├── guest/profile/derive/route.ts   # Stateless birth-profile projection
+    ├── guest/muhurta/election-charts/  # Stateless election-chart projection
     ├── content/[type]/[key]/route.ts   # Lazy fetch for per-row interpretive content
     └── readings/dashaflow/route.ts     # Sidecar proxy + cache
 
@@ -106,9 +108,10 @@ lib/
 ├── auth.ts                             # Shared authOptions for getServerSession
 ├── admin.ts                            # ADMIN_EMAILS + isAdmin helper
 ├── db.ts                               # Turso client, schema, queries
-├── engines/dashaflow.ts                # HTTP client for the sidecar
+├── engines/dashaflow.ts                # Full-chart + guest profile sidecar client
+├── engines/dashaflow-election.ts       # Guest election-chart sidecar client
 ├── chart-summary.ts                    # Text summary for clipboard / LLM
-├── geocode.ts                          # Nominatim wrapper
+├── geocode.ts                          # Bounded managed adapters + local Nominatim path
 └── content/                            # Server-only loaders and renderers
     ├── loader.ts                       # readSync + frontmatter parse, cached
     ├── lookup.ts                       # planet-in-house / dasha-pair / etc. helpers
@@ -123,6 +126,8 @@ proxy.ts                                # NextAuth middleware (matcher + authori
 
 ```
 api/index.py             # FastAPI: GET /health, POST /calculate
+api/profile.py           # Authenticated /v1/profile/derive projection
+api/election_chart.py    # Authenticated /v1/election-chart/derive projection
 requirements.txt         # fastapi==0.115.0, dashaflow==1.1.0
 vercel.json              # Subpath rewrite so /api/python/:path* hits the function
 ```
@@ -138,10 +143,20 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `GOOGLE_CLIENT_ID`         | Google OAuth client id                                        |
 | `GOOGLE_CLIENT_SECRET`     | Google OAuth client secret                                    |
 | `NEXTAUTH_SECRET`          | NextAuth JWT signing                                          |
-| `NEXTAUTH_URL`             | **Must equal** the canonical alias `https://astro-unified-core-pfni.vercel.app` — used in OAuth `redirect_uri` |
+| `NEXTAUTH_URL`             | Canonical authentication origin used in OAuth `redirect_uri`; verify the deployed value and matching Google OAuth configuration before changing it. |
 | `TURSO_DATABASE_URL`       | libSQL DSN                                                    |
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
-| `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`                        |
+| `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`. Vercel Preview/Production require HTTPS; local HTTP is restricted to exact loopback hosts. |
+| `DASHAFLOW_SIDECAR_TOKEN`  | Server-only 32–256 character printable non-space ASCII bearer credential sent to the sidecar's `/v1/profile/derive` and `/v1/election-chart/derive`; must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
+| `GUEST_BIRTH_PROFILE_ENABLED` | Server-only guest place-search/profile-derive gate. Omission defaults on only for an explicitly classified local/test runtime; recognized Vercel Preview/Production runtimes require the exact value `true`, and ambiguous markers (including self-hosted production without a trusted-proxy contract) fail closed. Keep off until Panchangam #231 and #233 close. |
+| `GUEST_ELECTION_CHART_ENABLED` | Independent server-only election-chart gate with the same local default and exact deployed opt-in. Keep off until Panchangam #231 closes. |
+| `GEOCODER_PROVIDER` | Server-only place-search adapter selector. Optional locally, where fixed public Nominatim is the default. Preview/Production guest search and an enabled authenticated migration require exactly `locationiq-eu`, `locationiq-us`, or `geoapify`; endpoints are code-owned and arbitrary base URLs are not accepted. |
+| `GEOCODER_API_KEY` | Server-only key for the selected managed provider; required with `GEOCODER_PROVIDER` for deployed guest search or the enabled authenticated migration, and never returned to the browser. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
+| `GEOCODER_DAILY_REQUEST_LIMIT` | Server-only managed-provider request allowance: a canonical integer from 1 through 5,000. Every deployed cache miss must atomically reserve one shared Preview- or Production-scoped slot before provider scheduling; missing, malformed, exhausted, or unavailable enforcement fails closed. Cache hits and coalesced duplicate callers do not consume it. |
+| `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` | Separate server-only registered-profile migration gate. Existing signed-in create/edit keeps the legacy provider unless this equals the exact string `true` in Preview/Production. Enable only after managed provider, Redis processor, quota, privacy, and full journey approval. Guest flags do not control it. |
+| `UPSTASH_REDIS_REST_URL` | Preferred complete server-only HTTPS pair injected by the Vercel Upstash Redis Marketplace integration; required in deployed runtimes for guest abuse controls, enabled authenticated per-user/fleet control, and managed-geocoder caching. |
+| `UPSTASH_REDIS_REST_TOKEN` | Standard server-only REST token for the same Redis database. Rate-limit and geocoder keys are HMAC-pseudonymized; limit keys expire after one minute and normalized geocoder rows after 24 hours. Never prefix with `NEXT_PUBLIC_`. |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Compatibility Redis REST pair. Used only when both values are present and the preferred Upstash pair is incomplete. URL/token values are never composed across namespaces. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
 | `GROQ_API_KEY`             | Secondary LLM provider used by chat / draft generation (`lib/engines/groq.ts`). Get from console.groq.com. |
 | `ADMIN_EMAILS` (required)  | Comma-separated list of admin email addresses. If unset, no one has admin access. |
@@ -151,7 +166,90 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `RESEND_API_KEY`           | Resend API key (`re_…`). Used to send the admin notification email on new consultation requests. If unset, notifications are silently skipped (helper short-circuits). Recipient and from-address are hardcoded in `lib/constants.ts`. |
 | `CRON_SECRET` (required)   | Shared secret the landing-refresh cron sends as `Authorization: Bearer <secret>` to `/api/cron/regenerate-landing` every 8 hours. Generate a random 32+ char string. Set as both a Vercel env var (so the route can validate) AND a GitHub Actions repo secret (so the workflow can send). The workflow lives at `.github/workflows/landing-cron.yml` — we use GitHub Actions instead of Vercel Cron because the Hobby plan only allows daily cron schedules. |
 
-### Sidecar — none required.
+#### Managed geocoder adapters
+
+| `GEOCODER_PROVIDER` | Fixed endpoint | Query/key parameters | Normalized response |
+|---|---|---|---|
+| `locationiq-eu` | `https://eu1.locationiq.com/v1/search` | `q` / `key`; adapter pins OSM-only `source=nom` | JSON array with `lat`, `lon`, `display_name`, `place_id` |
+| `locationiq-us` | `https://us1.locationiq.com/v1/search` | `q` / `key`; adapter pins OSM-only `source=nom` | JSON array with `lat`, `lon`, `display_name`, `place_id` |
+| `geoapify` | `https://api.geoapify.com/v1/geocode/search` | `text` / `apiKey`; adapter forces `format=json` | `results` array with `lat`, `lon`, `formatted`, `place_id` |
+
+The endpoint and parameter mapping is not environment-configurable. Guest
+search keeps its existing `attribution` string and adds structured
+`{ label, url }` links for provider and OpenStreetMap credit. Existing deployed
+authenticated profile creation/editing keeps its legacy provider until
+`AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true`. The enabled migration uses the
+same fixed provider independently of guest flags, issues one bounded query per
+place, and applies a distributed ten-call-per-user limit plus the same 60-call
+minute fleet ceiling used by guest search. After a shared-cache miss and
+duplicate coalescing, guest and managed-authenticated work also share one
+atomic `GEOCODER_DAILY_REQUEST_LIMIT` counter per Vercel environment. Failed
+admitted provider attempts consume their slot; cached and coalesced work does
+not. See the official
+[LocationIQ search contract](https://docs.locationiq.com/reference/search),
+[LocationIQ attribution guide](https://web.locationiq.com/attribution), and
+[Geoapify forward-geocoding contract](https://apidocs.geoapify.com/docs/geocoding/forward-geocoding/).
+Provider selection, terms/billing approval, a real key, and activation remain
+release decisions tracked in Panchangam #233.
+
+### Sidecar
+
+| Variable | Purpose |
+|---|---|
+| `DASHAFLOW_API_TOKEN` | Required 32–256 character bearer-token verifier for `/v1/profile/derive` and `/v1/election-chart/derive`. Legacy operations remain compatible during rollout. Use the same secret value as the main app's `DASHAFLOW_SIDECAR_TOKEN`. |
+
+### Guest calculation gateway rollout (approval-gated)
+
+This is a coordinated three-service change; a code merge by itself is not a
+release. Use this order so no public browser can reach an uncredentialed or
+missing calculation operation:
+
+1. Keep `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED`
+   absent or false in Vercel Preview and Production. Close Panchangam #231 with
+   the owner-recorded Swiss Ephemeris license decision. Close #233 with the
+   approved managed geocoder choice; configure its `GEOCODER_PROVIDER` and
+   server-only `GEOCODER_API_KEY`, plus an owner-approved canonical
+   `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 5,000. Public Nominatim cannot
+   satisfy deployed guest configuration. Keep
+   `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` absent or false so this guest rollout
+   cannot regress existing signed-in profiles.
+2. Generate one random 32–256 character printable non-space service credential. Configure it as
+   `DASHAFLOW_API_TOKEN` on the sidecar and deploy the sidecar implementation
+   that exposes `POST /v1/profile/derive` and
+   `POST /v1/election-chart/derive`. Verify its public health route and legacy
+   `/calculate` callers remain compatible.
+3. Install the Upstash Redis Marketplace integration on the Astro Chaganti
+   Vercel project so `UPSTASH_REDIS_REST_URL` and
+   `UPSTASH_REDIS_REST_TOKEN` are injected (or deliberately approve one complete
+   `KV_REST_API_URL` / `KV_REST_API_TOKEN` compatibility pair). Preview and
+   Production guest calls fail closed with `503` when shared per-client/fleet
+   enforcement or the normalized-result geocoder cache is absent or
+   unavailable; local/test runs keep bounded process-only state.
+4. Configure the same value as `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti
+   Preview and Production. Confirm the configured sidecar URL is HTTPS in both
+   environments. Deploy the gateway and verify allowed/disallowed
+   OPTIONS, `private, no-store`, 4 KiB rejection, local and global rate-limit
+   retry headers, and fixture profile and election-chart derivations,
+   including chart order and whole-sign provenance. Tokens must never appear
+   in a browser bundle or response.
+5. Enable only the route being released by setting its server-only flag to the
+   exact value `true`. Verify disabled routes still return a sanitized
+   `private, no-store` `503` without consuming request bodies, local limits,
+   Redis, geocoder, or sidecar capacity.
+6. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
+   that consumer only after the gateway fixture passes from
+   `https://panchangam.astrochaganti.com`.
+7. Treat registered-profile provider migration as a later, independent release.
+   Keep `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` off until signed-in profile
+   create/edit, provider attribution and privacy terms, shared-cache failure,
+   per-user limiting, and the fleet ceiling pass in Preview. Enable the exact
+   value `true` only with separate owner approval; guest flags do not imply it.
+
+Rollback is stateless: keep the Panchangam manual-profile and base Muhurtam
+ranking paths available, disable their optional guest API entry points, then
+roll back the gateway if needed. There are no Astro Chaganti profile rows,
+sessions, caches, intent records, or analytics events to delete. Rotate both
+token variables together if either value may have been exposed.
 
 ### Google Cloud Console — OAuth consent
 
@@ -446,7 +544,7 @@ fetch `GET /v13/deployments/{id}` from the Vercel API, read `readyState`,
 2. User creates a profile at /profiles/new
    → POST /api/profiles
    → getServerSession(authOptions) → user.id (Google sub)
-   → geocode(place) → lat, lon, timezone via Nominatim + geo-tz
+   → geocode(place) → lat, lon, timezone via the configured provider + geo-tz
    → INSERT into profiles
    → redirect to /profiles/{id}
 
@@ -458,6 +556,21 @@ fetch `GET /v13/deployments/{id}` from the Vercel API, read `readyState`,
        → save reading row, return chart
    → DashboardClient renders the 10-tab unified view (Today, Chart, Planets,
      Houses, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career, Compare)
+
+4. Panchangam guest derives a browser-local profile (no Astro Chaganti session)
+   → POST /api/guest/places/search from an approved Origin
+   → choose returned coordinates + IANA timezone
+   → POST /api/guest/profile/derive with exact date/time and selected place
+   → main app sends DASHAFLOW_SIDECAR_TOKEN to sidecar /v1/profile/derive
+   → return only normalized contract v1; Panchangam stores it locally
+
+5. Panchangam guest requests election charts for Muhurtam screening
+   → POST /api/guest/muhurta/election-charts from an approved Origin
+   → main app validates location + at most 24 bounded, ordered instants
+   → main app omits browser credentials and sends DASHAFLOW_SIDECAR_TOKEN to
+     sidecar /v1/election-chart/derive
+   → validate and return only contract v1; no activity, person, natal chart,
+     auth session, intent, or result is persisted
 ```
 
 ---
@@ -480,6 +593,21 @@ uvicorn api.index:app --reload  # http://localhost:8000
 
 For local main-app dev you don't need the local sidecar — `DASHAFLOW_SIDECAR_URL`
 in `.env.local` (or the Vercel-pulled one) can point to the production sidecar.
+Guest profile and election-chart derivation additionally require
+`DASHAFLOW_SIDECAR_TOKEN` to
+match the selected sidecar's `DASHAFLOW_API_TOKEN`. Local browser requests are
+accepted only from exact HTTP `localhost`, `127.0.0.1`, or `[::1]` origins.
+Local sidecar HTTP follows the same exact-loopback rule; Preview and Production
+always require an HTTPS sidecar URL before bearer credentials are attached.
+Guest calculations default on locally when their server-only flags are omitted;
+set either flag to `false` to test its disabled state. Local public-Nominatim
+calls share one process-wide request-per-second scheduler and a bounded 24-hour
+cache. Preview and Production default both guest routes off; guest place search
+requires one fixed LocationIQ or Geoapify adapter, its server-only key, and the
+bounded shared cache. Signed-in profiles retain the legacy provider until the
+separate managed-migration flag is approved and enabled. Adapter support does
+not itself select a provider, approve terms, provision a real key, or activate
+either feature.
 
 ---
 
@@ -487,11 +615,14 @@ in `.env.local` (or the Vercel-pulled one) can point to the production sidecar.
 
 These came up but were left out of scope. None block the live site.
 
-- **Sidecar auth**: the Python sidecar is unauthenticated. Anyone with the
-  URL can compute charts. Low risk (read-only, no PII, no DB), but a shared
-  secret header would harden it.
-- **Custom domain**: we use `astro-unified-core-pfni.vercel.app`. A real
-  domain (`astrochaganti.com` or similar) would be cleaner.
+- **Legacy sidecar auth**: `/v1/profile/derive` and
+  `/v1/election-chart/derive` are bearer-authenticated. The
+  legacy full-chart and registered-user operations remain unchanged for
+  compatibility and need a separate coordinated migration before they can
+  require a service credential.
+- **Production domain**: `https://astrochaganti.com` is attached to the
+  `astro-unified-core-pfni` Vercel project. Authentication callback settings
+  remain a separate controlled configuration boundary.
 - **Lead capture**: the contact section is a `mailto:` link. No email
   capture / waitlist form yet.
 - **Payment / appointment booking**: the current flow asks users to email
@@ -574,4 +705,4 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 *See `docs/STANDARDS.md` for coding standards, `docs/ARCHITECTURE.md` for system
 design, `docs/BACKLOG.md §Session Decisions` for historical architectural choices.*
 
-*Last updated: 2026-05-14*
+*Last updated: 2026-08-29*

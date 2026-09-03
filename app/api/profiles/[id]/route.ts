@@ -45,7 +45,7 @@ export async function PUT(
 
     if (place_of_birth !== existingProfile.place_of_birth) {
       try {
-        const geo = await geocodePlace(place_of_birth);
+        const geo = await geocodePlace(place_of_birth, { authenticatedUserId: userId });
         latitude = geo.latitude;
         longitude = geo.longitude;
         timezone = geo.timezone;
@@ -63,7 +63,7 @@ export async function PUT(
 
     if (current_location && current_location !== existingProfile.current_location) {
       try {
-        const currentGeo = await geocodePlace(current_location);
+        const currentGeo = await geocodePlace(current_location, { authenticatedUserId: userId });
         current_latitude = currentGeo.latitude;
         current_longitude = currentGeo.longitude;
         current_timezone = currentGeo.timezone;

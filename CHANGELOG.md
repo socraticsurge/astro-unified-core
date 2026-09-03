@@ -8,6 +8,71 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-09-03] — Managed-geocoder quota controls
+
+### Fixed
+- **Provider-wide daily allowance** — every deployed managed-provider attempt must reserve one atomic Redis slot from the bounded `GEOCODER_DAILY_REQUEST_LIMIT` before scheduling or transit. Guest and managed-authenticated traffic share the allowance; shared-cache hits and coalesced duplicate callers do not consume it, while an admitted failed provider attempt does. Missing, malformed, exhausted, or unavailable enforcement fails closed. This adds pre-activation controls only; it does not choose a provider, configure credentials, or activate public traffic.
+- **Deployment-scoped limiter keys** — the shared rate-limit primitive now incorporates the exact Vercel `preview` or `production` environment before HMAC pseudonymization. All deployed counters remain opaque in Redis and cannot collide when both deployments use the same Redis database and token; ambiguous runtimes continue to fail closed and local behavior is unchanged.
+
+### Added
+- Focused tests for daily-limit bounds and failure modes, cache/coalescing charge semantics, shared guest/authenticated accounting, admitted-provider failures, and cryptographic proof that identical logical limiter keys produce distinct Preview and Production Redis keys.
+
+## [2026-09-02] — Guest gateway abuse and geocoder hardening
+
+### Fixed
+- **Unambiguous deployment gates** — guest feature gates, geocoder policy, shared limiting, and credentialed loopback policy now use one tri-state runtime classifier. Explicit local and deployed markers are accepted; missing, unknown, or contradictory markers fail closed. A self-hosted `NODE_ENV=production` runtime no longer inherits local defaults.
+- **Atomic Redis credentials** — Upstash and legacy KV URL/token aliases are resolved only as complete matching pairs. A complete Upstash pair takes precedence; a complete KV pair remains a compatibility fallback. Split credentials are never sent to either endpoint.
+- **Fleet-wide abuse controls** — place search, birth-profile derivation, and election-chart derivation now share one ordered guard: process-local per-client limit, Redis per-client limit, then Redis route-wide fleet budget. The separately gated managed authenticated geocoder adds process/shared per-user limits and joins the same 60-call fleet key as guest search. Deployed protected paths fail closed when shared enforcement is missing or unavailable, and rejected identities do not consume the fleet counter.
+- **Bounded geocoder work** — provider work is limited to eight distinct outstanding requests per process, with guest search capped at six so authenticated profile geocoding retains capacity. One eight-second deadline covers queue wait and fetch; a disconnected caller releases its subscription and cancels the provider operation only when no duplicate subscriber remains, including cancellation while a shared-cache read is pending. Timed-out or cancelled queue tickets cannot fetch later or alter pacing. Redirects are rejected, provider responses are streamed through a 64 KiB cap before JSON parsing, provider exceptions are redacted, cache keys are hashed, idle entries expire on schedule, and only semantically valid bounded fields are retained. A nonempty response containing no valid coordinates is deliberately not cached, so a later request can recover.
+- **Fixed managed-provider adapters** — deployed guest search now accepts only `locationiq-eu`, `locationiq-us`, or `geoapify` through `GEOCODER_PROVIDER` plus the server-only `GEOCODER_API_KEY`. Endpoints, request parameters, response envelopes, provider-scoped result IDs, and attribution links are code-owned; arbitrary deployed geocoder URLs are no longer accepted. This supplies implementation choices but does not select a provider, approve its terms, configure a real key, or activate the public feature.
+- **Shared geocoder cache and authenticated migration candidate** — deployed managed-provider queries require a bounded Redis read/write under token-HMAC keys and retain only normalized rows for 24 hours; missing or unavailable storage fails closed. Existing authenticated create/edit keeps its current provider path until `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` is exactly `true`. The activated migration then reuses the fixed adapter independently of guest flags, requires per-user/fleet enforcement, issues one provider query per place, and cannot fall back to public Nominatim.
+- **Telemetry privacy boundary** — Sentry no longer instruments the fixed geocoder endpoints, captures no incoming server request bodies, and applies a final span scrubber to provider URLs. Place text and provider keys therefore cannot enter sampled outgoing-fetch spans. Process-local guest rate-limit keys are independently pseudonymized with an ephemeral per-process HMAC secret.
+- **Provider-specific no-result parity** — LocationIQ's documented Search `404` no-result response is normalized to an empty result and may be cached; other providers retain their own status contract.
+
+### Added
+- Truth-table and route-order tests for local/deployed/unknown runtimes, exact flags, Redis alias permutations, shared client/fleet failures, pseudonymous process keys, queue saturation, authenticated-capacity reservation, duplicate-safe caller cancellation, retry cleanup, redirect policy, semantic coordinate validation, error redaction, active cache expiry, bounded shared-cache hits/misses/failures, both LocationIQ regions and 404 behavior, Geoapify envelope normalization, safe query encoding, provider-scoped IDs, structured attribution, authenticated create/edit behavior, and Sentry filtering/scrubbing.
+
+## [2026-08-31] — Guest calculation gateway pre-release hardening
+
+### Changed
+- **Credentialed DashaFlow boundary** — added a shared `server-only` configuration resolver for the guest profile and election-chart clients. Bearer credentials must be 32–256 printable non-space ASCII characters and are attached only after the sidecar base URL is validated. Vercel Preview and Production require HTTPS; local development permits HTTP only for exact `localhost`, `127.0.0.1`, or `[::1]` loopback hosts. Userinfo, paths, query strings, fragments, whitespace-padded URLs, and ambiguous configuration fail closed without exposing token values.
+- **Profile contract parity** — profile responses now fail closed unless they identify DashaFlow with Lahiri ayanamsha, use canonical Panchangam Nakshatra/Rashi spellings, and contain the exact ordered, unique Surya-through-Ketu sequence. The caller and sidecar now share the same 32–256-character token contract.
+- **Profile deadline and local-date validation** — two profile-sidecar attempts now have a deterministic 12.5-second maximum budget, below the Panchangam browser's 15-second deadline. Future birth dates are evaluated in the supplied birthplace timezone rather than against the gateway's UTC date.
+- **Approval-gated guest calculations** — added independent, server-only `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED` controls. Local development remains enabled by default; Vercel Preview and Production return a sanitized, private/no-store `503` before body parsing, rate limiting, Redis, geocoding, or sidecar access unless the corresponding value is exactly `true`. Public activation remains blocked on Panchangam licensing issue #231 and geocoder/provider issue #233.
+- **Guest geocoder policy without an authenticated-profile regression** — guest public Nominatim is restricted to local development, serialized application-wide to one request start per second in each process, and protected by in-flight request coalescing plus a bounded 24-hour result cache. `GEOCODER_BASE_URL` and `GEOCODER_USER_AGENT` configure only that guest path. Preview and Production guest search require an explicit HTTPS provider and identity and reject the public `nominatim.openstreetmap.org` host. The pre-existing authenticated profile geocoder remains independent so a disabled guest feature cannot break profile creation or edits; its disclosed provider migration remains tracked separately.
+- **Distributed election-chart limiting** — deployment detection now uses Vercel's `VERCEL_ENV`, not Next.js `NODE_ENV`. Both Preview and Production fail closed when shared Upstash enforcement is missing or unavailable; ordinary local builds and tests retain the process-local layer.
+- **Guest CORS parity** — exact reflected-origin handling now includes IPv6 loopback (`http://[::1]`) for local Panchangam development while preserving the production origin allowlist, `private, no-store`, 4 KiB body cap, and privacy projection.
+
+### Added
+- Focused tests for HTTPS-before-credential enforcement, shared bearer-token boundaries and redaction, profile deadline arithmetic, strict profile response invariants, birthplace-date-line boundaries, Preview/Production fail-closed behavior, unsafe URL rejection, IPv4/IPv6 loopback policy, and unchanged guest route contracts.
+- Route and configuration tests proving local defaults, explicit local disablement, independent flags, exact deployed opt-in, zero side effects while disabled, unsafe production geocoder rejection, and Nominatim pacing/coalescing/cache behavior.
+
+## [2026-08-29] — Stateless guest Muhurtam election-chart gateway
+
+### Added
+- **`POST/OPTIONS /api/guest/muhurta/election-charts`** — stateless gateway for up to 24 minute-precision election-chart instants at one location. It accepts only the versioned location-and-instants contract, rejects activity/profile/birth/natal data and unknown fields, and returns the validated DashaFlow contract without persistence. In Production this route combines the existing per-instance IP limiter with a required, atomic, fail-closed Upstash Redis limit shared across Vercel instances.
+- **`lib/distributed-rate-limit.ts`** — election-route-only fixed-window enforcement over the Upstash Redis REST API. Client keys are HMAC-pseudonymized before transmission; missing, malformed, timed-out, or unavailable Production configuration fails closed.
+- **`lib/engines/dashaflow-election.ts`** — server-only, bearer-authenticated client for `POST /v1/election-chart/derive`. Runtime validation requires request-ordered charts, Lahiri provenance, an explicit `mean` lunar-node convention, whole-sign houses, and the canonical nine-planet projection before any response reaches the browser.
+- Vitest coverage for strict RFC3339 and time-window bounds, semantic instant uniqueness, exact response ordering, canonical planet order, mean-node provenance, origin/body/local-and-shared-rate controls, omitted cookies, and safe upstream failures.
+
+### Changed
+- Extended the existing guest-gateway security boundary and coordinated rollout documentation to cover election charts. The route remains independent of NextAuth, Turso, PostHog, activity selection, saved profiles, and natal charts. D7 remains open for migrating other routes; this change does not claim app-wide distributed limiting.
+
+## [2026-08-29] — Stateless guest birthplace and profile gateway
+
+### Added
+- **`POST/OPTIONS /api/guest/places/search`** — submit-only, IP-rate-limited Nominatim search for the Panchangam guest-profile journey. Requests are capped at 4 KiB and 120 query characters; one upstream request returns at most five selectable places with stable IDs, coordinates, IANA timezones, and OpenStreetMap attribution.
+- **`POST/OPTIONS /api/guest/profile/derive`** — stateless projection gateway for exact birth date/time and a previously selected place. It rejects names and unknown fields, validates civil inputs, and sends only date, time, coordinates, and timezone to the credentialed DashaFlow `/v1/profile/derive` operation.
+- **`lib/guest-api.ts`** — shared exact-origin CORS, safe preflight, bounded streaming JSON parsing, no-store response, and trusted-forwarded-IP helpers for both guest routes.
+- Vitest coverage for origin enforcement, body and query limits, IP rate limiting, single-request geocoding, exact input validation, service authentication, normalized response projection, and safe retryable errors.
+
+### Changed
+- **`lib/geocode.ts`** now exposes a single-request `searchPlaces()` path while preserving the existing relaxed-query `geocodePlace()` behavior for authenticated profile creation.
+- **`lib/engines/dashaflow.ts`** now exposes a bearer-authenticated, schema-validated profile derivation client without changing the legacy full-chart client.
+- Added `DASHAFLOW_SIDECAR_TOKEN` as a server-only main-app secret and documented the coordinated sidecar → gateway → Panchangam rollout. No database, session, analytics, or server-side profile persistence was added.
+
+---
+
 ## [2026-06-24] — Admin dashboard: AI chat usage view
 
 Until now we shipped the chat feature without any admin-side visibility into who's using it. This adds a dedicated tab with the aggregated stats an admin needs to gauge adoption, see which model is doing the work, and spot specific sessions.
