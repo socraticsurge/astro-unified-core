@@ -8,6 +8,18 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-09-04] — Guest limiter provisioning leaves the request path
+
+### Changed
+- **Read-only runtime readiness** — guest and limiter-maintenance cold paths now fingerprint the canonical definitions of both limiter tables and their expiry index with one memoized read-mode batch containing only three `SELECT` statements. Missing or incompatible columns, keys, constraints, `WITHOUT ROWID`, or index definitions fail closed; no runtime request can issue limiter `CREATE`, `ALTER`, `DROP`, or index DDL.
+- **Explicit deployment provisioning** — `npm run db:provision-rate-limits -- --target preview|production` owns the canonical atomic DDL batch, refuses an ambiguous or mismatched Vercel environment, requires an explicit remote libSQL database, and verifies the resulting schema read-only. Lazy full-schema bootstrap no longer provisions the public limiter objects.
+- **Capacity-first decision recorded** — the hard Turso write envelope remains ahead of later client/fleet denials. This accepts a bounded fail-closed availability risk only behind the edge perimeter; an atomic multi-row interactive transaction is not added to the two-second request deadline.
+- **Hobby-compatible perimeter prepared** — one fixed-window Vercel WAF rule covers `POST /api/guest/*` at 60 requests per minute per IP. Its first stage logs only threshold exceedances and remains an unpublished draft; no feature flag or public traffic was activated.
+
+### Added
+- Deterministic schema tests for zero runtime DDL, missing and structurally drifted objects, read-only retry/concurrency/timeout behavior, explicit provisioning, lazy-bootstrap separation, and maintenance readiness.
+- Operator, rollback, adversarial, WAF, and Preview-metrics gates in the architecture, project, testing, standards, backlog, and runbook records.
+
 ## [2026-09-04] — Existing Turso replaces proposed Upstash controls
 
 ### Changed

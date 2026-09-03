@@ -153,7 +153,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `GEOCODER_PROVIDER` | Server-only place-search adapter selector. Optional locally, where fixed public Nominatim is the default. Preview/Production guest search and an enabled authenticated migration require exactly `locationiq-eu`, `locationiq-us`, or `geoapify`; endpoints are code-owned and arbitrary base URLs are not accepted. |
 | `GEOCODER_API_KEY` | Server-only key for the selected managed provider; required with `GEOCODER_PROVIDER` for deployed guest search or the enabled authenticated migration, and never returned to the browser. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
 | `GEOCODER_DAILY_REQUEST_LIMIT` | Required server-only managed-provider UTC-day allowance: a canonical integer from 1 through 1,500. The first shared provider reservation each UTC day persists the value; a same-day Preview/Production mismatch fails closed. Every deployed process-cache miss must atomically reserve one cross-environment provider-family slot immediately before provider transit. Warm-process cache hits and coalesced duplicate callers do not consume it; an admitted failed provider attempt does. Missing, malformed, exhausted, or unavailable enforcement fails closed. |
-| `RATE_LIMIT_HMAC_SECRET` | Required 32–256 character printable non-space server secret for deployed shared identity/fleet limiting. Turso stores only Vercel-environment-scoped HMAC digests with integer count/expiry fields. Hard attempt admissions per anchored 24-hour window are guest 2,000 Preview / 10,000 Production and managed-authenticated geocoding 500 Preview / 2,500 Production; capacity is reserved before route-specific rows and remains charged after a later denial. Never prefix the secret with `NEXT_PUBLIC_`, reuse it as an account identifier, or write raw IPs, user IDs, place data, birth data, profile data, coordinates, or provider keys to limiter tables. |
+| `RATE_LIMIT_HMAC_SECRET` | Required 32–256 character printable non-space server secret for deployed shared identity/fleet limiting. Turso stores only Vercel-environment-scoped HMAC digests with integer count/expiry fields. Hard attempt admissions per anchored 24-hour window are guest 2,000 Preview / 10,000 Production and managed-authenticated geocoding 500 Preview / 2,500 Production; capacity is reserved before route-specific rows and remains charged after a later denial. Provision the limiter objects explicitly for each deployment target before activation; runtime readiness never issues DDL. Never prefix the secret with `NEXT_PUBLIC_`, reuse it as an account identifier, or write raw IPs, user IDs, place data, birth data, profile data, coordinates, or provider keys to limiter tables. |
 | `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` | Separate server-only registered-profile migration gate. Existing signed-in create/edit keeps the legacy provider unless this equals the exact string `true` in Preview/Production. Enable only after managed provider, Turso controls, quota, privacy, and full journey approval. Guest flags do not control it. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
 | `GROQ_API_KEY`             | Secondary LLM provider used by chat / draft generation (`lib/engines/groq.ts`). Get from console.groq.com. |
@@ -256,31 +256,51 @@ missing calculation operation:
    anchored 24-hour window are guest 2,000 Preview / 10,000 Production and
    managed-authenticated geocoding 500 Preview / 2,500 Production. Capacity is
    reserved before route-specific rows and is not refunded after a later
-   user/fleet/client denial. Before either public flag is enabled, explicitly
-   accept the resulting pool-exhaustion availability risk or add a fleet-wide
-   WAF/edge limit or atomic composite admission. One cooperative two-second
-   deadline bounds the complete deployed guard chain and prevents later SQL
-   dispatch after expiry. Measure cold-path Preview p95/p99 before activation;
-   do not extend this deadline without re-budgeting the browser and sidecar
-   limits. An already-dispatched Turso operation may still settle and consume a
-   slot, so never refund or automatically retry a storage-ambiguous attempt.
-   The current focused cold-start helper still issues idempotent DDL before the
-   capacity preflight. Before public activation, move that DDL to a controlled
-   full-schema/deployment provisioning step, make guest readiness read-only and
-   fail-closed, and add an edge/WAF ceiling for cold-start and post-cap reads.
-6. Verify the gateway's allowed/disallowed
+   user/fleet/client denial. The limiter objects must exist before traffic:
+   from a checkout linked to the exact `astro-unified-core-pfni` Vercel project,
+   provision and verify Preview without writing secrets to disk:
+
+   ```bash
+   vercel env run -e preview -- npm run db:provision-rate-limits -- --target preview
+   ```
+
+   After Preview evidence and a database restore point, repeat with
+   `-e production` and `--target production`. Guest cold-start readiness is a
+   read-only three-`SELECT` batch that fingerprints the canonical table and
+   index definitions. Missing or incompatible columns, keys, constraints,
+   `WITHOUT ROWID`, or index definitions fail closed; it never repairs schema
+   from a request.
+   One cooperative two-second deadline bounds the complete deployed guard chain
+   and prevents later SQL dispatch after expiry. Measure cold-path Preview
+   p95/p99 before activation; do not extend this deadline without re-budgeting
+   the browser and sidecar limits. An already-dispatched Turso operation may
+   still settle and consume a slot, so never refund or automatically retry a
+   storage-ambiguous attempt.
+6. Use the Hobby project's single WAF rate-limit slot as a coarse perimeter for
+   `POST` requests whose path starts with `/api/guest/`: fixed window, 60
+   requests per 60 seconds, keyed by IP. Vercel includes the first 1,000,000
+   allowed rate-limited requests on Hobby, but counters are regional and IPs can
+   rotate, so Turso remains authoritative. Roll this rule out in four gates:
+   publish exceedance logging only, observe real traffic, enforce and verify
+   `429` in Preview, then request explicit Production enforcement approval.
+   The capacity-first starvation tradeoff is deliberately accepted only after
+   this perimeter is enforcing: an attacker can still consume the bounded
+   daily pool, but cannot create unbounded Turso/provider usage. See the
+   [Vercel rate-limit contract](https://vercel.com/docs/vercel-firewall/vercel-waf/rate-limiting)
+   and [log-first rollout guidance](https://vercel.com/docs/vercel-firewall/vercel-waf/custom-rules).
+7. Verify the gateway's allowed/disallowed
    OPTIONS, `private, no-store`, 4 KiB rejection, local and global rate-limit
    retry headers, and fixture profile and election-chart derivations,
    including chart order and whole-sign provenance. Tokens must never appear
    in a browser bundle or response.
-7. Enable only the route being released by setting its server-only flag to the
+8. Enable only the route being released by setting its server-only flag to the
    exact value `true`. Verify disabled routes still return a sanitized
    `private, no-store` `503` without consuming request bodies, local limits,
    Turso limiter, geocoder, or sidecar capacity.
-8. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
+9. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
    that consumer only after the gateway fixture passes from
    `https://panchangam.astrochaganti.com`.
-9. Treat registered-profile provider migration as a later, independent release.
+10. Treat registered-profile provider migration as a later, independent release.
    Keep `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` off until signed-in profile
    create/edit, provider attribution and privacy terms, Turso-counter failure,
    process-cache behavior, per-user limiting, and the fleet ceiling pass in
@@ -339,9 +359,11 @@ CREATE INDEX idx_profiles_user ON profiles(user_id);
 CREATE INDEX idx_readings_profile ON readings(profile_id);
 ```
 
-Schema is created lazily by `db.ts` on first call (`ensureSchema`) — no
-migration tool. Old rows from removed engines (`bazi`, `vedastro`, etc.) are
-harmless dead data.
+The application schema is created lazily by `db.ts` on first call
+(`ensureSchema`) — no general migration tool. The two public limiter tables and
+their expiry index are the exception: operators create them explicitly with
+`db:provision-rate-limits`, while runtime readiness is read-only. Old rows from
+removed engines (`bazi`, `vedastro`, etc.) are harmless dead data.
 
 ---
 
@@ -730,15 +752,19 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 
 ### Schema migration
 
-1. Add new idempotent tables/indexes to `bootstrapTables()` in
-   `lib/db/client.ts`. If a focused cold-start helper owns the DDL, call that
-   same helper from the full bootstrap.
+1. Add new idempotent application tables/indexes to `bootstrapTables()` in
+   `lib/db/client.ts`. Keep limiter DDL exclusively in
+   `provisionRateLimitSchema()`; never call it from request-time bootstrap.
 2. Add version-dependent `ALTER TABLE`, backfill, or seed work to
    `runMigrations()` via `migrate()`.
 3. Bump `SCHEMA_VERSION` (currently `12`) with the schema change.
-4. Deploy. The next DB call always runs the idempotent bootstrap and runs
-   migrations only when the stored version is behind.
-5. Update `docs/ARCHITECTURE.md §5` and this schema section.
+4. Deploy application-schema changes. The next DB call runs the idempotent
+   application bootstrap and versioned migrations when the stored version is
+   behind.
+5. For limiter schema changes, run `db:provision-rate-limits` against Preview,
+   verify the read-only probe and rollback point, then repeat explicitly for
+   Production before enabling traffic.
+6. Update `docs/ARCHITECTURE.md §5` and this schema section.
 
 ### Clear stale compatibility history (admin)
 

@@ -199,16 +199,20 @@ check auth. CDN caches do not scope by user.
 `lib/db/client.ts` owns the schema lifecycle. `SCHEMA_VERSION` is currently
 `12`.
 
-1. Add every new table/index to `bootstrapTables()` with idempotent
+1. Add application tables/indexes to `bootstrapTables()` with idempotent
    `CREATE ... IF NOT EXISTS`; this bootstrap runs on every cold start even when
-   the stored version already matches.
+   the stored version already matches. The public limiter schema is the explicit
+   deployment-provisioned exception described below.
 2. Put version-dependent column changes, backfills, and seeds in
    `runMigrations()`. Use `migrate()` for expected idempotency errors; do not
    swallow unrelated failures.
 3. Bump `SCHEMA_VERSION` with the corresponding schema change.
-4. If a latency-sensitive boundary needs a focused bootstrap, keep its DDL in
-   one helper and call that helper from `bootstrapTables()` too. Guest limiters
-   use `ensureRateLimitSchema()` for exactly this reason.
+4. Guest limiter DDL belongs only in `provisionRateLimitSchema()` and runs via
+   `npm run db:provision-rate-limits -- --target preview|production` from a
+   trusted, correctly linked deployment environment. Runtime guest and cleanup
+   paths use the read-only `ensureRateLimitSchema()` probe and fail closed when
+   required objects are absent or drifted. Never call the provisioning helper
+   from `ensureSchema()`, a route, a cron handler, or other request-time code.
 5. Add the new module in `lib/db/your-table.ts`, export it from
    `lib/db/index.ts`, and add it to the `db` object when application CRUD is
    required.

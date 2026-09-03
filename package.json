@@ -13,6 +13,7 @@
     "lint": "eslint",
     "check:palette": "bash scripts/check-no-raw-palette.sh",
     "check:routes": "node scripts/check-dead-route-links.mjs",
+    "db:provision-rate-limits": "tsx scripts/provision-rate-limit-schema.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

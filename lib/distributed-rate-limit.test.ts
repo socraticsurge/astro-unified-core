@@ -124,7 +124,7 @@ describe("Turso-backed distributed rate limits", () => {
     });
   });
 
-  it("prepares focused storage before the first deployed admission", async () => {
+  it("verifies focused storage before the first deployed admission", async () => {
     const ensureStorage = vi.fn().mockResolvedValue(undefined);
     const execute = vi.fn().mockResolvedValue({
       rows: [[1, 61_000, 1_000]],
@@ -142,7 +142,7 @@ describe("Turso-backed distributed rate limits", () => {
     );
   });
 
-  it("fails closed before SQL when focused storage preparation fails", async () => {
+  it("fails closed before SQL when focused storage readiness fails", async () => {
     const execute = vi.fn();
     const ensureStorage = vi.fn().mockRejectedValue(
       new Error("schema unavailable"),

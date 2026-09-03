@@ -307,7 +307,7 @@ the NextAuth OAuth flow.
 
 | File | Responsibility |
 |---|---|
-| [`lib/db/client.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/client.ts) | Turso client singleton, full `ensureSchema()`, focused `ensureRateLimitSchema()`, `SCHEMA_VERSION` |
+| [`lib/db/client.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/client.ts) | Turso client singleton, full `ensureSchema()`, controlled `provisionRateLimitSchema()`, read-only guest `ensureRateLimitSchema()`, `SCHEMA_VERSION` |
 | [`lib/db/users.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/users.ts) | `User` type, `users.upsert`, `users.list` |
 | [`lib/db/profiles.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/profiles.ts) | `Profile`, `ProfileWithUser` types, full profiles CRUD |
 | [`lib/db/readings.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/readings.ts) | `Reading` type, cache save/fetch/delete |
@@ -336,26 +336,33 @@ Built on `@libsql/client` (Turso's HTTP SQLite driver).
 
 **Schema management**: `ensureSchema()` runs lazily on the first DB call per
 Lambda instance. On every cold start it creates the version table if needed and
-runs the idempotent `bootstrapTables()` `CREATE TABLE/INDEX IF NOT EXISTS`
-statements, regardless of the stored version. If `schema_version` is behind
+runs the idempotent application-table `bootstrapTables()`
+`CREATE TABLE/INDEX IF NOT EXISTS` statements, regardless of the stored version.
+The public limiter objects are provisioned separately as described below. If
+`schema_version` is behind
 `SCHEMA_VERSION` (currently `12`), `runMigrations()` then applies the
 version-gated `ALTER TABLE`/backfill/seed steps before recording version 12.
 Migration errors propagate rather than being treated as success.
 
-Guest admission uses the narrower `ensureRateLimitSchema()` helper so a limiter
-cold start creates only `distributed_rate_limits`, `geocoder_provider_budget`,
-and the expiry index instead of waiting for the full application bootstrap. The
-full bootstrap calls the same helper, so the two paths keep one canonical
-definition.
+Limiter DDL is the deliberate exception to the lazy full bootstrap. It has one
+canonical `provisionRateLimitSchema()` function that only the explicit
+`db:provision-rate-limits` operator command calls before a deployment is
+enabled. No runtime request or maintenance path calls that write function. The
+memoized `ensureRateLimitSchema()` readiness check uses one read-mode batch of
+three `SELECT` statements to fingerprint the canonical `sqlite_schema`
+definitions of both tables and the expiry index. Missing or incompatible
+columns, keys, constraints, `WITHOUT ROWID`, or index definitions reject, so
+guest and maintenance paths fail without attempting request-triggered repair.
 
-That focused helper is acceptable only while the public flags remain off. Its
-write-mode idempotent DDL batch runs before the read-only capacity preflight in
-each cold serverless process, so it is outside the account-wide attempt-row
-mutation bound. Before public activation, provision these objects through a
-controlled full-schema/deployment migration and make unauthenticated readiness
-a read-only probe that fails closed when the schema is absent. A fleet-wide
-edge/WAF limit must also bound cold-start and post-cap reads, which necessarily
-occur before the database can report that the cap is exhausted.
+The read-only probe closes the cold-start DDL amplification path, but a request
+must still read Turso before learning that a daily cap is full. The Vercel Hobby
+project has therefore staged its single rate-limit slot as a coarse pre-function
+perimeter for `POST /api/guest/*`: a 60-request/60-second fixed window keyed by
+IP with threshold exceedances initially set to log. The draft is not active
+until an operator publishes it. It must then move through observed logging,
+Preview enforcement, and only then Production enforcement. Vercel counters are
+regional and IPs can rotate, so this perimeter supplements rather than replaces
+the authoritative Turso fleet and daily limits.
 
 **Key exported namespaces:**
 
@@ -403,6 +410,17 @@ under Turso Free's 10-million-write monthly allowance, but current account
 usage, deletion accounting, and remaining headroom must be measured before
 activation.
 
+The project deliberately retains capacity-first charging instead of adding a
+multi-row interactive transaction to the two-second hot path. That preserves a
+hard write envelope and treats ambiguous remote writes conservatively, but a
+syntactically cheap request that passes the perimeter can consume a daily slot
+before a later fleet/client denial or body-validation failure. This residual
+availability risk is accepted only with the edge rule enforcing, the feature
+flags independently reversible, and capacity/headroom alerts in place. A
+rotating-source attack can still exhaust the free product's daily pool; the
+designed outcome is a bounded fail-closed outage, never unbounded database or
+provider use.
+
 The distributed primitive HMACs every logical identity with
 `RATE_LIMIT_HMAC_SECRET` and the exact Vercel `preview` or `production`
 environment, so identity and fleet counters cannot collide across deployments
@@ -412,20 +430,20 @@ database clock is authoritative. Expired identity/fleet rows are removed by
 bounded authenticated maintenance, independently of request admission. The
 authenticated landing cron registers that work with Next.js `after()`, after
 the response is committed. Cleanup deletes in indexed 5,000-row batches, stops
-at 100,000 rows, gives each schema/query operation at most 2.5 seconds, and has
+at 100,000 rows, gives each readiness/query operation at most 2.5 seconds, and has
 a 10-second wall-clock budget; it reports a remaining backlog for monitoring.
 Missing or unavailable shared storage fails closed as retryable `503`; an
 intact but exhausted limit returns `429` with bounded retry guidance.
 
 One shared two-second deadline covers all four distributed stages in each
-deployed guest or managed-authenticated guard chain. Its `AbortSignal` reaches
+deployed guest or managed-authenticated guard chain. Its `AbortSignal` bounds
 schema readiness and every status/UPSERT/read operation. After expiry, no later
-SQL statement or boundary retry starts. The operation already dispatched at
-that instant cannot be cancelled at Turso and may settle conservatively after
-the `503`; the focused schema bootstrap is similarly one already-dispatched,
-idempotent write batch. Ambiguous attempts are not refunded or retried. This
-keeps the limiter portion of the 15-second guest birth journey bounded before
-the separate 12.5-second sidecar budget.
+SQL statement or boundary retry starts. An operation already dispatched at
+that instant cannot be cancelled at Turso: a readiness probe may settle late,
+and a write may conservatively consume its slot after the `503`. Ambiguous
+attempts are not refunded or retried. This keeps the limiter portion of the
+15-second guest birth journey bounded before the separate 12.5-second sidecar
+budget.
 
 A separate, non-personal Turso row budgets the external geocoder account. It is
 keyed by provider family rather than deployment or API key, so Preview and

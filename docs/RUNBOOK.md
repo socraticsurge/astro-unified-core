@@ -144,17 +144,20 @@ Allow its anchored window to recover naturally. Measure Preview cold-path
 p95/p99 before activation and do not lengthen the two-second budget without
 reconciling the 15-second browser and 12.5-second sidecar limits.
 
-The current focused schema bootstrap is a write-mode idempotent batch on a cold
-guest process, before the database capacity preflight. It is not covered by the
-attempt-row mutation calculation. Do not enable public flags until limiter DDL
-is performed through a controlled full-schema/deployment provisioning step,
-guest readiness is a read-only fail-closed probe, and an edge/WAF ceiling bounds
-cold-start and post-cap reads.
+Limiter DDL now runs only through the environment-checked operator command.
+The command does not independently authenticate a physical database or Vercel
+project: exact project linkage, injected database identity, and a restore point
+remain operator gates. Cold guest and cleanup processes use the same read-only
+compatibility probe and fail closed instead of repairing schema. The coarse
+Vercel WAF rule is deliberately staged with exceeded-request logging first; it
+is not an enforcing perimeter until the log, Preview `429`, and Production
+approval stages are completed. Keep all public flags off until those stages and
+the database-headroom evidence pass.
 
 Expired HMAC identity/fleet rows are removed by the authenticated landing cron.
 Next.js `after()` starts cleanup after the landing response is committed. The
 job uses indexed 5,000-row delete batches, deletes at most 100,000 rows per run,
-limits each schema/query operation to 2.5 seconds, and stops after a 10-second
+limits each readiness/query operation to 2.5 seconds, and stops after a 10-second
 wall-clock budget. A remaining backlog is reported to Sentry; cleanup failure
 does not change the already-produced landing response.
 
@@ -259,9 +262,41 @@ Take a manual snapshot first. In [`lib/db/client.ts`](../lib/db/client.ts), add
 new idempotent tables/indexes to `bootstrapTables()`; add version-dependent
 `ALTER TABLE`, backfill, or seed work to `runMigrations()` via `migrate()`; then
 bump `SCHEMA_VERSION` (currently 12). The next DB request always re-runs the
-idempotent bootstrap and runs migrations only when the stored version is behind.
-Guest limiter cold starts use the focused `ensureRateLimitSchema()` helper,
-which the full bootstrap also calls.
+idempotent application bootstrap and runs migrations only when the stored
+version is behind.
+
+The public limiter objects are intentionally different. Never add their DDL to
+the lazy bootstrap or a route. From a checkout whose `.vercel/project.json`
+names `astro-unified-core-pfni`, provision Preview without writing secrets to a
+file:
+
+```bash
+vercel env run -e preview -- npm run db:provision-rate-limits -- --target preview
+```
+
+The command refuses an ambiguous/mismatched `VERCEL_ENV`, accepts only a remote
+`libsql://` URL, runs one atomic idempotent DDL batch, then verifies the objects
+through the same read-only fingerprint used at runtime. Those checks do not
+prove which physical database or Vercel project supplied the variables. Record
+both identities separately. After a Preview restore point and successful
+evidence, use `-e production` with `--target production`. A missing or
+incompatible limiter schema should make guest routes return `503`; do not make
+the request path self-repair.
+
+### Guest API perimeter rollout or rollback
+
+Vercel Hobby has one rate-limit rule. Keep it scoped to `POST` plus path prefix
+`/api/guest/`, fixed at 60 requests per 60 seconds per IP. Roll it forward in
+stages: exceeded-request logging everywhere, traffic review, Preview-only
+`429`, then Production enforcement with explicit approval. A saved CLI rule is
+only a draft until it is published.
+
+For rollback, disable the three server-side activation flags first. Then stage
+the WAF rule back to exceeded-request logging (or disable it), inspect
+`vercel firewall diff --json`, and publish that rollback. Do not delete Turso
+counter rows during an incident; they expire and are pruned by bounded
+maintenance. Vercel's counters are regional and source IPs can rotate, so the
+WAF rule never replaces the Turso fleet and daily caps.
 
 ### "Today's reading is wrong / stale"
 
