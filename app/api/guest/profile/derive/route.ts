@@ -98,7 +98,11 @@ export async function POST(request: Request): Promise<Response> {
   if (!limit.success) {
     return guestJson(
       request,
-      { error: "Too many calculations. Please wait a minute and try again." },
+      {
+        error: limit.scope === "capacity"
+          ? "Shared calculation capacity is temporarily full. Please try again later."
+          : "Too many calculations. Please wait and try again.",
+      },
       {
         status: 429,
         headers: { "Retry-After": String(limit.retryAfterSeconds) },

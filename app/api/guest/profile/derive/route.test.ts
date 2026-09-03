@@ -163,6 +163,23 @@ describe("POST /api/guest/profile/derive", () => {
     expect(deriveDashaflowProfile).not.toHaveBeenCalled();
   });
 
+  it("does not promise a one-minute retry after daily capacity is full", async () => {
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: false,
+      unavailable: false,
+      retryAfterSeconds: 3_600,
+      scope: "capacity",
+    });
+    const response = await POST(request(input));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("3600");
+    expect(await response.json()).toEqual({
+      error: "Shared calculation capacity is temporarily full. Please try again later.",
+    });
+    expect(deriveDashaflowProfile).not.toHaveBeenCalled();
+  });
+
   it("fails closed before parsing when shared abuse controls are unavailable", async () => {
     vi.mocked(enforceGuestRateLimit).mockResolvedValue({
       success: false,

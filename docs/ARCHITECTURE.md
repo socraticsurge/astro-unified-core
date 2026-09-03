@@ -1,6 +1,6 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-09-03 -->
+<!-- last-updated: 2026-09-04 -->
 
 > **Note:** The legacy "Basic / Professional" two-mode chart view was replaced
 > with the unified 10-tab dashboard on 2026-05-19. The components below
@@ -76,7 +76,7 @@ be reasoned against all three.
 
 ## 1. Server / Client Boundary Map
 
-<!-- last-updated: 2026-09-03 -->
+<!-- last-updated: 2026-09-04 -->
 
 This is the most important section for anyone touching the codebase. Understanding
 what runs where prevents the class of bugs where env vars are missing, `getServerSession`
@@ -300,14 +300,14 @@ the NextAuth OAuth flow.
 
 ## 5. Database Layer
 
-<!-- last-updated: 2026-05-13 -->
+<!-- last-updated: 2026-09-04 -->
 
 ### Client & Schema
 [`lib/db/`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/) — modular DB layer. `lib/db.ts` is a one-line re-export shim so all existing `import { db } from "@/lib/db"` imports continue to work.
 
 | File | Responsibility |
 |---|---|
-| [`lib/db/client.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/client.ts) | Turso client singleton, `ensureSchema()`, `SCHEMA_VERSION` |
+| [`lib/db/client.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/client.ts) | Turso client singleton, full `ensureSchema()`, focused `ensureRateLimitSchema()`, `SCHEMA_VERSION` |
 | [`lib/db/users.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/users.ts) | `User` type, `users.upsert`, `users.list` |
 | [`lib/db/profiles.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/profiles.ts) | `Profile`, `ProfileWithUser` types, full profiles CRUD |
 | [`lib/db/readings.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/readings.ts) | `Reading` type, cache save/fetch/delete |
@@ -330,12 +330,32 @@ Built on `@libsql/client` (Turso's HTTP SQLite driver).
 | `feedback` | User-submitted feedback/ratings. |
 | `consultation_requests` | User questions (Life Problem Statements). One pending row per user at a time. |
 | `settings` | Key-value app settings (e.g. `live_consultation_enabled`). Seeded with defaults. |
+| `distributed_rate_limits` | Short-lived, Vercel-environment-scoped HMAC identity/fleet digests with integer count and expiry fields. Contains no raw identity, place, birth, profile, coordinate, or provider-key data. |
+| `geocoder_provider_budget` | One non-personal aggregate UTC-day count, canonical configured daily limit, and next-admission timestamp per managed-provider family, intentionally shared by Preview and Production using the same provider account. |
 | `schema_version` | Single-row version table for schema migration tracking. |
 
 **Schema management**: `ensureSchema()` runs lazily on the first DB call per
-Lambda instance. It checks `schema_version`; if the stored version is behind
-`SCHEMA_VERSION` (currently `7`), it runs all DDL statements. Column additions
-use `ALTER TABLE … ADD COLUMN` wrapped in `try/catch` to handle re-runs.
+Lambda instance. On every cold start it creates the version table if needed and
+runs the idempotent `bootstrapTables()` `CREATE TABLE/INDEX IF NOT EXISTS`
+statements, regardless of the stored version. If `schema_version` is behind
+`SCHEMA_VERSION` (currently `12`), `runMigrations()` then applies the
+version-gated `ALTER TABLE`/backfill/seed steps before recording version 12.
+Migration errors propagate rather than being treated as success.
+
+Guest admission uses the narrower `ensureRateLimitSchema()` helper so a limiter
+cold start creates only `distributed_rate_limits`, `geocoder_provider_budget`,
+and the expiry index instead of waiting for the full application bootstrap. The
+full bootstrap calls the same helper, so the two paths keep one canonical
+definition.
+
+That focused helper is acceptable only while the public flags remain off. Its
+write-mode idempotent DDL batch runs before the read-only capacity preflight in
+each cold serverless process, so it is outside the account-wide attempt-row
+mutation bound. Before public activation, provision these objects through a
+controlled full-schema/deployment migration and make unauthenticated readiness
+a read-only probe that fails closed when the schema is absent. A fleet-wide
+edge/WAF limit must also bound cold-start and post-cap reads, which necessarily
+occur before the database can report that the cap is exhausted.
 
 **Key exported namespaces:**
 
@@ -353,56 +373,124 @@ db.consultationRequests — getPending, listByUser, listAllWithUser, create, mar
 [`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts) — unified in-memory rate limiter: `rateLimit(key, limit, windowMs)` → `{ success, limit, remaining }`. It remains per-instance for most routes.
 
 The three Panchangam guest routes add shared fixed-window limits through
-`lib/guest-rate-limit.ts`, `lib/distributed-rate-limit.ts`, and the Upstash
-Redis REST API. Each request passes the process-local client guard, a shared
-per-client guard, then a route-wide fleet budget (60 geocoder calls shared with
-the managed authenticated path, 30 profile derivations, or 10 election-chart
-requests per minute). The distributed primitive prefixes every logical key
-with the exact Vercel `preview` or `production` environment before HMAC
-pseudonymization, so deployments cannot share counters even when they use the
-same Redis database and token. Managed authenticated geocoding separately
-applies a process-local and shared ten-call-per-user limit before joining that same
-60-call geocoder fleet budget. A second provider-neutral budget uses the same
-atomic Redis primitive after process-cache lookup and duplicate coalescing: each
-managed-provider attempt reserves one of the configured
-`GEOCODER_DAILY_REQUEST_LIMIT` slots, shared by guest and managed-authenticated
-traffic and inheriting the distributed primitive's deployment namespace, so
-Preview cannot consume Production allowance. Warm-instance cache hits and
-coalesced callers spend no slot; failed admitted attempts do. Missing,
-malformed, exhausted, or unavailable daily enforcement fails closed before
-provider scheduling or transit. Only consistent Vercel
-Preview/Production markers classify as deployed. Ambiguous runtimes, including
-self-hosted `NODE_ENV=production` without an explicit trusted-proxy contract,
-fail closed; local/test runs retain only the process-local layer. Redis aliases
-are accepted only as complete URL/token pairs. D7 remains open for extending
-this protection beyond the guest gateway.
+`lib/guest-rate-limit.ts`, `lib/distributed-rate-limit.ts`, and the application's
+existing Turso database. Each deployed guest request passes the process-local
+client guard, checks and atomically reserves the deployment attempt budget,
+then reserves a route-wide fleet slot before creating or updating a shared
+per-client row. Fleet-first route ordering bounds client-row creation from
+callers that rotate IP addresses; a request rejected by the later client guard
+can therefore consume one fleet slot and its earlier capacity slot. Fleet
+ceilings are 30 geocoder calls per minute (shared with the managed authenticated
+path), 30 profile derivations, and 10 election-chart requests. Managed
+authenticated geocoding applies its process-local guard, reserves its deployment
+attempt budget, then checks the shared ten-call-per-user limit before joining
+the same 30-call geocoder fleet budget. This preserves user-before-fleet
+fairness while keeping the capacity mutation first.
+
+An account-wide attempt cap bounds limiter writes before the per-route rows are
+touched: all guest routes together allow 2,000 attempts per anchored 24-hour
+window in Preview and 10,000 in Production; managed authenticated geocoding
+separately allows 500 in Preview and 2,500 in Production. A read-only preflight
+stops normal writes once the relevant cap is full, while the capacity row is the
+first atomic mutation and handles concurrent races. That capacity slot remains
+consumed when a later user, fleet, or client guard rejects the request. At the
+combined 15,000-attempt window ceiling, budgeting four admission-path row
+mutations per capacity-admitted attempt yields 60,000 mutations per complete
+set of windows. Allowing 31 independently anchored window periods to touch a
+30-day observation gives a conservative 1.86-million planning bound before
+expired-row deletes and unrelated application traffic. This is designed to fit
+under Turso Free's 10-million-write monthly allowance, but current account
+usage, deletion accounting, and remaining headroom must be measured before
+activation.
+
+The distributed primitive HMACs every logical identity with
+`RATE_LIMIT_HMAC_SECRET` and the exact Vercel `preview` or `production`
+environment, so identity and fleet counters cannot collide across deployments
+even when both use one Turso database. Conditional SQLite upserts write only
+admitted requests; a normal denial does not extend a row's lifetime. Turso's
+database clock is authoritative. Expired identity/fleet rows are removed by
+bounded authenticated maintenance, independently of request admission. The
+authenticated landing cron registers that work with Next.js `after()`, after
+the response is committed. Cleanup deletes in indexed 5,000-row batches, stops
+at 100,000 rows, gives each schema/query operation at most 2.5 seconds, and has
+a 10-second wall-clock budget; it reports a remaining backlog for monitoring.
+Missing or unavailable shared storage fails closed as retryable `503`; an
+intact but exhausted limit returns `429` with bounded retry guidance.
+
+One shared two-second deadline covers all four distributed stages in each
+deployed guest or managed-authenticated guard chain. Its `AbortSignal` reaches
+schema readiness and every status/UPSERT/read operation. After expiry, no later
+SQL statement or boundary retry starts. The operation already dispatched at
+that instant cannot be cancelled at Turso and may settle conservatively after
+the `503`; the focused schema bootstrap is similarly one already-dispatched,
+idempotent write batch. Ambiguous attempts are not refunded or retried. This
+keeps the limiter portion of the 15-second guest birth journey bounded before
+the separate 12.5-second sidecar budget.
+
+A separate, non-personal Turso row budgets the external geocoder account. It is
+keyed by provider family rather than deployment or API key, so Preview and
+Production deliberately share the same UTC-day allowance when they use one
+Turso database and provider account; LocationIQ EU/US share one LocationIQ
+pool. After process-cache lookup and duplicate coalescing, every managed
+provider attempt atomically reserves one of at most 1,500 configured daily
+slots plus a 1,100 ms database-clock lease immediately before transit. Warm
+process-cache hits and coalesced callers spend no slot; failed admitted attempts
+do. The first row persists the configured daily limit and later Preview or
+Production callers fail closed if their value differs, preventing one
+environment from silently enlarging the shared account pool. Normal admission-
+lease or daily exhaustion returns `429`; missing, malformed, or unavailable
+enforcement returns retryable `503`. A managed
+provider's own HTTP `429` is also returned to callers as a sanitized `429` with
+bounded `Retry-After`; provider transport, timeout, malformed-response, and
+server failures become retryable `503` responses without exposing provider
+details.
+
+The lease serializes distributed admission, not network dispatch: separate
+functions can experience different delays after reservation. The conservative
+spacing provides operating margin under the recommended provider's published
+two-request/second ceiling, but a central queue would be required for a strict
+mathematical ordering of actual sends.
+
+Only consistent Vercel Preview/Production markers classify as deployed.
+Ambiguous runtimes, including self-hosted `NODE_ENV=production` without an
+explicit trusted-proxy contract, fail closed; local/test runs retain only the
+process-local layer. D7 remains open for extending this protection beyond the
+guest gateway.
 
 Geocoder access is separately serialized through one process-global scheduler
-in `lib/geocode.ts`: each process starts at most one provider request per
-second, accepts at most eight distinct outstanding operations, and reserves two
-of those slots from guest search for authenticated profile geocoding. One
-eight-second deadline covers queue wait and fetch. Concurrent duplicate queries
-share one promise; a caller abort removes only that subscriber and cancels
-underlying work when none remain. Semantically valid normalized rows live in a
+in `lib/geocode.ts`: each process spaces local queue admissions by at least
+1,100 ms, accepts at most eight distinct outstanding operations, and reserves
+two of those slots from guest search for authenticated profile geocoding. A
+database reservation can delay one admitted operation differently from the
+next, so neither the local queue nor the distributed lease proves strict
+network-send spacing. One eight-second deadline covers queue wait, provider-
+budget reservation, and fetch. Concurrent duplicate queries share one promise;
+a caller abort removes only that subscriber and cancels underlying work when
+none remain. A Turso HTTP reservation already dispatched cannot itself be
+cancelled; it may conservatively consume capacity after the last subscriber
+leaves, but the abandoned operation never proceeds to provider fetch.
+Semantically valid normalized rows live in a
 bounded 256-entry, 24-hour process cache under hashed keys in every runtime; an
 active timer removes idle expired rows. Place queries, labels, provider IDs,
-and coordinates are never written to Redis. Upstash stores only short-lived,
-HMAC-pseudonymized integer counters for per-client/per-user, fleet, and daily
-provider enforcement. Provider responses are capped at 64 KiB before JSON parsing;
-invalid nonempty responses are not cached. Provider redirects are rejected and
-raw provider failures are never propagated. The unauthenticated guest search
-uses the fixed public Nominatim endpoint only in local development. In Vercel
-Preview/Production, `lib/geocoder-config.ts` accepts only the code-owned
-`locationiq-eu`, `locationiq-us`, or `geoapify` adapter plus a server-only API
-key; arbitrary provider URLs are not configuration. Existing authenticated
-profile creation/editing retains its legacy Nominatim path until the separate
+and coordinates are never written to Turso limiter tables. Those tables contain
+only environment-scoped HMAC identity/fleet digests and integer count/expiry
+fields plus the non-personal aggregate provider row; they never contain raw IPs,
+user IDs, birth details, profile data, or provider keys. Provider responses are
+capped at 64 KiB before JSON parsing; invalid nonempty responses are not cached.
+Provider redirects are rejected and raw provider failures are never propagated.
+The unauthenticated guest search uses the fixed public Nominatim endpoint only
+in local development. In Vercel Preview/Production, `lib/geocoder-config.ts`
+accepts only the code-owned `locationiq-eu`, `locationiq-us`, or `geoapify`
+adapter plus a server-only API key; arbitrary provider URLs are not
+configuration. Existing authenticated profile creation/editing retains its
+legacy Nominatim path until the separate
 `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` value is exactly `true`. The enabled
 migration reuses the fixed adapter independently of guest flags, performs one
-bounded query per place, and fails closed on provider, Redis counter,
-per-user, or fleet enforcement failure. The daily provider counter accepts only
-canonical integer limits from 1 through 5,000 and is required for every
-deployed managed-provider process-cache miss. Guest search and an enabled
-authenticated migration cannot fall back to public Nominatim.
+bounded query per place, and fails closed on provider, Turso counter, per-user,
+or fleet enforcement failure. The daily provider counter accepts only canonical
+integer limits from 1 through 1,500 and is required for every deployed managed
+provider process-cache miss. Guest search and an enabled authenticated migration
+cannot fall back to public Nominatim.
 
 ---
 
@@ -526,7 +614,7 @@ default in Vercel Preview and Production. Birth-profile routes share
 deployed. Missing, unknown, or contradictory runtime markers are not local and
 fail closed even when a flag says `true`. After the unchanged exact-origin
 check, a disabled POST returns a sanitized `private, no-store` `503` before body
-parsing, local rate limiting, Redis, geocoding, or sidecar access. OPTIONS
+parsing, local rate limiting, Turso limiter access, geocoding, or sidecar access. OPTIONS
 remains side-effect-free and keeps the existing exact CORS contract.
 
 ### Guest Panchangam Gateway
@@ -539,7 +627,7 @@ remains side-effect-free and keeps the existing exact CORS contract.
 - `POST` — accepts only `{ query }` (2–120 characters), rate-limits by client
   IP and route-wide fleet budget, and makes at most one coalesced provider
   request with `limit=5`. Deployed limits run before the body is read. Locally,
-  public Nominatim use shares the application-wide one-request-per-second
+  public Nominatim use shares the application-wide 1,100 ms request-start
   scheduler and bounded cache; deployed traffic requires one fixed managed
   adapter plus its key. Returns the backward-compatible attribution string and
   structured links:
@@ -563,9 +651,10 @@ remains side-effect-free and keeps the existing exact CORS contract.
   in the future. It rejects activity, names, profile IDs, birth details, natal
   charts, and all other unknown fields before calling the sidecar.
 
-All three routes cap JSON request bodies at 4 KiB, use `private, no-store` on every
-response, provide `Retry-After` on throttled/transient failures, and do not
-touch NextAuth, Turso, PostHog, or request-body logging.
+All three routes cap JSON request bodies at 4 KiB, use `private, no-store` on
+every response, and provide `Retry-After` on throttled/transient failures. They
+do not touch NextAuth, account-profile tables, PostHog, or request-body logging;
+deployed shared limiting uses only the dedicated Turso limiter tables.
 
 ### Profile Management
 
@@ -935,10 +1024,11 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 | Module | Purpose |
 |---|---|
-| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after separate activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a one-request-per-second queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, bounded active process-cache expiry in all runtimes, an atomic daily provider-attempt budget after cache/coalescing, semantic provider validation, and `geo-tz` IANA resolution. Place results are never stored in Redis. |
+| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after separate activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a 1,100 ms local-admission queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, bounded active process-cache expiry in all runtimes, an atomic UTC-day provider-attempt budget after cache/coalescing, semantic provider validation, and `geo-tz` IANA resolution. Neither the local queue nor distributed lease claims strict network-send ordering. Place results are never stored in Turso limiter tables. |
 | `lib/geocoder-config.ts` | Server-only fixed LocationIQ/Geoapify adapters, exact authenticated-migration activation, and public attribution metadata. Guest Preview/Production and the enabled authenticated migration require a named adapter plus its key and cannot use an arbitrary URL. |
-| `lib/geocoder-provider-budget.ts` | Provider-neutral Preview/Production Redis allowance shared by guest and managed-authenticated process-cache misses. Requires `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 5,000 and fails closed before scheduling/fetch when configuration, storage, or quota is unavailable. |
-| `lib/authenticated-geocoder-rate-limit.ts` | Pseudonymous process and distributed per-user controls plus the 60-call fleet key shared with guest place search; used only by the activated managed authenticated path. |
+| `lib/geocoder-provider-budget.ts` | Non-personal Turso allowance shared by guest and managed-authenticated process-cache misses, and across Preview/Production using the same provider account. Requires `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 1,500, persists one canonical value per UTC day, rejects same-day cross-environment mismatches, reserves a 1,100 ms distributed admission lease (not strict network-send ordering), and fails closed before fetch when configuration, storage, or quota is unavailable. |
+| `lib/authenticated-geocoder-rate-limit.ts` | Pseudonymous process and Turso-backed per-user controls plus the 30-call fleet key shared with guest place search and a 500 Preview / 2,500 Production daily admission cap; used only by the activated managed authenticated path. |
+| `lib/db/rate-limit-maintenance.ts` | Post-response authenticated maintenance for expired HMAC identity/fleet rows: indexed 5,000-row batches, 100,000-row maximum, 2.5-second operation timeout, and 10-second wall-clock budget. |
 | `lib/guest-calculation-gates.ts` | Independent server-only birth-profile and election-chart activation flags; local default on, deployed default off, exact `true` opt-in. |
 | [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, and trusted client-IP extraction for `/api/guest/*` |
 | [`lib/utils.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/utils.ts) | `cn(...classes)` — `clsx` + `tailwind-merge` |
@@ -1135,7 +1225,7 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
         → caller disconnect stops queued work when no duplicate caller remains
         → every runtime uses a bounded, hashed-key process cache
         → Preview/Production require a fixed LocationIQ/Geoapify adapter, key,
-          and fail-closed HMAC-pseudonymized Redis counters
+          and fail-closed HMAC-pseudonymized Turso counters
       → geo-tz adds an IANA timezone to each selectable place
       ← labels, coordinates, timezones, provider-scoped IDs, and linked attribution
   → guest selects one result and enters exact local birth date/time
@@ -1153,10 +1243,12 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
 
 The Astro Chaganti gateway creates no server profile, session, DB row, or
 analytics event. Geocoder results may create only bounded, hashed-key process
-entries that expire after 24 hours. Redis receives only HMAC-pseudonymized
-integer counters with their enforcement TTLs—never place queries, labels,
-provider IDs, or coordinates. No profile name is accepted or cached, and the
-Panchangam profile name never crosses this boundary.
+entries that expire after 24 hours. Dedicated Turso limiter tables receive only
+environment-scoped HMAC identity/fleet digests with count/expiry fields and one
+cross-environment non-personal provider-family daily/pacing row—never raw IPs,
+user IDs, place queries/results, birth details, profile data, coordinates, or
+provider keys. No profile name is accepted or cached, and the Panchangam
+profile name never crosses this boundary.
 
 ### Journey 8: Panchangam Screens Muhurtam Candidate Charts
 
@@ -1224,7 +1316,7 @@ call (instead of one per day) is a clean design. The accuracy trade-off
 
 **Mostly in-memory rate limiting** — all three Panchangam guest routes and the
 activation-gated managed authenticated geocoder add required fail-closed
-Upstash per-client/per-user and fleet enforcement, but other routes remain per
+Turso-backed per-client/per-user and fleet enforcement, but other routes remain per
 Lambda instance. See `BACKLOG.md` item D7 for the remaining migration.
 
 **Sidecar authentication rollout staged (2026-09-03)** — all non-health

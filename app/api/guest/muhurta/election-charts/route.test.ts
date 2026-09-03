@@ -171,6 +171,23 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
   });
 
+  it("does not promise a one-minute retry after daily capacity is full", async () => {
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: false,
+      unavailable: false,
+      retryAfterSeconds: 3_600,
+      scope: "capacity",
+    });
+    const response = await POST(request(input));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("3600");
+    expect(await response.json()).toEqual({
+      error: "Shared chart-screening capacity is temporarily full. Please try again later.",
+    });
+    expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
+  });
+
   it("fails closed before body parsing when the shared limiter is unavailable", async () => {
     vi.mocked(enforceGuestRateLimit).mockResolvedValue({
       success: false,
@@ -208,7 +225,7 @@ describe("POST /api/guest/muhurta/election-charts", () => {
     expect(deriveDashaflowElectionCharts).not.toHaveBeenCalled();
   });
 
-  it("fails before parsing, Redis, rate limiting, or sidecar access when disabled publicly", async () => {
+  it("fails before parsing, Turso limiting, or sidecar access when disabled publicly", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "production");
     const response = await POST(request('{"private-invalid-json"'));

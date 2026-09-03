@@ -5,7 +5,7 @@ vi.mock("./authenticated-geocoder-rate-limit", () => ({
   enforceAuthenticatedGeocoderRateLimit: vi.fn(),
 }));
 vi.mock("./distributed-rate-limit", () => ({
-  distributedRateLimit: vi.fn(),
+  reserveDistributedProviderRequest: vi.fn(),
 }));
 
 import {
@@ -16,7 +16,8 @@ import {
   searchPlaces,
 } from "./geocode";
 import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
-import { distributedRateLimit } from "./distributed-rate-limit";
+import { reserveDistributedProviderRequest } from "./distributed-rate-limit";
+import { MANAGED_PROVIDER_MIN_INTERVAL_MS } from "./geocoder-limits";
 
 global.fetch = vi.fn();
 
@@ -28,7 +29,7 @@ function resetLocalGeocoder(): void {
     retryAfterSeconds: 0,
     scope: null,
   });
-  vi.mocked(distributedRateLimit).mockResolvedValue({
+  vi.mocked(reserveDistributedProviderRequest).mockResolvedValue({
     success: true,
     remaining: 1_499,
     unavailable: false,
@@ -114,15 +115,15 @@ describe("geocodePlace", () => {
     resetLocalGeocoder();
   });
 
-  it("throws the last error if all fetch attempts fail", async () => {
+  it("classifies a provider network failure without cascading queries", async () => {
     vi.mocked(global.fetch).mockRejectedValue(new Error("Network Error"));
 
-    await expect(geocodePlace("Unknown Place")).rejects.toThrow(
-      "Geocoder request failed",
-    );
-
-    // "Unknown Place" yields 2 variants: ["Unknown Place", "Unknown Place, India"]
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    await expect(geocodePlace("Unknown Place")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("throws a default error if no results are found and no HTTP errors occur", async () => {
@@ -136,9 +137,12 @@ describe("geocodePlace", () => {
     );
   });
 
-  it("succeeds if an early variant fails but a later one succeeds", async () => {
+  it("succeeds if an early variant is empty but a later one matches", async () => {
     vi.mocked(global.fetch)
-      .mockRejectedValueOnce(new Error("Network Error 1"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      } as Response)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [{ lat: "17.3850", lon: "78.4867", display_name: "Hyderabad" }],
@@ -178,6 +182,32 @@ describe("geocodePlace", () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ["rate-limited", false, 7],
+    ["unavailable", true, 10],
+  ] as const)(
+    "maps an authenticated limiter %s result before provider work",
+    async (code, unavailable, retryAfterSeconds) => {
+      configureManagedGeocoder("locationiq-eu");
+      vi.mocked(enforceAuthenticatedGeocoderRateLimit).mockResolvedValue({
+        success: false,
+        unavailable,
+        retryAfterSeconds,
+        scope: unavailable ? "shared-storage" : "user",
+      });
+
+      await expect(geocodePlace("Authenticated Hyderabad", {
+        authenticatedUserId: "user-123",
+      })).rejects.toMatchObject({
+        name: "GeocoderCapacityError",
+        code,
+        retryAfterSeconds,
+      });
+      expect(reserveDistributedProviderRequest).not.toHaveBeenCalled();
+      expect(global.fetch).not.toHaveBeenCalled();
+    },
+  );
+
   it("preserves deployed authenticated Nominatim until migration activation", async () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("VERCEL_ENV", "production");
@@ -194,7 +224,7 @@ describe("geocodePlace", () => {
       /^https:\/\/nominatim\.openstreetmap\.org\/search\?/,
     );
     expect(enforceAuthenticatedGeocoderRateLimit).not.toHaveBeenCalled();
-    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(reserveDistributedProviderRequest).not.toHaveBeenCalled();
   });
 
   it("fails closed after activation without a managed provider", async () => {
@@ -204,9 +234,23 @@ describe("geocodePlace", () => {
 
     await expect(geocodePlace("Authenticated Hyderabad", {
       authenticatedUserId: "user-123",
-    })).rejects.toThrow(
-      "Geocoder configuration unavailable",
-    );
+    })).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a managed authenticated lookup has no user identity", async () => {
+    configureManagedGeocoder("locationiq-eu");
+
+    await expect(geocodePlace("Authenticated Hyderabad")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
+    expect(enforceAuthenticatedGeocoderRateLimit).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 });
@@ -250,7 +294,7 @@ describe("searchPlaces", () => {
         "User-Agent": "AstroChaganti/1.0 (https://astrochaganti.com)",
       },
     });
-    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(reserveDistributedProviderRequest).not.toHaveBeenCalled();
   });
 
   it("redacts provider URLs, queries, and credentials from failures", async () => {
@@ -261,13 +305,17 @@ describe("searchPlaces", () => {
 
     const error = await searchPlaces("Private Birthplace").catch((value) => value);
     expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).toBe("Geocoder request failed");
+    expect(error).toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
     expect((error as Error).message).not.toMatch(
       /test-provider-secret|locationiq\.com|Private Birthplace/,
     );
   });
 
-  it("keeps deployed normalized rows in bounded process memory, not Redis", async () => {
+  it("keeps deployed normalized rows in bounded process memory, not Turso", async () => {
     configureManagedGeocoder("geoapify");
     vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify({
       results: [{
@@ -289,14 +337,13 @@ describe("searchPlaces", () => {
     await expect(searchPlaces("  PRIVATE   BIRTHPLACE ")).resolves.toEqual(expected);
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(distributedRateLimit).toHaveBeenCalledTimes(1);
-    expect(distributedRateLimit).toHaveBeenCalledWith(
-      "geocoder:provider:daily",
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledWith(
+      "geoapify",
       1_500,
-      86_400_000,
       expect.any(Object),
     );
-    expect(JSON.stringify(vi.mocked(distributedRateLimit).mock.calls)).not.toMatch(
+    expect(JSON.stringify(vi.mocked(reserveDistributedProviderRequest).mock.calls)).not.toMatch(
       /Private Birthplace|Hyderabad|17\.385|78\.4867/,
     );
     expect(geocoderProcessStateForTests()).toMatchObject({
@@ -310,10 +357,12 @@ describe("searchPlaces", () => {
     configureManagedGeocoder("geoapify");
     delete process.env.GEOCODER_DAILY_REQUEST_LIMIT;
 
-    await expect(searchPlaces("Private Birthplace")).rejects.toThrow(
-      "Geocoder daily budget unavailable",
-    );
-    expect(distributedRateLimit).not.toHaveBeenCalled();
+    await expect(searchPlaces("Private Birthplace")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
+    expect(reserveDistributedProviderRequest).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -324,7 +373,7 @@ describe("searchPlaces", () => {
     "fails closed before provider transit when the daily budget is %s",
     async (_case, unavailable) => {
       configureManagedGeocoder("geoapify");
-      vi.mocked(distributedRateLimit).mockResolvedValue({
+      vi.mocked(reserveDistributedProviderRequest).mockResolvedValue({
         success: false,
         remaining: 0,
         unavailable,
@@ -332,24 +381,165 @@ describe("searchPlaces", () => {
         configured: true,
       });
 
-      await expect(searchPlaces("Private Birthplace")).rejects.toThrow(
-        unavailable
-          ? "Geocoder daily budget unavailable"
-          : "Geocoder daily budget exhausted",
-      );
-      expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+      await expect(searchPlaces("Private Birthplace")).rejects.toMatchObject({
+        name: "GeocoderCapacityError",
+        code: unavailable ? "unavailable" : "rate-limited",
+        retryAfterSeconds: unavailable ? 10 : 21_600,
+      });
+      expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
       expect(global.fetch).not.toHaveBeenCalled();
     },
   );
+
+  it("retries one explicit paced denial inside the end-to-end deadline", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-31T00:00:00.000Z"));
+    configureManagedGeocoder("locationiq-eu");
+    vi.mocked(reserveDistributedProviderRequest)
+      .mockResolvedValueOnce({
+        success: false,
+        remaining: 1_499,
+        unavailable: false,
+        retryAfterSeconds: 1,
+        configured: true,
+        denialReason: "pace",
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        remaining: 1_498,
+        unavailable: false,
+        retryAfterSeconds: 0,
+        configured: true,
+      });
+    vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify([{
+      place_id: 1,
+      lat: "17.385",
+      lon: "78.4867",
+      display_name: "Hyderabad, India",
+    }]), { status: 200 }));
+
+    const result = searchPlaces("Hyderabad");
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(result).resolves.toEqual([
+      expect.objectContaining({ label: "Hyderabad, India" }),
+    ]);
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(2);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("completes sequential birth and current-place geocoding across one paced retry", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-31T00:00:00.000Z"));
+    configureManagedGeocoder("locationiq-eu");
+    vi.mocked(reserveDistributedProviderRequest)
+      .mockResolvedValueOnce({
+        success: true,
+        remaining: 1_499,
+        unavailable: false,
+        retryAfterSeconds: 0,
+        configured: true,
+      })
+      .mockResolvedValueOnce({
+        success: false,
+        remaining: 1_499,
+        unavailable: false,
+        retryAfterSeconds: 1,
+        configured: true,
+        denialReason: "pace",
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        remaining: 1_498,
+        unavailable: false,
+        retryAfterSeconds: 0,
+        configured: true,
+      });
+    vi.mocked(global.fetch).mockImplementation(async (input) => {
+      const query = new URL(String(input)).searchParams.get("q") ?? "Unknown";
+      return new Response(JSON.stringify([{
+        place_id: query,
+        lat: "17.385",
+        lon: "78.4867",
+        display_name: query,
+      }]), { status: 200 });
+    });
+
+    await expect(geocodePlace("Birth place", {
+      authenticatedUserId: "user-123",
+    })).resolves.toMatchObject({ display_name: "Birth place" });
+    const current = geocodePlace("Current place", {
+      authenticatedUserId: "user-123",
+    });
+    await vi.advanceTimersByTimeAsync(MANAGED_PROVIDER_MIN_INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(current).resolves.toMatchObject({ display_name: "Current place" });
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(3);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps a hung shared limiter inside the eight-second request deadline", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-31T00:00:00.000Z"));
+    configureManagedGeocoder("locationiq-eu");
+    vi.mocked(reserveDistributedProviderRequest).mockReturnValue(
+      new Promise(() => undefined),
+    );
+
+    const result = searchPlaces("Hyderabad");
+    const rejection = expect(result).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
+    await vi.advanceTimersByTimeAsync(7_999);
+    expect(global.fetch).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await rejection;
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("classifies an in-flight provider timeout and releases process state", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-31T00:00:00.000Z"));
+    configureManagedGeocoder("locationiq-eu");
+    vi.mocked(global.fetch).mockImplementation((_input, init) => (
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener(
+          "abort",
+          () => reject(new DOMException("aborted", "AbortError")),
+          { once: true },
+        );
+      })
+    ));
+
+    const result = searchPlaces("Hung provider");
+    const rejection = expect(result).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(8_000);
+    await rejection;
+    expect(geocoderProcessStateForTests()).toMatchObject({
+      cacheEntries: 0,
+      outstandingRequests: 0,
+    });
+  });
 
   it("charges one admitted daily slot even when the provider attempt fails", async () => {
     configureManagedGeocoder("locationiq-eu");
     vi.mocked(global.fetch).mockRejectedValue(new Error("Network Error"));
 
-    await expect(searchPlaces("Private Birthplace")).rejects.toThrow(
-      "Geocoder request failed",
-    );
-    expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+    await expect(searchPlaces("Private Birthplace")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -363,7 +553,7 @@ describe("searchPlaces", () => {
     const first = searchPlaces("Private Birthplace");
     const duplicate = searchPlaces("  PRIVATE   BIRTHPLACE ");
     await vi.waitFor(() => {
-      expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+      expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
     resolveProvider?.(new Response(JSON.stringify({ results: [{
@@ -377,7 +567,7 @@ describe("searchPlaces", () => {
       [expect.objectContaining({ id: "geoapify:shared-place" })],
       [expect.objectContaining({ id: "geoapify:shared-place" })],
     ]);
-    expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -398,12 +588,11 @@ describe("searchPlaces", () => {
       authenticatedUserId: "private-user-id",
     });
 
-    expect(distributedRateLimit).toHaveBeenCalledTimes(2);
-    for (const call of vi.mocked(distributedRateLimit).mock.calls) {
-      expect(call.slice(0, 3)).toEqual([
-        "geocoder:provider:daily",
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(2);
+    for (const call of vi.mocked(reserveDistributedProviderRequest).mock.calls) {
+      expect(call.slice(0, 2)).toEqual([
+        "locationiq",
         1_500,
-        86_400_000,
       ]);
     }
     expect(enforceAuthenticatedGeocoderRateLimit).toHaveBeenCalledWith(
@@ -464,7 +653,7 @@ describe("searchPlaces", () => {
       await expect(searchPlaces("No such place")).resolves.toEqual([]);
       await expect(searchPlaces("NO SUCH PLACE")).resolves.toEqual([]);
       expect(global.fetch).toHaveBeenCalledTimes(1);
-      expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+      expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
       expect(geocoderProcessStateForTests().cacheEntries).toBe(1);
     },
   );
@@ -473,11 +662,100 @@ describe("searchPlaces", () => {
     configureManagedGeocoder("geoapify");
     vi.mocked(global.fetch).mockResolvedValue(new Response("{}", { status: 404 }));
 
-    await expect(searchPlaces("No such place")).rejects.toThrow(
-      "Geocoder HTTP 404",
-    );
+    await expect(searchPlaces("No such place")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
     expect(geocoderProcessStateForTests().cacheEntries).toBe(0);
   });
+
+  it("preserves a bounded provider Retry-After for HTTP 429", async () => {
+    configureManagedGeocoder("locationiq-eu");
+    vi.mocked(global.fetch).mockResolvedValue(new Response("", {
+      status: 429,
+      headers: { "Retry-After": "37" },
+    }));
+
+    await expect(searchPlaces("Busy place")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "rate-limited",
+      retryAfterSeconds: 37,
+    });
+  });
+
+  it.each([
+    ["missing", undefined, 60],
+    ["HTTP-date", "Fri, 04 Sep 2026 01:00:00 GMT", 60],
+    ["zero", "0", 60],
+    ["oversized", "999999", 86_400],
+  ] as const)(
+    "uses bounded default guidance for a %s Retry-After",
+    async (_case, retryAfter, expectedSeconds) => {
+      configureManagedGeocoder("locationiq-eu");
+      vi.mocked(global.fetch).mockResolvedValue(new Response("", {
+        status: 429,
+        ...(retryAfter === undefined
+          ? {}
+          : { headers: { "Retry-After": retryAfter } }),
+      }));
+
+      await expect(searchPlaces("Busy place")).rejects.toMatchObject({
+        name: "GeocoderCapacityError",
+        code: "rate-limited",
+        retryAfterSeconds: expectedSeconds,
+      });
+    },
+  );
+
+  it("uses safe retry guidance for a provider 5xx response", async () => {
+    configureManagedGeocoder("geoapify");
+    vi.mocked(global.fetch).mockResolvedValue(new Response("", { status: 503 }));
+
+    await expect(searchPlaces("Unavailable place")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
+  });
+
+  it.each(["429", "5xx", "malformed"] as const)(
+    "does not cache a %s failure and charges a fresh retry",
+    async (failure) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-08-31T00:00:00.000Z"));
+      configureManagedGeocoder("locationiq-eu");
+      const failedResponse = failure === "429"
+        ? new Response("", { status: 429, headers: { "Retry-After": "3" } })
+        : failure === "5xx"
+          ? new Response("", { status: 503 })
+          : new Response("{", { status: 200 });
+      vi.mocked(global.fetch)
+        .mockResolvedValueOnce(failedResponse)
+        .mockResolvedValueOnce(new Response(JSON.stringify([{
+          place_id: "recovered-place",
+          lat: "17.385",
+          lon: "78.4867",
+          display_name: "Recovered place",
+        }]), { status: 200 }));
+
+      await expect(searchPlaces("Recoverable place")).rejects.toMatchObject({
+        name: "GeocoderCapacityError",
+        code: failure === "429" ? "rate-limited" : "unavailable",
+      });
+      expect(geocoderProcessStateForTests().cacheEntries).toBe(0);
+      expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
+
+      const retry = searchPlaces("Recoverable place");
+      await vi.advanceTimersByTimeAsync(MANAGED_PROVIDER_MIN_INTERVAL_MS);
+      await expect(retry).resolves.toEqual([
+        expect.objectContaining({ label: "Recovered place" }),
+      ]);
+      expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(2);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(geocoderProcessStateForTests().cacheEntries).toBe(1);
+    },
+  );
 
   it("uses Geoapify's fixed text/API-key contract and normalizes its results envelope", async () => {
     configureManagedGeocoder("geoapify", "test/key?with&reserved=chars");
@@ -571,9 +849,11 @@ describe("searchPlaces", () => {
       json: async () => payload,
     } as Response);
 
-    await expect(searchPlaces("Malformed envelope")).rejects.toThrow(
-      "Geocoder response was invalid",
-    );
+    await expect(searchPlaces("Malformed envelope")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
     expect(geocoderProcessStateForTests().cacheEntries).toBe(0);
   });
 
@@ -596,9 +876,11 @@ describe("searchPlaces", () => {
   ])("rejects an oversized provider response by %s", async (_case, response) => {
     vi.mocked(global.fetch).mockResolvedValue(response);
 
-    await expect(searchPlaces("Oversized response")).rejects.toThrow(
-      "Geocoder response was invalid",
-    );
+    await expect(searchPlaces("Oversized response")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
     expect(geocoderProcessStateForTests().cacheEntries).toBe(0);
   });
 
@@ -632,18 +914,22 @@ describe("searchPlaces", () => {
 
   it("does not cascade into relaxed queries after an upstream failure", async () => {
     vi.mocked(global.fetch).mockRejectedValue(new Error("Network Error"));
-    await expect(searchPlaces("Hyderabad, Telangana")).rejects.toThrow(
-      "Geocoder request failed",
-    );
+    await expect(searchPlaces("Hyderabad, Telangana")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("fails closed in a deployed environment without a managed guest provider", async () => {
     process.env.VERCEL_ENV = "production";
 
-    await expect(searchPlaces("Hyderabad")).rejects.toThrow(
-      "Geocoder configuration unavailable",
-    );
+    await expect(searchPlaces("Hyderabad")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -673,13 +959,15 @@ describe("searchPlaces", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(global.fetch).toHaveBeenCalledTimes(1);
 
-    await vi.advanceTimersByTimeAsync(999);
+    await vi.advanceTimersByTimeAsync(MANAGED_PROVIDER_MIN_INTERVAL_MS - 1);
     expect(global.fetch).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(1);
     await Promise.all([alpha, duplicateAlpha, beta]);
     expect(global.fetch).toHaveBeenCalledTimes(2);
-    expect(startedAt[1] - startedAt[0]).toBe(1_000);
+    expect(startedAt[1] - startedAt[0]).toBe(
+      MANAGED_PROVIDER_MIN_INTERVAL_MS,
+    );
 
     await expect(searchPlaces("alpha")).resolves.toHaveLength(1);
     expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -708,9 +996,11 @@ describe("searchPlaces", () => {
     );
     const duplicate = searchPlaces("  DISTINCT 0  ");
     const outcomesPromise = Promise.allSettled([...admitted, duplicate]);
-    await expect(searchPlaces("Seventh distinct")).rejects.toThrow(
-      "Geocoder is busy",
-    );
+    await expect(searchPlaces("Seventh distinct")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "rate-limited",
+      retryAfterSeconds: 1,
+    });
 
     await vi.advanceTimersByTimeAsync(8_000);
     const outcomes = await outcomesPromise;
@@ -810,7 +1100,7 @@ describe("searchPlaces", () => {
     expect(fetches).toHaveBeenCalledTimes(8);
 
     const retry = geocodePlace(",");
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(MANAGED_PROVIDER_MIN_INTERVAL_MS);
     expect(fetchedQueries).toContain(",");
     await retry;
     expect(fetches).toHaveBeenCalledTimes(9);
@@ -850,6 +1140,94 @@ describe("searchPlaces", () => {
     expect(geocoderProcessStateForTests().outstandingRequests).toBe(0);
   });
 
+  it("cancels in-flight provider work when its only caller disconnects", async () => {
+    configureManagedGeocoder("locationiq-eu");
+    vi.mocked(global.fetch).mockImplementation((_input, init) => (
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener(
+          "abort",
+          () => reject(new DOMException("aborted", "AbortError")),
+          { once: true },
+        );
+      })
+    ));
+    const controller = new AbortController();
+    const cancelled = searchPlaces("In-flight cancellation", controller.signal);
+    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+
+    controller.abort(new Error("private caller reason"));
+    await expect(cancelled).rejects.toThrow("Geocoder request cancelled");
+    await vi.waitFor(() => {
+      expect(geocoderProcessStateForTests().outstandingRequests).toBe(0);
+    });
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
+    expect(geocoderProcessStateForTests().cacheEntries).toBe(0);
+  });
+
+  it("does not fetch when the last caller cancels during a pending provider-budget reservation", async () => {
+    configureManagedGeocoder("locationiq-eu");
+    let settleReservation: (() => void) | undefined;
+    vi.mocked(reserveDistributedProviderRequest).mockImplementation(() => (
+      new Promise((resolve) => {
+        settleReservation = () => resolve({
+          success: true,
+          remaining: 1_499,
+          unavailable: false,
+          retryAfterSeconds: 0,
+          configured: true,
+        });
+      })
+    ));
+
+    const controller = new AbortController();
+    const cancelled = searchPlaces("Pending budget cancellation", controller.signal);
+    await vi.waitFor(() => {
+      expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
+    });
+    const reservationSignal = vi.mocked(reserveDistributedProviderRequest)
+      .mock.calls[0][2]?.signal;
+    expect(reservationSignal).toBeInstanceOf(AbortSignal);
+    expect(reservationSignal?.aborted).toBe(false);
+
+    controller.abort(new Error("private caller reason"));
+    await expect(cancelled).rejects.toThrow("Geocoder request cancelled");
+    expect(reservationSignal?.aborted).toBe(true);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    // Turso HTTP writes cannot be cancelled after dispatch. Let the underlying
+    // reservation settle and prove it cannot revive the abandoned request.
+    settleReservation?.();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(geocoderProcessStateForTests().outstandingRequests).toBe(0);
+  });
+
+  it("handles a late provider-budget rejection after the last caller cancels", async () => {
+    configureManagedGeocoder("locationiq-eu");
+    let rejectReservation: ((reason: Error) => void) | undefined;
+    vi.mocked(reserveDistributedProviderRequest).mockImplementation(() => (
+      new Promise((_resolve, reject) => {
+        rejectReservation = reject;
+      })
+    ));
+
+    const controller = new AbortController();
+    const cancelled = searchPlaces("Late budget rejection", controller.signal);
+    await vi.waitFor(() => {
+      expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
+    });
+
+    controller.abort();
+    await expect(cancelled).rejects.toThrow("Geocoder request cancelled");
+    rejectReservation?.(new Error("late private Turso failure"));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(geocoderProcessStateForTests().outstandingRequests).toBe(0);
+  });
+
   it("lets an immediate same-query retry replace cancelled shared work", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-31T00:00:00.000Z"));
@@ -873,7 +1251,7 @@ describe("searchPlaces", () => {
     const retry = searchPlaces("Immediate retry");
 
     await expect(cancelled).rejects.toThrow("Geocoder request cancelled");
-    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(MANAGED_PROVIDER_MIN_INTERVAL_MS);
     await expect(retry).resolves.toEqual([
       expect.objectContaining({ label: "Immediate retry" }),
     ]);
@@ -904,7 +1282,7 @@ describe("searchPlaces", () => {
     cancelledController.abort();
 
     await expect(cancelled).rejects.toThrow("Geocoder request cancelled");
-    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(MANAGED_PROVIDER_MIN_INTERVAL_MS);
     await expect(retained).resolves.toEqual([
       expect.objectContaining({ label: "Shared" }),
     ]);
@@ -932,12 +1310,14 @@ describe("searchPlaces", () => {
     const first = searchPlaces("Sensitive").catch((error) => error);
     await vi.advanceTimersByTimeAsync(0);
     await expect(first).resolves.toEqual(expect.objectContaining({
-      message: "Geocoder request failed",
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
     }));
     expect(geocoderProcessStateForTests().outstandingRequests).toBe(0);
 
     const retry = searchPlaces("  SENSITIVE  ");
-    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(MANAGED_PROVIDER_MIN_INTERVAL_MS);
     await expect(retry).resolves.toEqual([
       expect.objectContaining({ label: "Recovered" }),
     ]);
@@ -963,7 +1343,7 @@ describe("searchPlaces", () => {
     });
 
     await searchPlaces("Old one");
-    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(MANAGED_PROVIDER_MIN_INTERVAL_MS);
     await searchPlaces("Old two");
     expect(geocoderProcessStateForTests().cacheEntries).toBe(2);
 
@@ -1025,7 +1405,7 @@ describe("searchPlaces", () => {
     expect(geocoderProcessStateForTests().cacheEntries).toBe(0);
 
     const retry = searchPlaces("Coordinate retry");
-    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(MANAGED_PROVIDER_MIN_INTERVAL_MS);
     await expect(retry).resolves.toEqual([
       expect.objectContaining({ label: "Recovered coordinates" }),
     ]);

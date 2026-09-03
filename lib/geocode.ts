@@ -8,6 +8,8 @@ import {
 import { deploymentEnvironment } from "./deployment-environment";
 import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
 import { enforceGeocoderDailyRequestBudget } from "./geocoder-provider-budget";
+import { GeocoderCapacityError } from "./geocoder-capacity-error";
+import { MANAGED_PROVIDER_MIN_INTERVAL_MS } from "./geocoder-limits";
 
 export type GeoResult = {
   latitude: number;
@@ -36,13 +38,14 @@ type NormalizedProviderRow = {
   importance?: number;
 };
 
-const PROVIDER_MIN_INTERVAL_MS = 1_000;
 const PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 const PROVIDER_CACHE_MAX_ENTRIES = 256;
 const PROVIDER_MAX_OUTSTANDING_REQUESTS = 8;
 const PROVIDER_MAX_GUEST_OUTSTANDING_REQUESTS = 6;
 const PROVIDER_REQUEST_DEADLINE_MS = 8_000;
 const PROVIDER_MAX_RESPONSE_BYTES = 64 * 1_024;
+const PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS = 60;
+const PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS = 10;
 const GEOCODER_PROCESS_STATE_VERSION = 3 as const;
 const SAFE_PROVIDER_FIELDS = new Set([
   "provider_id",
@@ -152,7 +155,7 @@ function cachedRows(key: string): NormalizedProviderRow[] | null {
 
 function cacheRows(key: string, rows: NormalizedProviderRow[]): void {
   // Result rows can contain birthplace-derived labels and coordinates. Keep
-  // them inside this bounded process only; Redis is reserved for pseudonymous
+  // them inside this bounded process only; Turso is reserved for pseudonymous
   // enforcement counters.
   purgeExpiredCache();
   if (processState.cache.size >= PROVIDER_CACHE_MAX_ENTRIES) {
@@ -172,6 +175,15 @@ function deadlineError(): Error {
 
 function cancellationError(): Error {
   return new Error("Geocoder request cancelled");
+}
+
+function providerRetryAfterSeconds(response: Response): number {
+  const raw = response.headers?.get("retry-after")?.trim() ?? "";
+  if (!/^\d+$/.test(raw)) return PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS;
+  const seconds = Number(raw);
+  return Number.isSafeInteger(seconds) && seconds > 0
+    ? Math.min(86_400, seconds)
+    : PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS;
 }
 
 function safeAbortReason(signal: AbortSignal): Error {
@@ -210,6 +222,47 @@ function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   });
 }
 
+async function reserveManagedProviderSlot(
+  deadlineAt: number,
+  signal: AbortSignal,
+): Promise<void> {
+  let budget = await withAbort(
+    enforceGeocoderDailyRequestBudget({ signal }),
+    signal,
+  );
+  if (
+    !budget.unavailable
+    && !budget.success
+    && budget.denialReason === "pace"
+  ) {
+    const retryMs = Math.max(1, budget.retryAfterSeconds) * 1_000;
+    if (Date.now() + retryMs < deadlineAt) {
+      await withAbort(
+        new Promise<void>((resolve) => setTimeout(resolve, retryMs)),
+        signal,
+      );
+      // A normal denial performs no write, so one bounded retry cannot double
+      // charge the provider allowance. Storage ambiguity is never retried.
+      budget = await withAbort(
+        enforceGeocoderDailyRequestBudget({ signal }),
+        signal,
+      );
+    }
+  }
+  if (budget.unavailable) {
+    throw new GeocoderCapacityError(
+      "unavailable",
+      budget.retryAfterSeconds,
+    );
+  }
+  if (!budget.success) {
+    throw new GeocoderCapacityError(
+      "rate-limited",
+      budget.retryAfterSeconds,
+    );
+  }
+}
+
 async function waitForProviderSlot(
   deadlineAt: number,
   signal: AbortSignal,
@@ -220,7 +273,9 @@ async function waitForProviderSlot(
     if (processState.lastRequestStartedAt !== null) {
       const waitMs = Math.max(
         0,
-        processState.lastRequestStartedAt + PROVIDER_MIN_INTERVAL_MS - Date.now(),
+        processState.lastRequestStartedAt
+          + MANAGED_PROVIDER_MIN_INTERVAL_MS
+          - Date.now(),
       );
       if (waitMs > 0) {
         await withAbort(
@@ -487,7 +542,7 @@ async function fetchProviderRows(
       && guestOutstanding >= PROVIDER_MAX_GUEST_OUTSTANDING_REQUESTS
     )
   ) {
-    throw new Error("Geocoder is busy");
+    throw new GeocoderCapacityError("rate-limited", 1);
   }
 
   const deadlineAt = Date.now() + PROVIDER_REQUEST_DEADLINE_MS;
@@ -507,16 +562,10 @@ async function fetchProviderRows(
 
   const request = (async () => {
     try {
-      if (config.provider !== "nominatim-local") {
-        const budget = await enforceGeocoderDailyRequestBudget();
-        if (budget.unavailable) {
-          throw new Error("Geocoder daily budget unavailable");
-        }
-        if (!budget.success) {
-          throw new Error("Geocoder daily budget exhausted");
-        }
-      }
       await waitForProviderSlot(deadlineAt, controller.signal);
+      if (config.provider !== "nominatim-local") {
+        await reserveManagedProviderSlot(deadlineAt, controller.signal);
+      }
 
       const url = providerSearchUrl(query, config);
 
@@ -540,7 +589,19 @@ async function fetchProviderRows(
         await res.body?.cancel().catch(() => undefined);
         normalized = { rows: [], sourceWasEmpty: true };
       } else {
-        if (!res.ok) throw new Error(`Geocoder HTTP ${res.status}`);
+        if (!res.ok) {
+          await res.body?.cancel().catch(() => undefined);
+          if (res.status === 429) {
+            throw new GeocoderCapacityError(
+              "rate-limited",
+              providerRetryAfterSeconds(res),
+            );
+          }
+          throw new GeocoderCapacityError(
+            "unavailable",
+            PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
+          );
+        }
         const payload = await readBoundedProviderJson(res);
         normalized = normalizedProviderRows(payload, config);
       }
@@ -549,22 +610,20 @@ async function fetchProviderRows(
       }
       return normalized.rows;
     } catch (error) {
+      if (error instanceof GeocoderCapacityError) throw error;
       if (
         error instanceof Error
-        && (
-          error.message === "Geocoder is busy"
-          || error.message === "Geocoder request timed out"
-          || error.message === "Geocoder request cancelled"
-          || error.message === "Geocoder daily budget unavailable"
-          || error.message === "Geocoder daily budget exhausted"
-          || error.message === "Geocoder response was invalid"
-          || /^Geocoder HTTP \d{3}$/.test(error.message)
-        )
+        && error.message === "Geocoder request cancelled"
       ) throw error;
-      throw new Error(
-        controller.signal.aborted
-          ? safeAbortReason(controller.signal).message
-          : "Geocoder request failed",
+      if (controller.signal.aborted) {
+        const abortReason = safeAbortReason(controller.signal);
+        if (abortReason.message === "Geocoder request cancelled") {
+          throw abortReason;
+        }
+      }
+      throw new GeocoderCapacityError(
+        "unavailable",
+        PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
       );
     } finally {
       clearTimeout(deadline);
@@ -697,7 +756,12 @@ export async function searchPlaces(
   if (!normalized) return [];
 
   const config = guestGeocoderConfig();
-  if (!config) throw new Error("Geocoder configuration unavailable");
+  if (!config) {
+    throw new GeocoderCapacityError(
+      "unavailable",
+      PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
+    );
+  }
   const rows = await providerQuery(normalized, config, 5, "guest", signal);
   const results: PlaceSearchResult[] = [];
 
@@ -766,20 +830,30 @@ async function bestMatch(
   authenticatedUserId?: string,
 ): Promise<NormalizedProviderRow> {
   const config = authenticatedProfileGeocoderConfig();
-  if (!config) throw new Error("Geocoder configuration unavailable");
+  if (!config) {
+    throw new GeocoderCapacityError(
+      "unavailable",
+      PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
+    );
+  }
   if (
     deploymentEnvironment() === "deployed"
     && config.provider !== "nominatim-local"
   ) {
     if (!authenticatedUserId) {
-      throw new Error("Geocoder request unavailable");
+      throw new GeocoderCapacityError(
+        "unavailable",
+        PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
+      );
     }
     const limit = await enforceAuthenticatedGeocoderRateLimit(
       authenticatedUserId,
     );
-    if (limit.unavailable) throw new Error("Geocoder request unavailable");
+    if (limit.unavailable) {
+      throw new GeocoderCapacityError("unavailable", limit.retryAfterSeconds);
+    }
     if (!limit.success) {
-      throw new Error("Too many location requests. Please wait a minute.");
+      throw new GeocoderCapacityError("rate-limited", limit.retryAfterSeconds);
     }
   }
   const variants = config.provider === "nominatim-local"
@@ -796,6 +870,7 @@ async function bestMatch(
         return rows[0];
       }
     } catch (e) {
+      if (e instanceof GeocoderCapacityError) throw e;
       lastError = e instanceof Error ? e : new Error(String(e));
       // Keep trying other variants even if one HTTP call fails.
     }
