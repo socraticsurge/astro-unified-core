@@ -4,9 +4,11 @@ import { authOptions, getUserId } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
+import { credentialedDashaflowSidecarConfig } from "@/lib/engines/dashaflow-config";
 
-const SIDECAR_URL =
-  process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
+const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store" };
+const COMPATIBILITY_UNAVAILABLE =
+  "Compatibility calculation is temporarily unavailable. Please try again.";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -14,7 +16,7 @@ export async function GET() {
   const userId = getUserId(session);
 
   const checks = await db.compatibility.list(userId);
-  return NextResponse.json(checks, { headers: { "Cache-Control": "private, no-store" } });
+  return NextResponse.json(checks, { headers: PRIVATE_NO_STORE });
 }
 
 export async function POST(req: NextRequest) {
@@ -63,34 +65,58 @@ export async function POST(req: NextRequest) {
     }
 
     if (duplicate) {
-      return NextResponse.json(duplicate, { headers: { "Cache-Control": "private, no-store" } });
+      return NextResponse.json(duplicate, { headers: PRIVATE_NO_STORE });
     }
 
-    // Call Python Sidecar
-    const res = await fetch(`${SIDECAR_URL}/compatibility`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        p1: {
-          date_of_birth: p1.date_of_birth,
-          time_of_birth: p1.time_of_birth,
-          latitude: p1.latitude,
-          longitude: p1.longitude,
-          timezone: p1.timezone,
+    const config = credentialedDashaflowSidecarConfig("/compatibility");
+    if (!config) {
+      return NextResponse.json(
+        { error: COMPATIBILITY_UNAVAILABLE },
+        { status: 503, headers: PRIVATE_NO_STORE },
+      );
+    }
+
+    // Call the authenticated Python sidecar only after validating its URL.
+    let res: Response;
+    try {
+      res = await fetch(config.url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+          "Content-Type": "application/json",
         },
-        p2: {
-          date_of_birth: p2.date_of_birth,
-          time_of_birth: p2.time_of_birth,
-          latitude: p2.latitude,
-          longitude: p2.longitude,
-          timezone: p2.timezone,
-        },
-      }),
-    });
+        body: JSON.stringify({
+          p1: {
+            date_of_birth: p1.date_of_birth,
+            time_of_birth: p1.time_of_birth,
+            latitude: p1.latitude,
+            longitude: p1.longitude,
+            timezone: p1.timezone,
+          },
+          p2: {
+            date_of_birth: p2.date_of_birth,
+            time_of_birth: p2.time_of_birth,
+            latitude: p2.latitude,
+            longitude: p2.longitude,
+            timezone: p2.timezone,
+          },
+        }),
+        cache: "no-store",
+        credentials: "omit",
+        redirect: "error",
+      });
+    } catch {
+      return NextResponse.json(
+        { error: COMPATIBILITY_UNAVAILABLE },
+        { status: 502, headers: PRIVATE_NO_STORE },
+      );
+    }
 
     if (!res.ok) {
-      const errorText = await res.text();
-      return NextResponse.json({ error: `Engine error: ${errorText}` }, { status: 500 });
+      return NextResponse.json(
+        { error: COMPATIBILITY_UNAVAILABLE },
+        { status: 502, headers: PRIVATE_NO_STORE },
+      );
     }
 
     const json = await res.json();
@@ -103,7 +129,7 @@ export async function POST(req: NextRequest) {
       result_json: JSON.stringify(data),
     });
 
-    return NextResponse.json(check, { headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json(check, { headers: PRIVATE_NO_STORE });
   } catch (e) {
     console.error("POST /api/compatibility failed:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

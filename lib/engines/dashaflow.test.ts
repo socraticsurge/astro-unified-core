@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, afterEach } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -52,9 +52,18 @@ describe("fetchDashaflow", () => {
     timezone: "Asia/Kolkata",
   };
 
+  beforeEach(() => {
+    process.env.DASHAFLOW_SIDECAR_TOKEN = SERVICE_TOKEN;
+    process.env.DASHAFLOW_SIDECAR_URL = "https://sidecar.example/";
+    delete process.env.VERCEL_ENV;
+  });
+
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    delete process.env.DASHAFLOW_SIDECAR_TOKEN;
+    delete process.env.DASHAFLOW_SIDECAR_URL;
+    delete process.env.VERCEL_ENV;
   });
 
   it("should return data successfully on 200 OK", async () => {
@@ -67,22 +76,39 @@ describe("fetchDashaflow", () => {
     const result = await fetchDashaflow(mockInput);
     expect(result.data).toEqual(mockData);
     expect(result.error).toBeUndefined();
+    expect(fetch).toHaveBeenCalledWith(
+      "https://sidecar.example/calculate",
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${SERVICE_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(mockInput),
+        cache: "no-store",
+        credentials: "omit",
+        redirect: "error",
+      }),
+    );
   });
 
-  it("should return error detail on non-200 with JSON detail", async () => {
+  it("does not read or expose an upstream error body", async () => {
+    const json = vi.fn(async () => ({ detail: "private-sidecar-diagnostic" }));
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: false,
       status: 400,
       statusText: "Bad Request",
-      json: async () => ({ detail: "Invalid input format" }),
+      json,
     } as Response);
 
     const result = await fetchDashaflow(mockInput);
     expect(result.data).toBeNull();
-    expect(result.error).toBe("Invalid input format");
+    expect(result.error).toBe("Chart calculation is temporarily unavailable. Please try again.");
+    expect(result.error).not.toContain("private-sidecar-diagnostic");
+    expect(json).not.toHaveBeenCalled();
   });
 
-  it("should return default error on non-200 with no JSON detail", async () => {
+  it("returns the same sanitized error for other non-success statuses", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -92,10 +118,10 @@ describe("fetchDashaflow", () => {
 
     const result = await fetchDashaflow(mockInput);
     expect(result.data).toBeNull();
-    expect(result.error).toBe("Sidecar HTTP 500");
+    expect(result.error).toBe("Chart calculation is temporarily unavailable. Please try again.");
   });
 
-  it("should return statusText if JSON parsing fails on non-200 (retries once on 503)", async () => {
+  it("does not expose status text if the transient retry also fails", async () => {
     // fetchWithRetry retries once on 503 — mock both calls with the same response.
     const mock503 = {
       ok: false,
@@ -109,15 +135,29 @@ describe("fetchDashaflow", () => {
 
     const result = await fetchDashaflow(mockInput);
     expect(result.data).toBeNull();
-    expect(result.error).toBe("Service Unavailable");
+    expect(result.error).toBe("Chart calculation is temporarily unavailable. Please try again.");
   });
 
-  it("should handle network errors (fetch throws)", async () => {
-    vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("Network Error"));
+  it("does not expose network exception messages", async () => {
+    vi.spyOn(global, "fetch").mockRejectedValueOnce(new Error("private-network-diagnostic"));
 
     const result = await fetchDashaflow(mockInput);
     expect(result.data).toBeNull();
-    expect(result.error).toBe("Network Error");
+    expect(result.error).toBe("Chart calculation is temporarily unavailable. Please try again.");
+    expect(result.error).not.toContain("private-network-diagnostic");
+  });
+
+  it("fails closed before fetch when the service credential is missing", async () => {
+    delete process.env.DASHAFLOW_SIDECAR_TOKEN;
+    const fetchSpy = vi.spyOn(global, "fetch");
+
+    const result = await fetchDashaflow(mockInput);
+
+    expect(result).toEqual({
+      data: null,
+      error: "Chart calculation is temporarily unavailable. Please try again.",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 

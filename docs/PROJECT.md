@@ -25,7 +25,7 @@ GitHub: astro-unified-core      GitHub: dashaflow-sidecar (private)
 │ Next.js 16, NextAuth, │         │ (Swiss Ephemeris,     │
 │ shadcn/ui, Tailwind   │         │ Lahiri ayanamsha)     │
 │                       │         │                       │
-│ DB: Turso (libSQL)    │         │ No DB; v1 bearer auth │
+│ DB: Turso (libSQL)    │         │ No DB; compute auth   │
 └───────────────────────┘         └───────────────────────┘
 ```
 
@@ -125,7 +125,7 @@ proxy.ts                                # NextAuth middleware (matcher + authori
 ### Sidecar (`socraticsurge/dashaflow-sidecar`)
 
 ```
-api/index.py             # FastAPI: GET /health, POST /calculate
+api/index.py             # FastAPI: public GET /health + authenticated compute routes
 api/profile.py           # Authenticated /v1/profile/derive projection
 api/election_chart.py    # Authenticated /v1/election-chart/derive projection
 requirements.txt         # fastapi==0.115.0, dashaflow==1.1.0
@@ -147,7 +147,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `TURSO_DATABASE_URL`       | libSQL DSN                                                    |
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
 | `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`. Vercel Preview/Production require HTTPS; local HTTP is restricted to exact loopback hosts. |
-| `DASHAFLOW_SIDECAR_TOKEN`  | Server-only 32–256 character printable non-space ASCII bearer credential sent to the sidecar's `/v1/profile/derive` and `/v1/election-chart/derive`; must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
+| `DASHAFLOW_SIDECAR_TOKEN`  | Required server-only 32–256 character printable non-space ASCII bearer credential sent to every sidecar compute route (`/calculate`, `/transit`, `/career`, `/compatibility`, `/muhurtha`, and both `/v1/*/derive` projections); must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
 | `GUEST_BIRTH_PROFILE_ENABLED` | Server-only guest place-search/profile-derive gate. Omission defaults on only for an explicitly classified local/test runtime; recognized Vercel Preview/Production runtimes require the exact value `true`, and ambiguous markers (including self-hosted production without a trusted-proxy contract) fail closed. Keep off until Panchangam #231 and #233 close. |
 | `GUEST_ELECTION_CHART_ENABLED` | Independent server-only election-chart gate with the same local default and exact deployed opt-in. Keep off until Panchangam #231 closes. |
 | `GEOCODER_PROVIDER` | Server-only place-search adapter selector. Optional locally, where fixed public Nominatim is the default. Preview/Production guest search and an enabled authenticated migration require exactly `locationiq-eu`, `locationiq-us`, or `geoapify`; endpoints are code-owned and arbitrary base URLs are not accepted. |
@@ -196,7 +196,7 @@ release decisions tracked in Panchangam #233.
 
 | Variable | Purpose |
 |---|---|
-| `DASHAFLOW_API_TOKEN` | Required 32–256 character bearer-token verifier for `/v1/profile/derive` and `/v1/election-chart/derive`. Legacy operations remain compatible during rollout. Use the same secret value as the main app's `DASHAFLOW_SIDECAR_TOKEN`. |
+| `DASHAFLOW_API_TOKEN` | Required 32–256 character bearer-token verifier for every compute route. `GET /` and `GET /health` remain public. Use the same secret value as the main app's `DASHAFLOW_SIDECAR_TOKEN`. |
 
 ### Guest calculation gateway rollout (approval-gated)
 
@@ -213,33 +213,38 @@ missing calculation operation:
    satisfy deployed guest configuration. Keep
    `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` absent or false so this guest rollout
    cannot regress existing signed-in profiles.
-2. Generate one random 32–256 character printable non-space service credential. Configure it as
-   `DASHAFLOW_API_TOKEN` on the sidecar and deploy the sidecar implementation
-   that exposes `POST /v1/profile/derive` and
-   `POST /v1/election-chart/derive`. Verify its public health route and legacy
-   `/calculate` callers remain compatible.
-3. Install the Upstash Redis Marketplace integration on the Astro Chaganti
+2. Generate one random 32–256 character printable non-space service credential.
+   Configure the same value as `DASHAFLOW_API_TOKEN` on the sidecar and
+   `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti Preview and Production. Confirm
+   the configured sidecar URL is HTTPS in both Astro environments.
+3. Deploy the credentialed Astro caller migration while the current sidecar
+   still accepts legacy operations. Verify authorized full-chart, transit,
+   career, compatibility, and registered-user Muhurtha fixtures; missing or
+   unsafe Astro configuration must fail closed without a network request.
+4. Deploy the sidecar enforcement change. Verify `GET /health` remains public,
+   all seven compute operations reject a missing/wrong bearer token, and the
+   same authorized fixtures still pass. Roll back the sidecar first if this
+   verification fails.
+5. Install the Upstash Redis Marketplace integration on the Astro Chaganti
    Vercel project so `UPSTASH_REDIS_REST_URL` and
    `UPSTASH_REDIS_REST_TOKEN` are injected (or deliberately approve one complete
    `KV_REST_API_URL` / `KV_REST_API_TOKEN` compatibility pair). Preview and
    Production guest calls fail closed with `503` when shared per-client/fleet
    enforcement or the normalized-result geocoder cache is absent or
    unavailable; local/test runs keep bounded process-only state.
-4. Configure the same value as `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti
-   Preview and Production. Confirm the configured sidecar URL is HTTPS in both
-   environments. Deploy the gateway and verify allowed/disallowed
+6. Verify the gateway's allowed/disallowed
    OPTIONS, `private, no-store`, 4 KiB rejection, local and global rate-limit
    retry headers, and fixture profile and election-chart derivations,
    including chart order and whole-sign provenance. Tokens must never appear
    in a browser bundle or response.
-5. Enable only the route being released by setting its server-only flag to the
+7. Enable only the route being released by setting its server-only flag to the
    exact value `true`. Verify disabled routes still return a sanitized
    `private, no-store` `503` without consuming request bodies, local limits,
    Redis, geocoder, or sidecar capacity.
-6. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
+8. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
    that consumer only after the gateway fixture passes from
    `https://panchangam.astrochaganti.com`.
-7. Treat registered-profile provider migration as a later, independent release.
+9. Treat registered-profile provider migration as a later, independent release.
    Keep `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` off until signed-in profile
    create/edit, provider attribution and privacy terms, shared-cache failure,
    per-user limiting, and the fleet ceiling pass in Preview. Enable the exact
@@ -552,7 +557,7 @@ fetch `GET /v13/deployments/{id}` from the Vercel API, read `readyState`,
    → GET /api/profiles/{id} → load profile (admin can fetch any)
    → GET /api/readings/dashaflow?profile_id={id}
        → check readings cache (engine="dashaflow")
-       → if miss: POST to ${DASHAFLOW_SIDECAR_URL}/calculate
+       → if miss: authenticated POST to ${DASHAFLOW_SIDECAR_URL}/calculate
        → save reading row, return chart
    → DashboardClient renders the 10-tab unified view (Today, Chart, Planets,
      Houses, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career, Compare)
@@ -593,9 +598,9 @@ uvicorn api.index:app --reload  # http://localhost:8000
 
 For local main-app dev you don't need the local sidecar — `DASHAFLOW_SIDECAR_URL`
 in `.env.local` (or the Vercel-pulled one) can point to the production sidecar.
-Guest profile and election-chart derivation additionally require
-`DASHAFLOW_SIDECAR_TOKEN` to
-match the selected sidecar's `DASHAFLOW_API_TOKEN`. Local browser requests are
+Every sidecar computation requires `DASHAFLOW_SIDECAR_TOKEN` to match the
+selected sidecar's `DASHAFLOW_API_TOKEN`; only health checks omit it. Local
+browser requests are
 accepted only from exact HTTP `localhost`, `127.0.0.1`, or `[::1]` origins.
 Local sidecar HTTP follows the same exact-loopback rule; Preview and Production
 always require an HTTPS sidecar URL before bearer credentials are attached.
@@ -615,11 +620,6 @@ either feature.
 
 These came up but were left out of scope. None block the live site.
 
-- **Legacy sidecar auth**: `/v1/profile/derive` and
-  `/v1/election-chart/derive` are bearer-authenticated. The
-  legacy full-chart and registered-user operations remain unchanged for
-  compatibility and need a separate coordinated migration before they can
-  require a service credential.
 - **Production domain**: `https://astrochaganti.com` is attached to the
   `astro-unified-core-pfni` Vercel project. Authentication callback settings
   remain a separate controlled configuration boundary.
@@ -705,4 +705,4 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 *See `docs/STANDARDS.md` for coding standards, `docs/ARCHITECTURE.md` for system
 design, `docs/BACKLOG.md §Session Decisions` for historical architectural choices.*
 
-*Last updated: 2026-08-29*
+*Last updated: 2026-09-03*
