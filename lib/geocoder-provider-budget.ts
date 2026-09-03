@@ -37,8 +37,9 @@ function configuredDailyLimit(
 /**
  * Reserve one managed-provider request from a shared 24-hour allowance.
  *
- * The caller invokes this only after cache lookup and duplicate coalescing, so
- * cache hits and subscribers to existing work do not spend provider quota.
+ * The caller invokes this only after process-cache lookup and duplicate
+ * coalescing, so warm-instance cache hits and subscribers to existing work do
+ * not spend provider quota.
  * The distributed limiter gives Preview and Production distinct Redis keys,
  * while guest and managed authenticated lookups deliberately share this one
  * logical key within each runtime.

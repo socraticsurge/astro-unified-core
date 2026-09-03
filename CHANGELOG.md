@@ -21,6 +21,15 @@ All notable changes to Astro Chaganti are recorded here.
 ### Added
 - Focused client and route tests for validated destinations, bearer headers, omitted credentials, fail-closed configuration, upstream-body redaction, and Muhurtha wire-data minimization.
 
+## [2026-09-03] — Upstash geocoder data minimization
+
+### Changed
+- **Counter-only Redis boundary** — removed shared persistence of geocoder queries' normalized labels, provider IDs, and coordinates. All runtimes now reuse the existing bounded 256-entry, 24-hour process cache; Redis receives only deployment-scoped HMAC counter keys and integer values for per-client/per-user, fleet, and daily-provider enforcement.
+- **Fail-closed controls preserved** — Vercel Preview/Production still require available distributed client/user, fleet, and `GEOCODER_DAILY_REQUEST_LIMIT` counters before managed provider work. The conservative 1,500/day rollout setting remains supported; this change does not select a provider, accept processor terms, configure credentials, or activate traffic.
+
+### Removed
+- **`lib/shared-geocode-cache.ts`** — deleted the Redis result-cache path and its obsolete tests so a future caller cannot accidentally send birthplace-derived place results to the shared store.
+
 ## [2026-09-03] — Managed-geocoder quota controls
 
 ### Fixed

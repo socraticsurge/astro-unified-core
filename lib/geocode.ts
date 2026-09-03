@@ -6,11 +6,6 @@ import {
   type GeocoderConfig,
 } from "./geocoder-config";
 import { deploymentEnvironment } from "./deployment-environment";
-import {
-  readSharedGeocodeCache,
-  writeSharedGeocodeCache,
-  type SharedGeocodeRow,
-} from "./shared-geocode-cache";
 import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
 import { enforceGeocoderDailyRequestBudget } from "./geocoder-provider-budget";
 
@@ -30,7 +25,16 @@ export type PlaceSearchResult = {
   timezone: string;
 };
 
-type NormalizedProviderRow = SharedGeocodeRow;
+type NormalizedProviderRow = {
+  provider_id?: string;
+  place_id?: number | string;
+  osm_type?: "node" | "way" | "relation";
+  osm_id?: number | string;
+  lat: string;
+  lon: string;
+  display_name: string;
+  importance?: number;
+};
 
 const PROVIDER_MIN_INTERVAL_MS = 1_000;
 const PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
@@ -147,6 +151,9 @@ function cachedRows(key: string): NormalizedProviderRow[] | null {
 }
 
 function cacheRows(key: string, rows: NormalizedProviderRow[]): void {
+  // Result rows can contain birthplace-derived labels and coordinates. Keep
+  // them inside this bounded process only; Redis is reserved for pseudonymous
+  // enforcement counters.
   purgeExpiredCache();
   if (processState.cache.size >= PROVIDER_CACHE_MAX_ENTRIES) {
     const oldest = processState.cache.keys().next().value;
@@ -460,19 +467,8 @@ async function fetchProviderRows(
 ): Promise<NormalizedProviderRow[]> {
   if (callerSignal?.aborted) throw cancellationError();
   const key = providerRequestKey(query, config);
-  const useSharedCache = deploymentEnvironment() === "deployed"
-    && config.provider !== "nominatim-local";
-  if (useSharedCache) {
-    const shared = await readSharedGeocodeCache(key);
-    if (callerSignal?.aborted) throw cancellationError();
-    if (shared.status === "unavailable") {
-      throw new Error("Geocoder cache unavailable");
-    }
-    if (shared.status === "hit") return shared.rows;
-  } else {
-    const cached = cachedRows(key);
-    if (cached) return cached;
-  }
+  const cached = cachedRows(key);
+  if (cached) return cached;
 
   const pending = processState.requests.get(key);
   if (pending && !pending.settled && !pending.controller.signal.aborted) {
@@ -549,12 +545,7 @@ async function fetchProviderRows(
         normalized = normalizedProviderRows(payload, config);
       }
       if (normalized.rows.length > 0 || normalized.sourceWasEmpty) {
-        if (useSharedCache) {
-          const stored = await writeSharedGeocodeCache(key, normalized.rows);
-          if (!stored.ok) throw new Error("Geocoder cache unavailable");
-        } else {
-          cacheRows(key, normalized.rows);
-        }
+        cacheRows(key, normalized.rows);
       }
       return normalized.rows;
     } catch (error) {
@@ -564,7 +555,6 @@ async function fetchProviderRows(
           error.message === "Geocoder is busy"
           || error.message === "Geocoder request timed out"
           || error.message === "Geocoder request cancelled"
-          || error.message === "Geocoder cache unavailable"
           || error.message === "Geocoder daily budget unavailable"
           || error.message === "Geocoder daily budget exhausted"
           || error.message === "Geocoder response was invalid"

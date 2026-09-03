@@ -363,12 +363,12 @@ pseudonymization, so deployments cannot share counters even when they use the
 same Redis database and token. Managed authenticated geocoding separately
 applies a process-local and shared ten-call-per-user limit before joining that same
 60-call geocoder fleet budget. A second provider-neutral budget uses the same
-atomic Redis primitive after shared-cache lookup and duplicate coalescing: each
+atomic Redis primitive after process-cache lookup and duplicate coalescing: each
 managed-provider attempt reserves one of the configured
 `GEOCODER_DAILY_REQUEST_LIMIT` slots, shared by guest and managed-authenticated
 traffic and inheriting the distributed primitive's deployment namespace, so
-Preview cannot consume Production allowance. Cache hits and coalesced callers
-spend no slot; failed admitted attempts do. Missing,
+Preview cannot consume Production allowance. Warm-instance cache hits and
+coalesced callers spend no slot; failed admitted attempts do. Missing,
 malformed, exhausted, or unavailable daily enforcement fails closed before
 provider scheduling or transit. Only consistent Vercel
 Preview/Production markers classify as deployed. Ambiguous runtimes, including
@@ -384,11 +384,11 @@ of those slots from guest search for authenticated profile geocoding. One
 eight-second deadline covers queue wait and fetch. Concurrent duplicate queries
 share one promise; a caller abort removes only that subscriber and cancels
 underlying work when none remain. Semantically valid normalized rows live in a
-bounded 24-hour in-process cache under hashed keys during local development; an
-active timer removes idle expired rows. Deployed managed-provider requests
-instead require a bounded Redis read/write under token-HMAC keys, store only
-those normalized rows for 24 hours, and fail closed when shared storage is
-missing, malformed, or unavailable. Provider responses are capped at 64 KiB before JSON parsing;
+bounded 256-entry, 24-hour process cache under hashed keys in every runtime; an
+active timer removes idle expired rows. Place queries, labels, provider IDs,
+and coordinates are never written to Redis. Upstash stores only short-lived,
+HMAC-pseudonymized integer counters for per-client/per-user, fleet, and daily
+provider enforcement. Provider responses are capped at 64 KiB before JSON parsing;
 invalid nonempty responses are not cached. Provider redirects are rejected and
 raw provider failures are never propagated. The unauthenticated guest search
 uses the fixed public Nominatim endpoint only in local development. In Vercel
@@ -398,11 +398,11 @@ key; arbitrary provider URLs are not configuration. Existing authenticated
 profile creation/editing retains its legacy Nominatim path until the separate
 `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` value is exactly `true`. The enabled
 migration reuses the fixed adapter independently of guest flags, performs one
-bounded query per place, and fails closed on provider, Redis, per-user, or fleet
-enforcement failure. The daily provider counter accepts only canonical integer
-limits from 1 through 5,000 and is required for every deployed managed-provider
-cache miss. Guest search and an enabled authenticated migration cannot
-fall back to public Nominatim.
+bounded query per place, and fails closed on provider, Redis counter,
+per-user, or fleet enforcement failure. The daily provider counter accepts only
+canonical integer limits from 1 through 5,000 and is required for every
+deployed managed-provider process-cache miss. Guest search and an enabled
+authenticated migration cannot fall back to public Nominatim.
 
 ---
 
@@ -935,9 +935,9 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 | Module | Purpose |
 |---|---|
-| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after separate activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a one-request-per-second queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, local active cache expiry or deployed shared-cache enforcement, an atomic daily provider-attempt budget after cache/coalescing, semantic provider validation, and `geo-tz` IANA resolution. |
+| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after separate activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a one-request-per-second queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, bounded active process-cache expiry in all runtimes, an atomic daily provider-attempt budget after cache/coalescing, semantic provider validation, and `geo-tz` IANA resolution. Place results are never stored in Redis. |
 | `lib/geocoder-config.ts` | Server-only fixed LocationIQ/Geoapify adapters, exact authenticated-migration activation, and public attribution metadata. Guest Preview/Production and the enabled authenticated migration require a named adapter plus its key and cannot use an arbitrary URL. |
-| `lib/geocoder-provider-budget.ts` | Provider-neutral Preview/Production Redis allowance shared by guest and managed-authenticated cache misses. Requires `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 5,000 and fails closed before scheduling/fetch when configuration, storage, or quota is unavailable. |
+| `lib/geocoder-provider-budget.ts` | Provider-neutral Preview/Production Redis allowance shared by guest and managed-authenticated process-cache misses. Requires `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 5,000 and fails closed before scheduling/fetch when configuration, storage, or quota is unavailable. |
 | `lib/authenticated-geocoder-rate-limit.ts` | Pseudonymous process and distributed per-user controls plus the 60-call fleet key shared with guest place search; used only by the activated managed authenticated path. |
 | `lib/guest-calculation-gates.ts` | Independent server-only birth-profile and election-chart activation flags; local default on, deployed default off, exact `true` opt-in. |
 | [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, and trusted client-IP extraction for `/api/guest/*` |
@@ -1133,9 +1133,9 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
       → searchPlaces(query, request.signal)
         → coalesced provider request, at most five valid results
         → caller disconnect stops queued work when no duplicate caller remains
-        → local public Nominatim uses a bounded process cache
+        → every runtime uses a bounded, hashed-key process cache
         → Preview/Production require a fixed LocationIQ/Geoapify adapter, key,
-          and normalized-row Redis cache under token-HMAC keys
+          and fail-closed HMAC-pseudonymized Redis counters
       → geo-tz adds an IANA timezone to each selectable place
       ← labels, coordinates, timezones, provider-scoped IDs, and linked attribution
   → guest selects one result and enters exact local birth date/time
@@ -1152,10 +1152,11 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
 ```
 
 The Astro Chaganti gateway creates no server profile, session, DB row, or
-analytics event. Geocoder queries may create only bounded, hashed-key,
-normalized process-cache or Redis entries that expire after 24 hours; no
-profile name is accepted or cached, and the Panchangam profile name never
-crosses this boundary.
+analytics event. Geocoder results may create only bounded, hashed-key process
+entries that expire after 24 hours. Redis receives only HMAC-pseudonymized
+integer counters with their enforcement TTLs—never place queries, labels,
+provider IDs, or coordinates. No profile name is accepted or cached, and the
+Panchangam profile name never crosses this boundary.
 
 ### Journey 8: Panchangam Screens Muhurtam Candidate Charts
 
