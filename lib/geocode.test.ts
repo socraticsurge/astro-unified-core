@@ -1,10 +1,6 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("./shared-geocode-cache", () => ({
-  readSharedGeocodeCache: vi.fn(),
-  writeSharedGeocodeCache: vi.fn(),
-}));
 vi.mock("./authenticated-geocoder-rate-limit", () => ({
   enforceAuthenticatedGeocoderRateLimit: vi.fn(),
 }));
@@ -19,10 +15,6 @@ import {
   resetGeocoderProcessStateForTests,
   searchPlaces,
 } from "./geocode";
-import {
-  readSharedGeocodeCache,
-  writeSharedGeocodeCache,
-} from "./shared-geocode-cache";
 import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
 import { distributedRateLimit } from "./distributed-rate-limit";
 
@@ -30,11 +22,6 @@ global.fetch = vi.fn();
 
 function resetLocalGeocoder(): void {
   vi.resetAllMocks();
-  vi.mocked(readSharedGeocodeCache).mockResolvedValue({ status: "miss" });
-  vi.mocked(writeSharedGeocodeCache).mockResolvedValue({
-    ok: true,
-    configured: true,
-  });
   vi.mocked(enforceAuthenticatedGeocoderRateLimit).mockResolvedValue({
     success: true,
     unavailable: false,
@@ -207,7 +194,6 @@ describe("geocodePlace", () => {
       /^https:\/\/nominatim\.openstreetmap\.org\/search\?/,
     );
     expect(enforceAuthenticatedGeocoderRateLimit).not.toHaveBeenCalled();
-    expect(readSharedGeocodeCache).not.toHaveBeenCalled();
     expect(distributedRateLimit).not.toHaveBeenCalled();
   });
 
@@ -281,31 +267,43 @@ describe("searchPlaces", () => {
     );
   });
 
-  it("uses a deployed shared-cache hit without contacting the provider", async () => {
+  it("keeps deployed normalized rows in bounded process memory, not Redis", async () => {
     configureManagedGeocoder("geoapify");
-    vi.mocked(readSharedGeocodeCache).mockResolvedValue({
-      status: "hit",
-      rows: [{
-        provider_id: "cached-place",
+    vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify({
+      results: [{
+        place_id: "cached-place",
         lat: "17.385",
         lon: "78.4867",
-        display_name: "Hyderabad, Telangana, India",
+        formatted: "Hyderabad, Telangana, India",
       }],
-    });
-
-    await expect(searchPlaces("Private Birthplace")).resolves.toEqual([{
+    }), { status: 200 }));
+    const expected = [{
       id: "geoapify:cached-place",
       label: "Hyderabad, Telangana, India",
       latitude: 17.385,
       longitude: 78.4867,
       timezone: "Asia/Kolkata",
-    }]);
-    expect(readSharedGeocodeCache).toHaveBeenCalledWith(
-      expect.stringMatching(/^[a-f0-9]{64}$/),
+    }];
+
+    await expect(searchPlaces("Private Birthplace")).resolves.toEqual(expected);
+    await expect(searchPlaces("  PRIVATE   BIRTHPLACE ")).resolves.toEqual(expected);
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+    expect(distributedRateLimit).toHaveBeenCalledWith(
+      "geocoder:provider:daily",
+      1_500,
+      86_400_000,
+      expect.any(Object),
     );
-    expect(global.fetch).not.toHaveBeenCalled();
-    expect(writeSharedGeocodeCache).not.toHaveBeenCalled();
-    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(JSON.stringify(vi.mocked(distributedRateLimit).mock.calls)).not.toMatch(
+      /Private Birthplace|Hyderabad|17\.385|78\.4867/,
+    );
+    expect(geocoderProcessStateForTests()).toMatchObject({
+      cacheEntries: 1,
+      cacheKeysAreHashed: true,
+      cachedRowsContainUnknownFields: false,
+    });
   });
 
   it("fails closed before provider transit when the deployed daily limit is missing", async () => {
@@ -317,7 +315,6 @@ describe("searchPlaces", () => {
     );
     expect(distributedRateLimit).not.toHaveBeenCalled();
     expect(global.fetch).not.toHaveBeenCalled();
-    expect(writeSharedGeocodeCache).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -342,7 +339,6 @@ describe("searchPlaces", () => {
       );
       expect(distributedRateLimit).toHaveBeenCalledTimes(1);
       expect(global.fetch).not.toHaveBeenCalled();
-      expect(writeSharedGeocodeCache).not.toHaveBeenCalled();
     },
   );
 
@@ -416,56 +412,6 @@ describe("searchPlaces", () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
-  it("fails closed before provider transit when the deployed cache is unavailable", async () => {
-    configureManagedGeocoder("locationiq-eu");
-    vi.mocked(readSharedGeocodeCache).mockResolvedValue({
-      status: "unavailable",
-      configured: true,
-    });
-
-    await expect(searchPlaces("Private Birthplace")).rejects.toThrow(
-      "Geocoder cache unavailable",
-    );
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it("does not start provider work after cancellation during a shared-cache read", async () => {
-    configureManagedGeocoder("geoapify");
-    let resolveCache: ((value: { status: "miss" }) => void) | undefined;
-    vi.mocked(readSharedGeocodeCache).mockReturnValue(new Promise((resolve) => {
-      resolveCache = resolve;
-    }));
-    const controller = new AbortController();
-    const request = searchPlaces("Private Birthplace", controller.signal);
-
-    controller.abort(new Error("private caller reason"));
-    resolveCache?.({ status: "miss" });
-
-    await expect(request).rejects.toThrow("Geocoder request cancelled");
-    expect(global.fetch).not.toHaveBeenCalled();
-    expect(writeSharedGeocodeCache).not.toHaveBeenCalled();
-    expect(geocoderProcessStateForTests().outstandingRequests).toBe(0);
-  });
-
-  it("does not return or process-cache a provider result when shared persistence fails", async () => {
-    configureManagedGeocoder("locationiq-us");
-    vi.mocked(writeSharedGeocodeCache).mockResolvedValue({
-      ok: false,
-      configured: true,
-    });
-    vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify([{
-      place_id: "uncached-place",
-      lat: "17.385",
-      lon: "78.4867",
-      display_name: "Hyderabad, Telangana, India",
-    }]), { status: 200 }));
-
-    await expect(searchPlaces("Private Birthplace")).rejects.toThrow(
-      "Geocoder cache unavailable",
-    );
-    expect(geocoderProcessStateForTests().cacheEntries).toBe(0);
-  });
-
   it.each([
     ["locationiq-eu", "eu1.locationiq.com"],
     ["locationiq-us", "us1.locationiq.com"],
@@ -516,10 +462,10 @@ describe("searchPlaces", () => {
       ));
 
       await expect(searchPlaces("No such place")).resolves.toEqual([]);
-      expect(writeSharedGeocodeCache).toHaveBeenCalledWith(
-        expect.stringMatching(/^[a-f0-9]{64}$/),
-        [],
-      );
+      await expect(searchPlaces("NO SUCH PLACE")).resolves.toEqual([]);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+      expect(geocoderProcessStateForTests().cacheEntries).toBe(1);
     },
   );
 
@@ -530,7 +476,7 @@ describe("searchPlaces", () => {
     await expect(searchPlaces("No such place")).rejects.toThrow(
       "Geocoder HTTP 404",
     );
-    expect(writeSharedGeocodeCache).not.toHaveBeenCalled();
+    expect(geocoderProcessStateForTests().cacheEntries).toBe(0);
   });
 
   it("uses Geoapify's fixed text/API-key contract and normalizes its results envelope", async () => {

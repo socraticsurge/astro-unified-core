@@ -152,10 +152,10 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `GUEST_ELECTION_CHART_ENABLED` | Independent server-only election-chart gate with the same local default and exact deployed opt-in. Keep off until Panchangam #231 closes. |
 | `GEOCODER_PROVIDER` | Server-only place-search adapter selector. Optional locally, where fixed public Nominatim is the default. Preview/Production guest search and an enabled authenticated migration require exactly `locationiq-eu`, `locationiq-us`, or `geoapify`; endpoints are code-owned and arbitrary base URLs are not accepted. |
 | `GEOCODER_API_KEY` | Server-only key for the selected managed provider; required with `GEOCODER_PROVIDER` for deployed guest search or the enabled authenticated migration, and never returned to the browser. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
-| `GEOCODER_DAILY_REQUEST_LIMIT` | Server-only managed-provider request allowance: a canonical integer from 1 through 5,000. Every deployed cache miss must atomically reserve one shared Preview- or Production-scoped slot before provider scheduling; missing, malformed, exhausted, or unavailable enforcement fails closed. Cache hits and coalesced duplicate callers do not consume it. |
+| `GEOCODER_DAILY_REQUEST_LIMIT` | Server-only managed-provider request allowance: a canonical integer from 1 through 5,000. Every deployed process-cache miss must atomically reserve one shared Preview- or Production-scoped slot before provider scheduling; missing, malformed, exhausted, or unavailable enforcement fails closed. Warm-instance cache hits and coalesced duplicate callers do not consume it. |
 | `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` | Separate server-only registered-profile migration gate. Existing signed-in create/edit keeps the legacy provider unless this equals the exact string `true` in Preview/Production. Enable only after managed provider, Redis processor, quota, privacy, and full journey approval. Guest flags do not control it. |
-| `UPSTASH_REDIS_REST_URL` | Preferred complete server-only HTTPS pair injected by the Vercel Upstash Redis Marketplace integration; required in deployed runtimes for guest abuse controls, enabled authenticated per-user/fleet control, and managed-geocoder caching. |
-| `UPSTASH_REDIS_REST_TOKEN` | Standard server-only REST token for the same Redis database. Rate-limit and geocoder keys are HMAC-pseudonymized; limit keys expire after one minute and normalized geocoder rows after 24 hours. Never prefix with `NEXT_PUBLIC_`. |
+| `UPSTASH_REDIS_REST_URL` | Preferred complete server-only HTTPS pair injected by the Vercel Upstash Redis Marketplace integration; required in deployed runtimes only for guest abuse counters, enabled authenticated per-user/fleet counters, and the managed-provider daily counter. Geocoder result data is never stored there. |
+| `UPSTASH_REDIS_REST_TOKEN` | Standard server-only REST token for the same Redis database. Counter keys are deployment-namespaced and HMAC-pseudonymized; values are integers with one-minute or 24-hour enforcement TTLs. Never prefix with `NEXT_PUBLIC_`, and never write place queries, labels, IDs, or coordinates to Redis. |
 | `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Compatibility Redis REST pair. Used only when both values are present and the preferred Upstash pair is incomplete. URL/token values are never composed across namespaces. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
 | `GROQ_API_KEY`             | Secondary LLM provider used by chat / draft generation (`lib/engines/groq.ts`). Get from console.groq.com. |
@@ -181,11 +181,12 @@ authenticated profile creation/editing keeps its legacy provider until
 `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true`. The enabled migration uses the
 same fixed provider independently of guest flags, issues one bounded query per
 place, and applies a distributed ten-call-per-user limit plus the same 60-call
-minute fleet ceiling used by guest search. After a shared-cache miss and
+minute fleet ceiling used by guest search. After a process-cache miss and
 duplicate coalescing, guest and managed-authenticated work also share one
 atomic `GEOCODER_DAILY_REQUEST_LIMIT` counter per Vercel environment. Failed
-admitted provider attempts consume their slot; cached and coalesced work does
-not. See the official
+admitted provider attempts consume their slot; warm-instance cached and
+coalesced work does not. Normalized place results remain only in a bounded,
+24-hour process cache and are never written to Redis. See the official
 [LocationIQ search contract](https://docs.locationiq.com/reference/search),
 [LocationIQ attribution guide](https://web.locationiq.com/attribution), and
 [Geoapify forward-geocoding contract](https://apidocs.geoapify.com/docs/geocoding/forward-geocoding/).
@@ -223,8 +224,9 @@ missing calculation operation:
    `UPSTASH_REDIS_REST_TOKEN` are injected (or deliberately approve one complete
    `KV_REST_API_URL` / `KV_REST_API_TOKEN` compatibility pair). Preview and
    Production guest calls fail closed with `503` when shared per-client/fleet
-   enforcement or the normalized-result geocoder cache is absent or
-   unavailable; local/test runs keep bounded process-only state.
+   or daily-provider counter enforcement is absent or unavailable. Redis is
+   counter-only: place queries, labels, provider IDs, and coordinates remain in
+   bounded process memory and are never persisted there.
 4. Configure the same value as `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti
    Preview and Production. Confirm the configured sidecar URL is HTTPS in both
    environments. Deploy the gateway and verify allowed/disallowed
@@ -241,14 +243,16 @@ missing calculation operation:
    `https://panchangam.astrochaganti.com`.
 7. Treat registered-profile provider migration as a later, independent release.
    Keep `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` off until signed-in profile
-   create/edit, provider attribution and privacy terms, shared-cache failure,
-   per-user limiting, and the fleet ceiling pass in Preview. Enable the exact
+   create/edit, provider attribution and privacy terms, Redis-counter failure,
+   process-cache behavior, per-user limiting, and the fleet ceiling pass in
+   Preview. Enable the exact
    value `true` only with separate owner approval; guest flags do not imply it.
 
 Rollback is stateless: keep the Panchangam manual-profile and base Muhurtam
 ranking paths available, disable their optional guest API entry points, then
 roll back the gateway if needed. There are no Astro Chaganti profile rows,
-sessions, caches, intent records, or analytics events to delete. Rotate both
+sessions, durable result caches, intent records, or analytics events to delete.
+Rotate both
 token variables together if either value may have been exposed.
 
 ### Google Cloud Console — OAuth consent
