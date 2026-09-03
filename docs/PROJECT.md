@@ -152,6 +152,7 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `GUEST_ELECTION_CHART_ENABLED` | Independent server-only election-chart gate with the same local default and exact deployed opt-in. Keep off until Panchangam #231 closes. |
 | `GEOCODER_PROVIDER` | Server-only place-search adapter selector. Optional locally, where fixed public Nominatim is the default. Preview/Production guest search and an enabled authenticated migration require exactly `locationiq-eu`, `locationiq-us`, or `geoapify`; endpoints are code-owned and arbitrary base URLs are not accepted. |
 | `GEOCODER_API_KEY` | Server-only key for the selected managed provider; required with `GEOCODER_PROVIDER` for deployed guest search or the enabled authenticated migration, and never returned to the browser. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
+| `GEOCODER_DAILY_REQUEST_LIMIT` | Server-only managed-provider request allowance: a canonical integer from 1 through 5,000. Every deployed cache miss must atomically reserve one shared Preview- or Production-scoped slot before provider scheduling; missing, malformed, exhausted, or unavailable enforcement fails closed. Cache hits and coalesced duplicate callers do not consume it. |
 | `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` | Separate server-only registered-profile migration gate. Existing signed-in create/edit keeps the legacy provider unless this equals the exact string `true` in Preview/Production. Enable only after managed provider, Redis processor, quota, privacy, and full journey approval. Guest flags do not control it. |
 | `UPSTASH_REDIS_REST_URL` | Preferred complete server-only HTTPS pair injected by the Vercel Upstash Redis Marketplace integration; required in deployed runtimes for guest abuse controls, enabled authenticated per-user/fleet control, and managed-geocoder caching. |
 | `UPSTASH_REDIS_REST_TOKEN` | Standard server-only REST token for the same Redis database. Rate-limit and geocoder keys are HMAC-pseudonymized; limit keys expire after one minute and normalized geocoder rows after 24 hours. Never prefix with `NEXT_PUBLIC_`. |
@@ -180,7 +181,11 @@ authenticated profile creation/editing keeps its legacy provider until
 `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true`. The enabled migration uses the
 same fixed provider independently of guest flags, issues one bounded query per
 place, and applies a distributed ten-call-per-user limit plus the same 60-call
-fleet ceiling used by guest search. See the official
+minute fleet ceiling used by guest search. After a shared-cache miss and
+duplicate coalescing, guest and managed-authenticated work also share one
+atomic `GEOCODER_DAILY_REQUEST_LIMIT` counter per Vercel environment. Failed
+admitted provider attempts consume their slot; cached and coalesced work does
+not. See the official
 [LocationIQ search contract](https://docs.locationiq.com/reference/search),
 [LocationIQ attribution guide](https://web.locationiq.com/attribution), and
 [Geoapify forward-geocoding contract](https://apidocs.geoapify.com/docs/geocoding/forward-geocoding/).
@@ -203,9 +208,11 @@ missing calculation operation:
    absent or false in Vercel Preview and Production. Close Panchangam #231 with
    the owner-recorded Swiss Ephemeris license decision. Close #233 with the
    approved managed geocoder choice; configure its `GEOCODER_PROVIDER` and
-   server-only `GEOCODER_API_KEY`. Public Nominatim cannot satisfy deployed
-   guest configuration. Keep `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` absent or
-   false so this guest rollout cannot regress existing signed-in profiles.
+   server-only `GEOCODER_API_KEY`, plus an owner-approved canonical
+   `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 5,000. Public Nominatim cannot
+   satisfy deployed guest configuration. Keep
+   `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` absent or false so this guest rollout
+   cannot regress existing signed-in profiles.
 2. Generate one random 32–256 character printable non-space service credential. Configure it as
    `DASHAFLOW_API_TOKEN` on the sidecar and deploy the sidecar implementation
    that exposes `POST /v1/profile/derive` and

@@ -41,8 +41,9 @@ function unavailable(configured: boolean): DistributedRateLimitResult {
  * Vercel Preview and Production fail closed if the Marketplace Redis
  * integration is absent or unavailable. Local/test runs retain the existing
  * process-local limiter and skip this second layer. The client identifier is
- * HMAC-pseudonymized before leaving the function and expires with the short
- * Redis window.
+ * namespaced by the exact Vercel environment and HMAC-pseudonymized before
+ * leaving the function, so a shared Redis database cannot mix Preview and
+ * Production counters. Keys expire with the short Redis window.
  */
 export async function distributedRateLimit(
   key: string,
@@ -62,12 +63,19 @@ export async function distributedRateLimit(
     };
   }
   if (runtime === "unknown") return unavailable(false);
+  const vercelEnv = env.VERCEL_ENV;
+  if (vercelEnv !== "preview" && vercelEnv !== "production") {
+    return unavailable(false);
+  }
   const config = redisRestConfig(env);
   if (!config) {
     return unavailable(false);
   }
 
-  const digest = createHmac("sha256", config.token).update(key).digest("hex");
+  const namespacedKey = `vercel:${vercelEnv}:${key}`;
+  const digest = createHmac("sha256", config.token)
+    .update(namespacedKey)
+    .digest("hex");
   const redisKey = `astrochaganti:rate-limit:${digest}`;
   const command = await redisRestCommand(
     ["EVAL", FIXED_WINDOW_SCRIPT, "1", redisKey, String(windowMs)],

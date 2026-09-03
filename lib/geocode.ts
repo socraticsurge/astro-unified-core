@@ -12,6 +12,7 @@ import {
   type SharedGeocodeRow,
 } from "./shared-geocode-cache";
 import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
+import { enforceGeocoderDailyRequestBudget } from "./geocoder-provider-budget";
 
 export type GeoResult = {
   latitude: number;
@@ -510,6 +511,15 @@ async function fetchProviderRows(
 
   const request = (async () => {
     try {
+      if (config.provider !== "nominatim-local") {
+        const budget = await enforceGeocoderDailyRequestBudget();
+        if (budget.unavailable) {
+          throw new Error("Geocoder daily budget unavailable");
+        }
+        if (!budget.success) {
+          throw new Error("Geocoder daily budget exhausted");
+        }
+      }
       await waitForProviderSlot(deadlineAt, controller.signal);
 
       const url = providerSearchUrl(query, config);
@@ -555,6 +565,8 @@ async function fetchProviderRows(
           || error.message === "Geocoder request timed out"
           || error.message === "Geocoder request cancelled"
           || error.message === "Geocoder cache unavailable"
+          || error.message === "Geocoder daily budget unavailable"
+          || error.message === "Geocoder daily budget exhausted"
           || error.message === "Geocoder response was invalid"
           || /^Geocoder HTTP \d{3}$/.test(error.message)
         )

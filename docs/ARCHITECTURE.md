@@ -357,9 +357,20 @@ The three Panchangam guest routes add shared fixed-window limits through
 Redis REST API. Each request passes the process-local client guard, a shared
 per-client guard, then a route-wide fleet budget (60 geocoder calls shared with
 the managed authenticated path, 30 profile derivations, or 10 election-chart
-requests per minute). Managed authenticated geocoding separately applies a
-process-local and shared ten-call-per-user limit before joining that same
-60-call geocoder fleet budget. Only consistent Vercel
+requests per minute). The distributed primitive prefixes every logical key
+with the exact Vercel `preview` or `production` environment before HMAC
+pseudonymization, so deployments cannot share counters even when they use the
+same Redis database and token. Managed authenticated geocoding separately
+applies a process-local and shared ten-call-per-user limit before joining that same
+60-call geocoder fleet budget. A second provider-neutral budget uses the same
+atomic Redis primitive after shared-cache lookup and duplicate coalescing: each
+managed-provider attempt reserves one of the configured
+`GEOCODER_DAILY_REQUEST_LIMIT` slots, shared by guest and managed-authenticated
+traffic and inheriting the distributed primitive's deployment namespace, so
+Preview cannot consume Production allowance. Cache hits and coalesced callers
+spend no slot; failed admitted attempts do. Missing,
+malformed, exhausted, or unavailable daily enforcement fails closed before
+provider scheduling or transit. Only consistent Vercel
 Preview/Production markers classify as deployed. Ambiguous runtimes, including
 self-hosted `NODE_ENV=production` without an explicit trusted-proxy contract,
 fail closed; local/test runs retain only the process-local layer. Redis aliases
@@ -388,7 +399,9 @@ profile creation/editing retains its legacy Nominatim path until the separate
 `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` value is exactly `true`. The enabled
 migration reuses the fixed adapter independently of guest flags, performs one
 bounded query per place, and fails closed on provider, Redis, per-user, or fleet
-enforcement failure. Guest search and an enabled authenticated migration cannot
+enforcement failure. The daily provider counter accepts only canonical integer
+limits from 1 through 5,000 and is required for every deployed managed-provider
+cache miss. Guest search and an enabled authenticated migration cannot
 fall back to public Nominatim.
 
 ---
@@ -912,8 +925,9 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 | Module | Purpose |
 |---|---|
-| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after separate activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a one-request-per-second queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, local active cache expiry or deployed shared-cache enforcement, semantic provider validation, and `geo-tz` IANA resolution. |
+| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after separate activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a one-request-per-second queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, local active cache expiry or deployed shared-cache enforcement, an atomic daily provider-attempt budget after cache/coalescing, semantic provider validation, and `geo-tz` IANA resolution. |
 | `lib/geocoder-config.ts` | Server-only fixed LocationIQ/Geoapify adapters, exact authenticated-migration activation, and public attribution metadata. Guest Preview/Production and the enabled authenticated migration require a named adapter plus its key and cannot use an arbitrary URL. |
+| `lib/geocoder-provider-budget.ts` | Provider-neutral Preview/Production Redis allowance shared by guest and managed-authenticated cache misses. Requires `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 5,000 and fails closed before scheduling/fetch when configuration, storage, or quota is unavailable. |
 | `lib/authenticated-geocoder-rate-limit.ts` | Pseudonymous process and distributed per-user controls plus the 60-call fleet key shared with guest place search; used only by the activated managed authenticated path. |
 | `lib/guest-calculation-gates.ts` | Independent server-only birth-profile and election-chart activation flags; local default on, deployed default off, exact `true` opt-in. |
 | [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, and trusted client-IP extraction for `/api/guest/*` |

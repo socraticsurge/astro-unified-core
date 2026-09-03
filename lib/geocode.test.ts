@@ -8,6 +8,9 @@ vi.mock("./shared-geocode-cache", () => ({
 vi.mock("./authenticated-geocoder-rate-limit", () => ({
   enforceAuthenticatedGeocoderRateLimit: vi.fn(),
 }));
+vi.mock("./distributed-rate-limit", () => ({
+  distributedRateLimit: vi.fn(),
+}));
 
 import {
   geocoderProcessStateForTests,
@@ -21,6 +24,7 @@ import {
   writeSharedGeocodeCache,
 } from "./shared-geocode-cache";
 import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
+import { distributedRateLimit } from "./distributed-rate-limit";
 
 global.fetch = vi.fn();
 
@@ -37,12 +41,20 @@ function resetLocalGeocoder(): void {
     retryAfterSeconds: 0,
     scope: null,
   });
+  vi.mocked(distributedRateLimit).mockResolvedValue({
+    success: true,
+    remaining: 1_499,
+    unavailable: false,
+    retryAfterSeconds: 0,
+    configured: true,
+  });
   delete process.env.VERCEL_ENV;
   delete process.env.GEOCODER_PROVIDER;
   delete process.env.GEOCODER_API_KEY;
   delete process.env.GEOCODER_BASE_URL;
   delete process.env.GEOCODER_USER_AGENT;
   delete process.env.AUTH_PROFILE_MANAGED_GEOCODER_ENABLED;
+  delete process.env.GEOCODER_DAILY_REQUEST_LIMIT;
   resetGeocoderProcessStateForTests();
 }
 
@@ -55,6 +67,7 @@ function configureManagedGeocoder(
   vi.stubEnv("GEOCODER_PROVIDER", provider);
   vi.stubEnv("GEOCODER_API_KEY", apiKey);
   vi.stubEnv("AUTH_PROFILE_MANAGED_GEOCODER_ENABLED", "true");
+  vi.stubEnv("GEOCODER_DAILY_REQUEST_LIMIT", "1500");
 }
 
 afterEach(() => {
@@ -66,6 +79,7 @@ afterEach(() => {
   delete process.env.GEOCODER_BASE_URL;
   delete process.env.GEOCODER_USER_AGENT;
   delete process.env.AUTH_PROFILE_MANAGED_GEOCODER_ENABLED;
+  delete process.env.GEOCODER_DAILY_REQUEST_LIMIT;
 });
 
 describe("queryVariants", () => {
@@ -194,6 +208,7 @@ describe("geocodePlace", () => {
     );
     expect(enforceAuthenticatedGeocoderRateLimit).not.toHaveBeenCalled();
     expect(readSharedGeocodeCache).not.toHaveBeenCalled();
+    expect(distributedRateLimit).not.toHaveBeenCalled();
   });
 
   it("fails closed after activation without a managed provider", async () => {
@@ -249,6 +264,7 @@ describe("searchPlaces", () => {
         "User-Agent": "AstroChaganti/1.0 (https://astrochaganti.com)",
       },
     });
+    expect(distributedRateLimit).not.toHaveBeenCalled();
   });
 
   it("redacts provider URLs, queries, and credentials from failures", async () => {
@@ -289,6 +305,115 @@ describe("searchPlaces", () => {
     );
     expect(global.fetch).not.toHaveBeenCalled();
     expect(writeSharedGeocodeCache).not.toHaveBeenCalled();
+    expect(distributedRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before provider transit when the deployed daily limit is missing", async () => {
+    configureManagedGeocoder("geoapify");
+    delete process.env.GEOCODER_DAILY_REQUEST_LIMIT;
+
+    await expect(searchPlaces("Private Birthplace")).rejects.toThrow(
+      "Geocoder daily budget unavailable",
+    );
+    expect(distributedRateLimit).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(writeSharedGeocodeCache).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["unavailable", true],
+    ["exhausted", false],
+  ] as const)(
+    "fails closed before provider transit when the daily budget is %s",
+    async (_case, unavailable) => {
+      configureManagedGeocoder("geoapify");
+      vi.mocked(distributedRateLimit).mockResolvedValue({
+        success: false,
+        remaining: 0,
+        unavailable,
+        retryAfterSeconds: unavailable ? 10 : 21_600,
+        configured: true,
+      });
+
+      await expect(searchPlaces("Private Birthplace")).rejects.toThrow(
+        unavailable
+          ? "Geocoder daily budget unavailable"
+          : "Geocoder daily budget exhausted",
+      );
+      expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(writeSharedGeocodeCache).not.toHaveBeenCalled();
+    },
+  );
+
+  it("charges one admitted daily slot even when the provider attempt fails", async () => {
+    configureManagedGeocoder("locationiq-eu");
+    vi.mocked(global.fetch).mockRejectedValue(new Error("Network Error"));
+
+    await expect(searchPlaces("Private Birthplace")).rejects.toThrow(
+      "Geocoder request failed",
+    );
+    expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("coalesces duplicate managed misses before charging the daily budget", async () => {
+    configureManagedGeocoder("geoapify");
+    let resolveProvider: ((response: Response) => void) | undefined;
+    vi.mocked(global.fetch).mockReturnValue(new Promise((resolve) => {
+      resolveProvider = resolve;
+    }));
+
+    const first = searchPlaces("Private Birthplace");
+    const duplicate = searchPlaces("  PRIVATE   BIRTHPLACE ");
+    await vi.waitFor(() => {
+      expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+    resolveProvider?.(new Response(JSON.stringify({ results: [{
+      place_id: "shared-place",
+      lat: 17.385,
+      lon: 78.4867,
+      formatted: "Hyderabad, Telangana, India",
+    }] }), { status: 200 }));
+
+    await expect(Promise.all([first, duplicate])).resolves.toEqual([
+      [expect.objectContaining({ id: "geoapify:shared-place" })],
+      [expect.objectContaining({ id: "geoapify:shared-place" })],
+    ]);
+    expect(distributedRateLimit).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the same central daily budget for guest and managed-auth provider attempts", async () => {
+    configureManagedGeocoder("locationiq-eu");
+    vi.mocked(global.fetch).mockImplementation(async (input) => {
+      const query = new URL(String(input)).searchParams.get("q") ?? "Unknown";
+      return new Response(JSON.stringify([{
+        place_id: query,
+        lat: "17.385",
+        lon: "78.4867",
+        display_name: query,
+      }]), { status: 200 });
+    });
+
+    await searchPlaces("Guest place");
+    await geocodePlace("Authenticated place", {
+      authenticatedUserId: "private-user-id",
+    });
+
+    expect(distributedRateLimit).toHaveBeenCalledTimes(2);
+    for (const call of vi.mocked(distributedRateLimit).mock.calls) {
+      expect(call.slice(0, 3)).toEqual([
+        "geocoder:provider:daily",
+        1_500,
+        86_400_000,
+      ]);
+    }
+    expect(enforceAuthenticatedGeocoderRateLimit).toHaveBeenCalledWith(
+      "private-user-id",
+    );
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 
   it("fails closed before provider transit when the deployed cache is unavailable", async () => {

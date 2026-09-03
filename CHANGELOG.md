@@ -8,6 +8,15 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-09-03] — Managed-geocoder quota controls
+
+### Fixed
+- **Provider-wide daily allowance** — every deployed managed-provider attempt must reserve one atomic Redis slot from the bounded `GEOCODER_DAILY_REQUEST_LIMIT` before scheduling or transit. Guest and managed-authenticated traffic share the allowance; shared-cache hits and coalesced duplicate callers do not consume it, while an admitted failed provider attempt does. Missing, malformed, exhausted, or unavailable enforcement fails closed. This adds pre-activation controls only; it does not choose a provider, configure credentials, or activate public traffic.
+- **Deployment-scoped limiter keys** — the shared rate-limit primitive now incorporates the exact Vercel `preview` or `production` environment before HMAC pseudonymization. All deployed counters remain opaque in Redis and cannot collide when both deployments use the same Redis database and token; ambiguous runtimes continue to fail closed and local behavior is unchanged.
+
+### Added
+- Focused tests for daily-limit bounds and failure modes, cache/coalescing charge semantics, shared guest/authenticated accounting, admitted-provider failures, and cryptographic proof that identical logical limiter keys produce distinct Preview and Production Redis keys.
+
 ## [2026-09-02] — Guest gateway abuse and geocoder hardening
 
 ### Fixed

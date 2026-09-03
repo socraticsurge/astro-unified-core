@@ -155,8 +155,53 @@ describe("distributedRateLimit", () => {
     expect(command[3]).toBe(`astrochaganti:rate-limit:${createHmac(
       "sha256",
       ENV.UPSTASH_REDIS_REST_TOKEN,
-    ).update("guest:election-charts:203.0.113.21").digest("hex")}`);
+    ).update("vercel:production:guest:election-charts:203.0.113.21").digest("hex")}`);
     expect(String(init?.body)).not.toContain("203.0.113.21");
+    expect(String(init?.body)).not.toContain("production");
+  });
+
+  it("derives different opaque Redis keys for the same limiter key in Preview and Production", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(
+      JSON.stringify({ result: [1, 60_000] }), { status: 200 },
+    ));
+    const rawKey = "guest:geocoding:203.0.113.21";
+
+    await distributedRateLimit(rawKey, 5, 60_000, {
+      env: { ...ENV, VERCEL_ENV: "preview" },
+      fetcher,
+    });
+    await distributedRateLimit(rawKey, 5, 60_000, {
+      env: { ...ENV, VERCEL_ENV: "production" },
+      fetcher,
+    });
+
+    const redisKeys = fetcher.mock.calls.map(([, init]) => (
+      JSON.parse(String(init?.body))[3] as string
+    ));
+    expect(redisKeys).toEqual([
+      `astrochaganti:rate-limit:${createHmac("sha256", ENV.UPSTASH_REDIS_REST_TOKEN)
+        .update(`vercel:preview:${rawKey}`).digest("hex")}`,
+      `astrochaganti:rate-limit:${createHmac("sha256", ENV.UPSTASH_REDIS_REST_TOKEN)
+        .update(`vercel:production:${rawKey}`).digest("hex")}`,
+    ]);
+    expect(redisKeys[0]).not.toBe(redisKeys[1]);
+    for (const [, init] of fetcher.mock.calls) {
+      expect(String(init?.body)).not.toContain(rawKey);
+      expect(String(init?.body)).not.toContain("preview");
+      expect(String(init?.body)).not.toContain("production");
+    }
+  });
+
+  it("fails closed before Redis when the exact deployed environment is ambiguous", async () => {
+    const fetcher = vi.fn<typeof fetch>();
+
+    await expect(distributedRateLimit("client", 5, 60_000, {
+      env: { ...ENV, VERCEL_ENV: "staging" },
+      fetcher,
+    })).resolves.toEqual(expect.objectContaining({
+      success: false, configured: false, unavailable: true,
+    }));
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it("reports a shared limit and fails closed on malformed responses", async () => {
