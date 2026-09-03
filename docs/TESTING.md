@@ -1,6 +1,6 @@
 # Astro Chaganti — Testing Log & Coverage
 
-<!-- last-updated: 2026-08-31 -->
+<!-- last-updated: 2026-09-03 -->
 
 > This file tracks: (1) test coverage status per module, (2) how to run tests,
 > (3) a manual QA log, and (4) test plans linked to the user journey traces in
@@ -47,7 +47,8 @@ mapping. Config is in `vitest.config.ts`. Globals are enabled — no imports nee
 
 ## 2. Test Coverage Status
 
-Last assessed: **2026-09-03** (guest gateway rows; older rows retain their prior assessment)
+Last assessed: **2026-09-03** (sidecar authentication and guest gateway rows;
+older rows retain their prior assessment)
 
 | Module | Test file | Coverage | Notes |
 |---|---|---|---|
@@ -59,13 +60,15 @@ Last assessed: **2026-09-03** (guest gateway rows; older rows retain their prior
 | `lib/db/client.ts` | — | None | Integration; needs live Turso or mock |
 | `lib/db/profiles.ts` | — | None | Integration |
 | `app/api/profiles/route.ts` | — | None | Integration |
-| `app/api/readings/dashaflow/route.ts` | — | None | Integration |
-| `app/api/compatibility/route.ts` | — | None | Integration |
+| `app/api/readings/dashaflow/route.ts` | `app/api/readings/dashaflow/route.test.ts` | Route | Auth, cache hit/miss, refresh, and engine failure handling |
+| `app/api/compatibility/route.ts` | `app/api/compatibility/route.test.ts` | Route | Auth/ownership/cap, duplicate cache behavior, validated bearer sidecar call, fail-closed config, and upstream-error redaction |
 | `app/api/feedback/route.ts` | — | None | Integration |
 | `app/api/consultation-requests/route.ts` | — | None | Integration |
 | `lib/geocode.ts` | `lib/geocode.test.ts` | Unit | Guest search asserts fixed LocationIQ EU/US and Geoapify endpoints, safe query/key encoding, provider envelope normalization, LocationIQ 404 no-result behavior, scoped IDs, one upstream call, limit five, selectable coordinates/timezone, semantic malformed-row filtering, redirect rejection, pre-parse 64 KiB response cap, eight-work cap with six-guest reservation, end-to-end deadline, cancellation both before and during a shared-cache read, local hashed cache expiry, deployed shared-cache fail-closed behavior, post-cache/coalescing daily provider admission, gated authenticated single-query reuse, and safe provider errors |
 | `lib/guest-api.ts` | `lib/guest-api.test.ts` | Unit | Exact production/local origins, safe preflight, JSON media type, 4 KiB stream cap, and trusted forwarded IP |
-| `lib/engines/dashaflow.ts` guest projection | `lib/engines/dashaflow.test.ts` | Unit / contract | Bearer credential, exact body, strict normalized response, redacted auth failures, transient retry guidance |
+| `lib/engines/dashaflow.ts` full chart + guest projection | `lib/engines/dashaflow.test.ts` | Unit / contract | Validated bearer destination for both operations, omitted credentials, fail-closed config, full-chart error redaction, exact projection body, strict normalized response, and transient retry guidance |
+| `lib/engines/transit.ts`, `lib/engines/career.ts` | `lib/engines/legacy-sidecar-auth.test.ts` | Unit | Validated bearer destinations, omitted credentials, fail-closed config, successful response preservation, and upstream-error redaction |
+| `app/api/readings/muhurtha/route.ts` | `app/api/readings/muhurtha/route.test.ts` | Route | Validated bearer destination, fail-closed config, upstream-error redaction, private/no-store response, and proof that the legacy-required birth object is synthetic and no profile birth value enters the wire request |
 | `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, deployed activation/provider gates before side effects, query/body bounds, IP rate limit, backward-compatible attribution text plus structured label/URL metadata, no-store, safe upstream failure |
 | `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Deployed activation gate before side effects, exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
 | `lib/deployment-environment.ts`, `lib/guest-calculation-gates.ts` | `lib/deployment-environment.test.ts`, `lib/guest-calculation-gates.test.ts` | Unit | Tri-state local/deployed/unknown classification, contradictions, local default, malformed flags, independent controls, deployed exact-`true` opt-in, unknown-runtime fail-closed |
@@ -123,7 +126,7 @@ before releasing any change that touches the journey's code path.
 |---|---|---|---|
 | J2-1 | Authenticated user loads their own profile chart | 17 sections render | Manual |
 | J2-2 | User loads profile for a different user | 401 or redirect | Manual |
-| J2-3 | Sidecar is unreachable | Error banner shown, not a blank page | Manual |
+| J2-3 | Sidecar is unreachable, misconfigured, or rejects its credential | Stable availability error shown; no upstream diagnostic or blank page | Unit / manual |
 | J2-4 | User clicks "Refresh" | Spinner shown, fresh data loads | Manual |
 | J2-5 | User taps ⓘ on any section | Explainer drawer opens with correct content | Manual |
 | J2-6 | Admin loads any user's profile | Chart loads; Professional toggle visible | Manual |
@@ -140,7 +143,7 @@ before releasing any change that touches the journey's code path.
 | J3-1 | Select two profiles, run check | Score, kuta breakdown, narrative shown | Manual |
 | J3-2 | Same profile selected twice | Error or UI prevents it | Manual |
 | J3-3 | User has 6 checks, tries a 7th | API returns 403 "Limit reached" | Manual / unit |
-| J3-4 | Sidecar unavailable | Error state shown gracefully | Manual |
+| J3-4 | Sidecar unavailable, misconfigured, or rejects its credential | Stable private/no-store error; no upstream body is exposed | Unit / manual |
 | J3-5 | Admin clears compatibility history | List resets to 0 | Manual |
 
 ---
@@ -169,6 +172,7 @@ before releasing any change that touches the journey's code path.
 | J5-1 | Admin fetches transit for a date | Planet positions grid shown | Manual |
 | J5-2 | Non-admin accesses transit | Same as registered user — transit tab visible in basic view? (verify intended behaviour) | Manual |
 | J5-3 | Invalid date string supplied | API returns 400 | Unit |
+| J5-4 | Sidecar token/URL is missing or unsafe | No network request; stable availability error | Unit |
 
 ---
 
@@ -210,6 +214,8 @@ before releasing any change that touches the journey's code path.
 | J8-1 | Profile has current location; request muhurtha | Quality rating + reasoning shown | Manual |
 | J8-2 | Profile missing current location | UI shows "Complete Profile" nudge | Manual |
 | J8-3 | Invalid event type | API returns 400 | Unit |
+| J8-4 | Sidecar token/URL is missing or unsafe | No network request; stable private/no-store error | Unit |
+| J8-5 | Valid request reaches sidecar | Bearer credential attached only after URL validation; the legacy-required birth object is fixed and synthetic, and no profile birth date/time crosses this operation | Unit |
 
 ---
 

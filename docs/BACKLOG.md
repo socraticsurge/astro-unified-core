@@ -1,6 +1,6 @@
 # Backlog
 
-<!-- last-updated: 2026-08-31 -->
+<!-- last-updated: 2026-09-03 -->
 
 Tracks known bugs, deferred features, tech debt, and session decisions.
 
@@ -28,7 +28,7 @@ so future agents don't re-open the conversation unnecessarily.
 
 | # | Feature | Why deferred | Notes |
 |---|---|---|---|
-| D1 | Legacy sidecar authentication | The versioned `/v1/profile/derive` and `/v1/election-chart/derive` operations are bearer-authenticated as of 2026-08-29; legacy `/calculate` and other registered-user operations remain unchanged for rollout compatibility. | Coordinate a separate migration before requiring credentials on legacy callers. Do not treat the protected guest projections as protection for every sidecar route. |
+| D1 | Complete legacy sidecar authentication rollout | The Astro caller migration and sidecar enforcement change are prepared, but production enforcement is not complete until the credentialed callers deploy first and the sidecar follows with successful fixture verification. | Keep this item open through the coordinated production rollout. Roll back sidecar enforcement first if registered-user calculations fail. |
 | D3 | Lead capture / email sign-up | Contact CTA is currently a `mailto:` link. | Could be wired to Resend or Formspree without backend changes. |
 | D4 | Live consultation booking | Users email for a calendar link. | Cal.com or Calendly embed is the low-friction path. No DB changes needed. |
 | D5 | Profile sharing (public profile links) | Profiles are private to owner + admin. | Would require a `is_public` flag on profiles and an unauthenticated route. |
@@ -75,6 +75,7 @@ future agents understand the reasoning and don't relitigate resolved discussions
 | S6 | 2026-05-13 | `DASHAFLOW_SIDECAR_URL` — removed `NEXT_PUBLIC_` prefix | The sidecar URL is a server secret (points to an internal service). `NEXT_PUBLIC_` would have bundled it into browser JS, making it publicly visible in the page source. |
 | S7 | 2026-05-14 | Documentation reorganised into 9 files with a strict ceiling | More than ~8–9 docs becomes unmaintainable for a small team with multi-agent collaboration. STANDARDS.md is the new cross-agent source of truth. |
 | S8 | 2026-08-29 | `https://astrochaganti.com` is the verified production custom domain | The linked Vercel project `astro-unified-core-pfni` currently serves this domain; guest Panchangam clients use its `/api/guest` routes. OAuth environment and redirect values remain separately controlled and must not be inferred from the browser API base. |
+| S9 | 2026-09-03 | Every DashaFlow compute route uses one server-to-server bearer credential; only health is public | One validated destination/token resolver prevents a secret from being attached to an unsafe URL. Deploy credentialed Astro callers before turning on sidecar enforcement so registered-user calculations do not experience a cutover gap. |
 
 ---
 

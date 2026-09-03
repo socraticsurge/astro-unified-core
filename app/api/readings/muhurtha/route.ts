@@ -4,10 +4,23 @@ import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
+import { credentialedDashaflowSidecarConfig } from "@/lib/engines/dashaflow-config";
 import { fetchWithRetry } from "@/lib/engines/fetch-with-retry";
 
-const SIDECAR_URL =
-  process.env.DASHAFLOW_SIDECAR_URL ?? "https://dashaflow-sidecar.vercel.app";
+const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store" };
+const MUHURTHA_UNAVAILABLE =
+  "Muhurtha calculation is temporarily unavailable. Please try again.";
+// The deployed legacy sidecar still requires BirthData-shaped objects for both
+// the unused natal slot and event location. Keep every required date/time/natal
+// field synthetic until the optional schema is deployed; only event
+// coordinates/timezone below are real calculation inputs.
+const LEGACY_BIRTH_PLACEHOLDER = {
+  date_of_birth: "2000-01-01",
+  time_of_birth: "00:00",
+  latitude: 0,
+  longitude: 0,
+  timezone: "UTC",
+} as const;
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,41 +49,59 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Current location required for Muhurtha" }, { status: 400 });
     }
 
-    // Call Python Sidecar
-    const res = await fetchWithRetry(`${SIDECAR_URL}/muhurtha`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        birth_data: {
-          date_of_birth: p.date_of_birth,
-          time_of_birth: p.time_of_birth,
-          latitude: p.latitude,
-          longitude: p.longitude,
-          timezone: p.timezone,
+    const config = credentialedDashaflowSidecarConfig("/muhurtha");
+    if (!config) {
+      return NextResponse.json(
+        { error: MUHURTHA_UNAVAILABLE },
+        { status: 503, headers: PRIVATE_NO_STORE },
+      );
+    }
+
+    // The sidecar's Muhurtha operation depends only on event location and the
+    // requested date window. The required legacy natal object is synthetic;
+    // no profile birth details cross this boundary.
+    let res: Response;
+    try {
+      res = await fetchWithRetry(config.url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+          "Content-Type": "application/json",
         },
-        current_location_data: {
-          date_of_birth: p.date_of_birth, // dummy, engine only needs coordinates/tz
-          time_of_birth: p.time_of_birth, // dummy
-          latitude: p.current_latitude,
-          longitude: p.current_longitude,
-          timezone: p.current_timezone || "UTC",
-        },
-        event_type: event_type || "marriage",
-        start_date,
-        end_date,
-      }),
-    });
+        body: JSON.stringify({
+          birth_data: LEGACY_BIRTH_PLACEHOLDER,
+          current_location_data: {
+            ...LEGACY_BIRTH_PLACEHOLDER,
+            latitude: p.current_latitude,
+            longitude: p.current_longitude,
+            timezone: p.current_timezone || "UTC",
+          },
+          event_type: event_type || "marriage",
+          start_date,
+          end_date,
+        }),
+        cache: "no-store",
+        credentials: "omit",
+        redirect: "error",
+      });
+    } catch {
+      return NextResponse.json(
+        { error: MUHURTHA_UNAVAILABLE },
+        { status: 502, headers: PRIVATE_NO_STORE },
+      );
+    }
 
     if (!res.ok) {
-      const errorText = await res.text();
-      return NextResponse.json({ error: `Engine error: ${errorText}` }, { status: 500 });
+      return NextResponse.json(
+        { error: MUHURTHA_UNAVAILABLE },
+        { status: 502, headers: PRIVATE_NO_STORE },
+      );
     }
 
     const { data } = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: PRIVATE_NO_STORE });
   } catch (e) {
     console.error("POST /api/readings/muhurtha failed:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
-
