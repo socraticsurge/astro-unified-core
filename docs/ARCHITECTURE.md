@@ -610,9 +610,10 @@ touch NextAuth, Turso, PostHog, or request-body logging.
 **[`app/api/readings/muhurtha/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/readings/muhurtha/route.ts)**
 
 - `POST` — bearer-authenticated auspicious timing check for an event type,
-  date window, and event location. Natal `birth_data` is not transmitted
-  because this sidecar operation does not use it. The legacy location schema's
-  required date/time slots receive fixed non-personal placeholders; only
+  date window, and event location. No profile birth value is transmitted
+  because this sidecar operation does not use natal data. Until the relaxed
+  sidecar schema is deployed, its required `birth_data` object and the event
+  location's date/time slots receive fixed non-personal placeholders; only
   event coordinates and timezone affect the calculation.
 
 **[`app/api/readings/tarabalam/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/readings/tarabalam/route.ts)**
@@ -1225,9 +1226,11 @@ activation-gated managed authenticated geocoder add required fail-closed
 Upstash per-client/per-user and fleet enforcement, but other routes remain per
 Lambda instance. See `BACKLOG.md` item D7 for the remaining migration.
 
-**Resolved sidecar authentication (2026-09-03)** — all non-health compute
-callers use the shared validated bearer boundary; the sidecar enforcement
-deploy follows the credentialed-caller deploy to avoid a cutover gap.
+**Sidecar authentication rollout staged (2026-09-03)** — all non-health
+compute callers now use the shared validated bearer boundary on the release
+branch. Production remains open in `BACKLOG.md` D1 until the credentialed
+caller deploy is followed by verified sidecar enforcement without a cutover
+gap.
 
 **`scratch_test_rate_limit.ts`** at project root — dev scratch file, should be deleted. See `BACKLOG.md` T1.
 

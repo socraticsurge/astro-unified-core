@@ -10,11 +10,17 @@ import { fetchWithRetry } from "@/lib/engines/fetch-with-retry";
 const PRIVATE_NO_STORE = { "Cache-Control": "private, no-store" };
 const MUHURTHA_UNAVAILABLE =
   "Muhurtha calculation is temporarily unavailable. Please try again.";
-// The legacy sidecar schema still types event location as BirthData even
-// though the engine reads only coordinates/timezone. Use non-personal
-// placeholders until that field is narrowed in a versioned sidecar contract.
-const LOCATION_DATE_PLACEHOLDER = "2000-01-01";
-const LOCATION_TIME_PLACEHOLDER = "00:00";
+// The deployed legacy sidecar still requires BirthData-shaped objects for both
+// the unused natal slot and event location. Keep every required date/time/natal
+// field synthetic until the optional schema is deployed; only event
+// coordinates/timezone below are real calculation inputs.
+const LEGACY_BIRTH_PLACEHOLDER = {
+  date_of_birth: "2000-01-01",
+  time_of_birth: "00:00",
+  latitude: 0,
+  longitude: 0,
+  timezone: "UTC",
+} as const;
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,7 +58,8 @@ export async function POST(req: NextRequest) {
     }
 
     // The sidecar's Muhurtha operation depends only on event location and the
-    // requested date window. Natal birth data is deliberately not transmitted.
+    // requested date window. The required legacy natal object is synthetic;
+    // no profile birth details cross this boundary.
     let res: Response;
     try {
       res = await fetchWithRetry(config.url, {
@@ -62,9 +69,9 @@ export async function POST(req: NextRequest) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          birth_data: LEGACY_BIRTH_PLACEHOLDER,
           current_location_data: {
-            date_of_birth: LOCATION_DATE_PLACEHOLDER,
-            time_of_birth: LOCATION_TIME_PLACEHOLDER,
+            ...LEGACY_BIRTH_PLACEHOLDER,
             latitude: p.current_latitude,
             longitude: p.current_longitude,
             timezone: p.current_timezone || "UTC",

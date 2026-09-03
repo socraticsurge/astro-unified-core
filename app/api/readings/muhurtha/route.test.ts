@@ -67,7 +67,7 @@ describe("POST /api/readings/muhurtha sidecar authentication", () => {
     delete process.env.VERCEL_ENV;
   });
 
-  it("sends only event-location data after validating the sidecar URL", async () => {
+  it("uses a synthetic legacy birth object and sends no profile birth data", async () => {
     vi.mocked(fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       status: 200,
@@ -93,8 +93,14 @@ describe("POST /api/readings/muhurtha sidecar authentication", () => {
       redirect: "error",
     }));
     const wireBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
-    expect(wireBody).not.toHaveProperty("birth_data");
     expect(wireBody).toEqual({
+      birth_data: {
+        date_of_birth: "2000-01-01",
+        time_of_birth: "00:00",
+        latitude: 0,
+        longitude: 0,
+        timezone: "UTC",
+      },
       current_location_data: {
         date_of_birth: "2000-01-01",
         time_of_birth: "00:00",
@@ -106,6 +112,8 @@ describe("POST /api/readings/muhurtha sidecar authentication", () => {
       start_date: "2026-09-10",
       end_date: "2026-09-12",
     });
+    expect(JSON.stringify(wireBody)).not.toContain(profile.date_of_birth);
+    expect(JSON.stringify(wireBody)).not.toContain(profile.time_of_birth);
   });
 
   it("fails closed before fetch when sidecar credentials are missing", async () => {

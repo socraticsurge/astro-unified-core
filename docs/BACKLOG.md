@@ -28,6 +28,7 @@ so future agents don't re-open the conversation unnecessarily.
 
 | # | Feature | Why deferred | Notes |
 |---|---|---|---|
+| D1 | Complete legacy sidecar authentication rollout | The Astro caller migration and sidecar enforcement change are prepared, but production enforcement is not complete until the credentialed callers deploy first and the sidecar follows with successful fixture verification. | Keep this item open through the coordinated production rollout. Roll back sidecar enforcement first if registered-user calculations fail. |
 | D3 | Lead capture / email sign-up | Contact CTA is currently a `mailto:` link. | Could be wired to Resend or Formspree without backend changes. |
 | D4 | Live consultation booking | Users email for a calendar link. | Cal.com or Calendly embed is the low-friction path. No DB changes needed. |
 | D5 | Profile sharing (public profile links) | Profiles are private to owner + admin. | Would require a `is_public` flag on profiles and an unauthenticated route. |

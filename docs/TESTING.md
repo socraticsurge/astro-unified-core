@@ -68,7 +68,7 @@ older rows retain their prior assessment)
 | `lib/guest-api.ts` | `lib/guest-api.test.ts` | Unit | Exact production/local origins, safe preflight, JSON media type, 4 KiB stream cap, and trusted forwarded IP |
 | `lib/engines/dashaflow.ts` full chart + guest projection | `lib/engines/dashaflow.test.ts` | Unit / contract | Validated bearer destination for both operations, omitted credentials, fail-closed config, full-chart error redaction, exact projection body, strict normalized response, and transient retry guidance |
 | `lib/engines/transit.ts`, `lib/engines/career.ts` | `lib/engines/legacy-sidecar-auth.test.ts` | Unit | Validated bearer destinations, omitted credentials, fail-closed config, successful response preservation, and upstream-error redaction |
-| `app/api/readings/muhurtha/route.ts` | `app/api/readings/muhurtha/route.test.ts` | Route | Validated bearer destination, fail-closed config, upstream-error redaction, private/no-store response, and proof that natal birth data is absent from the wire request |
+| `app/api/readings/muhurtha/route.ts` | `app/api/readings/muhurtha/route.test.ts` | Route | Validated bearer destination, fail-closed config, upstream-error redaction, private/no-store response, and proof that the legacy-required birth object is synthetic and no profile birth value enters the wire request |
 | `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, deployed activation/provider gates before side effects, query/body bounds, IP rate limit, backward-compatible attribution text plus structured label/URL metadata, no-store, safe upstream failure |
 | `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Deployed activation gate before side effects, exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
 | `lib/deployment-environment.ts`, `lib/guest-calculation-gates.ts` | `lib/deployment-environment.test.ts`, `lib/guest-calculation-gates.test.ts` | Unit | Tri-state local/deployed/unknown classification, contradictions, local default, malformed flags, independent controls, deployed exact-`true` opt-in, unknown-runtime fail-closed |
@@ -215,7 +215,7 @@ before releasing any change that touches the journey's code path.
 | J8-2 | Profile missing current location | UI shows "Complete Profile" nudge | Manual |
 | J8-3 | Invalid event type | API returns 400 | Unit |
 | J8-4 | Sidecar token/URL is missing or unsafe | No network request; stable private/no-store error | Unit |
-| J8-5 | Valid request reaches sidecar | Bearer credential attached only after URL validation; no natal `birth_data` or user birth date/time crosses this operation | Unit |
+| J8-5 | Valid request reaches sidecar | Bearer credential attached only after URL validation; the legacy-required birth object is fixed and synthetic, and no profile birth date/time crosses this operation | Unit |
 
 ---
 
