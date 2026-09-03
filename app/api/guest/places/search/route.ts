@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { searchPlaces } from "@/lib/geocode";
+import { isGeocoderCapacityError } from "@/lib/geocoder-capacity-error";
 import { guestGeocoderPublicMetadata } from "@/lib/geocoder-config";
 import { guestBirthProfileEnabled } from "@/lib/guest-calculation-gates";
 import {
@@ -53,7 +54,11 @@ export async function POST(request: Request): Promise<Response> {
   if (!limit.success) {
     return guestJson(
       request,
-      { error: "Too many place searches. Please wait a minute and try again." },
+      {
+        error: limit.scope === "capacity"
+          ? "Shared place-search capacity is temporarily full. Please try again later."
+          : "Too many place searches. Please wait and try again.",
+      },
       {
         status: 429,
         headers: { "Retry-After": String(limit.retryAfterSeconds) },
@@ -84,7 +89,21 @@ export async function POST(request: Request): Promise<Response> {
         attributions: geocoderMetadata.attributions,
       },
     });
-  } catch {
+  } catch (error) {
+    if (isGeocoderCapacityError(error)) {
+      return guestJson(
+        request,
+        {
+          error: error.code === "rate-limited"
+            ? "Place search is busy. Please wait and try again."
+            : "Place search is temporarily unavailable. Please try again.",
+        },
+        {
+          status: error.code === "rate-limited" ? 429 : 503,
+          headers: { "Retry-After": String(error.retryAfterSeconds) },
+        },
+      );
+    }
     return guestJson(
       request,
       { error: "Place search is temporarily unavailable. Please try again." },

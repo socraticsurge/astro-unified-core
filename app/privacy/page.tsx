@@ -4,7 +4,7 @@ export default function PrivacyPage() {
   return (
     <article className="prose prose-invert max-w-2xl mx-auto py-12">
       <h1>Privacy Policy</h1>
-      <p className="text-sm text-muted-foreground">Last updated: 2026-09-03</p>
+      <p className="text-sm text-muted-foreground">Last updated: 2026-09-04</p>
 
       <h2>What we collect</h2>
       <p>
@@ -36,9 +36,11 @@ export default function PrivacyPage() {
       <ul>
         <li>Google — for sign-in.</li>
         <li>
-          LocationIQ or Geoapify — the configured managed geocoder receives
-          the place text needed to return selectable locations. The active
-          provider is credited beside guest search results.
+          LocationIQ or Geoapify — when a managed geocoder is activated, it
+          receives the place text needed to return selectable locations. The
+          active provider is credited beside guest search results. LocationIQ
+          is the recommended release candidate, but no account, terms, or live
+          key have been approved yet.
         </li>
         <li>
           OpenStreetMap Nominatim — receives place text from signed-in profile
@@ -51,17 +53,18 @@ export default function PrivacyPage() {
           OpenStreetMap data, with linked attribution where results appear.
         </li>
         <li>
-          Upstash Redis, or the configured compatible Redis hosting provider —
-          receives HMAC-pseudonymous cache and rate-limit keys. Managed
-          geocoding stores only normalized location results there for no more
-          than 24 hours; raw place text and account identifiers are not Redis
-          keys.
-        </li>
-        <li>
           DashaFlow sidecar — receives the bounded birth or election-chart
           inputs needed to perform an astrological calculation.
         </li>
-        <li>Turso (libSQL) — stores signed-in account profiles and readings.</li>
+        <li>
+          Turso (libSQL) — stores signed-in account profiles and readings. Its
+          separate limiter tables contain only environment-scoped HMAC
+          digests with integer count/expiry fields, plus one non-personal
+          aggregate provider quota-and-admission-lease row shared across deployed
+          environments. Those limiter tables never receive raw IP addresses,
+          user IDs, place queries or results, birth details, coordinates,
+          provider keys, or profile data.
+        </li>
         <li>Vercel — hosts the application and its server functions.</li>
         <li>
           Sentry — error and performance monitoring. Server request-body
@@ -77,12 +80,17 @@ export default function PrivacyPage() {
       <h2>Retention and caching</h2>
       <p>
         Signed-in profiles remain until you delete them. In a deployed managed
-        geocoder flow, this application may cache only normalized location
-        results for up to 24 hours under a pseudonymous key; raw place text and
-        client IP addresses are not cache keys. Short-lived pseudonymous
-        rate-limit records expire with their one-minute window. Each external
-        provider, including the configured Redis host, may retain request data
-        under its own published terms, which must be reviewed before activation.
+        geocoder flow, this application caches normalized location results only
+        in bounded server-process memory for up to 24 hours under a hashed key.
+        They are not persisted as a shared result cache or written to limiter
+        tables. If a signed-in user selects a location and saves a profile, its
+        place, coordinates, and timezone are stored as profile fields as
+        described above; guest selections are not. Short-lived pseudonymous
+        limiter rows become obsolete when their enforcement window expires and
+        are removed by bounded maintenance. The non-personal provider budget
+        row rolls over by UTC day. Each external geocoder may retain request
+        data under its own published terms, which must be reviewed before
+        activation.
       </p>
 
       <h2>Your choices</h2>

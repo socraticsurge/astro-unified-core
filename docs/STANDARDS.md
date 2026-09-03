@@ -1,6 +1,6 @@
 # Astro Chaganti — Project Standards
 
-<!-- last-updated: 2026-08-31 -->
+<!-- last-updated: 2026-09-04 -->
 
 > **Agent-neutral.** These rules apply to Claude Code, Jules, Gemini, and any
 > future agent. They are the single source of truth for all coding standards.
@@ -196,15 +196,26 @@ check auth. CDN caches do not scope by user.
 
 ### Schema migration
 
-`ensureSchema()` in `lib/db/client.ts` is the only migration mechanism.
+`lib/db/client.ts` owns the schema lifecycle. `SCHEMA_VERSION` is currently
+`12`.
 
-1. Write DDL in `ensureSchema()`.
-2. Bump `SCHEMA_VERSION` (currently `7`).
-3. Wrap `ALTER TABLE … ADD COLUMN` in `try/catch` to handle re-runs on existing DBs.
-4. Add the new module in `lib/db/your-table.ts`.
-5. Export from `lib/db/index.ts` and add to the `db` object.
+1. Add every new table/index to `bootstrapTables()` with idempotent
+   `CREATE ... IF NOT EXISTS`; this bootstrap runs on every cold start even when
+   the stored version already matches.
+2. Put version-dependent column changes, backfills, and seeds in
+   `runMigrations()`. Use `migrate()` for expected idempotency errors; do not
+   swallow unrelated failures.
+3. Bump `SCHEMA_VERSION` with the corresponding schema change.
+4. If a latency-sensitive boundary needs a focused bootstrap, keep its DDL in
+   one helper and call that helper from `bootstrapTables()` too. Guest limiters
+   use `ensureRateLimitSchema()` for exactly this reason.
+5. Add the new module in `lib/db/your-table.ts`, export it from
+   `lib/db/index.ts`, and add it to the `db` object when application CRUD is
+   required.
 
-Never change `SCHEMA_VERSION` without also adding the corresponding DDL.
+Never change `SCHEMA_VERSION` without the corresponding bootstrap or migration
+work, and never rely on the version row alone to prove that idempotent tables
+exist.
 
 ### Scoping queries
 
@@ -252,10 +263,24 @@ if (!result.success) {
 **Known limitation:** most rate limits are per-Lambda instance, not global (see
 `BACKLOG.md` D7). The three approval-gated Panchangam guest routes and the
 separately gated managed authenticated geocoder are scoped exceptions: they add
-required, fail-closed Upstash identity and fleet enforcement in deployed
-runtimes. Guest search and managed authenticated geocoding share one fleet key.
-Extend that pattern deliberately rather than assuming every route is globally
-limited.
+required, fail-closed Turso-backed identity and fleet enforcement in deployed
+runtimes. Logical identities are HMAC-pseudonymized with
+`RATE_LIMIT_HMAC_SECRET`; raw identifiers and request data never enter limiter
+tables. Guest search and managed authenticated geocoding share one 30/minute
+fleet key. A read-only preflight plus a first atomic capacity reservation caps
+guest attempts at 2,000 per anchored 24-hour window in Preview and 10,000 in
+Production, and managed authenticated geocoding at 500 in Preview and 2,500 in
+Production. The capacity slot remains consumed after a later route-specific
+denial so no user, fleet, or client-row mutation escapes the write envelope.
+One two-second cooperative deadline must cover the entire deployed guard chain,
+with the same signal forwarded into every storage operation. Once aborted, no
+later SQL statement may start. Treat any already-dispatched Turso write as
+conservatively consumed: never refund or automatically retry an ambiguous
+reservation.
+Extend that pattern deliberately, with bounded writes and post-response cleanup,
+rather than assuming every route is globally limited. Before enabling a new
+deployed path, measure current Turso usage and headroom rather than treating the
+Free-plan allowance as unused capacity.
 
 ---
 

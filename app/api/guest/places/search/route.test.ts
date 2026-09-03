@@ -11,6 +11,7 @@ import { OPTIONS, POST } from "./route";
 import { searchPlaces } from "@/lib/geocode";
 import { guestGeocoderPublicMetadata } from "@/lib/geocoder-config";
 import { enforceGuestRateLimit } from "@/lib/guest-rate-limit";
+import { GeocoderCapacityError } from "@/lib/geocoder-capacity-error";
 
 const ORIGIN = "https://panchangam.astrochaganti.com";
 
@@ -121,6 +122,23 @@ describe("POST /api/guest/places/search", () => {
     expect(searchPlaces).not.toHaveBeenCalled();
   });
 
+  it("does not promise a one-minute retry after daily capacity is full", async () => {
+    vi.mocked(enforceGuestRateLimit).mockResolvedValue({
+      success: false,
+      unavailable: false,
+      retryAfterSeconds: 3_600,
+      scope: "capacity",
+    });
+    const response = await POST(request({ query: "Hyderabad" }));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("3600");
+    expect(await response.json()).toEqual({
+      error: "Shared place-search capacity is temporarily full. Please try again later.",
+    });
+    expect(searchPlaces).not.toHaveBeenCalled();
+  });
+
   it("fails closed before parsing when shared abuse controls are unavailable", async () => {
     vi.mocked(enforceGuestRateLimit).mockResolvedValue({
       success: false,
@@ -181,6 +199,27 @@ describe("POST /api/guest/places/search", () => {
     expect(response.headers.get("Retry-After")).toBe("10");
     expect(JSON.stringify(body)).not.toContain("secret upstream diagnostic");
   });
+
+  it.each([
+    ["rate-limited", 429, 1],
+    ["unavailable", 503, 10],
+  ] as const)(
+    "maps provider capacity %s without exposing internal diagnostics",
+    async (code, status, retryAfterSeconds) => {
+      vi.mocked(searchPlaces).mockRejectedValue(
+        new GeocoderCapacityError(code, retryAfterSeconds),
+      );
+      const response = await POST(request({ query: "Hyderabad" }));
+      expect(response.status).toBe(status);
+      expect(response.headers.get("Retry-After")).toBe(
+        String(retryAfterSeconds),
+      );
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(JSON.stringify(await response.json())).not.toContain(
+        "GeocoderCapacityError",
+      );
+    },
+  );
 });
 
 describe("OPTIONS /api/guest/places/search", () => {

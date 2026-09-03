@@ -1,6 +1,6 @@
 // In-memory rate limiter. Per-instance on serverless (not globally shared across
-// Lambda invocations). Adequate for abuse prevention; use Upstash Redis for
-// strict global limits.
+// Lambda invocations). Adequate for low-risk routes; use the Turso-backed
+// shared cross-instance limits for protected deployed paths.
 
 const store = new Map<string, { count: number; expires: number }>();
 

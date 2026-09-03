@@ -38,6 +38,7 @@ vi.mock("@/lib/posthog-server", () => ({
 }));
 
 import { geocodePlace } from "@/lib/geocode";
+import { GeocoderCapacityError } from "@/lib/geocoder-capacity-error";
 
 describe("GET /api/profiles/[id]", () => {
   beforeEach(() => {
@@ -232,10 +233,10 @@ describe("PUT /api/profiles/[id]", () => {
     expect(await response.json()).toEqual(updated);
   });
 
-  it("returns a bounded client error when managed-provider geocoding fails", async () => {
+  it("returns a bounded client error when a place genuinely has no match", async () => {
     vi.mocked(db.profiles.get).mockResolvedValue(existingProfile);
     vi.mocked(geocodePlace).mockRejectedValue(
-      new Error("Geocoder configuration unavailable"),
+      new Error("Place not found"),
     );
 
     const response = await PUT(request({
@@ -245,10 +246,57 @@ describe("PUT /api/profiles/[id]", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
-      error: "Geocoder configuration unavailable",
+      error: "Place not found",
     });
     expect(db.profiles.update).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["rate-limited", 429, 4],
+    ["unavailable", 503, 10],
+  ] as const)(
+    "preserves birth-place provider capacity %s without updating",
+    async (code, status, retryAfterSeconds) => {
+      vi.mocked(db.profiles.get).mockResolvedValue(existingProfile);
+      vi.mocked(geocodePlace).mockRejectedValue(
+        new GeocoderCapacityError(code, retryAfterSeconds),
+      );
+
+      const response = await PUT(request({
+        ...existingProfile,
+        place_of_birth: "Changed place",
+      }), { params: Promise.resolve({ id: "profile-456" }) });
+
+      expect(response.status).toBe(status);
+      expect(response.headers.get("Retry-After")).toBe(String(retryAfterSeconds));
+      expect(db.profiles.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["rate-limited", 429, 5],
+    ["unavailable", 503, 11],
+  ] as const)(
+    "preserves current-location provider capacity %s without updating",
+    async (code, status, retryAfterSeconds) => {
+      vi.mocked(db.profiles.get).mockResolvedValue(existingProfile);
+      vi.mocked(geocodePlace).mockRejectedValue(
+        new GeocoderCapacityError(code, retryAfterSeconds),
+      );
+
+      const response = await PUT(request({
+        ...existingProfile,
+        current_location: "London",
+      }), { params: Promise.resolve({ id: "profile-456" }) });
+
+      expect(response.status).toBe(status);
+      expect(response.headers.get("Retry-After")).toBe(String(retryAfterSeconds));
+      expect(geocodePlace).toHaveBeenCalledWith("London", {
+        authenticatedUserId: "user-123",
+      });
+      expect(db.profiles.update).not.toHaveBeenCalled();
+    },
+  );
 
   it("rejects a missing birth place before invoking the provider", async () => {
     vi.mocked(db.profiles.get).mockResolvedValue(existingProfile);

@@ -1,16 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { db } from "@/lib/db";
 import {
   fetchTodayCelestialFacts,
   buildDailyLandingContent,
 } from "@/lib/engines/today-landing";
+import { cleanupExpiredDistributedRateLimits } from "@/lib/db/rate-limit-maintenance";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/cron/regenerate-landing
 //
-// Triggered by Vercel Cron every 8 hours (see vercel.json `crons`). The
+// Triggered by the authenticated GitHub Actions cron every 8 hours. The
 // landing snippets reference the Moon's current nakshatra, which shifts
 // every ~13 hours — without a periodic refresh, today's row would go
 // stale by mid-day.
@@ -20,12 +21,34 @@ export const dynamic = "force-dynamic";
 // When the nakshatra has actually changed since last generation, we
 // regenerate. Net cost: 1–2 LLM calls/day on average.
 //
-// Auth: Vercel sends `Authorization: Bearer ${CRON_SECRET}` on cron
-// invocations. Reject anything else. See docs/PROJECT.md for setting
-// the env var.
+// Auth: the GitHub Actions caller sends
+// `Authorization: Bearer ${CRON_SECRET}`. Reject anything else. See
+// docs/PROJECT.md for setting the env var.
 
 function istDateString(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+function scheduleRateLimitMaintenance(): void {
+  after(async () => {
+    try {
+      const cleanup = await cleanupExpiredDistributedRateLimits();
+      if (cleanup.backlogRemaining) {
+        Sentry.captureMessage("Expired rate-limit cleanup backlog remains", {
+          level: "warning",
+          tags: { feature: "rate-limit-maintenance", phase: "cron-cleanup" },
+          extra: {
+            deletedRows: cleanup.deletedRows,
+            batches: cleanup.batches,
+          },
+        });
+      }
+    } catch (cleanupError) {
+      Sentry.captureException(cleanupError, {
+        tags: { feature: "rate-limit-maintenance", phase: "cron-cleanup" },
+      });
+    }
+  });
 }
 
 export async function GET(req: NextRequest) {
@@ -40,6 +63,10 @@ export async function GET(req: NextRequest) {
   }
 
   const istDate = istDateString();
+  // Run privacy maintenance only after the response finishes. Every storage
+  // operation also has a deadline, so cleanup cannot delay landing refresh or
+  // occupy the scheduled function indefinitely.
+  scheduleRateLimitMaintenance();
 
   try {
     const facts = await fetchTodayCelestialFacts();
