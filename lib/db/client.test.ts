@@ -30,6 +30,44 @@ function result(rows: unknown[][] = []): TestResult {
   return { rows };
 }
 
+const RATE_LIMIT_EXPIRY_INDEX = "idx_distributed_rate_limits_expiry";
+
+function readyRateLimitSchema(): TestResult[] {
+  return [
+    result([[
+      "table",
+      "distributed_rate_limits",
+      "distributed_rate_limits",
+      `CREATE TABLE distributed_rate_limits (
+        counter_key TEXT PRIMARY KEY
+          CHECK(length(counter_key) = 64 AND counter_key NOT GLOB '*[^0-9a-f]*'),
+        count INTEGER NOT NULL CHECK(count BETWEEN 1 AND 1000000),
+        expires_at_ms INTEGER NOT NULL CHECK(expires_at_ms > 0)
+      ) WITHOUT ROWID`,
+    ]]),
+    result([[
+      "table",
+      "geocoder_provider_budget",
+      "geocoder_provider_budget",
+      `CREATE TABLE geocoder_provider_budget (
+        budget_key TEXT PRIMARY KEY
+          CHECK(length(budget_key) = 64 AND budget_key NOT GLOB '*[^0-9a-f]*'),
+        utc_day TEXT NOT NULL,
+        day_count INTEGER NOT NULL CHECK(day_count BETWEEN 1 AND 1500),
+        daily_limit INTEGER NOT NULL CHECK(daily_limit BETWEEN 1 AND 1500),
+        next_allowed_at_ms INTEGER NOT NULL CHECK(next_allowed_at_ms > 0),
+        CHECK(day_count <= daily_limit)
+      ) WITHOUT ROWID`,
+    ]]),
+    result([[
+      "index",
+      RATE_LIMIT_EXPIRY_INDEX,
+      "distributed_rate_limits",
+      `CREATE INDEX ${RATE_LIMIT_EXPIRY_INDEX} ON distributed_rate_limits (expires_at_ms)`,
+    ]]),
+  ];
+}
+
 function sqlText(statement: unknown): string {
   if (typeof statement === "string") return statement;
   if (
@@ -51,7 +89,7 @@ async function flushMicrotasks(rounds = 50): Promise<void> {
 
 async function loadClientModule(
   execute: ReturnType<typeof vi.fn>,
-  batch: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue([result()]),
+  batch: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue(readyRateLimitSchema()),
 ) {
   vi.resetModules();
   createClientMock.mockReset();
@@ -68,7 +106,7 @@ describe("database schema initialization", () => {
     delete process.env.TURSO_AUTH_TOKEN;
   });
 
-  it("shares one focused initialization across concurrent callers", async () => {
+  it("shares one read-only readiness probe across concurrent guest callers", async () => {
     const focusedBatch = deferred<TestResult[]>();
     const execute = vi.fn();
     const batch = vi.fn().mockImplementationOnce(() => focusedBatch.promise);
@@ -79,7 +117,17 @@ describe("database schema initialization", () => {
 
     expect(batch).toHaveBeenCalledTimes(1);
     expect(execute).not.toHaveBeenCalled();
-    focusedBatch.resolve([result(), result(), result()]);
+    const [statements, mode] = batch.mock.calls[0] as [unknown[], string];
+    expect(mode).toBe("read");
+    expect(statements).toHaveLength(3);
+    for (const statement of statements) {
+      expect(sqlText(statement)).toMatch(/^\s*SELECT\b/i);
+      expect(sqlText(statement)).not.toMatch(
+        /\b(?:CREATE|ALTER|DROP|INSERT|UPDATE|DELETE|REPLACE)\b/i,
+      );
+    }
+
+    focusedBatch.resolve(readyRateLimitSchema());
     await Promise.all([first, second]);
 
     expect(batch).toHaveBeenCalledTimes(1);
@@ -115,20 +163,106 @@ describe("database schema initialization", () => {
     expect(execute).toHaveBeenCalledTimes(completedCallCount);
   });
 
-  it("allows focused initialization to retry after a DDL rejection", async () => {
+  it("fails closed on a missing limiter table and retries the readiness probe", async () => {
     const execute = vi.fn();
     const batch = vi.fn()
-      .mockRejectedValueOnce(new Error("transient DDL failure"))
-      .mockResolvedValue([result(), result(), result()]);
+      .mockRejectedValueOnce(new Error("SQLITE_ERROR: no such table: distributed_rate_limits"))
+      .mockResolvedValue(readyRateLimitSchema());
     const { ensureRateLimitSchema } = await loadClientModule(execute, batch);
 
-    await expect(ensureRateLimitSchema()).rejects.toThrow("transient DDL failure");
+    await expect(ensureRateLimitSchema()).rejects.toThrow(
+      "no such table: distributed_rate_limits",
+    );
     await ensureRateLimitSchema();
 
     expect(batch).toHaveBeenCalledTimes(2);
+    expect(batch.mock.calls.every((call) => call[1] === "read")).toBe(true);
+    expect(batch.mock.calls.flatMap((call) => call[0] as unknown[]).every(
+      (statement) => !/\bCREATE\b/i.test(sqlText(statement)),
+    )).toBe(true);
     expect(execute).not.toHaveBeenCalled();
     await ensureRateLimitSchema();
     expect(batch).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed when the required expiry index is missing", async () => {
+    const execute = vi.fn();
+    const schema = readyRateLimitSchema();
+    schema[2] = result();
+    const batch = vi.fn().mockResolvedValue(schema);
+    const { ensureRateLimitSchema } = await loadClientModule(execute, batch);
+
+    await expect(ensureRateLimitSchema()).rejects.toThrow(
+      `Rate-limit schema object is missing or incompatible: ${RATE_LIMIT_EXPIRY_INDEX}`,
+    );
+
+    expect(batch).toHaveBeenCalledTimes(1);
+    expect(batch.mock.calls[0][1]).toBe("read");
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on drifted limiter keys, constraints, and index definitions", async () => {
+    const cases: Array<{
+      objectIndex: number;
+      from: string;
+      to: string;
+      expectedName: string;
+    }> = [
+      {
+        objectIndex: 0,
+        from: "counter_key TEXT PRIMARY KEY",
+        to: "counter_key TEXT UNIQUE",
+        expectedName: "distributed_rate_limits",
+      },
+      {
+        objectIndex: 0,
+        from: "CHECK(count BETWEEN 1 AND 1000000)",
+        to: "CHECK(count >= 1)",
+        expectedName: "distributed_rate_limits",
+      },
+      {
+        objectIndex: 0,
+        from: "*[^0-9a-f]*",
+        to: "*[^0-9A-F]*",
+        expectedName: "distributed_rate_limits",
+      },
+      {
+        objectIndex: 0,
+        from: ") WITHOUT ROWID",
+        to: ")",
+        expectedName: "distributed_rate_limits",
+      },
+      {
+        objectIndex: 1,
+        from: "CHECK(day_count <= daily_limit)",
+        to: "CHECK(day_count < daily_limit)",
+        expectedName: "geocoder_provider_budget",
+      },
+      {
+        objectIndex: 2,
+        from: "(expires_at_ms)",
+        to: "(count)",
+        expectedName: RATE_LIMIT_EXPIRY_INDEX,
+      },
+    ];
+
+    for (const drift of cases) {
+      const schema = readyRateLimitSchema();
+      const row = schema[drift.objectIndex]?.rows[0];
+      if (!row || typeof row[3] !== "string") {
+        throw new Error("Invalid test fixture");
+      }
+      row[3] = row[3].replace(drift.from, drift.to);
+      const execute = vi.fn();
+      const batch = vi.fn().mockResolvedValue(schema);
+      const { ensureRateLimitSchema } = await loadClientModule(execute, batch);
+
+      await expect(ensureRateLimitSchema()).rejects.toThrow(
+        `Rate-limit schema object is missing or incompatible: ${drift.expectedName}`,
+      );
+      expect(batch.mock.calls[0][1]).toBe("read");
+      expect(execute).not.toHaveBeenCalled();
+    }
   });
 
   it("allows full initialization to retry after a DDL rejection", async () => {
@@ -150,13 +284,13 @@ describe("database schema initialization", () => {
     expect(execute).toHaveBeenCalledTimes(completedCallCount);
   });
 
-  it("recovers from a never-settling focused DDL before the outer storage deadline", async () => {
+  it("recovers from a never-settling readiness read before the outer storage deadline", async () => {
     vi.useFakeTimers();
     const neverSettles = new Promise<never>(() => undefined);
     const execute = vi.fn();
     const batch = vi.fn()
       .mockImplementationOnce(() => neverSettles)
-      .mockResolvedValue([result(), result(), result()]);
+      .mockResolvedValue(readyRateLimitSchema());
     const { ensureRateLimitSchema } = await loadClientModule(execute, batch);
 
     let failure: unknown;
@@ -168,7 +302,9 @@ describe("database schema initialization", () => {
     expect(failure).toBeUndefined();
     await vi.advanceTimersByTimeAsync(1);
     await observed;
-    expect(failure).toEqual(new Error("Rate-limit schema initialization timed out"));
+    expect(failure).toEqual(
+      new Error("Rate-limit schema readiness timed out"),
+    );
 
     await ensureRateLimitSchema();
     expect(batch).toHaveBeenCalledTimes(2);
@@ -205,7 +341,7 @@ describe("database schema initialization", () => {
     expect(execute).toHaveBeenCalledTimes(completedCallCount);
   });
 
-  it("does not let a timed-out focused attempt clobber its active retry", async () => {
+  it("does not let a timed-out readiness probe clobber its active retry", async () => {
     vi.useFakeTimers();
     const oldBatch = deferred<TestResult[]>();
     const retryBatch = deferred<TestResult[]>();
@@ -218,13 +354,13 @@ describe("database schema initialization", () => {
     const timedOut = ensureRateLimitSchema().catch((error: unknown) => error);
     await vi.advanceTimersByTimeAsync(2_000);
     await expect(timedOut).resolves.toEqual(
-      new Error("Rate-limit schema initialization timed out"),
+      new Error("Rate-limit schema readiness timed out"),
     );
 
     const retry = ensureRateLimitSchema();
     expect(batch).toHaveBeenCalledTimes(2);
 
-    oldBatch.resolve([result(), result(), result()]);
+    oldBatch.resolve(readyRateLimitSchema());
     await flushMicrotasks();
 
     let sharedCallerSettled = false;
@@ -234,14 +370,39 @@ describe("database schema initialization", () => {
     await flushMicrotasks();
     expect(sharedCallerSettled).toBe(false);
 
-    retryBatch.resolve([result(), result(), result()]);
+    retryBatch.resolve(readyRateLimitSchema());
     await Promise.all([retry, sharedCaller]);
     expect(batch).toHaveBeenCalledTimes(2);
     expect(execute).not.toHaveBeenCalled();
   });
 
-  it("shares focused DDL when full and focused initialization interleave", async () => {
-    const focusedDdl = deferred<TestResult[]>();
+  it("creates limiter objects only through explicit controlled provisioning", async () => {
+    const execute = vi.fn();
+    const batch = vi.fn().mockResolvedValue([result(), result(), result()]);
+    const { provisionRateLimitSchema } = await loadClientModule(execute, batch);
+
+    await provisionRateLimitSchema();
+
+    expect(batch).toHaveBeenCalledTimes(1);
+    const [statements, mode] = batch.mock.calls[0] as [unknown[], string];
+    const ddl = statements.map(sqlText);
+    expect(mode).toBe("write");
+    expect(ddl.filter((sql) => (
+      sql.includes("CREATE TABLE IF NOT EXISTS distributed_rate_limits")
+    ))).toHaveLength(1);
+    expect(ddl.filter((sql) => (
+      sql.includes("CREATE TABLE IF NOT EXISTS geocoder_provider_budget")
+    ))).toHaveLength(1);
+    expect(ddl.find((sql) => (
+      sql.includes("CREATE TABLE IF NOT EXISTS geocoder_provider_budget")
+    ))).toContain("daily_limit INTEGER NOT NULL");
+    expect(ddl.filter((sql) => (
+      sql.includes(RATE_LIMIT_EXPIRY_INDEX)
+    ))).toHaveLength(1);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("keeps limiter DDL out of lazy full bootstrap and probes it read-only", async () => {
     const execute = vi.fn().mockImplementation((statement: unknown) => {
       const sql = sqlText(statement);
       if (sql.includes("SELECT version FROM schema_version")) {
@@ -249,41 +410,24 @@ describe("database schema initialization", () => {
       }
       return Promise.resolve(result());
     });
-    const batch = vi.fn().mockImplementationOnce(() => focusedDdl.promise);
+    const batch = vi.fn().mockResolvedValue(readyRateLimitSchema());
     const { ensureRateLimitSchema, ensureSchema } = await loadClientModule(
       execute,
       batch,
     );
 
-    const focused = ensureRateLimitSchema();
-    let fullSettled = false;
-    const full = ensureSchema().then(() => {
-      fullSettled = true;
-    });
-    await flushMicrotasks();
+    await ensureSchema();
 
-    expect(fullSettled).toBe(false);
-    expect(batch).toHaveBeenCalledTimes(1);
-
-    focusedDdl.resolve([result(), result(), result()]);
-    await Promise.all([focused, full]);
-
-    const focusedSql = (batch.mock.calls[0][0] as unknown[]).map(sqlText);
-    expect(focusedSql.filter((sql) => (
-      sql.includes("CREATE TABLE IF NOT EXISTS distributed_rate_limits")
-    ))).toHaveLength(1);
-    expect(focusedSql.filter((sql) => (
-      sql.includes("CREATE TABLE IF NOT EXISTS geocoder_provider_budget")
-    ))).toHaveLength(1);
-    expect(focusedSql.find((sql) => (
-      sql.includes("CREATE TABLE IF NOT EXISTS geocoder_provider_budget")
-    ))).toContain("daily_limit INTEGER NOT NULL");
-    expect(focusedSql.filter((sql) => (
-      sql.includes("idx_distributed_rate_limits_expiry")
-    ))).toHaveLength(1);
-    expect(batch.mock.calls[0][1]).toBe("write");
+    expect(batch).not.toHaveBeenCalled();
 
     const completedCallCount = execute.mock.calls.length;
+    await ensureRateLimitSchema();
+    expect(execute).toHaveBeenCalledTimes(completedCallCount);
+    expect(batch).toHaveBeenCalledTimes(1);
+    expect(batch.mock.calls[0][1]).toBe("read");
+    expect((batch.mock.calls[0][0] as unknown[]).every(
+      (statement) => /^\s*SELECT\b/i.test(sqlText(statement)),
+    )).toBe(true);
     await Promise.all([ensureRateLimitSchema(), ensureSchema()]);
     expect(execute).toHaveBeenCalledTimes(completedCallCount);
     expect(batch).toHaveBeenCalledTimes(1);

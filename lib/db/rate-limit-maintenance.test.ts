@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("./client", () => ({
-  ensureSchema: vi.fn(),
+  ensureRateLimitSchema: vi.fn(),
   getClient: vi.fn(),
 }));
 
-import { ensureSchema, getClient } from "./client";
+import { ensureRateLimitSchema, getClient } from "./client";
 import { cleanupExpiredDistributedRateLimits } from "./rate-limit-maintenance";
 
 describe("cleanupExpiredDistributedRateLimits", () => {
@@ -14,7 +14,7 @@ describe("cleanupExpiredDistributedRateLimits", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(ensureSchema).mockResolvedValue(undefined);
+    vi.mocked(ensureRateLimitSchema).mockResolvedValue(undefined);
     vi.mocked(getClient).mockReturnValue({ execute } as never);
     execute.mockResolvedValue({ rowsAffected: 12, rows: [] });
   });
@@ -29,7 +29,7 @@ describe("cleanupExpiredDistributedRateLimits", () => {
       batches: 1,
       backlogRemaining: false,
     });
-    expect(ensureSchema).toHaveBeenCalledTimes(1);
+    expect(ensureRateLimitSchema).toHaveBeenCalledTimes(1);
     const statement = execute.mock.calls[0][0];
     expect(statement.args).toEqual([5_000]);
     expect(statement.sql).toContain("ORDER BY expires_at_ms");
@@ -90,7 +90,7 @@ describe("cleanupExpiredDistributedRateLimits", () => {
 
   it("times out a never-settling schema preparation", async () => {
     vi.useFakeTimers();
-    vi.mocked(ensureSchema).mockReturnValue(new Promise(() => undefined));
+    vi.mocked(ensureRateLimitSchema).mockReturnValue(new Promise(() => undefined));
     const result = cleanupExpiredDistributedRateLimits();
     const rejection = expect(result).rejects.toThrow(
       "Rate-limit cleanup timed out",
@@ -135,7 +135,7 @@ describe("cleanupExpiredDistributedRateLimits", () => {
       await expect(cleanupExpiredDistributedRateLimits(limit)).rejects.toThrow(
         "Invalid rate-limit cleanup bound",
       );
-      expect(ensureSchema).not.toHaveBeenCalled();
+      expect(ensureRateLimitSchema).not.toHaveBeenCalled();
       expect(execute).not.toHaveBeenCalled();
     },
   );

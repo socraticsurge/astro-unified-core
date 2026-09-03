@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ensureSchema, getClient } from "./client";
+import { ensureRateLimitSchema, getClient } from "./client";
 
 const CLEANUP_BATCH_ROWS = 5_000;
 const MAX_CLEANUP_ROWS = 100_000;
@@ -54,7 +54,7 @@ export async function cleanupExpiredDistributedRateLimits(
     throw new Error("Invalid rate-limit cleanup bound");
   }
   const deadlineAt = Date.now() + MAX_CLEANUP_DURATION_MS;
-  await withCleanupTimeout(ensureSchema(), MAX_OPERATION_DURATION_MS);
+  await withCleanupTimeout(ensureRateLimitSchema(), MAX_OPERATION_DURATION_MS);
   const client = getClient();
   let deletedRows = 0;
   let batches = 0;

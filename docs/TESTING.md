@@ -236,6 +236,10 @@ before releasing any change that touches the journey's code path.
 | G1-4 | Body exceeds 4 KiB with or without Content-Length | `413` before geocoder or sidecar call | Unit / route |
 | G1-5 | Per-client, 30/minute route-wide fleet, daily admission cap, provider admission lease, or UTC-day provider budget is exhausted, or shared storage is unavailable | Normal exhaustion returns `429` with `Retry-After`; unavailable Turso enforcement returns retryable `503`; responses are private/no-store and blocked work does not reach the provider or sidecar | Unit / route |
 | G1-5b | Any stage of a deployed guest/auth guard chain exceeds the shared two-second deadline or the caller cancels during storage | Retryable `503`; the same signal reaches every stage; no later SQL starts; a late already-dispatched write is handled and may remain conservatively charged; no provider or sidecar call | Unit / route |
+| G1-5c | Fresh process probes a complete, missing, or drifted limiter schema | Exactly one shared read-mode batch containing only three `SELECT` statements; complete canonical `sqlite_schema` table/index definitions are memoized, while missing or incompatible columns, keys, constraints, `WITHOUT ROWID`, and index definitions fail closed before limiter SQL. No `CREATE`, `ALTER`, `DROP`, index DDL, or repair runs from guest or cleanup paths | Unit / SQL contract |
+| G1-5d | Operator provisions limiter objects for an exact Preview/Production target | Command refuses missing/mismatched target, non-remote URL, or missing token; accepted run performs one atomic write-mode DDL batch and then the read-only verification. Lazy `ensureSchema()` never provisions these objects | Unit / operator integration |
+| G1-5e | Many cold instances, rotating client identities, one-account authenticated fanout, exhausted capacity, or unavailable Turso | Readiness remains read-only; rotated guests are bounded by fleet/capacity, authenticated fanout by user/fleet/capacity, exhausted capacity starts no later write, and unavailable storage fails closed within the shared deadline | Unit / adversarial simulation |
+| G1-5f | Vercel WAF guest rule staged, then exercised in log and Preview-enforced modes | Only `POST /api/guest/*` matches; OPTIONS and non-guest paths do not. Exceeding 60 requests in one 60-second regional/IP window is first observed without blocking, then returns edge `429` in Preview without a function/Turso invocation | Preview / metrics / manual |
 | G1-5a | Managed provider returns HTTP `429`, timeout, transport error, malformed/oversized payload, or `5xx` | Provider `429` is sanitized to app `429` with a bounded `Retry-After`; all listed transient/unavailable failures return sanitized retryable `503`; no provider URL, key, query, or response body leaks | Unit / route |
 | G1-6 | Derivation includes `name` or any unknown field | `400`; field is not forwarded | Route |
 | G1-7 | Non-calendar date, future date in the supplied birthplace timezone, non-`HH:MM` time, string/out-of-range coordinate, or unknown timezone | `400`; no sidecar call | Route |
@@ -272,6 +276,12 @@ account/key/terms decision, and run the provider `429`/transient-error cases in
 Preview. The 1,100 ms row lease proves distributed admission order, not strict
 network-send order; measure real provider behavior under concurrency and keep
 activation flags off if that distinction violates the selected plan contract.
+Also record the deployment-controlled limiter DDL run, verify zero request-time
+DDL in Turso logs, publish and observe the WAF in log mode, and attach Preview
+evidence that the edge `429` occurs without a corresponding function/Turso hit.
+Because WAF counters are per region and IPs can rotate, retain the Turso caps and
+record explicit acceptance of bounded capacity-pool exhaustion as an
+availability risk rather than claiming a globally strict edge ceiling.
 
 ---
 
