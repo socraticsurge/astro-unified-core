@@ -1,6 +1,6 @@
 # Backlog
 
-<!-- last-updated: 2026-09-03 -->
+<!-- last-updated: 2026-09-04 -->
 
 Tracks known bugs, deferred features, tech debt, and session decisions.
 
@@ -33,10 +33,10 @@ so future agents don't re-open the conversation unnecessarily.
 | D4 | Live consultation booking | Users email for a calendar link. | Cal.com or Calendly embed is the low-friction path. No DB changes needed. |
 | D5 | Profile sharing (public profile links) | Profiles are private to owner + admin. | Would require a `is_public` flag on profiles and an unauthenticated route. |
 | D6 | Family / relationship graph | Profiles are flat. No way to mark "this is spouse of profile X". | A `profile_relationships` join table would enable this. Tarabalam family selector is a workaround. |
-| D7 | Complete global rate limiting | All three Panchangam guest routes have required fail-closed shared per-client and route-wide fleet enforcement. The managed authenticated geocoder candidate adds per-user enforcement and shares the guest-search provider fleet ceiling, but its migration flag is off. Other authenticated and legacy route limiters remain per-Lambda instance. | Migrate remaining routes deliberately with route-specific identity and rollout tests. Requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. |
+| D7 | Complete global rate limiting | All three Panchangam guest routes have required fail-closed Turso-backed per-client and route-wide fleet enforcement. The managed authenticated geocoder candidate adds per-user enforcement and shares the guest-search provider fleet ceiling, but its migration flag is off. Other authenticated and legacy route limiters remain per-Lambda instance. | Migrate remaining routes deliberately with route-specific identity, bounded-write, and rollout tests. Reuse the existing Turso database and `RATE_LIMIT_HMAC_SECRET`; do not add a second shared-counter vendor by default. |
 | D8 | More DashaFlow endpoints in Professional view | Sidecar exposes `evaluate_muhurtha`, deeper career details, more compatibility fields. | Check `dashaflow/__init__.py` for what's available. |
 | D9 | Guest Swiss Ephemeris production clearance (Panchangam #231) | Distribution/public-service licensing for the Swiss Ephemeris dependency is not yet recorded as resolved. | Keep `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED` off in Vercel Preview/Production until the owner closes #231 with the selected license path. Local verification remains available. |
-| D10 | Production geocoder/provider selection (Panchangam #233) | Fixed adapters now exist for LocationIQ EU/US and Geoapify; the same boundary supports guest search and a separately gated authenticated migration, bounded process-only result caching, structured attribution, per-user/fleet budgets, and no public-Nominatim fallback after activation. Redis is restricted to pseudonymous integer counters and receives no place result data. Existing authenticated profiles retain their legacy path while the new auth flag is off. No provider, Redis processor terms, billing posture, daily quota acceptance, or live key is approved. | Select and approve one adapter and Redis host with their retention/quota terms, configure server-only provider/storage values, verify guest Preview, then separately verify and activate `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true` without tying it to guest flags. Obtain owner approval before merge or deployment. |
+| D10 | Production geocoder/provider selection (Panchangam #233) | Fixed adapters exist for LocationIQ EU/US and Geoapify; the same boundary supports guest search and a separately gated authenticated migration, bounded process-only result caching, structured attribution, Turso-backed per-user/fleet controls, and no public-Nominatim fallback after activation. LocationIQ is the recommended release candidate, with a conservative 1,500-request UTC-day cap and 1,100 ms distributed admission lease, but that lease does not strictly order actual network sends. No human-created account, terms acceptance, billing posture, or live key is approved. Preview and Production both define Turso variable names, but their exact physical DB identity and current usage/headroom are not verified. | Complete the human-owned LocationIQ account/key and terms decision; configure its server-only values plus `RATE_LIMIT_HMAC_SECRET`; verify exact shared DB identity, Turso usage/headroom, sanitized provider-`429` handling, and the guest journey in Preview; then separately verify and activate `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true`. Obtain owner approval before merge or deployment. |
 
 ---
 
@@ -51,7 +51,7 @@ Things that work but are suboptimal. Prioritise when there is slack.
 | T5 | `lib/content/loader.ts` caches markdown in memory per Lambda instance. Cold starts re-parse all 538 files. Pre-building a static JSON bundle at build time would eliminate this. | `lib/content/loader.ts` | Medium |
 | T6 | ~~Five reading routes each independently implement session→profile→cache→engine→save. Extracted to `lib/engines/reading-handler.ts` `resolveProfile()` helper. Done 2026-05-19.~~ | `lib/engines/reading-handler.ts` | Done |
 | T7 | All DB row casts use `as unknown as T[]` with no runtime validation. If the sidecar schema drifts, these silently return undefined fields. Add typed row-mapper functions per table. | `lib/db/*.ts` | Medium |
-| T8 | Schema migrations use `try { ALTER TABLE } catch {}` — no record of which columns are applied on which DB. Add a `schema_migrations` table to track applied versions. | `lib/db/client.ts` | Medium |
+| T8 | Incremental migrations share one coarse `schema_version` row and infer idempotent `ALTER` completion from duplicate/already-exists errors; there is no per-step migration ledger. Add a `schema_migrations` table before the migration surface grows. | `lib/db/client.ts` | Medium |
 | T9 | ~~Magic numbers consolidated into `lib/constants.ts`. Done 2026-05-19.~~ | `lib/constants.ts` | Done |
 | T10 | ~~Error states added to TransitsTab and CareerTab with inline retry button. Done 2026-05-19.~~ | `components/unified/tabs/TransitsTab.tsx`, `CareerTab.tsx` | Done |
 | T11 | ~~API documentation written to `docs/api.md`. Done 2026-05-19.~~ | `docs/api.md` | Done |
@@ -77,6 +77,8 @@ future agents understand the reasoning and don't relitigate resolved discussions
 | S8 | 2026-08-29 | `https://astrochaganti.com` is the verified production custom domain | The linked Vercel project `astro-unified-core-pfni` currently serves this domain; guest Panchangam clients use its `/api/guest` routes. OAuth environment and redirect values remain separately controlled and must not be inferred from the browser API base. |
 | S9 | 2026-09-03 | Every DashaFlow compute route uses one server-to-server bearer credential; only health is public | One validated destination/token resolver prevents a secret from being attached to an unsafe URL. Deploy credentialed Astro callers before turning on sidecar enforcement so registered-user calculations do not experience a cutover gap. |
 | S10 | 2026-09-03 | Upstash is counter-only for geocoder controls | [Upstash's April 2025 terms](https://upstash.com/trust/terms.pdf) prohibit content containing personally sensitive information. To avoid storing birthplace-derived labels or coordinates with an external processor, Redis receives only deployment-scoped HMAC counter keys and integer values. Normalized geocoder results use a bounded, expiring process cache instead. |
+| S11 | 2026-09-03 | Existing Turso supersedes the proposed Upstash dependency | S10 remains the historical data-minimization decision, but no Upstash service is required. The intended topology uses the existing Turso database to atomically store only environment-scoped HMAC identity/fleet counters and one cross-environment, non-personal provider-family quota/admission-lease row. Provider results remain process-memory-only. This removes a vendor and processor boundary while preserving fail-closed shared enforcement. Exact Preview/Production DB identity still requires pre-activation verification. |
+| S12 | 2026-09-04 | Bound limiter writes with account-wide attempt caps | Guest traffic is capped at 2,000 attempts per anchored 24-hour window in Preview and 10,000 in Production; managed authenticated geocoding is capped at 500 in Preview and 2,500 in Production. A read-only preflight avoids normal row mutations after exhaustion and the capacity row is the first atomic admission mutation. Capacity remains charged after a later user/fleet/client denial so route-specific writes cannot escape the envelope. Four admission-path mutations per capacity-admitted attempt give 60,000 per complete set of windows; allowing 31 independently anchored window periods to touch a 30-day observation gives a conservative 1.86-million bound before cleanup and unrelated traffic. This is designed below Turso Free's published 10-million-write allowance, but current usage, deletion accounting, and remaining headroom must be measured before activation. The current cold-path DDL batch and status reads sit outside that row-mutation calculation. Public rollout must move DDL to controlled provisioning, use read-only fail-closed readiness, add a perimeter bound for cold-start/post-cap reads, and either accept the capacity-exhaustion tradeoff or replace it with an atomic composite guard. |
 
 ---
 
@@ -92,7 +94,7 @@ Near-term and medium-term feature intentions. For full context see `PRODUCT.md �
 - [ ] Email notification when consultation is answered (D3 variant)
 
 ### Medium-term
-- [ ] Extend the election route's Upstash enforcement to remaining routes (D7)
+- [ ] Extend the guest routes' Turso-backed shared-limit pattern to remaining routes (D7)
 - [ ] Family relationship graph (D6)
 - [ ] Public profile sharing (D5)
 
@@ -102,4 +104,4 @@ Near-term and medium-term feature intentions. For full context see `PRODUCT.md �
 
 ---
 
-*Last updated: 2026-08-31*
+*Last updated: 2026-09-04*

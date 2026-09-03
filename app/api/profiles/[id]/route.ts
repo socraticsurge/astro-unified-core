@@ -4,6 +4,7 @@ import { authOptions, getUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isAdmin } from "@/lib/admin";
 import { geocodePlace } from "@/lib/geocode";
+import { isGeocoderCapacityError } from "@/lib/geocoder-capacity-error";
 import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function PUT(
@@ -51,6 +52,19 @@ export async function PUT(
         timezone = geo.timezone;
         timezone_offset = geo.timezone_offset;
       } catch (e) {
+        if (isGeocoderCapacityError(e)) {
+          return NextResponse.json(
+            {
+              error: e.code === "rate-limited"
+                ? "Location search is busy. Please wait and try again."
+                : "Location search is temporarily unavailable. Please try again.",
+            },
+            {
+              status: e.code === "rate-limited" ? 429 : 503,
+              headers: { "Retry-After": String(e.retryAfterSeconds) },
+            },
+          );
+        }
         const msg = e instanceof Error ? e.message : "Geocoding birth place failed";
         return NextResponse.json({ error: msg }, { status: 400 });
       }
@@ -69,6 +83,19 @@ export async function PUT(
         current_timezone = currentGeo.timezone;
         current_timezone_offset = currentGeo.timezone_offset;
       } catch (e) {
+        if (isGeocoderCapacityError(e)) {
+          return NextResponse.json(
+            {
+              error: e.code === "rate-limited"
+                ? "Location search is busy. Please wait and try again."
+                : "Location search is temporarily unavailable. Please try again.",
+            },
+            {
+              status: e.code === "rate-limited" ? 429 : 503,
+              headers: { "Retry-After": String(e.retryAfterSeconds) },
+            },
+          );
+        }
         const msg = e instanceof Error ? e.message : "Geocoding current location failed";
         return NextResponse.json({ error: msg }, { status: 400 });
       }

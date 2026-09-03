@@ -20,6 +20,7 @@ import { getServerSession } from "next-auth/next";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { geocodePlace } from "@/lib/geocode";
+import { GeocoderCapacityError } from "@/lib/geocoder-capacity-error";
 
 const mockProfile = {
   id: "prof-1",
@@ -163,4 +164,67 @@ describe("POST /api/profiles", () => {
     expect(res.status).toBe(400);
     expect(await res.json()).toEqual({ error: "Place not found" });
   });
+
+  it.each([
+    ["rate-limited", 429, 3],
+    ["unavailable", 503, 10],
+  ] as const)(
+    "maps managed geocoder capacity %s to a retryable response",
+    async (code, status, retryAfterSeconds) => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "user-1" },
+      } as never);
+      vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
+      vi.mocked(db.profiles.count).mockResolvedValue(0 as never);
+      vi.mocked(geocodePlace).mockRejectedValue(
+        new GeocoderCapacityError(code, retryAfterSeconds),
+      );
+
+      const res = await POST(makeReq({
+        name: "Test User",
+        date_of_birth: "1990-01-01",
+        time_of_birth: "12:00",
+        place_of_birth: "Mumbai",
+      }));
+      expect(res.status).toBe(status);
+      expect(res.headers.get("Retry-After")).toBe(String(retryAfterSeconds));
+      expect(JSON.stringify(await res.json())).not.toContain(
+        "GeocoderCapacityError",
+      );
+    },
+  );
+
+  it.each([
+    ["rate-limited", 429, 6],
+    ["unavailable", 503, 12],
+  ] as const)(
+    "maps current-location provider capacity %s without creating a profile",
+    async (code, status, retryAfterSeconds) => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "user-1" },
+      } as never);
+      vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
+      vi.mocked(db.profiles.count).mockResolvedValue(0 as never);
+      vi.mocked(geocodePlace)
+        .mockResolvedValueOnce(mockGeo as never)
+        .mockRejectedValueOnce(
+          new GeocoderCapacityError(code, retryAfterSeconds),
+        );
+
+      const res = await POST(makeReq({
+        name: "Test User",
+        date_of_birth: "1990-01-01",
+        time_of_birth: "12:00",
+        place_of_birth: "Mumbai",
+        current_location: "London",
+      }));
+
+      expect(res.status).toBe(status);
+      expect(res.headers.get("Retry-After")).toBe(String(retryAfterSeconds));
+      expect(geocodePlace).toHaveBeenNthCalledWith(2, "London", {
+        authenticatedUserId: "user-1",
+      });
+      expect(db.profiles.create).not.toHaveBeenCalled();
+    },
+  );
 });

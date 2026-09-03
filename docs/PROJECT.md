@@ -152,11 +152,9 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `GUEST_ELECTION_CHART_ENABLED` | Independent server-only election-chart gate with the same local default and exact deployed opt-in. Keep off until Panchangam #231 closes. |
 | `GEOCODER_PROVIDER` | Server-only place-search adapter selector. Optional locally, where fixed public Nominatim is the default. Preview/Production guest search and an enabled authenticated migration require exactly `locationiq-eu`, `locationiq-us`, or `geoapify`; endpoints are code-owned and arbitrary base URLs are not accepted. |
 | `GEOCODER_API_KEY` | Server-only key for the selected managed provider; required with `GEOCODER_PROVIDER` for deployed guest search or the enabled authenticated migration, and never returned to the browser. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
-| `GEOCODER_DAILY_REQUEST_LIMIT` | Server-only managed-provider request allowance: a canonical integer from 1 through 5,000. Every deployed process-cache miss must atomically reserve one shared Preview- or Production-scoped slot before provider scheduling; missing, malformed, exhausted, or unavailable enforcement fails closed. Warm-instance cache hits and coalesced duplicate callers do not consume it. |
-| `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` | Separate server-only registered-profile migration gate. Existing signed-in create/edit keeps the legacy provider unless this equals the exact string `true` in Preview/Production. Enable only after managed provider, Redis processor, quota, privacy, and full journey approval. Guest flags do not control it. |
-| `UPSTASH_REDIS_REST_URL` | Preferred complete server-only HTTPS pair injected by the Vercel Upstash Redis Marketplace integration; required in deployed runtimes only for guest abuse counters, enabled authenticated per-user/fleet counters, and the managed-provider daily counter. Geocoder result data is never stored there. |
-| `UPSTASH_REDIS_REST_TOKEN` | Standard server-only REST token for the same Redis database. Counter keys are deployment-namespaced and HMAC-pseudonymized; values are integers with one-minute or 24-hour enforcement TTLs. Never prefix with `NEXT_PUBLIC_`, and never write place queries, labels, IDs, or coordinates to Redis. |
-| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Compatibility Redis REST pair. Used only when both values are present and the preferred Upstash pair is incomplete. URL/token values are never composed across namespaces. |
+| `GEOCODER_DAILY_REQUEST_LIMIT` | Required server-only managed-provider UTC-day allowance: a canonical integer from 1 through 1,500. The first shared provider reservation each UTC day persists the value; a same-day Preview/Production mismatch fails closed. Every deployed process-cache miss must atomically reserve one cross-environment provider-family slot immediately before provider transit. Warm-process cache hits and coalesced duplicate callers do not consume it; an admitted failed provider attempt does. Missing, malformed, exhausted, or unavailable enforcement fails closed. |
+| `RATE_LIMIT_HMAC_SECRET` | Required 32–256 character printable non-space server secret for deployed shared identity/fleet limiting. Turso stores only Vercel-environment-scoped HMAC digests with integer count/expiry fields. Hard attempt admissions per anchored 24-hour window are guest 2,000 Preview / 10,000 Production and managed-authenticated geocoding 500 Preview / 2,500 Production; capacity is reserved before route-specific rows and remains charged after a later denial. Never prefix the secret with `NEXT_PUBLIC_`, reuse it as an account identifier, or write raw IPs, user IDs, place data, birth data, profile data, coordinates, or provider keys to limiter tables. |
+| `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` | Separate server-only registered-profile migration gate. Existing signed-in create/edit keeps the legacy provider unless this equals the exact string `true` in Preview/Production. Enable only after managed provider, Turso controls, quota, privacy, and full journey approval. Guest flags do not control it. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
 | `GROQ_API_KEY`             | Secondary LLM provider used by chat / draft generation (`lib/engines/groq.ts`). Get from console.groq.com. |
 | `ADMIN_EMAILS` (required)  | Comma-separated list of admin email addresses. If unset, no one has admin access. |
@@ -180,18 +178,35 @@ search keeps its existing `attribution` string and adds structured
 authenticated profile creation/editing keeps its legacy provider until
 `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true`. The enabled migration uses the
 same fixed provider independently of guest flags, issues one bounded query per
-place, and applies a distributed ten-call-per-user limit plus the same 60-call
+place, and applies a distributed ten-call-per-user limit plus the same 30-call
 minute fleet ceiling used by guest search. After a process-cache miss and
 duplicate coalescing, guest and managed-authenticated work also share one
-atomic `GEOCODER_DAILY_REQUEST_LIMIT` counter per Vercel environment. Failed
-admitted provider attempts consume their slot; warm-instance cached and
-coalesced work does not. Normalized place results remain only in a bounded,
-24-hour process cache and are never written to Redis. See the official
+atomic `GEOCODER_DAILY_REQUEST_LIMIT` counter per provider family and UTC day.
+Preview and Production deliberately share that non-personal aggregate row when
+they use the same provider account; LocationIQ EU/US also share one LocationIQ
+pool. A 1,100 ms database-clock lease orders distributed admission but does not
+strictly order actual network sends across functions. Failed admitted provider
+attempts consume their slot; warm-process cached and coalesced work does not.
+Provider HTTP `429` responses map to a sanitized app `429` with bounded
+`Retry-After`; transport, timeout, malformed-response, and provider-server
+failures map to retryable `503`. Normalized place results remain only in a bounded,
+24-hour process cache and are never persisted as a shared result cache or
+limiter data. A location explicitly selected for a signed-in saved profile
+continues to be stored in that profile. See the official
 [LocationIQ search contract](https://docs.locationiq.com/reference/search),
 [LocationIQ attribution guide](https://web.locationiq.com/attribution), and
 [Geoapify forward-geocoding contract](https://apidocs.geoapify.com/docs/geocoding/forward-geocoding/).
-Provider selection, terms/billing approval, a real key, and activation remain
-release decisions tracked in Panchangam #233.
+LocationIQ is the recommended release candidate, but human account creation,
+terms/billing approval, a real key, and activation remain release decisions
+tracked in Panchangam #233.
+
+The configured Vercel environment metadata confirms that both Preview and
+Production define Turso variables, but the secret values were not inspected and
+the exact physical database identity is not currently verified. The intended
+shared-provider topology requires one physical Turso database for the
+cross-environment provider-family row. Confirm that identity and measure current
+Turso usage/headroom before activation; the presence of adapter code is not a
+public-readiness signal.
 
 ### Sidecar
 
@@ -208,9 +223,10 @@ missing calculation operation:
 1. Keep `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED`
    absent or false in Vercel Preview and Production. Close Panchangam #231 with
    the owner-recorded Swiss Ephemeris license decision. Close #233 with the
-   approved managed geocoder choice; configure its `GEOCODER_PROVIDER` and
+   approved managed geocoder choice; LocationIQ is recommended but its account
+   and key remain human-owned steps. Configure `GEOCODER_PROVIDER` and
    server-only `GEOCODER_API_KEY`, plus an owner-approved canonical
-   `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 5,000. Public Nominatim cannot
+   `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 1,500. Public Nominatim cannot
    satisfy deployed guest configuration. Keep
    `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` absent or false so this guest rollout
    cannot regress existing signed-in profiles.
@@ -226,14 +242,32 @@ missing calculation operation:
    all seven compute operations reject a missing/wrong bearer token, and the
    same authorized fixtures still pass. Roll back the sidecar first if this
    verification fails.
-5. Install the Upstash Redis Marketplace integration on the Astro Chaganti
-   Vercel project so `UPSTASH_REDIS_REST_URL` and
-   `UPSTASH_REDIS_REST_TOKEN` are injected (or deliberately approve one complete
-   `KV_REST_API_URL` / `KV_REST_API_TOKEN` compatibility pair). Preview and
-   Production guest calls fail closed with `503` when shared per-client/fleet
-   or daily-provider counter enforcement is absent or unavailable. Redis is
-   counter-only: place queries, labels, provider IDs, and coordinates remain in
-   bounded process memory and are never persisted there.
+5. Generate a separate 32–256 character printable non-space
+   `RATE_LIMIT_HMAC_SECRET` for Astro Chaganti Preview and Production. Verify
+   that both environments point to the intended physical Turso database and
+   measure current usage/quota headroom before rollout; variable-name presence
+   alone does not prove DB identity. Identity
+   and fleet rows are HMAC-pseudonymous and separated by Vercel environment;
+   the non-personal provider-family quota/pacing row intentionally spans
+   Preview and Production when one provider account is shared. Place queries,
+   results, labels, IDs, birth details, coordinates, provider keys, and profile
+   data never enter limiter tables. Preview and Production fail closed with
+   `503` when shared enforcement is absent or unavailable. Attempt caps per
+   anchored 24-hour window are guest 2,000 Preview / 10,000 Production and
+   managed-authenticated geocoding 500 Preview / 2,500 Production. Capacity is
+   reserved before route-specific rows and is not refunded after a later
+   user/fleet/client denial. Before either public flag is enabled, explicitly
+   accept the resulting pool-exhaustion availability risk or add a fleet-wide
+   WAF/edge limit or atomic composite admission. One cooperative two-second
+   deadline bounds the complete deployed guard chain and prevents later SQL
+   dispatch after expiry. Measure cold-path Preview p95/p99 before activation;
+   do not extend this deadline without re-budgeting the browser and sidecar
+   limits. An already-dispatched Turso operation may still settle and consume a
+   slot, so never refund or automatically retry a storage-ambiguous attempt.
+   The current focused cold-start helper still issues idempotent DDL before the
+   capacity preflight. Before public activation, move that DDL to a controlled
+   full-schema/deployment provisioning step, make guest readiness read-only and
+   fail-closed, and add an edge/WAF ceiling for cold-start and post-cap reads.
 6. Verify the gateway's allowed/disallowed
    OPTIONS, `private, no-store`, 4 KiB rejection, local and global rate-limit
    retry headers, and fixture profile and election-chart derivations,
@@ -242,13 +276,13 @@ missing calculation operation:
 7. Enable only the route being released by setting its server-only flag to the
    exact value `true`. Verify disabled routes still return a sanitized
    `private, no-store` `503` without consuming request bodies, local limits,
-   Redis, geocoder, or sidecar capacity.
+   Turso limiter, geocoder, or sidecar capacity.
 8. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
    that consumer only after the gateway fixture passes from
    `https://panchangam.astrochaganti.com`.
 9. Treat registered-profile provider migration as a later, independent release.
    Keep `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` off until signed-in profile
-   create/edit, provider attribution and privacy terms, Redis-counter failure,
+   create/edit, provider attribution and privacy terms, Turso-counter failure,
    process-cache behavior, per-user limiting, and the fleet ceiling pass in
    Preview. Enable the exact
    value `true` only with separate owner approval; guest flags do not imply it.
@@ -610,13 +644,15 @@ Local sidecar HTTP follows the same exact-loopback rule; Preview and Production
 always require an HTTPS sidecar URL before bearer credentials are attached.
 Guest calculations default on locally when their server-only flags are omitted;
 set either flag to `false` to test its disabled state. Local public-Nominatim
-calls share one process-wide request-per-second scheduler and a bounded 24-hour
-cache. Preview and Production default both guest routes off; guest place search
-requires one fixed LocationIQ or Geoapify adapter, its server-only key, and the
-bounded shared cache. Signed-in profiles retain the legacy provider until the
-separate managed-migration flag is approved and enabled. Adapter support does
-not itself select a provider, approve terms, provision a real key, or activate
-either feature.
+calls share one process-wide 1,100 ms request-start scheduler and a bounded
+24-hour cache. Preview and Production default both guest routes off; guest
+place search requires one fixed LocationIQ or Geoapify adapter, its server-only
+key, and the Turso-backed shared controls. Results remain in bounded process
+memory only.
+Signed-in profiles retain the legacy provider until the separate
+managed-migration flag is approved and enabled. Adapter support and the
+LocationIQ recommendation do not themselves approve terms, provision a human
+account or real key, or activate either feature.
 
 ---
 
@@ -694,10 +730,15 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 
 ### Schema migration
 
-1. Add DDL in `lib/db/client.ts` inside `ensureSchema()`.
-2. Bump `SCHEMA_VERSION` (currently `7`).
-3. Deploy. `ensureSchema()` will auto-run the DDL on the next DB call.
-4. Update `docs/ARCHITECTURE.md §5` and `docs/PROJECT.md` schema section.
+1. Add new idempotent tables/indexes to `bootstrapTables()` in
+   `lib/db/client.ts`. If a focused cold-start helper owns the DDL, call that
+   same helper from the full bootstrap.
+2. Add version-dependent `ALTER TABLE`, backfill, or seed work to
+   `runMigrations()` via `migrate()`.
+3. Bump `SCHEMA_VERSION` (currently `12`) with the schema change.
+4. Deploy. The next DB call always runs the idempotent bootstrap and runs
+   migrations only when the stored version is behind.
+5. Update `docs/ARCHITECTURE.md §5` and this schema section.
 
 ### Clear stale compatibility history (admin)
 
@@ -709,4 +750,4 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 *See `docs/STANDARDS.md` for coding standards, `docs/ARCHITECTURE.md` for system
 design, `docs/BACKLOG.md §Session Decisions` for historical architectural choices.*
 
-*Last updated: 2026-09-03*
+*Last updated: 2026-09-04*

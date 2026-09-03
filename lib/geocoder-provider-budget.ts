@@ -1,16 +1,16 @@
 import "server-only";
 
 import { deploymentEnvironment } from "./deployment-environment";
-import { distributedRateLimit } from "./distributed-rate-limit";
+import { reserveDistributedProviderRequest } from "./distributed-rate-limit";
 
 export type GeocoderDailyRequestBudgetResult = {
   success: boolean;
   unavailable: boolean;
   retryAfterSeconds: number;
+  denialReason?: "pace" | "daily";
 };
 
-const DAY_MS = 24 * 60 * 60 * 1_000;
-const MAX_DAILY_REQUEST_LIMIT = 5_000;
+const MAX_DAILY_REQUEST_LIMIT = 1_500;
 const ALLOWED: GeocoderDailyRequestBudgetResult = {
   success: true,
   unavailable: false,
@@ -34,18 +34,31 @@ function configuredDailyLimit(
     : null;
 }
 
+function configuredProviderFamily(
+  value: string | undefined,
+): "locationiq" | "geoapify" | null {
+  if (value === "locationiq-eu" || value === "locationiq-us") {
+    return "locationiq";
+  }
+  return value === "geoapify" ? "geoapify" : null;
+}
+
 /**
- * Reserve one managed-provider request from a shared 24-hour allowance.
+ * Reserve one managed-provider request from a shared UTC-day allowance plus
+ * conservative global per-minute and per-second budgets.
  *
  * The caller invokes this only after process-cache lookup and duplicate
  * coalescing, so warm-instance cache hits and subscribers to existing work do
  * not spend provider quota.
- * The distributed limiter gives Preview and Production distinct Redis keys,
- * while guest and managed authenticated lookups deliberately share this one
- * logical key within each runtime.
+ * Preview and Production deliberately share one Turso provider-family row so
+ * both environments stay inside the same external account quota. Guest and
+ * managed authenticated lookups also share that row.
  */
 export async function enforceGeocoderDailyRequestBudget(
-  options: { env?: Record<string, string | undefined> } = {},
+  options: {
+    env?: Record<string, string | undefined>;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<GeocoderDailyRequestBudgetResult> {
   const env = options.env ?? process.env;
   const runtime = deploymentEnvironment(env);
@@ -57,17 +70,21 @@ export async function enforceGeocoderDailyRequestBudget(
     return UNAVAILABLE;
   }
   const limit = configuredDailyLimit(env.GEOCODER_DAILY_REQUEST_LIMIT);
-  if (limit === null) return UNAVAILABLE;
+  const providerFamily = configuredProviderFamily(env.GEOCODER_PROVIDER);
+  if (limit === null || providerFamily === null) return UNAVAILABLE;
 
-  const result = await distributedRateLimit(
-    "geocoder:provider:daily",
+  const result = await reserveDistributedProviderRequest(
+    providerFamily,
     limit,
-    DAY_MS,
-    { env },
+    options.signal ? { env, signal: options.signal } : { env },
   );
   return {
     success: result.success,
     unavailable: result.unavailable,
     retryAfterSeconds: result.retryAfterSeconds,
+    denialReason: result.denialReason === "pace"
+      || result.denialReason === "daily"
+      ? result.denialReason
+      : undefined,
   };
 }

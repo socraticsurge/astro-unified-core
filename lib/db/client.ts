@@ -14,7 +14,22 @@ export function getClient(): Client {
   return clientInstance;
 }
 
+interface SchemaInitializationAttempt {
+  promise: Promise<void>;
+}
+
+// The focused bootstrap shares the deployed guard chain's two-second ceiling:
+// admission proceeds only when its single idempotent batch finishes with time
+// left for the next signalled operation. Its own deadline also releases the
+// shared memo for a later request. The full, sequential bootstrap gets a longer
+// but still finite window so a lost Turso request cannot pin a warm instance.
+const SCHEMA_INITIALIZATION_TIMEOUT_MS = 15_000;
+const RATE_LIMIT_SCHEMA_INITIALIZATION_TIMEOUT_MS = 2_000;
+
 let schemaInitialized = false;
+let schemaInitialization: SchemaInitializationAttempt | null = null;
+let rateLimitSchemaInitialized = false;
+let rateLimitSchemaInitialization: SchemaInitializationAttempt | null = null;
 
 // Bump when the schema changes. ensureSchema() checks a schema_version table
 // (not PRAGMA user_version — Turso's HTTP API rejects PRAGMA writes).
@@ -34,11 +49,133 @@ let schemaInitialized = false;
 //      swallow them and pretend the schema is ready. A failed migration
 //      surfaces as a clear 500 at the route, gets captured by Sentry, and
 //      gets fixed once instead of silently corrupting requests forever.
-const SCHEMA_VERSION = 11;
+const SCHEMA_VERSION = 12;
 
 export async function ensureSchema() {
   if (schemaInitialized) return;
+  let attempt = schemaInitialization;
+  if (!attempt) {
+    attempt = {
+      promise: withInitializationDeadline(
+        initializeSchema(),
+        SCHEMA_INITIALIZATION_TIMEOUT_MS,
+        "Database schema",
+      ),
+    };
+    schemaInitialization = attempt;
+  }
 
+  try {
+    await attempt.promise;
+    if (schemaInitialization === attempt) {
+      schemaInitialized = true;
+      schemaInitialization = null;
+    }
+  } catch (error) {
+    if (schemaInitialization === attempt) schemaInitialization = null;
+    throw error;
+  }
+}
+
+/**
+ * Prepare only the three limiter objects needed on a guest-route cold start.
+ * The full application schema contains many sequential remote DDL statements;
+ * making limiter admission wait for all of them would turn a normal cold start
+ * into a false storage outage. The full bootstrap also calls this helper.
+ */
+export async function ensureRateLimitSchema() {
+  if (rateLimitSchemaInitialized) return;
+  let attempt = rateLimitSchemaInitialization;
+  if (!attempt) {
+    attempt = {
+      promise: withInitializationDeadline(
+        initializeRateLimitSchema(),
+        RATE_LIMIT_SCHEMA_INITIALIZATION_TIMEOUT_MS,
+        "Rate-limit schema",
+      ),
+    };
+    rateLimitSchemaInitialization = attempt;
+  }
+
+  try {
+    await attempt.promise;
+    if (rateLimitSchemaInitialization === attempt) {
+      rateLimitSchemaInitialized = true;
+      rateLimitSchemaInitialization = null;
+    }
+  } catch (error) {
+    if (rateLimitSchemaInitialization === attempt) {
+      rateLimitSchemaInitialization = null;
+    }
+    throw error;
+  }
+}
+
+function withInitializationDeadline(
+  operation: Promise<void>,
+  timeoutMs: number,
+  label: string,
+): Promise<void> {
+  // Initializers deliberately do not mutate the memoized state themselves.
+  // If an uncancellable DDL finishes after this deadline, its idempotent SQL is
+  // harmless and this old attempt has no reference with which to clobber a
+  // newer attempt.
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`${label} initialization timed out`));
+    }, timeoutMs);
+    const unref = (timer as unknown as { unref?: () => void }).unref;
+    if (typeof unref === "function") unref.call(timer);
+
+    operation.then(
+      () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve();
+      },
+      (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+async function initializeRateLimitSchema() {
+  const client = getClient();
+  // One remote write transaction prevents an outer caller timeout from
+  // leaving a sequential initializer free to dispatch additional DDL later.
+  await client.batch([
+    `
+      CREATE TABLE IF NOT EXISTS distributed_rate_limits (
+        counter_key TEXT PRIMARY KEY
+          CHECK(length(counter_key) = 64 AND counter_key NOT GLOB '*[^0-9a-f]*'),
+        count INTEGER NOT NULL CHECK(count BETWEEN 1 AND 1000000),
+        expires_at_ms INTEGER NOT NULL CHECK(expires_at_ms > 0)
+      ) WITHOUT ROWID;
+    `,
+    `
+      CREATE TABLE IF NOT EXISTS geocoder_provider_budget (
+        budget_key TEXT PRIMARY KEY
+          CHECK(length(budget_key) = 64 AND budget_key NOT GLOB '*[^0-9a-f]*'),
+        utc_day TEXT NOT NULL,
+        day_count INTEGER NOT NULL CHECK(day_count BETWEEN 1 AND 1500),
+        daily_limit INTEGER NOT NULL CHECK(daily_limit BETWEEN 1 AND 1500),
+        next_allowed_at_ms INTEGER NOT NULL CHECK(next_allowed_at_ms > 0),
+        CHECK(day_count <= daily_limit)
+      ) WITHOUT ROWID;
+    `,
+    "CREATE INDEX IF NOT EXISTS idx_distributed_rate_limits_expiry ON distributed_rate_limits (expires_at_ms);",
+  ], "write");
+}
+
+async function initializeSchema() {
   const client = getClient();
 
   await client.execute(
@@ -58,8 +195,6 @@ export async function ensureSchema() {
       `INSERT OR REPLACE INTO schema_version (id, version) VALUES (1, ${SCHEMA_VERSION})`
     );
   }
-
-  schemaInitialized = true;
 }
 
 // Always-on idempotent DDL. Add new tables/indexes here as the schema grows
@@ -194,6 +329,12 @@ async function bootstrapTables(client: Client) {
       created_at TEXT NOT NULL
     );
   `);
+
+  // Shared abuse counters contain only deployment-scoped HMAC digests and
+  // integer timing/count fields. Guest identifiers and profile/place data are
+  // never written to these tables. The focused helper keeps guest cold starts
+  // independent of the rest of this full schema bootstrap.
+  await ensureRateLimitSchema();
 
   await client.execute("CREATE INDEX IF NOT EXISTS idx_readings_lookup ON readings (profile_id, engine);");
   await client.execute("CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles (user_id);");
