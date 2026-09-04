@@ -7,12 +7,14 @@ import {
 } from "./geocoder-config";
 import { deploymentEnvironment } from "./deployment-environment";
 import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
+import { enforceGuestPlaceProviderDailyLimit } from "./guest-rate-limit";
 import {
   completeGeocoderProviderRequest,
   enforceGeocoderDailyRequestBudget,
 } from "./geocoder-provider-budget";
 import { GeocoderCapacityError } from "./geocoder-capacity-error";
 import {
+  MANAGED_PROVIDER_MAX_RETRY_AFTER_MS,
   MANAGED_PROVIDER_MIN_INTERVAL_MS,
   MANAGED_PROVIDER_REQUEST_DEADLINE_MS,
 } from "./geocoder-limits";
@@ -184,11 +186,24 @@ function cancellationError(): Error {
 
 function providerRetryAfterSeconds(response: Response): number {
   const raw = response.headers?.get("retry-after")?.trim() ?? "";
-  if (!/^\d+$/.test(raw)) return PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS;
-  const seconds = Number(raw);
-  return Number.isSafeInteger(seconds) && seconds > 0
-    ? Math.min(86_400, seconds)
-    : PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS;
+  const maxSeconds = MANAGED_PROVIDER_MAX_RETRY_AFTER_MS / 1_000;
+  if (/^\d+$/.test(raw)) {
+    const seconds = Number(raw);
+    return Number.isSafeInteger(seconds) && seconds > 0
+      ? Math.min(maxSeconds, seconds)
+      : PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS;
+  }
+  // Retry-After also permits an HTTP-date. Keep parsing bounded and accept
+  // only future dates; malformed, past, or zero-delay values use the safe
+  // default rather than shortening fleet-wide backoff.
+  if (raw.length > 0 && raw.length <= 128) {
+    const retryAtMs = Date.parse(raw);
+    if (Number.isFinite(retryAtMs)) {
+      const seconds = Math.ceil((retryAtMs - Date.now()) / 1_000);
+      if (seconds > 0) return Math.min(maxSeconds, seconds);
+    }
+  }
+  return PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS;
 }
 
 function safeAbortReason(signal: AbortSignal): Error {
@@ -534,6 +549,7 @@ async function fetchProviderRows(
   config: GeocoderConfig,
   audience: RequestAudience,
   callerSignal?: AbortSignal,
+  guestClientId?: string,
 ): Promise<NormalizedProviderRow[]> {
   if (callerSignal?.aborted) throw cancellationError();
   const key = providerRequestKey(query, config);
@@ -577,7 +593,26 @@ async function fetchProviderRows(
 
   const request = (async () => {
     let reservationExpiresAtMs: number | null = null;
+    let completionCooldownMs = MANAGED_PROVIDER_MIN_INTERVAL_MS;
     try {
+      if (audience === "guest" && config.provider !== "nominatim-local") {
+        const dailyClient = await enforceGuestPlaceProviderDailyLimit(
+          guestClientId ?? "",
+          { signal: controller.signal },
+        );
+        if (dailyClient.unavailable) {
+          throw new GeocoderCapacityError(
+            "unavailable",
+            dailyClient.retryAfterSeconds,
+          );
+        }
+        if (!dailyClient.success) {
+          throw new GeocoderCapacityError(
+            "rate-limited",
+            dailyClient.retryAfterSeconds,
+          );
+        }
+      }
       await waitForProviderSlot(deadlineAt, controller.signal);
       if (config.provider !== "nominatim-local") {
         reservationExpiresAtMs = await reserveManagedProviderSlot(
@@ -618,9 +653,14 @@ async function fetchProviderRows(
         if (!res.ok) {
           await res.body?.cancel().catch(() => undefined);
           if (res.status === 429) {
+            const retryAfterSeconds = providerRetryAfterSeconds(res);
+            completionCooldownMs = Math.max(
+              MANAGED_PROVIDER_MIN_INTERVAL_MS,
+              retryAfterSeconds * 1_000,
+            );
             throw new GeocoderCapacityError(
               "rate-limited",
-              providerRetryAfterSeconds(res),
+              retryAfterSeconds,
             );
           }
           throw new GeocoderCapacityError(
@@ -655,7 +695,9 @@ async function fetchProviderRows(
       if (reservationExpiresAtMs !== null) {
         // A failed completion leaves the longer crash lease in place. Never
         // expose cleanup failure or retry it after an ambiguous storage result.
-        await completeGeocoderProviderRequest(reservationExpiresAtMs)
+        await completeGeocoderProviderRequest(reservationExpiresAtMs, {
+          cooldownMs: completionCooldownMs,
+        })
           .catch(() => false);
       }
       clearTimeout(deadline);
@@ -687,9 +729,16 @@ async function providerQuery(
   limit = 3,
   audience: RequestAudience = "authenticated",
   callerSignal?: AbortSignal,
+  guestClientId?: string,
 ): Promise<NormalizedProviderRow[]> {
   const boundedLimit = Math.max(1, Math.min(5, Math.floor(limit)));
-  return (await fetchProviderRows(query, config, audience, callerSignal))
+  return (await fetchProviderRows(
+    query,
+    config,
+    audience,
+    callerSignal,
+    guestClientId,
+  ))
     .slice(0, boundedLimit);
 }
 
@@ -783,6 +832,7 @@ function placeResultId(
 export async function searchPlaces(
   query: string,
   signal?: AbortSignal,
+  guestClientId?: string,
 ): Promise<PlaceSearchResult[]> {
   const normalized = query.trim();
   if (!normalized) return [];
@@ -794,7 +844,14 @@ export async function searchPlaces(
       PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
     );
   }
-  const rows = await providerQuery(normalized, config, 5, "guest", signal);
+  const rows = await providerQuery(
+    normalized,
+    config,
+    5,
+    "guest",
+    signal,
+    guestClientId,
+  );
   const results: PlaceSearchResult[] = [];
 
   for (const row of rows.slice(0, 5)) {

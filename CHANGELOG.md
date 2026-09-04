@@ -12,11 +12,11 @@ All notable changes to Astro Chaganti are recorded here.
 
 ### Changed
 - **Existing geocoder retained** — deployed guest and opted-in authenticated profile searches can select the fixed `nominatim-public` adapter without a new account or API key. LocationIQ and Geoapify remain inactive fallback adapters.
-- **Policy-sized shared dispatch** — Production public-Nominatim work uses the existing Turso provider row, one-query guest contract, authenticated-user/fleet limits, bounded process cache, and a 1,000-attempt UTC-day ceiling. Each cache miss holds one exclusive 12,500 ms crash-recovery lease through provider completion, then conditionally establishes a 1,100 ms cooldown using the exact lease value as a fence.
+- **Policy-sized shared dispatch** — Production public-Nominatim work uses the existing Turso provider row, one-query guest contract, authenticated-user/fleet limits, a durable 50-search guest-client allowance per anchored 24 hours, bounded process cache, and a 1,000-attempt UTC-day ceiling. Each cache miss holds one exclusive 12,500 ms crash-recovery lease through provider completion, then conditionally establishes a 1,100 ms cooldown—or a bounded provider `Retry-After` up to 24 hours—using the exact lease value as a fence.
 - **Environment isolation** — real local development and Preview reject public Nominatim and use fixtures for provider behavior. Production guest configuration also fails closed until signed-in profile geocoding joins the same governed provider pool.
 
 ### Added
-- Configuration, budget, guest/auth sharing, exclusive-lease completion, stale-fence, delayed-reservation, fixed-endpoint, identifying-User-Agent, attribution, and no-key tests for the public Nominatim adapter.
+- Configuration, budget, guest/auth sharing, daily guest-client fairness, exclusive-lease completion, shared provider backoff, stale-fence, delayed-reservation, fixed-endpoint, identifying-User-Agent, attribution, and no-key tests for the public Nominatim adapter.
 
 ## [2026-09-04] — AGPL source-release alignment
 

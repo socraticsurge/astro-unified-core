@@ -11,7 +11,10 @@ import {
   distributedRateLimit,
   distributedRateLimitStatus,
 } from "./distributed-rate-limit";
-import { enforceGuestRateLimit } from "./guest-rate-limit";
+import {
+  enforceGuestPlaceProviderDailyLimit,
+  enforceGuestRateLimit,
+} from "./guest-rate-limit";
 import { rateLimit } from "./rate-limit";
 
 const ALLOWED = {
@@ -140,6 +143,7 @@ describe("enforceGuestRateLimit", () => {
       60_000,
       distributedOptions(DEPLOYED_ENV),
     );
+    expect(distributedRateLimit).toHaveBeenCalledTimes(3);
     const sharedCallOrder = vi.mocked(distributedRateLimit).mock.invocationCallOrder;
     expect(sharedCallOrder[0]).toBeLessThan(sharedCallOrder[1]);
     expect(sharedCallOrder[1]).toBeLessThan(sharedCallOrder[2]);
@@ -471,4 +475,118 @@ describe("enforceGuestRateLimit", () => {
       }
     },
   );
+});
+
+describe("enforceGuestPlaceProviderDailyLimit", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(distributedRateLimit).mockResolvedValue(ALLOWED);
+  });
+
+  it("uses one HMAC-bound logical client row per anchored 24-hour window", async () => {
+    await expect(enforceGuestPlaceProviderDailyLimit(
+      "203.0.113.25",
+      { env: DEPLOYED_ENV },
+    )).resolves.toEqual({
+      success: true,
+      unavailable: false,
+      retryAfterSeconds: 0,
+      scope: null,
+    });
+    expect(distributedRateLimit).toHaveBeenCalledWith(
+      "guest:places:daily-client:203.0.113.25",
+      50,
+      86_400_000,
+      distributedOptions(DEPLOYED_ENV),
+    );
+  });
+
+  it("returns the durable client-window retry without provider admission", async () => {
+    vi.mocked(distributedRateLimit).mockResolvedValueOnce({
+      ...ALLOWED,
+      success: false,
+      remaining: 0,
+      retryAfterSeconds: 43_200,
+    });
+
+    await expect(enforceGuestPlaceProviderDailyLimit(
+      "203.0.113.26",
+      { env: DEPLOYED_ENV },
+    )).resolves.toEqual({
+      success: false,
+      unavailable: false,
+      retryAfterSeconds: 43_200,
+      scope: "client",
+    });
+  });
+
+  it("fails closed when its shared client row is unavailable", async () => {
+    vi.mocked(distributedRateLimit).mockResolvedValueOnce({
+      ...ALLOWED,
+      success: false,
+      unavailable: true,
+      remaining: 0,
+      retryAfterSeconds: 10,
+    });
+
+    await expect(enforceGuestPlaceProviderDailyLimit(
+      "203.0.113.27",
+      { env: DEPLOYED_ENV },
+    )).resolves.toEqual({
+      success: false,
+      unavailable: true,
+      retryAfterSeconds: 10,
+      scope: "shared-storage",
+    });
+  });
+
+  it("rejects missing or oversized client identity before shared storage", async () => {
+    for (const clientId of ["", "x".repeat(513)]) {
+      await expect(enforceGuestPlaceProviderDailyLimit(
+        clientId,
+        { env: DEPLOYED_ENV },
+      )).resolves.toMatchObject({
+        success: false,
+        unavailable: true,
+        scope: "shared-storage",
+      });
+    }
+    expect(distributedRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("does not touch shared storage in an explicit local runtime", async () => {
+    await expect(enforceGuestPlaceProviderDailyLimit("127.0.0.1", {
+      env: { NODE_ENV: "test" },
+    })).resolves.toMatchObject({ success: true, unavailable: false });
+    expect(distributedRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("shares caller cancellation and a bounded two-second storage deadline", async () => {
+    vi.useFakeTimers();
+    try {
+      let observedSignal: AbortSignal | undefined;
+      vi.mocked(distributedRateLimit).mockImplementation(
+        async (_key, _limit, _windowMs, options) => {
+          observedSignal = options.signal;
+          return settleWhenAborted(options.signal);
+        },
+      );
+      const result = enforceGuestPlaceProviderDailyLimit(
+        "203.0.113.28",
+        { env: DEPLOYED_ENV },
+      );
+      await vi.advanceTimersByTimeAsync(2_000);
+
+      await expect(result).resolves.toEqual({
+        success: false,
+        unavailable: true,
+        retryAfterSeconds: 10,
+        scope: "shared-storage",
+      });
+      expect(observedSignal?.aborted).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

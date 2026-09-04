@@ -115,22 +115,38 @@ describe("enforceGeocoderDailyRequestBudget", () => {
       GEOCODER_PROVIDER: "nominatim-public",
     };
 
-    await expect(completeGeocoderProviderRequest(12_500, env)).resolves.toBe(true);
+    await expect(completeGeocoderProviderRequest(12_500, {
+      env,
+      cooldownMs: 60_000,
+    })).resolves.toBe(true);
     expect(completeDistributedProviderRequest).toHaveBeenCalledWith(
       "nominatim-public",
       12_500,
-      { env },
+      { env, cooldownMs: 60_000 },
     );
     await expect(completeGeocoderProviderRequest(12_500, {
-      ...env,
-      VERCEL_ENV: "preview",
+      env: { ...env, VERCEL_ENV: "preview" },
     })).resolves.toBe(false);
     await expect(completeGeocoderProviderRequest(12_500, {
-      ...env,
-      GEOCODER_PROVIDER: "geoapify",
+      env: { ...env, GEOCODER_PROVIDER: "geoapify" },
     })).resolves.toBe(false);
     expect(completeDistributedProviderRequest).toHaveBeenCalledTimes(1);
   });
+
+  it.each([1_099, 86_400_001, 1.5, Number.NaN])(
+    "rejects an invalid public-Nominatim completion cooldown %s",
+    async (cooldownMs) => {
+      await expect(completeGeocoderProviderRequest(12_500, {
+        env: {
+          NODE_ENV: "production",
+          VERCEL_ENV: "production",
+          GEOCODER_PROVIDER: "nominatim-public",
+        },
+        cooldownMs,
+      })).resolves.toBe(false);
+      expect(completeDistributedProviderRequest).not.toHaveBeenCalled();
+    },
+  );
 
   it.each(["1", "1500"])("accepts bounded endpoint value %s", async (limit) => {
     const env = {

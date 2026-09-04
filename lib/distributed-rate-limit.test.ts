@@ -584,6 +584,106 @@ describe("Turso-backed distributed rate limits", () => {
     expect(Number(row.rows[0][1])).toBe(second.reservationExpiresAtMs);
   });
 
+  it("shares a provider Retry-After cooldown and preserves the exact fence", async () => {
+    const first = await reserveDistributedProviderRequest(
+      "nominatim-public",
+      1_000,
+      { env: ENV, client: firstClient },
+    );
+    const fence = first.reservationExpiresAtMs!;
+
+    await expect(completeDistributedProviderRequest(
+      "nominatim-public",
+      fence,
+      { env: ENV, client: firstClient, cooldownMs: 60_000 },
+    )).resolves.toBe(true);
+
+    const cooling = await reserveDistributedProviderRequest(
+      "nominatim-public",
+      1_000,
+      { env: ENV, client: secondClient },
+    );
+    expect(cooling).toMatchObject({
+      success: false,
+      unavailable: false,
+      denialReason: "pace",
+    });
+    expect(cooling.retryAfterSeconds).toBeGreaterThanOrEqual(59);
+    expect(cooling.retryAfterSeconds).toBeLessThanOrEqual(60);
+
+    // A duplicate completion no longer matches the reservation fence and
+    // therefore cannot replace the provider-requested shared pause.
+    await expect(completeDistributedProviderRequest(
+      "nominatim-public",
+      fence,
+      { env: ENV, client: firstClient, cooldownMs: 1_100 },
+    )).resolves.toBe(false);
+    const row = await firstClient.execute(`
+      SELECT
+        next_allowed_at_ms,
+        CAST(unixepoch('subsec') * 1000 AS INTEGER) AS now_ms
+      FROM geocoder_provider_budget
+    `);
+    expect(Number(row.rows[0][0]) - Number(row.rows[0][1]))
+      .toBeGreaterThanOrEqual(59_000);
+  });
+
+  it.each([1_099, 86_400_001, 1.5])(
+    "leaves the crash lease intact for invalid cooldown %s",
+    async (cooldownMs) => {
+      const first = await reserveDistributedProviderRequest(
+        "nominatim-public",
+        1_000,
+        { env: ENV, client: firstClient },
+      );
+      await expect(completeDistributedProviderRequest(
+        "nominatim-public",
+        first.reservationExpiresAtMs!,
+        { env: ENV, client: firstClient, cooldownMs },
+      )).resolves.toBe(false);
+      await expect(reserveDistributedProviderRequest(
+        "nominatim-public",
+        1_000,
+        { env: ENV, client: secondClient },
+      )).resolves.toMatchObject({
+        success: false,
+        denialReason: "pace",
+      });
+    },
+  );
+
+  it("does not let a delayed completion re-pin an expired exact fence", async () => {
+    const first = await reserveDistributedProviderRequest(
+      "nominatim-public",
+      1_000,
+      { env: ENV, client: firstClient },
+    );
+    const originalFence = first.reservationExpiresAtMs!;
+    await firstClient.execute(`
+      UPDATE geocoder_provider_budget
+      SET next_allowed_at_ms =
+        CAST(unixepoch('subsec') * 1000 AS INTEGER) - 1
+    `);
+    const expired = await firstClient.execute(`
+      SELECT next_allowed_at_ms FROM geocoder_provider_budget
+    `);
+    const expiredAtMs = Number(expired.rows[0][0]);
+
+    // Model a frozen invocation whose exact token remains in the row after its
+    // crash window elapsed. A long provider pause must not re-lock an already
+    // available pool.
+    await expect(completeDistributedProviderRequest(
+      "nominatim-public",
+      expiredAtMs,
+      { env: ENV, client: secondClient, cooldownMs: 60_000 },
+    )).resolves.toBe(false);
+    const unchanged = await firstClient.execute(`
+      SELECT next_allowed_at_ms FROM geocoder_provider_budget
+    `);
+    expect(Number(unchanged.rows[0][0])).toBe(expiredAtMs);
+    expect(originalFence).toBeGreaterThan(expiredAtMs);
+  });
+
   it("recovers an uncompleted public-Nominatim crash lease only after its safe expiry", async () => {
     expect(PUBLIC_NOMINATIM_LEASE_MS).toBeGreaterThan(
       MANAGED_PROVIDER_REQUEST_DEADLINE_MS

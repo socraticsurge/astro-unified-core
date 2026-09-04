@@ -10,6 +10,11 @@ export const MANAGED_PROVIDER_DISTRIBUTED_INTERVAL_MS = 2_000;
 export const MANAGED_PROVIDER_REQUEST_DEADLINE_MS = 8_000;
 export const MANAGED_PROVIDER_STORAGE_AMBIGUITY_MS = 2_500;
 
+// A provider-requested pause is shared through the same fenced Turso row as
+// the public-Nominatim send lease. Bound it so malformed or hostile upstream
+// metadata cannot pin the application indefinitely.
+export const MANAGED_PROVIDER_MAX_RETRY_AFTER_MS = 24 * 60 * 60 * 1_000;
+
 // Public Nominatim is protected by one exclusive distributed send lease. The
 // lease outlives the whole request deadline, normal cooldown, and the storage
 // ambiguity window, so a crashed or late invocation cannot overlap the next
