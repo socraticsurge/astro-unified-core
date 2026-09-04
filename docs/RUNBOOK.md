@@ -291,7 +291,13 @@ stages: exceeded-request logging everywhere, traffic review, Preview-only
 `429`, then Production enforcement with explicit approval. A saved CLI rule is
 only a draft until it is published.
 
-For rollback, disable the three server-side activation flags first. Then stage
+For a guest-feature rollback, disable the birth-profile and election-chart
+server flags first, but keep `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true` while
+Production can reach public Nominatim. Setting that migration flag false would
+restore the old unbudgeted signed-in path. To stop public Nominatim entirely,
+leave the migration flag true and remove `GEOCODER_PROVIDER` (or replace it
+with a separately approved configured provider) so signed-in and guest place
+lookups fail closed together. Then stage
 the WAF rule back to exceeded-request logging (or disable it), inspect
 `vercel firewall diff --json`, and publish that rollback. Do not delete Turso
 counter rows during an incident; they expire and are pruned by bounded
@@ -338,21 +344,22 @@ If any of those fail, fix on `development` first — never ship a red branch.
 
 ### Pre-deploy parity check (Vercel environments)
 
-Production and Preview are separate environment groups in Vercel. Each
-must have the same set of env vars set (with appropriate values). Walk
-through this list in **Vercel → Project → Settings → Environment
-Variables → Production**:
+Production and Preview are separate environment groups in Vercel. Keep their
+shared application variables aligned with environment-appropriate values, but
+do not copy Production-only public-Nominatim selection or activation into
+Preview; that environment uses fixtures. Walk through this list in
+**Vercel → Project → Settings → Environment Variables → Production**:
 
 | Variable | Production value notes |
 |---|---|
 | `NEXTAUTH_URL` | **`https://astrochaganti.com`** — different from preview/dev. OAuth `redirect_uri` is matched exactly by Google. |
 | `NEXTAUTH_SECRET` | Same as preview is OK, but rotating for prod is a good idea. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Same as preview. |
-| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Intended topology: Preview and Production use the same physical DB when they share one managed-geocoder account, preserving one cross-environment provider-budget pool. Vercel metadata currently confirms that both environment groups define these variable names, but their secret values and exact DB identity have not been inspected or verified. Verify identity before activation; do not split databases without replacing the shared quota control. Limiter tables contain no raw identity, place, birth, coordinate, provider-key, or profile data. |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Production uses its existing live database for authoritative guest/auth limits. Preview certification stays isolated and uses fixtures for public-Nominatim behavior; the public service is rejected outside Production. Limiter tables contain no raw identity, place, birth, coordinate, provider-key, or profile data. |
 | `DASHAFLOW_SIDECAR_URL` | Same sidecar URL. |
 | `RATE_LIMIT_HMAC_SECRET` | Strong 32–256 character printable non-space server secret required for deployed Turso-backed identity/fleet limits. It may be the same across Preview/Production because the HMAC input includes the exact Vercel environment; never reuse a user/account identifier or expose it to the browser. |
-| `GEOCODER_PROVIDER` / `GEOCODER_API_KEY` | Required only when managed geocoding is activated. LocationIQ is recommended, but its human account/key and terms decision remain open; public Nominatim is local-development-only. |
-| `GEOCODER_DAILY_REQUEST_LIMIT` | Canonical integer from 1 through 1,500. Use 1,500 for the conservative initial LocationIQ candidate; this is a shared UTC-day cap across guest/auth and Preview/Production on the same provider-family pool. The first reservation persists the value for that UTC day and a same-day mismatch fails closed. |
+| `GEOCODER_PROVIDER` / `GEOCODER_API_KEY` | Use `nominatim-public` in Production for the initial release; it is fixed, keyless, identifying, attributed, submit-only for guests, cached, and protected by an exclusive send lease. Real local/Preview runtimes reject it. `GEOCODER_API_KEY` is required only for inactive LocationIQ/Geoapify fallbacks. |
+| `GEOCODER_DAILY_REQUEST_LIMIT` | Canonical integer from 1 through 1,000 for public Nominatim, or through 1,500 for a commercial fallback. Use `1000` for the initial public-Nominatim release. Guest and authenticated traffic share one Production provider-family row; each miss holds a 12,500 ms crash lease through provider completion, then a fenced release establishes a 1,100 ms cooldown. |
 | `ADMIN_EMAILS` | Same list. |
 | `GOOGLE_GEMINI_API_KEY`, `GROQ_API_KEY` | Same keys. |
 | `SENTRY_AUTH_TOKEN` | Same. |
@@ -361,22 +368,27 @@ Variables → Production**:
 | `CRON_SECRET` | Same value lives in **two** places: Vercel env vars (validates the incoming request) AND GitHub Actions repo secrets (workflow sends it). The cron itself is `.github/workflows/landing-cron.yml`, not Vercel Cron — Hobby blocks sub-daily schedules. Also set `LANDING_CRON_URL` as a GitHub Actions repo secret (e.g. `https://astrochaganti.com/api/cron/regenerate-landing`). The authenticated route schedules limiter cleanup with `after()` after its response: 5,000-row batches, 100,000-row maximum, 2.5-second operation timeout, and 10-second wall budget. |
 
 Managed geocoding is not ready merely because these variables exist. Before any
-activation flag changes, the owner must complete the provider account/key and
-terms decision, verify Preview and Production's exact Turso DB identity, measure
-current Turso usage/headroom, and pass the complete guest journey in Preview.
+activation flag changes, verify the selected provider policy, exact target DB,
+current Turso usage/headroom, and the complete fixture-backed guest journey in
+Preview.
+No LocationIQ, Geoapify, Upstash, or Redis account is required for this
+Nominatim release.
 Verify that an upstream provider `429` becomes a sanitized app `429` with a
 bounded `Retry-After`, while provider timeouts, transport failures, malformed
-responses, and server errors become retryable `503` responses. The 1,100 ms
-Turso lease orders admissions; it does not strictly order actual network sends
-across functions. Capacity-first accounting intentionally charges attempts that
-later fail a user/fleet/client guard; before activation, either accept that
-pool-exhaustion availability risk or add a fleet-wide WAF/edge limit or atomic
-composite guard. Measure the complete cold-path guard chain against the browser
-deadline as well: one cooperative two-second ceiling now prevents later SQL
+responses, and server errors become retryable `503` responses. For public
+Nominatim, verify the exclusive acquire, late-lease discard, provider-failure
+release, fenced cooldown, and crash-expiry cases; commercial fallbacks retain
+the ordinary admission interval. Capacity-first accounting intentionally
+charges attempts that later fail a user/fleet/client guard; before activation,
+either accept that pool-exhaustion availability risk or add a fleet-wide
+WAF/edge limit or atomic composite guard. Measure the complete cold-path guard
+chain against the browser deadline as well: one cooperative two-second ceiling
+now prevents later SQL
 dispatch, but an operation already in flight may settle conservatively after
 the caller receives `503`. Do not refund or auto-retry that ambiguous slot.
 Keep the guest and authenticated managed-geocoder flags off until those gates
-and the linked licensing/provider issues are closed.
+and the linked licensing/provider issues are closed. Public Nominatim must
+remain absent in Preview and real local development.
 
 ### Google Cloud Console — OAuth consent
 

@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { PlaceLookupNotice } from "@/components/profile/PlaceLookupNotice"
 
 const STEPS = ["About", "Birthday", "Birth Time", "Birthplace"] as const
 type Step = 0 | 1 | 2 | 3
@@ -177,6 +178,7 @@ function StepPlace({ form, onChange }: { form: FormState; onChange: (k: keyof Fo
           placeholder="e.g. Bengaluru, India"
         />
       </Field>
+      <PlaceLookupNotice />
     </div>
   )
 }

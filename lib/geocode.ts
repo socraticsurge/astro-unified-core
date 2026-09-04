@@ -7,9 +7,15 @@ import {
 } from "./geocoder-config";
 import { deploymentEnvironment } from "./deployment-environment";
 import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
-import { enforceGeocoderDailyRequestBudget } from "./geocoder-provider-budget";
+import {
+  completeGeocoderProviderRequest,
+  enforceGeocoderDailyRequestBudget,
+} from "./geocoder-provider-budget";
 import { GeocoderCapacityError } from "./geocoder-capacity-error";
-import { MANAGED_PROVIDER_MIN_INTERVAL_MS } from "./geocoder-limits";
+import {
+  MANAGED_PROVIDER_MIN_INTERVAL_MS,
+  MANAGED_PROVIDER_REQUEST_DEADLINE_MS,
+} from "./geocoder-limits";
 
 export type GeoResult = {
   latitude: number;
@@ -42,7 +48,6 @@ const PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
 const PROVIDER_CACHE_MAX_ENTRIES = 256;
 const PROVIDER_MAX_OUTSTANDING_REQUESTS = 8;
 const PROVIDER_MAX_GUEST_OUTSTANDING_REQUESTS = 6;
-const PROVIDER_REQUEST_DEADLINE_MS = 8_000;
 const PROVIDER_MAX_RESPONSE_BYTES = 64 * 1_024;
 const PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS = 60;
 const PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS = 10;
@@ -223,9 +228,10 @@ function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
 }
 
 async function reserveManagedProviderSlot(
+  provider: GeocoderConfig["provider"],
   deadlineAt: number,
   signal: AbortSignal,
-): Promise<void> {
+): Promise<number | null> {
   let budget = await withAbort(
     enforceGeocoderDailyRequestBudget({ signal }),
     signal,
@@ -261,6 +267,15 @@ async function reserveManagedProviderSlot(
       budget.retryAfterSeconds,
     );
   }
+  if (
+    provider === "nominatim-public"
+    && !Number.isSafeInteger(budget.reservationExpiresAtMs)
+  ) {
+    throw new GeocoderCapacityError("unavailable", 10);
+  }
+  return provider === "nominatim-public"
+    ? budget.reservationExpiresAtMs ?? null
+    : null;
 }
 
 async function waitForProviderSlot(
@@ -545,11 +560,11 @@ async function fetchProviderRows(
     throw new GeocoderCapacityError("rate-limited", 1);
   }
 
-  const deadlineAt = Date.now() + PROVIDER_REQUEST_DEADLINE_MS;
+  const deadlineAt = Date.now() + MANAGED_PROVIDER_REQUEST_DEADLINE_MS;
   const controller = new AbortController();
   const deadline = setTimeout(
     () => controller.abort(deadlineError()),
-    PROVIDER_REQUEST_DEADLINE_MS,
+    MANAGED_PROVIDER_REQUEST_DEADLINE_MS,
   );
 
   const pendingRequest: PendingProviderRequest = {
@@ -561,13 +576,24 @@ async function fetchProviderRows(
   };
 
   const request = (async () => {
+    let reservationExpiresAtMs: number | null = null;
     try {
       await waitForProviderSlot(deadlineAt, controller.signal);
       if (config.provider !== "nominatim-local") {
-        await reserveManagedProviderSlot(deadlineAt, controller.signal);
+        reservationExpiresAtMs = await reserveManagedProviderSlot(
+          config.provider,
+          deadlineAt,
+          controller.signal,
+        );
       }
 
       const url = providerSearchUrl(query, config);
+
+      // Public Nominatim's exclusive lease outlives this absolute request
+      // deadline. Check synchronously immediately before dispatch so a late
+      // storage response or resumed invocation cannot send on a stale lease.
+      if (controller.signal.aborted) throw safeAbortReason(controller.signal);
+      if (Date.now() >= deadlineAt) throw deadlineError();
 
       const res = await fetch(url, {
         headers: {
@@ -626,6 +652,12 @@ async function fetchProviderRows(
         PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
       );
     } finally {
+      if (reservationExpiresAtMs !== null) {
+        // A failed completion leaves the longer crash lease in place. Never
+        // expose cleanup failure or retry it after an ambiguous storage result.
+        await completeGeocoderProviderRequest(reservationExpiresAtMs)
+          .catch(() => false);
+      }
       clearTimeout(deadline);
     }
   })();
