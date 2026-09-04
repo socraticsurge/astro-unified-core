@@ -81,7 +81,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const results = await searchPlaces(parsed.data.query, request.signal);
+    const results = await searchPlaces(parsed.data.query, request.signal, ip);
     return guestJson(request, {
       data: {
         results,

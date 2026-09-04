@@ -13,8 +13,8 @@ import {
 const API_KEY = "test-provider-key";
 
 describe("geocoder configuration", () => {
-  it("uses the fixed public Nominatim default only in an explicit local runtime", () => {
-    expect(guestGeocoderConfig({ NODE_ENV: "development" })).toMatchObject({
+  it("uses fixed public Nominatim only for mocked unit-test contracts locally", () => {
+    expect(guestGeocoderConfig({ NODE_ENV: "test" })).toMatchObject({
       provider: "nominatim-local",
       searchUrl: `${PUBLIC_NOMINATIM_BASE_URL}/search`,
       identity: "AstroChaganti/1.0 (https://astrochaganti.com)",
@@ -22,10 +22,11 @@ describe("geocoder configuration", () => {
       responseEnvelope: "array",
       attribution: "© OpenStreetMap contributors",
     });
+    expect(guestGeocoderConfig({ NODE_ENV: "development" })).toBeNull();
     expect(guestGeocoderConfig({
       NODE_ENV: "development",
       VERCEL_ENV: "development",
-    })).not.toBeNull();
+    })).toBeNull();
   });
 
   it.each([
@@ -59,6 +60,45 @@ describe("geocoder configuration", () => {
     },
   );
 
+  it("uses the fixed public Nominatim service without an API key only in Production", () => {
+    expect(guestGeocoderConfig({
+      VERCEL_ENV: "production",
+      GEOCODER_PROVIDER: "nominatim-public",
+      AUTH_PROFILE_MANAGED_GEOCODER_ENABLED: "true",
+    })).toMatchObject({
+      provider: "nominatim-public",
+      searchUrl: `${PUBLIC_NOMINATIM_BASE_URL}/search`,
+      identity: "AstroChaganti/1.0 (https://astrochaganti.com)",
+      queryParameter: "q",
+      responseEnvelope: "array",
+      attribution: "© OpenStreetMap contributors",
+    });
+    expect(guestGeocoderConfig({
+      VERCEL_ENV: "preview",
+      GEOCODER_PROVIDER: "nominatim-public",
+      AUTH_PROFILE_MANAGED_GEOCODER_ENABLED: "true",
+    })).toBeNull();
+  });
+
+  it("rejects an API key on the keyless public Nominatim adapter", () => {
+    expect(guestGeocoderConfig({
+      VERCEL_ENV: "production",
+      GEOCODER_PROVIDER: "nominatim-public",
+      GEOCODER_API_KEY: API_KEY,
+      AUTH_PROFILE_MANAGED_GEOCODER_ENABLED: "true",
+    })).toBeNull();
+  });
+
+  it("fails guest public Nominatim closed until signed-in traffic joins the shared pool", () => {
+    for (const flag of [undefined, "false", "TRUE", " true", "true "]) {
+      expect(guestGeocoderConfig({
+        VERCEL_ENV: "production",
+        GEOCODER_PROVIDER: "nominatim-public",
+        AUTH_PROFILE_MANAGED_GEOCODER_ENABLED: flag,
+      })).toBeNull();
+    }
+  });
+
   it.each(["preview", "production"])(
     "fails closed without a complete named provider configuration in %s",
     (vercelEnv) => {
@@ -79,7 +119,7 @@ describe("geocoder configuration", () => {
     },
   );
 
-  it("allows a named managed provider locally but never an arbitrary endpoint", () => {
+  it("allows a keyed fallback locally but never public Nominatim or an arbitrary endpoint", () => {
     expect(guestGeocoderConfig({
       NODE_ENV: "test",
       GEOCODER_PROVIDER: "geoapify",
@@ -90,6 +130,10 @@ describe("geocoder configuration", () => {
       NODE_ENV: "test",
       GEOCODER_BASE_URL: "http://127.0.0.1:8080/secret-proxy",
     })?.searchUrl).toBe(`${PUBLIC_NOMINATIM_BASE_URL}/search`);
+    expect(guestGeocoderConfig({
+      NODE_ENV: "development",
+      GEOCODER_PROVIDER: "nominatim-public",
+    })).toBeNull();
   });
 
   it("fails closed for an unknown Vercel environment", () => {
@@ -141,12 +185,27 @@ describe("geocoder configuration", () => {
     expect(JSON.stringify(metadata)).not.toContain(API_KEY);
   });
 
-  it("keeps local authenticated profile geocoding independent of guest activation", () => {
+  it("projects the required linked OpenStreetMap credit for public Nominatim", () => {
+    expect(guestGeocoderPublicMetadata({
+      VERCEL_ENV: "production",
+      GEOCODER_PROVIDER: "nominatim-public",
+      AUTH_PROFILE_MANAGED_GEOCODER_ENABLED: "true",
+    })).toEqual({
+      attribution: "© OpenStreetMap contributors",
+      attributions: [{
+        label: "© OpenStreetMap contributors",
+        url: "https://www.openstreetmap.org/copyright",
+      }],
+    });
+  });
+
+  it("keeps mocked local authenticated profile geocoding independent of guest activation", () => {
     expect(authenticatedProfileGeocoderConfig({ NODE_ENV: "test" })).toMatchObject({
       provider: "nominatim-local",
       searchUrl: `${PUBLIC_NOMINATIM_BASE_URL}/search`,
       identity: "AstroChaganti/1.0 (https://astrochaganti.com)",
     });
+    expect(authenticatedProfileGeocoderConfig({ NODE_ENV: "development" })).toBeNull();
   });
 
   it("preserves the deployed authenticated legacy path until exact activation", () => {
@@ -169,6 +228,16 @@ describe("geocoder configuration", () => {
     }
   });
 
+  it("rejects the legacy authenticated public-Nominatim path in Preview", () => {
+    expect(authenticatedProfileGeocoderConfig({
+      VERCEL_ENV: "preview",
+    })).toBeNull();
+    expect(authenticatedProfileGeocoderConfig({
+      VERCEL_ENV: "preview",
+      AUTH_PROFILE_MANAGED_GEOCODER_ENABLED: "false",
+    })).toBeNull();
+  });
+
   it("requires the same named managed provider after authenticated activation", () => {
     expect(authenticatedProfileGeocoderConfig({
       VERCEL_ENV: "production",
@@ -188,6 +257,15 @@ describe("geocoder configuration", () => {
       VERCEL_ENV: "production",
       AUTH_PROFILE_MANAGED_GEOCODER_ENABLED: "true",
     })).toBe(true);
+
+    expect(authenticatedProfileGeocoderConfig({
+      VERCEL_ENV: "production",
+      AUTH_PROFILE_MANAGED_GEOCODER_ENABLED: "true",
+      GEOCODER_PROVIDER: "nominatim-public",
+    })).toMatchObject({
+      provider: "nominatim-public",
+      searchUrl: `${PUBLIC_NOMINATIM_BASE_URL}/search`,
+    });
   });
 
   it("fails closed for authenticated profiles in an ambiguous runtime", () => {

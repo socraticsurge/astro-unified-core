@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sourceOfferHeaders } from "./source-offer";
 
 export const MAX_GUEST_BODY_BYTES = 4 * 1024;
 
@@ -28,6 +29,7 @@ function responseHeaders(request: Request, init?: HeadersInit): Headers {
   const headers = new Headers(init);
   headers.set("Cache-Control", "private, no-store");
   headers.set("Vary", "Origin");
+  headers.set("Link", sourceOfferHeaders().Link);
 
   const origin = allowedGuestOrigin(request);
   if (origin) {

@@ -1,13 +1,22 @@
 import "server-only";
 
 import { deploymentEnvironment } from "./deployment-environment";
-import { reserveDistributedProviderRequest } from "./distributed-rate-limit";
+import {
+  MANAGED_PROVIDER_MAX_RETRY_AFTER_MS,
+  MANAGED_PROVIDER_MIN_INTERVAL_MS,
+  PUBLIC_NOMINATIM_DAILY_REQUEST_LIMIT_MAX,
+} from "./geocoder-limits";
+import {
+  completeDistributedProviderRequest,
+  reserveDistributedProviderRequest,
+} from "./distributed-rate-limit";
 
 export type GeocoderDailyRequestBudgetResult = {
   success: boolean;
   unavailable: boolean;
   retryAfterSeconds: number;
   denialReason?: "pace" | "daily";
+  reservationExpiresAtMs?: number;
 };
 
 const MAX_DAILY_REQUEST_LIMIT = 1_500;
@@ -24,19 +33,21 @@ const UNAVAILABLE: GeocoderDailyRequestBudgetResult = {
 
 function configuredDailyLimit(
   value: string | undefined,
+  maximum = MAX_DAILY_REQUEST_LIMIT,
 ): number | null {
   if (!value || !/^[1-9]\d*$/.test(value)) return null;
   const limit = Number(value);
   return Number.isSafeInteger(limit)
     && limit >= 1
-    && limit <= MAX_DAILY_REQUEST_LIMIT
+    && limit <= maximum
     ? limit
     : null;
 }
 
 function configuredProviderFamily(
   value: string | undefined,
-): "locationiq" | "geoapify" | null {
+): "nominatim-public" | "locationiq" | "geoapify" | null {
+  if (value === "nominatim-public") return value;
   if (value === "locationiq-eu" || value === "locationiq-us") {
     return "locationiq";
   }
@@ -69,9 +80,17 @@ export async function enforceGeocoderDailyRequestBudget(
   if (vercelEnv !== "preview" && vercelEnv !== "production") {
     return UNAVAILABLE;
   }
-  const limit = configuredDailyLimit(env.GEOCODER_DAILY_REQUEST_LIMIT);
   const providerFamily = configuredProviderFamily(env.GEOCODER_PROVIDER);
+  const limit = configuredDailyLimit(
+    env.GEOCODER_DAILY_REQUEST_LIMIT,
+    providerFamily === "nominatim-public"
+      ? PUBLIC_NOMINATIM_DAILY_REQUEST_LIMIT_MAX
+      : MAX_DAILY_REQUEST_LIMIT,
+  );
   if (limit === null || providerFamily === null) return UNAVAILABLE;
+  if (providerFamily === "nominatim-public" && vercelEnv !== "production") {
+    return UNAVAILABLE;
+  }
 
   const result = await reserveDistributedProviderRequest(
     providerFamily,
@@ -86,5 +105,34 @@ export async function enforceGeocoderDailyRequestBudget(
       || result.denialReason === "daily"
       ? result.denialReason
       : undefined,
+    ...(result.reservationExpiresAtMs !== undefined
+      ? { reservationExpiresAtMs: result.reservationExpiresAtMs }
+      : {}),
   };
+}
+
+/** Complete an exclusive public-Nominatim reservation through its exact fence. */
+export async function completeGeocoderProviderRequest(
+  reservationExpiresAtMs: number,
+  options: {
+    env?: Record<string, string | undefined>;
+    cooldownMs?: number;
+  } = {},
+): Promise<boolean> {
+  const env = options.env ?? process.env;
+  const cooldownMs = options.cooldownMs ?? MANAGED_PROVIDER_MIN_INTERVAL_MS;
+  if (
+    deploymentEnvironment(env) !== "deployed"
+    || env.VERCEL_ENV !== "production"
+    || !Number.isSafeInteger(cooldownMs)
+    || cooldownMs < MANAGED_PROVIDER_MIN_INTERVAL_MS
+    || cooldownMs > MANAGED_PROVIDER_MAX_RETRY_AFTER_MS
+  ) return false;
+  const providerFamily = configuredProviderFamily(env.GEOCODER_PROVIDER);
+  if (providerFamily !== "nominatim-public") return false;
+  return completeDistributedProviderRequest(
+    providerFamily,
+    reservationExpiresAtMs,
+    { env, cooldownMs },
+  );
 }

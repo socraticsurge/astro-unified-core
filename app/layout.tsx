@@ -77,6 +77,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <span className="text-[var(--color-border-subtle)]">·</span>
                     <Link href="/privacy" className="hover:underline">Privacy</Link>
                     <Link href="/terms" className="hover:underline">Terms</Link>
+                    <a
+                      href="https://github.com/socraticsurge/astro-unified-core"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      Source
+                    </a>
                   </div>
                 </footer>
               }

@@ -4,7 +4,11 @@ vi.mock("server-only", () => ({}));
 vi.mock("./authenticated-geocoder-rate-limit", () => ({
   enforceAuthenticatedGeocoderRateLimit: vi.fn(),
 }));
+vi.mock("./guest-rate-limit", () => ({
+  enforceGuestPlaceProviderDailyLimit: vi.fn(),
+}));
 vi.mock("./distributed-rate-limit", () => ({
+  completeDistributedProviderRequest: vi.fn(),
   reserveDistributedProviderRequest: vi.fn(),
 }));
 
@@ -13,13 +17,22 @@ import {
   queryVariants,
   geocodePlace,
   resetGeocoderProcessStateForTests,
-  searchPlaces,
+  searchPlaces as searchPlacesImpl,
 } from "./geocode";
 import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
-import { reserveDistributedProviderRequest } from "./distributed-rate-limit";
+import { enforceGuestPlaceProviderDailyLimit } from "./guest-rate-limit";
+import {
+  completeDistributedProviderRequest,
+  reserveDistributedProviderRequest,
+} from "./distributed-rate-limit";
 import { MANAGED_PROVIDER_MIN_INTERVAL_MS } from "./geocoder-limits";
+import { PUBLIC_NOMINATIM_BASE_URL } from "./geocoder-config";
 
 global.fetch = vi.fn();
+
+function searchPlaces(query: string, signal?: AbortSignal) {
+  return searchPlacesImpl(query, signal, "203.0.113.10");
+}
 
 function resetLocalGeocoder(): void {
   vi.resetAllMocks();
@@ -29,13 +42,30 @@ function resetLocalGeocoder(): void {
     retryAfterSeconds: 0,
     scope: null,
   });
+  vi.mocked(enforceGuestPlaceProviderDailyLimit).mockImplementation(
+    async (clientId) => clientId
+      ? {
+        success: true,
+        unavailable: false,
+        retryAfterSeconds: 0,
+        scope: null,
+      }
+      : {
+        success: false,
+        unavailable: true,
+        retryAfterSeconds: 10,
+        scope: "shared-storage",
+      },
+  );
   vi.mocked(reserveDistributedProviderRequest).mockResolvedValue({
     success: true,
     remaining: 1_499,
     unavailable: false,
     retryAfterSeconds: 0,
     configured: true,
+    reservationExpiresAtMs: 12_500,
   });
+  vi.mocked(completeDistributedProviderRequest).mockResolvedValue(true);
   delete process.env.VERCEL_ENV;
   delete process.env.GEOCODER_PROVIDER;
   delete process.env.GEOCODER_API_KEY;
@@ -56,6 +86,14 @@ function configureManagedGeocoder(
   vi.stubEnv("GEOCODER_API_KEY", apiKey);
   vi.stubEnv("AUTH_PROFILE_MANAGED_GEOCODER_ENABLED", "true");
   vi.stubEnv("GEOCODER_DAILY_REQUEST_LIMIT", "1500");
+}
+
+function configurePublicNominatim(): void {
+  vi.stubEnv("NODE_ENV", "production");
+  vi.stubEnv("VERCEL_ENV", "production");
+  vi.stubEnv("GEOCODER_PROVIDER", "nominatim-public");
+  vi.stubEnv("AUTH_PROFILE_MANAGED_GEOCODER_ENABLED", "true");
+  vi.stubEnv("GEOCODER_DAILY_REQUEST_LIMIT", "1000");
 }
 
 afterEach(() => {
@@ -260,6 +298,191 @@ describe("searchPlaces", () => {
     resetLocalGeocoder();
   });
 
+  it("reuses public Nominatim through the shared deployed budget", async () => {
+    configurePublicNominatim();
+    vi.mocked(global.fetch).mockResolvedValue(new Response(JSON.stringify([{
+      place_id: 123,
+      osm_type: "relation",
+      osm_id: 456,
+      lat: "17.3850",
+      lon: "78.4867",
+      display_name: "Hyderabad, Telangana, India",
+    }]), { status: 200 }));
+
+    await expect(searchPlaces("Hyderabad")).resolves.toEqual([{
+      id: "nominatim-public:123",
+      label: "Hyderabad, Telangana, India",
+      latitude: 17.385,
+      longitude: 78.4867,
+      timezone: "Asia/Kolkata",
+    }]);
+
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledWith(
+      "nominatim-public",
+      1_000,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(completeDistributedProviderRequest).toHaveBeenCalledWith(
+      "nominatim-public",
+      12_500,
+      expect.objectContaining({
+        cooldownMs: MANAGED_PROVIDER_MIN_INTERVAL_MS,
+        env: expect.objectContaining({
+          VERCEL_ENV: "production",
+          GEOCODER_PROVIDER: "nominatim-public",
+        }),
+      }),
+    );
+    const [input, init] = vi.mocked(global.fetch).mock.calls[0];
+    expect(new URL(String(input)).origin).toBe(PUBLIC_NOMINATIM_BASE_URL);
+    expect(init?.headers).toMatchObject({
+      "User-Agent": "AstroChaganti/1.0 (https://astrochaganti.com)",
+    });
+  });
+
+  it("releases the public-Nominatim lease after a provider failure", async () => {
+    configurePublicNominatim();
+    vi.mocked(global.fetch).mockRejectedValue(new Error("provider offline"));
+
+    await expect(searchPlaces("Hyderabad")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+    });
+    expect(completeDistributedProviderRequest).toHaveBeenCalledWith(
+      "nominatim-public",
+      12_500,
+      expect.objectContaining({
+        cooldownMs: MANAGED_PROVIDER_MIN_INTERVAL_MS,
+      }),
+    );
+  });
+
+  it.each([
+    ["numeric", "120", 120, 120_000],
+    ["missing", undefined, 60, 60_000],
+    ["zero", "0", 60, 60_000],
+    ["malformed", "later", 60, 60_000],
+    ["bounded", "999999", 86_400, 86_400_000],
+  ] as const)(
+    "shares a %s provider Retry-After through fenced completion",
+    async (_kind, retryAfter, expectedSeconds, expectedCooldownMs) => {
+      configurePublicNominatim();
+      vi.mocked(global.fetch).mockResolvedValue(new Response("", {
+        status: 429,
+        ...(retryAfter ? { headers: { "Retry-After": retryAfter } } : {}),
+      }));
+
+      await expect(searchPlaces(`Retry ${_kind}`)).rejects.toMatchObject({
+        name: "GeocoderCapacityError",
+        code: "rate-limited",
+        retryAfterSeconds: expectedSeconds,
+      });
+      expect(completeDistributedProviderRequest).toHaveBeenCalledWith(
+        "nominatim-public",
+        12_500,
+        expect.objectContaining({ cooldownMs: expectedCooldownMs }),
+      );
+    },
+  );
+
+  it("shares an HTTP-date Retry-After through fenced completion", async () => {
+    configurePublicNominatim();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-04T00:00:00.000Z"));
+    vi.mocked(global.fetch).mockResolvedValue(new Response("", {
+      status: 429,
+      headers: {
+        "Retry-After": new Date("2026-09-04T00:02:00.000Z").toUTCString(),
+      },
+    }));
+
+    await expect(searchPlaces("Retry dated")).rejects.toMatchObject({
+      code: "rate-limited",
+      retryAfterSeconds: 120,
+    });
+    expect(completeDistributedProviderRequest).toHaveBeenCalledWith(
+      "nominatim-public",
+      12_500,
+      expect.objectContaining({ cooldownMs: 120_000 }),
+    );
+  });
+
+  it("uses the safe default for a past HTTP-date Retry-After", async () => {
+    configurePublicNominatim();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-04T00:02:00.000Z"));
+    vi.mocked(global.fetch).mockResolvedValue(new Response("", {
+      status: 429,
+      headers: {
+        "Retry-After": new Date("2026-09-04T00:00:00.000Z").toUTCString(),
+      },
+    }));
+
+    await expect(searchPlaces("Retry past date")).rejects.toMatchObject({
+      code: "rate-limited",
+      retryAfterSeconds: 60,
+    });
+    expect(completeDistributedProviderRequest).toHaveBeenCalledWith(
+      "nominatim-public",
+      12_500,
+      expect.objectContaining({ cooldownMs: 60_000 }),
+    );
+  });
+
+  it("never dispatches a public-Nominatim lease that arrives at the request deadline", async () => {
+    configurePublicNominatim();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-04T00:00:00.000Z"));
+    vi.mocked(reserveDistributedProviderRequest).mockImplementation(() => (
+      new Promise((resolve) => {
+        setTimeout(() => resolve({
+          success: true,
+          remaining: 999,
+          unavailable: false,
+          retryAfterSeconds: 0,
+          configured: true,
+          reservationExpiresAtMs: Date.now() + 12_500,
+        }), 8_000);
+      })
+    ));
+
+    const result = expect(searchPlaces("Hyderabad")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+    });
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    await result;
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(completeDistributedProviderRequest).not.toHaveBeenCalled();
+  });
+
+  it("shares public Nominatim pacing with authenticated profile geocoding", async () => {
+    configurePublicNominatim();
+    vi.mocked(global.fetch).mockImplementation(async (input) => {
+      const query = new URL(String(input)).searchParams.get("q") ?? "Unknown";
+      return new Response(JSON.stringify([{
+        place_id: query,
+        lat: "17.385",
+        lon: "78.4867",
+        display_name: query,
+      }]), { status: 200 });
+    });
+
+    await searchPlaces("Guest place");
+    await geocodePlace("Authenticated place", {
+      authenticatedUserId: "private-user-id",
+    });
+
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(2);
+    for (const call of vi.mocked(reserveDistributedProviderRequest).mock.calls) {
+      expect(call.slice(0, 2)).toEqual(["nominatim-public", 1_000]);
+    }
+    expect(enforceAuthenticatedGeocoderRateLimit).toHaveBeenCalledWith(
+      "private-user-id",
+    );
+  });
+
   it("uses one bounded upstream request and returns selectable IANA-timezone results", async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
@@ -337,6 +560,11 @@ describe("searchPlaces", () => {
     await expect(searchPlaces("  PRIVATE   BIRTHPLACE ")).resolves.toEqual(expected);
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(enforceGuestPlaceProviderDailyLimit).toHaveBeenCalledTimes(1);
+    expect(enforceGuestPlaceProviderDailyLimit).toHaveBeenCalledWith(
+      "203.0.113.10",
+      { signal: expect.any(AbortSignal) },
+    );
     expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
     expect(reserveDistributedProviderRequest).toHaveBeenCalledWith(
       "geoapify",
@@ -351,6 +579,40 @@ describe("searchPlaces", () => {
       cacheKeysAreHashed: true,
       cachedRowsContainUnknownFields: false,
     });
+  });
+
+  it("fails closed without a guest client identity before managed provider work", async () => {
+    configurePublicNominatim();
+
+    await expect(searchPlacesImpl("Private Birthplace")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "unavailable",
+      retryAfterSeconds: 10,
+    });
+    expect(enforceGuestPlaceProviderDailyLimit).toHaveBeenCalledWith(
+      "",
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(reserveDistributedProviderRequest).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("stops a daily-denied guest cache miss before provider admission", async () => {
+    configurePublicNominatim();
+    vi.mocked(enforceGuestPlaceProviderDailyLimit).mockResolvedValue({
+      success: false,
+      unavailable: false,
+      retryAfterSeconds: 43_200,
+      scope: "client",
+    });
+
+    await expect(searchPlaces("Private Birthplace")).rejects.toMatchObject({
+      name: "GeocoderCapacityError",
+      code: "rate-limited",
+      retryAfterSeconds: 43_200,
+    });
+    expect(reserveDistributedProviderRequest).not.toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("fails closed before provider transit when the deployed daily limit is missing", async () => {
@@ -553,6 +815,7 @@ describe("searchPlaces", () => {
     const first = searchPlaces("Private Birthplace");
     const duplicate = searchPlaces("  PRIVATE   BIRTHPLACE ");
     await vi.waitFor(() => {
+      expect(enforceGuestPlaceProviderDailyLimit).toHaveBeenCalledTimes(1);
       expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
@@ -568,6 +831,7 @@ describe("searchPlaces", () => {
       [expect.objectContaining({ id: "geoapify:shared-place" })],
     ]);
     expect(reserveDistributedProviderRequest).toHaveBeenCalledTimes(1);
+    expect(enforceGuestPlaceProviderDailyLimit).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 

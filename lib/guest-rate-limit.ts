@@ -22,9 +22,9 @@ export type GuestRateLimitResult = {
 };
 
 const FLEET_LIMITS: Record<GuestRateLimitNamespace, number> = {
-  // A conservative shared admission ceiling below LocationIQ Free's
-  // 60/minute provider limit. The provider budget adds a cross-instance
-  // admission lease and preserves upstream 429 guidance.
+  // A conservative shared admission ceiling. Public Nominatim is additionally
+  // protected by its own exclusive cross-instance send lease; commercial
+  // fallbacks retain their provider-family budget and 429 guidance.
   places: 30,
   "profile-derive": 30,
   "election-charts": 10,
@@ -37,6 +37,10 @@ const FLEET_KEYS: Record<GuestRateLimitNamespace, string> = {
 };
 const DAILY_CAPACITY_KEY = "guest:all-routes:daily-capacity";
 const DAILY_CAPACITY_WINDOW_MS = 24 * 60 * 60 * 1_000;
+// Give each guest source a nominal five-percent share of the public-Nominatim
+// pool per anchored 24-hour window. This is charged only for a valid cache miss
+// at the provider boundary, not for malformed requests or reusable results.
+const PLACES_CLIENT_DAILY_LIMIT = 50;
 const DAILY_CAPACITY_LIMITS = {
   preview: 2_000,
   production: 10_000,
@@ -237,12 +241,76 @@ export async function enforceGuestRateLimit(
         scope: "client",
       };
     }
-
     return ALLOWED;
   } catch (error) {
     if (signal.aborted) return sharedStorageUnavailable();
     throw error;
   } finally {
     clearTimeout(deadline);
+  }
+}
+
+/**
+ * Reserve one guest client's durable place-provider allowance.
+ *
+ * The place route has already applied capacity, fleet, and minute-client
+ * controls before parsing. This narrower guard runs only after validation,
+ * process-cache lookup, and duplicate coalescing, immediately before other
+ * provider admission. The shared primitive HMACs the logical client key, so no
+ * raw address enters Turso.
+ */
+export async function enforceGuestPlaceProviderDailyLimit(
+  clientId: string,
+  options: {
+    env?: Record<string, string | undefined>;
+    signal?: AbortSignal;
+  } = {},
+): Promise<GuestRateLimitResult> {
+  const env = options.env ?? process.env;
+  if (!clientId || clientId.length > 512) return sharedStorageUnavailable();
+  if (deploymentEnvironment(env) === "local") return ALLOWED;
+
+  const controller = new AbortController();
+  const abortFromCaller = () => controller.abort();
+  options.signal?.addEventListener("abort", abortFromCaller, { once: true });
+  if (options.signal?.aborted) controller.abort();
+  const deadline = setTimeout(
+    () => controller.abort(),
+    DEPLOYED_GUARD_CHAIN_DEADLINE_MS,
+  );
+  deadline.unref?.();
+
+  try {
+    if (controller.signal.aborted) return sharedStorageUnavailable();
+    const result = await distributedRateLimit(
+      `guest:places:daily-client:${clientId}`,
+      PLACES_CLIENT_DAILY_LIMIT,
+      DAILY_CAPACITY_WINDOW_MS,
+      { env, signal: controller.signal },
+    );
+    if (controller.signal.aborted) return sharedStorageUnavailable();
+    if (result.unavailable) {
+      return {
+        success: false,
+        unavailable: true,
+        retryAfterSeconds: result.retryAfterSeconds,
+        scope: "shared-storage",
+      };
+    }
+    if (!result.success) {
+      return {
+        success: false,
+        unavailable: false,
+        retryAfterSeconds: result.retryAfterSeconds,
+        scope: "client",
+      };
+    }
+    return ALLOWED;
+  } catch (error) {
+    if (controller.signal.aborted) return sharedStorageUnavailable();
+    throw error;
+  } finally {
+    clearTimeout(deadline);
+    options.signal?.removeEventListener("abort", abortFromCaller);
   }
 }

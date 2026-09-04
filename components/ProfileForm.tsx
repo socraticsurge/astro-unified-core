@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { PlaceLookupNotice } from "@/components/profile/PlaceLookupNotice";
 
 export function ProfileForm({ initialData }: { initialData?: Partial<Profile> }) {
   const router = useRouter();
@@ -151,6 +152,7 @@ export function ProfileForm({ initialData }: { initialData?: Partial<Profile> })
                 Required for accurate Muhurtha and transit calculations.
               </p>
             </div>
+            <PlaceLookupNotice />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>

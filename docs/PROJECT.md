@@ -6,14 +6,14 @@ members, and see a detailed chart for each profile.
 
 - **Live site**: https://astrochaganti.com/
 - **Main repo**: https://github.com/socraticsurge/astro-unified-core (this repo)
-- **Sidecar repo**: https://github.com/socraticsurge/dashaflow-sidecar (private)
+- **Sidecar repo**: https://github.com/socraticsurge/dashaflow-sidecar (must be public before calculation activation)
 
 ---
 
 ## Architecture at a glance
 
 ```
-GitHub: astro-unified-core      GitHub: dashaflow-sidecar (private)
+GitHub: astro-unified-core      GitHub: dashaflow-sidecar
         │                                 │
         │ push to main                    │ push to master
         ▼                                 ▼
@@ -46,7 +46,7 @@ Vercel project (with no Next.js) gives it sole ownership of `/api/*`.
 | Database              | Turso (libSQL, hosted)                                                 |
 | Astrology engine      | DashaFlow 1.1.0 (PyPI) — Swiss Ephemeris, Lahiri sidereal              |
 | Sidecar runtime       | FastAPI on Vercel Python serverless                                    |
-| Geocoding             | Local development: fixed OpenStreetMap Nominatim; Preview/Production: one fixed LocationIQ/Geoapify adapter shared by guest and registered-profile journeys |
+| Geocoding             | Mocked Nominatim contract in tests and fixed public Nominatim for initial Production use; LocationIQ/Geoapify remain dormant switchable adapters |
 | UI                    | Tailwind v4, shadcn/ui                                                 |
 | Fonts                 | Inter (body) + Cormorant Garamond (headings) via `next/font`           |
 | Hosting               | Vercel (both projects, Hobby plan)                                     |
@@ -150,11 +150,11 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `DASHAFLOW_SIDECAR_TOKEN`  | Required server-only 32–256 character printable non-space ASCII bearer credential sent to every sidecar compute route (`/calculate`, `/transit`, `/career`, `/compatibility`, `/muhurtha`, and both `/v1/*/derive` projections); must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
 | `GUEST_BIRTH_PROFILE_ENABLED` | Server-only guest place-search/profile-derive gate. Omission defaults on only for an explicitly classified local/test runtime; recognized Vercel Preview/Production runtimes require the exact value `true`, and ambiguous markers (including self-hosted production without a trusted-proxy contract) fail closed. Keep off until Panchangam #231 and #233 close. |
 | `GUEST_ELECTION_CHART_ENABLED` | Independent server-only election-chart gate with the same local default and exact deployed opt-in. Keep off until Panchangam #231 closes. |
-| `GEOCODER_PROVIDER` | Server-only place-search adapter selector. Optional locally, where fixed public Nominatim is the default. Preview/Production guest search and an enabled authenticated migration require exactly `locationiq-eu`, `locationiq-us`, or `geoapify`; endpoints are code-owned and arbitrary base URLs are not accepted. |
-| `GEOCODER_API_KEY` | Server-only key for the selected managed provider; required with `GEOCODER_PROVIDER` for deployed guest search or the enabled authenticated migration, and never returned to the browser. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
-| `GEOCODER_DAILY_REQUEST_LIMIT` | Required server-only managed-provider UTC-day allowance: a canonical integer from 1 through 1,500. The first shared provider reservation each UTC day persists the value; a same-day Preview/Production mismatch fails closed. Every deployed process-cache miss must atomically reserve one cross-environment provider-family slot immediately before provider transit. Warm-process cache hits and coalesced duplicate callers do not consume it; an admitted failed provider attempt does. Missing, malformed, exhausted, or unavailable enforcement fails closed. |
+| `GEOCODER_PROVIDER` | Server-only place-search adapter selector. `nominatim-public` is accepted only in Vercel Production; unit/browser tests use fixtures and real local/Preview runtimes reject the public service. Preview/Production may use the fixed `locationiq-eu`, `locationiq-us`, or `geoapify` fallbacks when configured. Endpoints are code-owned and arbitrary base URLs are not accepted. |
+| `GEOCODER_API_KEY` | Server-only key required only for LocationIQ/Geoapify; `nominatim-public` deliberately rejects one. It is never returned to the browser. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
+| `GEOCODER_DAILY_REQUEST_LIMIT` | Required server-only managed-provider UTC-day allowance: a canonical integer from 1 through 1,000 for public Nominatim or 1 through 1,500 for a commercial fallback. The first shared provider reservation each UTC day persists the value; a same-day Preview/Production mismatch fails closed. Every deployed process-cache miss must atomically reserve one provider-family slot immediately before provider transit. Warm-process cache hits and coalesced duplicate callers do not consume it; an admitted failed provider attempt does. Missing, malformed, exhausted, or unavailable enforcement fails closed. |
 | `RATE_LIMIT_HMAC_SECRET` | Required 32–256 character printable non-space server secret for deployed shared identity/fleet limiting. Turso stores only Vercel-environment-scoped HMAC digests with integer count/expiry fields. Hard attempt admissions per anchored 24-hour window are guest 2,000 Preview / 10,000 Production and managed-authenticated geocoding 500 Preview / 2,500 Production; capacity is reserved before route-specific rows and remains charged after a later denial. Provision the limiter objects explicitly for each deployment target before activation; runtime readiness never issues DDL. Never prefix the secret with `NEXT_PUBLIC_`, reuse it as an account identifier, or write raw IPs, user IDs, place data, birth data, profile data, coordinates, or provider keys to limiter tables. |
-| `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` | Separate server-only registered-profile migration gate. Existing signed-in create/edit keeps the legacy provider unless this equals the exact string `true` in Preview/Production. Enable only after managed provider, Turso controls, quota, privacy, and full journey approval. Guest flags do not control it. |
+| `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` | Explicit server-only registered-profile migration gate. Production signed-in create/edit keeps the legacy provider until this equals the exact string `true`; Preview remains fixture-only while disabled. Enable only after provider, Turso controls, quota, privacy, and full journey approval. Guest flags do not control it; Production `nominatim-public` guest search fails closed unless this is also `true`, preventing a split unbudgeted path to the same public service. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
 | `GROQ_API_KEY`             | Secondary LLM provider used by chat / draft generation (`lib/engines/groq.ts`). Get from console.groq.com. |
 | `ADMIN_EMAILS` (required)  | Comma-separated list of admin email addresses. If unset, no one has admin access. |
@@ -168,45 +168,59 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 
 | `GEOCODER_PROVIDER` | Fixed endpoint | Query/key parameters | Normalized response |
 |---|---|---|---|
+| `nominatim-public` | `https://nominatim.openstreetmap.org/search` | `q`; no key; identifying application User-Agent | JSON array with `lat`, `lon`, `display_name`, `place_id` |
 | `locationiq-eu` | `https://eu1.locationiq.com/v1/search` | `q` / `key`; adapter pins OSM-only `source=nom` | JSON array with `lat`, `lon`, `display_name`, `place_id` |
 | `locationiq-us` | `https://us1.locationiq.com/v1/search` | `q` / `key`; adapter pins OSM-only `source=nom` | JSON array with `lat`, `lon`, `display_name`, `place_id` |
 | `geoapify` | `https://api.geoapify.com/v1/geocode/search` | `text` / `apiKey`; adapter forces `format=json` | `results` array with `lat`, `lon`, `formatted`, `place_id` |
 
 The endpoint and parameter mapping is not environment-configurable. Guest
 search keeps its existing `attribution` string and adds structured
-`{ label, url }` links for provider and OpenStreetMap credit. Existing deployed
-authenticated profile creation/editing keeps its legacy provider until
+`{ label, url }` links for provider and OpenStreetMap credit. Existing
+Production authenticated profile creation/editing keeps its legacy provider until
 `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true`. The enabled migration uses the
 same fixed provider independently of guest flags, issues one bounded query per
 place, and applies a distributed ten-call-per-user limit plus the same 30-call
 minute fleet ceiling used by guest search. After a process-cache miss and
 duplicate coalescing, guest and managed-authenticated work also share one
 atomic `GEOCODER_DAILY_REQUEST_LIMIT` counter per provider family and UTC day.
-Preview and Production deliberately share that non-personal aggregate row when
-they use the same provider account; LocationIQ EU/US also share one LocationIQ
-pool. A 1,100 ms database-clock lease orders distributed admission but does not
-strictly order actual network sends across functions. Failed admitted provider
-attempts consume their slot; warm-process cached and coalesced work does not.
-Provider HTTP `429` responses map to a sanitized app `429` with bounded
-`Retry-After`; transport, timeout, malformed-response, and provider-server
+Preview and Production share the same non-personal aggregate row when a
+commercial provider account is active in both; LocationIQ EU/US share one
+LocationIQ pool. Public Nominatim is Production-only. It acquires an exclusive
+12,500 ms crash-recovery lease, holds it through the provider operation, and
+conditionally releases it into a 1,100 ms cooldown using the exact lease value
+as a fence. This prevents delayed or concurrent serverless callers from
+compressing network starts below the provider ceiling. For a valid guest
+place-search cache miss, a narrower provider-bound guard also applies a durable
+50-request client allowance per anchored 24 hours after body validation,
+process-cache lookup, and duplicate coalescing. Invalid requests, warm cache
+hits, and coalesced callers spend no client-daily or provider-daily slot. An
+anchored-window boundary can place at most 100 of one client's upstream
+attempts inside one UTC provider day. Failed admitted provider attempts consume
+both daily slots.
+Public-Nominatim HTTP `429` responses map to a sanitized app `429`; bounded
+numeric or HTTP-date `Retry-After` guidance is also persisted fleet-wide through
+the exact reservation fence for up to 24 hours. Missing, malformed, past, or
+zero-delay guidance uses 60 seconds. Transport, timeout, malformed-response, and provider-server
 failures map to retryable `503`. Normalized place results remain only in a bounded,
 24-hour process cache and are never persisted as a shared result cache or
 limiter data. A location explicitly selected for a signed-in saved profile
 continues to be stored in that profile. See the official
+[Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/),
 [LocationIQ search contract](https://docs.locationiq.com/reference/search),
 [LocationIQ attribution guide](https://web.locationiq.com/attribution), and
 [Geoapify forward-geocoding contract](https://apidocs.geoapify.com/docs/geocoding/forward-geocoding/).
-LocationIQ is the recommended release candidate, but human account creation,
-terms/billing approval, a real key, and activation remain release decisions
-tracked in Panchangam #233.
+Public Nominatim is the initial release candidate, using one submit-only guest
+query, an identifying User-Agent, attribution, caching, an exclusive fenced
+send lease, and a 1,000-attempt UTC-day ceiling. No LocationIQ account or key is
+needed, and no Upstash or Redis service is involved. The commercial adapters
+are dormant alternatives rather than release dependencies.
 
-The configured Vercel environment metadata confirms that both Preview and
-Production define Turso variables, but the secret values were not inspected and
-the exact physical database identity is not currently verified. The intended
-shared-provider topology requires one physical Turso database for the
-cross-environment provider-family row. Confirm that identity and measure current
-Turso usage/headroom before activation; the presence of adapter code is not a
-public-readiness signal.
+Preview certification uses the isolated Astro staging database and provider
+fixtures. Production uses the existing live Astro database for the shared
+guest/authenticated Nominatim lease. This separation is safe because code
+rejects public Nominatim in Preview and real local development. Re-verify the
+exact Production database and current Turso headroom immediately before
+activation; the presence of adapter code is not a public-readiness signal.
 
 ### Sidecar
 
@@ -221,15 +235,19 @@ release. Use this order so no public browser can reach an uncredentialed or
 missing calculation operation:
 
 1. Keep `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED`
-   absent or false in Vercel Preview and Production. Close Panchangam #231 with
-   the owner-recorded Swiss Ephemeris license decision. Close #233 with the
-   approved managed geocoder choice; LocationIQ is recommended but its account
-   and key remain human-owned steps. Configure `GEOCODER_PROVIDER` and
-   server-only `GEOCODER_API_KEY`, plus an owner-approved canonical
-   `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 1,500. Public Nominatim cannot
-   satisfy deployed guest configuration. Keep
-   `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` absent or false so this guest rollout
-   cannot regress existing signed-in profiles.
+   absent or false in Vercel Preview and Production. The owner selected the
+   AGPL-compatible public-source path on 2026-09-04. Merge the AGPL/source-offer
+   release candidates, make the Astro and DashaFlow repositories public, deploy
+   exact commits, verify that both services' source links resolve to those
+   commits, and record the evidence when closing Panchangam #231. Close #233
+   with the approved public-Nominatim posture. Configure
+   `GEOCODER_PROVIDER=nominatim-public` with no API key and
+   `GEOCODER_DAILY_REQUEST_LIMIT=1000` in Production only. Certify place-search
+   behavior with unit, route, and browser fixtures; public Nominatim is rejected
+   in Preview and real local development so they cannot compete with Production.
+   Keep guest search closed until the signed-in profile path passes the same
+   release suite, then set `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true` with
+   guest activation so every Production public-Nominatim caller shares one pool.
 2. Generate one random 32–256 character printable non-space service credential.
    Configure the same value as `DASHAFLOW_API_TOKEN` on the sidecar and
    `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti Preview and Production. Confirm
@@ -256,7 +274,10 @@ missing calculation operation:
    anchored 24-hour window are guest 2,000 Preview / 10,000 Production and
    managed-authenticated geocoding 500 Preview / 2,500 Production. Capacity is
    reserved before route-specific rows and is not refunded after a later
-   user/fleet/client denial. The limiter objects must exist before traffic:
+   user/fleet/client denial. A valid guest place-search cache miss then applies
+   a separate durable 50-request client allowance per anchored 24 hours at the
+   provider boundary. The limiter objects must
+   exist before traffic:
    from a checkout linked to the exact `astro-unified-core-pfni` Vercel project,
    provision and verify Preview without writing secrets to disk:
 
@@ -292,7 +313,10 @@ missing calculation operation:
    OPTIONS, `private, no-store`, 4 KiB rejection, local and global rate-limit
    retry headers, and fixture profile and election-chart derivations,
    including chart order and whole-sign provenance. Tokens must never appear
-   in a browser bundle or response.
+   in a browser bundle or response. Confirm every guest response advertises
+   `rel="source"` and `rel="license"`, and `/api/health` identifies the exact
+   public Astro source revision. Confirm the sidecar health response likewise
+   identifies the exact public DashaFlow source revision.
 8. Enable only the route being released by setting its server-only flag to the
    exact value `true`. Verify disabled routes still return a sanitized
    `private, no-store` `503` without consuming request bodies, local limits,
@@ -300,12 +324,12 @@ missing calculation operation:
 9. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
    that consumer only after the gateway fixture passes from
    `https://panchangam.astrochaganti.com`.
-10. Treat registered-profile provider migration as a later, independent release.
-   Keep `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` off until signed-in profile
-   create/edit, provider attribution and privacy terms, Turso-counter failure,
-   process-cache behavior, per-user limiting, and the fleet ceiling pass in
-   Preview. Enable the exact
-   value `true` only with separate owner approval; guest flags do not imply it.
+10. For public Nominatim, registered-profile migration is part of the same
+   coordinated activation. Keep guest search closed until signed-in profile
+   create/edit, visible OpenStreetMap attribution, privacy disclosure,
+   Turso-counter failure, process-cache behavior, per-user limiting, and the
+   fleet ceiling pass in Preview. The guest adapter fails closed unless the
+   authenticated migration flag is exactly `true`.
 
 Rollback is stateless: keep the Panchangam manual-profile and base Muhurtam
 ranking paths available, disable their optional guest API entry points, then
@@ -665,16 +689,15 @@ accepted only from exact HTTP `localhost`, `127.0.0.1`, or `[::1]` origins.
 Local sidecar HTTP follows the same exact-loopback rule; Preview and Production
 always require an HTTPS sidecar URL before bearer credentials are attached.
 Guest calculations default on locally when their server-only flags are omitted;
-set either flag to `false` to test its disabled state. Local public-Nominatim
-calls share one process-wide 1,100 ms request-start scheduler and a bounded
-24-hour cache. Preview and Production default both guest routes off; guest
-place search requires one fixed LocationIQ or Geoapify adapter, its server-only
-key, and the Turso-backed shared controls. Results remain in bounded process
-memory only.
-Signed-in profiles retain the legacy provider until the separate
-managed-migration flag is approved and enabled. Adapter support and the
-LocationIQ recommendation do not themselves approve terms, provision a human
-account or real key, or activate either feature.
+set either flag to `false` to test its disabled state. Unit and browser tests use
+mocked geocoder responses; real local development and Preview reject public
+Nominatim. Production guest search requires one fixed adapter plus Turso-backed
+shared controls. Public Nominatim is keyless; the inactive LocationIQ/Geoapify
+fallbacks require a server-only key. Results remain in bounded process memory
+only. Production signed-in profiles retain the legacy provider until the
+managed-migration flag is approved and enabled; Preview remains fixture-only.
+Production public-Nominatim guest search refuses
+to start until that migration joins the same provider budget and send lease.
 
 ---
 
