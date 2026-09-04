@@ -1,7 +1,7 @@
 "use client"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
-import { Settings, ShieldCheck, LogOut, UserPlus } from "lucide-react"
+import { CodeXml, Settings, ShieldCheck, LogOut, UserPlus } from "lucide-react"
 import { fonts, motion } from "@/lib/typography"
 import { ProfileNav } from "@/components/profiles/ProfileNav"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -130,6 +130,18 @@ export function NavBar({ profiles = [], activeProfileId = null, onProfileChange,
                       <DropdownMenuSeparator />
                     </>
                   )}
+                  <DropdownMenuItem>
+                    <a
+                      href="https://github.com/socraticsurge/astro-unified-core"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 w-full"
+                    >
+                      <CodeXml className="w-3.5 h-3.5" />
+                      Source &amp; license
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => signOut({ callbackUrl: "/" })}
                     variant="destructive"

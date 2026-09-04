@@ -43,6 +43,8 @@ describe("guest API boundary", () => {
     expect(allowed.headers.get("Access-Control-Allow-Methods")).toBe("POST, OPTIONS");
     expect(allowed.headers.get("Access-Control-Allow-Headers")).toBe("Content-Type");
     expect(allowed.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(allowed.headers.get("Link")).toContain('rel="source"');
+    expect(allowed.headers.get("Link")).toContain('rel="license"');
 
     const rejected = guestOptions(request("https://evil.example"));
     expect(rejected.status).toBe(403);

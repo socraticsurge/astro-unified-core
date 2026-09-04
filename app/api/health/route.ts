@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getClient } from "@/lib/db/client";
+import { sourceOffer, sourceOfferHeaders } from "@/lib/source-offer";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +32,10 @@ export async function GET() {
   const [db, sidecar] = await Promise.all([checkDb(), checkSidecar()]);
   const ok = db.ok && sidecar.ok;
   return NextResponse.json(
-    { ok, db, sidecar, timestamp: new Date().toISOString() },
+    { ok, db, sidecar, timestamp: new Date().toISOString(), ...sourceOffer() },
     {
       status: ok ? 200 : 503,
-      headers: { "Cache-Control": "no-store" },
+      headers: { "Cache-Control": "no-store", ...sourceOfferHeaders() },
     },
   );
 }
