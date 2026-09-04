@@ -11,7 +11,8 @@ Vedic-astrology birth-chart application by Dr. Vinay Kumar Chaganti.
   - [`CLAUDE.md`](CLAUDE.md) — agent brief and documentation hygiene rules
 - **Sidecar**: the Python service that generates charts lives in a separate
   repo, [socraticsurge/dashaflow-sidecar](https://github.com/socraticsurge/dashaflow-sidecar)
-  (private), and is deployed at https://dashaflow-sidecar.vercel.app/.
+  and is deployed at https://dashaflow-sidecar.vercel.app/. Public calculation
+  activation requires both repositories to expose the exact deployed source.
 
 ## Quickstart
 
@@ -31,3 +32,15 @@ Required env (production values are set on Vercel; for local dev pull with
   sidecar compute call; must match the sidecar's `DASHAFLOW_API_TOKEN`)
 
 See [`docs/PROJECT.md`](docs/PROJECT.md) for everything else.
+
+## License and corresponding source
+
+Astro Chaganti is licensed under the
+[GNU Affero General Public License v3.0 or later](LICENSE). The corresponding
+source is this repository. Network calculation responses also include a
+`Link` header with `rel="source"` and `rel="license"`; `/api/health` reports the
+same source offer and exact deployed revision when Vercel provides its commit
+SHA. Third-party notices are recorded in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+Earlier releases retain the grants made under their original license terms.

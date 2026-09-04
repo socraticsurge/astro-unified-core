@@ -296,6 +296,23 @@ export function CosmicLanding() {
           </svg>
           Continue with Google
         </button>
+        <a
+          href="https://github.com/socraticsurge/astro-unified-core"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'block',
+            marginTop: 10,
+            color: A(0.72),
+            fontSize: 11,
+            letterSpacing: '0.04em',
+            textAlign: 'center',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+          }}
+        >
+          Source &amp; AGPL license
+        </a>
       </div>
 
       {/* Mobile pill strip — sits above the panel against the sky */}

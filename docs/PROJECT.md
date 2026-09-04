@@ -6,14 +6,14 @@ members, and see a detailed chart for each profile.
 
 - **Live site**: https://astrochaganti.com/
 - **Main repo**: https://github.com/socraticsurge/astro-unified-core (this repo)
-- **Sidecar repo**: https://github.com/socraticsurge/dashaflow-sidecar (private)
+- **Sidecar repo**: https://github.com/socraticsurge/dashaflow-sidecar (must be public before calculation activation)
 
 ---
 
 ## Architecture at a glance
 
 ```
-GitHub: astro-unified-core      GitHub: dashaflow-sidecar (private)
+GitHub: astro-unified-core      GitHub: dashaflow-sidecar
         │                                 │
         │ push to main                    │ push to master
         ▼                                 ▼
@@ -221,8 +221,11 @@ release. Use this order so no public browser can reach an uncredentialed or
 missing calculation operation:
 
 1. Keep `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED`
-   absent or false in Vercel Preview and Production. Close Panchangam #231 with
-   the owner-recorded Swiss Ephemeris license decision. Close #233 with the
+   absent or false in Vercel Preview and Production. The owner selected the
+   AGPL-compatible public-source path on 2026-09-04. Merge the AGPL/source-offer
+   release candidates, make the Astro and DashaFlow repositories public, deploy
+   exact commits, verify that both services' source links resolve to those
+   commits, and record the evidence when closing Panchangam #231. Close #233 with the
    approved managed geocoder choice; LocationIQ is recommended but its account
    and key remain human-owned steps. Configure `GEOCODER_PROVIDER` and
    server-only `GEOCODER_API_KEY`, plus an owner-approved canonical
@@ -292,7 +295,10 @@ missing calculation operation:
    OPTIONS, `private, no-store`, 4 KiB rejection, local and global rate-limit
    retry headers, and fixture profile and election-chart derivations,
    including chart order and whole-sign provenance. Tokens must never appear
-   in a browser bundle or response.
+   in a browser bundle or response. Confirm every guest response advertises
+   `rel="source"` and `rel="license"`, and `/api/health` identifies the exact
+   public Astro source revision. Confirm the sidecar health response likewise
+   identifies the exact public DashaFlow source revision.
 8. Enable only the route being released by setting its server-only flag to the
    exact value `true`. Verify disabled routes still return a sanitized
    `private, no-store` `503` without consuming request bodies, local limits,

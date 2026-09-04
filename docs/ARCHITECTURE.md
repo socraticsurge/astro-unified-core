@@ -227,6 +227,7 @@ Wraps every page. Provides:
 - `NextAuthProvider` — makes the session available client-side
 - `NavBar` — top navigation
 - `FeedbackWidget` — floating feedback form overlay
+- a low-emphasis footer with Privacy, Terms, and the public source/licence link
 - `@vercel/analytics` and `@vercel/speed-insights` scripts
 
 ### Home Page
@@ -250,6 +251,7 @@ Sticky top bar. Conditionally renders:
 - **Dashboard** link (authenticated users)
 - **Compatibility** link (authenticated users)
 - **Admin** link (admin users only, gated by `isAdmin()`)
+- **Source & license** link in the authenticated settings menu
 - Sign-in / Sign-out button (NextAuth)
 
 ---
@@ -670,7 +672,8 @@ remains side-effect-free and keeps the existing exact CORS contract.
   charts, and all other unknown fields before calling the sidecar.
 
 All three routes cap JSON request bodies at 4 KiB, use `private, no-store` on
-every response, and provide `Retry-After` on throttled/transient failures. They
+every response, advertise the public exact-revision source and licence through
+the HTTP `Link` header, and provide `Retry-After` on throttled/transient failures. They
 do not touch NextAuth, account-profile tables, PostHog, or request-body logging;
 deployed shared limiting uses only the dedicated Turso limiter tables.
 
@@ -1048,7 +1051,8 @@ interpretation (uses chart-specific facts) and a generic educational section.
 | `lib/authenticated-geocoder-rate-limit.ts` | Pseudonymous process and Turso-backed per-user controls plus the 30-call fleet key shared with guest place search and a 500 Preview / 2,500 Production daily admission cap; used only by the activated managed authenticated path. |
 | `lib/db/rate-limit-maintenance.ts` | Post-response authenticated maintenance for expired HMAC identity/fleet rows: indexed 5,000-row batches, 100,000-row maximum, 2.5-second operation timeout, and 10-second wall-clock budget. |
 | `lib/guest-calculation-gates.ts` | Independent server-only birth-profile and election-chart activation flags; local default on, deployed default off, exact `true` opt-in. |
-| [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, and trusted client-IP extraction for `/api/guest/*` |
+| [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, source/licence `Link` headers, and trusted client-IP extraction for `/api/guest/*` |
+| `lib/source-offer.ts` | Validates `SOURCE_COMMIT_SHA`/`VERCEL_GIT_COMMIT_SHA` and produces repository, exact-revision source, licence metadata, and RFC 8288-style link relations for public network responses. |
 | [`lib/utils.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/utils.ts) | `cn(...classes)` — `clsx` + `tailwind-merge` |
 | [`lib/chart-summary.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/chart-summary.ts) | Generates a plain-text summary of chart data for clipboard or LLM consumption |
 | [`lib/sanitize.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/sanitize.ts) | Dual client/server HTML sanitizer to prevent XSS in `dangerouslySetInnerHTML` |
@@ -1437,7 +1441,9 @@ in Resend.
 
 `app/api/health/route.ts` runs `SELECT 1` against Turso and pings the
 sidecar's `/health`. Returns 200 with both statuses or 503 if either is
-down. Public, no auth, `Cache-Control: no-store`. Point UptimeRobot
+down. Its response and `Link` header expose the public repository, licence,
+and exact deployed commit when Vercel provides a valid SHA. Public, no auth,
+`Cache-Control: no-store`. Point UptimeRobot
 here. See `docs/RUNBOOK.md` §"Health monitoring".
 
 ### 14.5 Daily landing engine
@@ -1453,7 +1459,7 @@ plus today's Moon nakshatra, Sun sign, and active retrogrades.
 | `lib/engines/today-landing.ts` | Synthetic sidecar call for sky facts + single Gemini Flash Lite call grounded in `lookupAscendant` content blocks |
 | `lib/db/daily-landing.ts` | CRUD on the new `daily_landing` table (`getByDate`, `getMostRecentSuccess`, `recordAttempt`, `storeSuccess`) |
 | `lib/content/landing-fallback.ts` | Static per-ascendant paragraphs used pre-fetch so the panel is never blank |
-| `components/CosmicLanding.tsx` | Spinning zodiac wheel is the desktop picker (each sign is a click target); horizontal pill strip is the mobile picker. localStorage remembers the pinned sign |
+| `components/CosmicLanding.tsx` | Spinning zodiac wheel is the desktop picker (each sign is a click target); horizontal pill strip is the mobile picker. localStorage remembers the pinned sign; the sign-in panel keeps a visible source-and-AGPL link before authentication. |
 
 **Cache invalidation:** keyed by IST date. `PROMPT_VERSION_LANDING` is a
 signal-only constant — bumping it does not auto-regenerate today's row
