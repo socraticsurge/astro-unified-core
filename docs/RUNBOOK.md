@@ -126,17 +126,22 @@ Preview and 10,000 in Production; managed authenticated geocoding allows 500 in
 Preview and 2,500 in Production. After a read-only preflight, the capacity row
 is always the first atomic mutation. Its slot remains consumed if a later
 user/fleet/client guard rejects, so no uncounted route-specific mutation can
-escape the envelope. Budgeting four admission-path row mutations per
-capacity-admitted attempt produces 60,000 per complete set of windows. Because
-the four windows are independently anchored, use 31 window periods for a
-conservative 30-day observation bound of 1.86 million before expired-row
+escape the envelope. A successful guest place path can write five rows, while
+managed authenticated geocoding can write four. Across both environments, the
+12,000 guest plus 3,000 authenticated attempt ceilings therefore produce at
+most 72,000 mutations per complete set of windows. Because the windows are
+independently anchored, use 31 window periods for a conservative 30-day
+observation bound of 2.232 million before expired-row
 deletes and unrelated application traffic. This is below the currently
 published Turso Free allowance of 10 million writes/month, but it is not proof
 of capacity: inspect current account usage, deletion accounting, and remaining
 headroom before enabling traffic.
 
-Every deployed guest or managed-authenticated guard chain has one two-second
-cooperative deadline across status, capacity, and route-specific rows. Expiry
+Every deployed guest or managed-authenticated route guard has one two-second
+cooperative deadline across status, capacity, and route-specific rows. A valid
+guest place-search cache miss uses a separate two-second deadline for its one
+provider-bound 50-per-anchored-24-hour client reservation, after validation,
+cache lookup, and duplicate coalescing. Expiry
 returns retryable `503` and prevents any later SQL statement from starting. A
 Turso request already dispatched at expiry may still commit; do not manually
 refund or automatically retry an ambiguous capacity/fleet/client/user slot.
@@ -359,7 +364,7 @@ Preview; that environment uses fixtures. Walk through this list in
 | `DASHAFLOW_SIDECAR_URL` | Same sidecar URL. |
 | `RATE_LIMIT_HMAC_SECRET` | Strong 32–256 character printable non-space server secret required for deployed Turso-backed identity/fleet limits. It may be the same across Preview/Production because the HMAC input includes the exact Vercel environment; never reuse a user/account identifier or expose it to the browser. |
 | `GEOCODER_PROVIDER` / `GEOCODER_API_KEY` | Use `nominatim-public` in Production for the initial release; it is fixed, keyless, identifying, attributed, submit-only for guests, cached, and protected by an exclusive send lease. Real local/Preview runtimes reject it. `GEOCODER_API_KEY` is required only for inactive LocationIQ/Geoapify fallbacks. |
-| `GEOCODER_DAILY_REQUEST_LIMIT` | Canonical integer from 1 through 1,000 for public Nominatim, or through 1,500 for a commercial fallback. Use `1000` for the initial public-Nominatim release. Guest and authenticated traffic share one Production provider-family row; each miss holds a 12,500 ms crash lease through provider completion, then a fenced release establishes a 1,100 ms cooldown. |
+| `GEOCODER_DAILY_REQUEST_LIMIT` | Canonical integer from 1 through 1,000 for public Nominatim, or through 1,500 for a commercial fallback. Use `1000` for the initial public-Nominatim release. Guest and authenticated traffic share one Production provider-family row; guest sources also receive 50 searches per anchored 24 hours. Each miss holds a 12,500 ms crash lease through provider completion, then a fenced release establishes a 1,100 ms cooldown or a bounded provider-requested pause. |
 | `ADMIN_EMAILS` | Same list. |
 | `GOOGLE_GEMINI_API_KEY`, `GROQ_API_KEY` | Same keys. |
 | `SENTRY_AUTH_TOKEN` | Same. |
@@ -373,17 +378,21 @@ current Turso usage/headroom, and the complete fixture-backed guest journey in
 Preview.
 No LocationIQ, Geoapify, Upstash, or Redis account is required for this
 Nominatim release.
-Verify that an upstream provider `429` becomes a sanitized app `429` with a
-bounded `Retry-After`, while provider timeouts, transport failures, malformed
+Verify that an upstream public-Nominatim `429` becomes a sanitized app `429` and
+that its bounded numeric or HTTP-date `Retry-After` is persisted for all callers
+through the exact fence (maximum 24 hours; invalid/missing/past/zero uses 60
+seconds), while provider timeouts, transport failures, malformed
 responses, and server errors become retryable `503` responses. For public
 Nominatim, verify the exclusive acquire, late-lease discard, provider-failure
-release, fenced cooldown, and crash-expiry cases; commercial fallbacks retain
+release, provider-requested shared cooldown, and crash-expiry cases; commercial fallbacks retain
 the ordinary admission interval. Capacity-first accounting intentionally
 charges attempts that later fail a user/fleet/client guard; before activation,
-either accept that pool-exhaustion availability risk or add a fleet-wide
-WAF/edge limit or atomic composite guard. Measure the complete cold-path guard
-chain against the browser deadline as well: one cooperative two-second ceiling
-now prevents later SQL
+verify the provider-bound 50-search guest-client allowance per anchored 24 hours
+without charging invalid requests, warm cache hits, or coalesced callers, and retain the
+fleet-wide WAF/edge gate for rotating-source pressure. Measure the complete
+cold-path guard
+route guard and the separate provider-bound daily-client guard against the
+browser deadline as well: each cooperative two-second ceiling prevents later SQL
 dispatch, but an operation already in flight may settle conservatively after
 the caller receives `503`. Do not refund or auto-retry that ambiguous slot.
 Keep the guest and authenticated managed-geocoder flags off until those gates

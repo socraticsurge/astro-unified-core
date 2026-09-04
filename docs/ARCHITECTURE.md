@@ -390,7 +390,15 @@ per-client row. Fleet-first route ordering bounds client-row creation from
 callers that rotate IP addresses; a request rejected by the later client guard
 can therefore consume one fleet slot and its earlier capacity slot. Fleet
 ceilings are 30 geocoder calls per minute (shared with the managed authenticated
-path), 30 profile derivations, and 10 election-chart requests. Managed
+path), 30 profile derivations, and 10 election-chart requests. For a valid
+place-search cache miss, a narrower provider-bound guard then applies a
+race-safe 50-request client allowance per anchored 24 hours after body
+validation, process-cache lookup, and duplicate coalescing. Invalid requests,
+warm cache hits, and coalesced callers do not consume that allowance because
+they cannot spend the shared 1,000-attempt provider pool. Because this client
+window is anchored rather than UTC-aligned, one UTC day can overlap two client
+windows and admit at most 100 upstream attempts from that source; it still
+cannot exhaust the provider day. Managed
 authenticated geocoding applies its process-local guard, reserves its deployment
 attempt budget, then checks the shared ten-call-per-user limit before joining
 the same 30-call geocoder fleet budget. This preserves user-before-fleet
@@ -403,10 +411,12 @@ separately allows 500 in Preview and 2,500 in Production. A read-only preflight
 stops normal writes once the relevant cap is full, while the capacity row is the
 first atomic mutation and handles concurrent races. That capacity slot remains
 consumed when a later user, fleet, or client guard rejects the request. At the
-combined 15,000-attempt window ceiling, budgeting four admission-path row
-mutations per capacity-admitted attempt yields 60,000 mutations per complete
+combined 15,000-attempt window ceiling, successful place paths may write five
+rows (capacity, fleet, minute client, daily client, and provider), while managed
+authenticated geocoding may write four. The 12,000 guest plus 3,000 authenticated
+cross-environment ceilings therefore yield at most 72,000 mutations per complete
 set of windows. Allowing 31 independently anchored window periods to touch a
-30-day observation gives a conservative 1.86-million planning bound before
+30-day observation gives a conservative 2.232-million planning bound before
 expired-row deletes and unrelated application traffic. This is designed to fit
 under Turso Free's 10-million-write monthly allowance, but current account
 usage, deletion accounting, and remaining headroom must be measured before
@@ -418,10 +428,10 @@ hard write envelope and treats ambiguous remote writes conservatively, but a
 syntactically cheap request that passes the perimeter can consume a daily slot
 before a later fleet/client denial or body-validation failure. This residual
 availability risk is accepted only with the edge rule enforcing, the feature
-flags independently reversible, and capacity/headroom alerts in place. A
-rotating-source attack can still exhaust the free product's daily pool; the
-designed outcome is a bounded fail-closed outage, never unbounded database or
-provider use.
+flags independently reversible, and capacity/headroom alerts in place. The
+durable 50-per-24-hour place allowance prevents one guest source from exhausting
+the provider pool; a rotating-source attack can still cause a bounded fail-closed
+outage, never unbounded database or provider use.
 
 The distributed primitive HMACs every logical identity with
 `RATE_LIMIT_HMAC_SECRET` and the exact Vercel `preview` or `production`
@@ -437,8 +447,10 @@ a 10-second wall-clock budget; it reports a remaining backlog for monitoring.
 Missing or unavailable shared storage fails closed as retryable `503`; an
 intact but exhausted limit returns `429` with bounded retry guidance.
 
-One shared two-second deadline covers all four distributed stages in each
-deployed guest or managed-authenticated guard chain. Its `AbortSignal` bounds
+One shared two-second deadline covers the route-level distributed stages in
+each deployed guest or managed-authenticated guard. Guest place-search cache
+misses use a separate two-second deadline for their one provider-bound daily-
+client reservation. Each `AbortSignal` bounds
 schema readiness and every status/UPSERT/read operation. After expiry, no later
 SQL statement or boundary retry starts. An operation already dispatched at
 that instant cannot be cancelled at Turso: a readiness probe may settle late,
@@ -464,9 +476,12 @@ do. The first row persists the configured daily limit and later Preview or
 Production callers fail closed if their value differs, preventing one
 environment from silently enlarging the shared account pool. Normal admission-
 lease or daily exhaustion returns `429`; missing, malformed, or unavailable
-enforcement returns retryable `503`. A managed
-provider's own HTTP `429` is also returned to callers as a sanitized `429` with
-bounded `Retry-After`; provider transport, timeout, malformed-response, and
+enforcement returns retryable `503`. A public-Nominatim HTTP `429` is returned
+to the triggering caller as a sanitized `429`, and its numeric or HTTP-date
+`Retry-After` is bounded to 24 hours and written through the same exact fence so
+every guest and authenticated caller observes the shared pause. Missing,
+malformed, past, or zero-delay values use 60 seconds. Provider transport,
+timeout, malformed-response, and
 server failures become retryable `503` responses without exposing provider
 details.
 

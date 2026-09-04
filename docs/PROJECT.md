@@ -189,10 +189,18 @@ LocationIQ pool. Public Nominatim is Production-only. It acquires an exclusive
 12,500 ms crash-recovery lease, holds it through the provider operation, and
 conditionally releases it into a 1,100 ms cooldown using the exact lease value
 as a fence. This prevents delayed or concurrent serverless callers from
-compressing network starts below the provider ceiling. Failed admitted attempts
-consume their daily slot; warm-process cached and coalesced work does not.
-Provider HTTP `429` responses map to a sanitized app `429` with bounded
-`Retry-After`; transport, timeout, malformed-response, and provider-server
+compressing network starts below the provider ceiling. For a valid guest
+place-search cache miss, a narrower provider-bound guard also applies a durable
+50-request client allowance per anchored 24 hours after body validation,
+process-cache lookup, and duplicate coalescing. Invalid requests, warm cache
+hits, and coalesced callers spend no client-daily or provider-daily slot. An
+anchored-window boundary can place at most 100 of one client's upstream
+attempts inside one UTC provider day. Failed admitted provider attempts consume
+both daily slots.
+Public-Nominatim HTTP `429` responses map to a sanitized app `429`; bounded
+numeric or HTTP-date `Retry-After` guidance is also persisted fleet-wide through
+the exact reservation fence for up to 24 hours. Missing, malformed, past, or
+zero-delay guidance uses 60 seconds. Transport, timeout, malformed-response, and provider-server
 failures map to retryable `503`. Normalized place results remain only in a bounded,
 24-hour process cache and are never persisted as a shared result cache or
 limiter data. A location explicitly selected for a signed-in saved profile
@@ -266,7 +274,10 @@ missing calculation operation:
    anchored 24-hour window are guest 2,000 Preview / 10,000 Production and
    managed-authenticated geocoding 500 Preview / 2,500 Production. Capacity is
    reserved before route-specific rows and is not refunded after a later
-   user/fleet/client denial. The limiter objects must exist before traffic:
+   user/fleet/client denial. A valid guest place-search cache miss then applies
+   a separate durable 50-request client allowance per anchored 24 hours at the
+   provider boundary. The limiter objects must
+   exist before traffic:
    from a checkout linked to the exact `astro-unified-core-pfni` Vercel project,
    provision and verify Preview without writing secrets to disk:
 

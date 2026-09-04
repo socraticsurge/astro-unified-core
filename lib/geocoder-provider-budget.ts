@@ -1,7 +1,11 @@
 import "server-only";
 
 import { deploymentEnvironment } from "./deployment-environment";
-import { PUBLIC_NOMINATIM_DAILY_REQUEST_LIMIT_MAX } from "./geocoder-limits";
+import {
+  MANAGED_PROVIDER_MAX_RETRY_AFTER_MS,
+  MANAGED_PROVIDER_MIN_INTERVAL_MS,
+  PUBLIC_NOMINATIM_DAILY_REQUEST_LIMIT_MAX,
+} from "./geocoder-limits";
 import {
   completeDistributedProviderRequest,
   reserveDistributedProviderRequest,
@@ -107,20 +111,28 @@ export async function enforceGeocoderDailyRequestBudget(
   };
 }
 
-/** Complete a successful exclusive public-Nominatim reservation. */
+/** Complete an exclusive public-Nominatim reservation through its exact fence. */
 export async function completeGeocoderProviderRequest(
   reservationExpiresAtMs: number,
-  env: Record<string, string | undefined> = process.env,
+  options: {
+    env?: Record<string, string | undefined>;
+    cooldownMs?: number;
+  } = {},
 ): Promise<boolean> {
+  const env = options.env ?? process.env;
+  const cooldownMs = options.cooldownMs ?? MANAGED_PROVIDER_MIN_INTERVAL_MS;
   if (
     deploymentEnvironment(env) !== "deployed"
     || env.VERCEL_ENV !== "production"
+    || !Number.isSafeInteger(cooldownMs)
+    || cooldownMs < MANAGED_PROVIDER_MIN_INTERVAL_MS
+    || cooldownMs > MANAGED_PROVIDER_MAX_RETRY_AFTER_MS
   ) return false;
   const providerFamily = configuredProviderFamily(env.GEOCODER_PROVIDER);
   if (providerFamily !== "nominatim-public") return false;
   return completeDistributedProviderRequest(
     providerFamily,
     reservationExpiresAtMs,
-    { env },
+    { env, cooldownMs },
   );
 }
