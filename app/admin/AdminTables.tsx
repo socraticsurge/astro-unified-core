@@ -16,12 +16,14 @@ import type {
   ChatLlmConfig,
   DraftLlmConfig,
   TodayReadingLlmConfig,
+  ChatUsageStats,
 } from "@/lib/db";
 import type { AiInsightStat } from "@/lib/db/readings";
 import { LlmSettingsPanel } from "@/components/admin/LlmSettingsPanel";
 import { sortBy, renderSortIcon } from "./utils";
 import { QuestionsTab } from "./tabs/QuestionsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
+import { ChatUsageTab } from "./tabs/ChatUsageTab";
 
 type Props = {
   users: User[];
@@ -32,6 +34,7 @@ type Props = {
   consultationSlots: ConsultationSlot[];
   appSettings: AppSettings;
   aiInsightStats: AiInsightStat[];
+  chatUsageStats: ChatUsageStats;
   llmSettings: { ai_insights: AiInsightsLlmConfig; chat: ChatLlmConfig; draft: DraftLlmConfig; today_reading: TodayReadingLlmConfig };
   adminEmail: string;
 };
@@ -45,6 +48,7 @@ export function AdminTables({
   consultationSlots,
   appSettings,
   aiInsightStats,
+  chatUsageStats,
   llmSettings,
   adminEmail,
 }: Props) {
@@ -97,6 +101,7 @@ export function AdminTables({
           Questions ({consultationRequests.filter((r) => r.status !== "answered").length} active)
         </TabsTrigger>
         <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
+        <TabsTrigger value="chat-usage">Chat ({chatUsageStats.overview.total_user_messages})</TabsTrigger>
         <TabsTrigger value="llm-settings">LLM Settings</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
@@ -358,6 +363,11 @@ export function AdminTables({
             </div>
           </div>
         )}
+      </TabsContent>
+
+      {/* ── Chat Usage ────────────────────────────────────────────────────── */}
+      <TabsContent value="chat-usage">
+        <ChatUsageTab stats={chatUsageStats} />
       </TabsContent>
 
       {/* ── LLM Settings ──────────────────────────────────────────────────── */}

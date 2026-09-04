@@ -216,7 +216,8 @@ These are numbered so `TESTING.md` test plans can reference them by ID.
 
 ### Medium-term
 
-- Global rate limiting via Upstash Redis (D7 — unblocks future scaling).
+- Extend the guest routes' Turso-backed shared-limit pattern to remaining routes
+  (D7 — completes app-wide protection).
 - Family relationship graph (D6 — enables richer Tarabalam across family members).
 - Public profile sharing (D5 — allows Dr. Chaganti to share a chart link with a client).
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { geocodePlace } from "@/lib/geocode";
+import { isGeocoderCapacityError } from "@/lib/geocoder-capacity-error";
 import { getServerSession } from "next-auth/next";
 import { authOptions, getUserId } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
@@ -56,8 +57,21 @@ export async function POST(req: NextRequest) {
 
     let geo;
     try {
-      geo = await geocodePlace(place_of_birth);
+      geo = await geocodePlace(place_of_birth, { authenticatedUserId: userId });
     } catch (e) {
+      if (isGeocoderCapacityError(e)) {
+        return NextResponse.json(
+          {
+            error: e.code === "rate-limited"
+              ? "Location search is busy. Please wait and try again."
+              : "Location search is temporarily unavailable. Please try again.",
+          },
+          {
+            status: e.code === "rate-limited" ? 429 : 503,
+            headers: { "Retry-After": String(e.retryAfterSeconds) },
+          },
+        );
+      }
       const msg = e instanceof Error ? e.message : "Geocoding birth place failed";
       return NextResponse.json({ error: msg }, { status: 400 });
     }
@@ -65,8 +79,21 @@ export async function POST(req: NextRequest) {
     let currentGeo = null;
     if (current_location) {
       try {
-        currentGeo = await geocodePlace(current_location);
+        currentGeo = await geocodePlace(current_location, { authenticatedUserId: userId });
       } catch (e) {
+        if (isGeocoderCapacityError(e)) {
+          return NextResponse.json(
+            {
+              error: e.code === "rate-limited"
+                ? "Location search is busy. Please wait and try again."
+                : "Location search is temporarily unavailable. Please try again.",
+            },
+            {
+              status: e.code === "rate-limited" ? 429 : 503,
+              headers: { "Retry-After": String(e.retryAfterSeconds) },
+            },
+          );
+        }
         // We allow creating the profile even if current location geocoding fails,
         // but we return an error to the user if they specifically tried to set it.
         const msg = e instanceof Error ? e.message : "Geocoding current location failed";

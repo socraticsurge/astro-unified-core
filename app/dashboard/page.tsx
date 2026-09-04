@@ -10,9 +10,12 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?:
-    | Promise<{ profile?: string; compare?: string; new?: string; create?: string }>
-    | { profile?: string; compare?: string; new?: string; create?: string };
+  searchParams?: Promise<{
+    profile?: string;
+    compare?: string;
+    new?: string;
+    create?: string;
+  }>;
 }) {
   // Session check must happen before the Suspense boundary — we need to know
   // whether to redirect before we can send any HTML to the client.

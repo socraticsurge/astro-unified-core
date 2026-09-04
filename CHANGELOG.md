@@ -8,6 +8,159 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-09-04] — Guest limiter provisioning leaves the request path
+
+### Changed
+- **Read-only runtime readiness** — guest and limiter-maintenance cold paths now fingerprint the canonical definitions of both limiter tables and their expiry index with one memoized read-mode batch containing only three `SELECT` statements. Missing or incompatible columns, keys, constraints, `WITHOUT ROWID`, or index definitions fail closed; no runtime request can issue limiter `CREATE`, `ALTER`, `DROP`, or index DDL.
+- **Explicit deployment provisioning** — `npm run db:provision-rate-limits -- --target preview|production` owns the canonical atomic DDL batch, refuses an ambiguous or mismatched Vercel environment, requires an explicit remote libSQL database, and verifies the resulting schema read-only. Lazy full-schema bootstrap no longer provisions the public limiter objects.
+- **Capacity-first decision recorded** — the hard Turso write envelope remains ahead of later client/fleet denials. This accepts a bounded fail-closed availability risk only behind the edge perimeter; an atomic multi-row interactive transaction is not added to the two-second request deadline.
+- **Hobby-compatible perimeter prepared** — one fixed-window Vercel WAF rule covers `POST /api/guest/*` at 60 requests per minute per IP. Its first stage logs only threshold exceedances and remains an unpublished draft; no feature flag or public traffic was activated.
+
+### Added
+- Deterministic schema tests for zero runtime DDL, missing and structurally drifted objects, read-only retry/concurrency/timeout behavior, explicit provisioning, lazy-bootstrap separation, and maintenance readiness.
+- Operator, rollback, adversarial, WAF, and Preview-metrics gates in the architecture, project, testing, standards, backlog, and runbook records.
+
+## [2026-09-04] — Existing Turso replaces proposed Upstash controls
+
+### Changed
+- **One existing shared store** — deployed guest and managed-authenticated geocoder safeguards now use atomic conditional SQLite operations through the application's existing Turso configuration. A separate Upstash/Redis account, integration, credential pair, processor boundary, and failure mode are no longer required. Historical entries below preserve the design sequence they recorded; this entry supersedes their proposed Redis runtime. Preview and Production both define Turso variables, but their exact physical DB identity has not been inspected and remains a pre-activation gate.
+- **Bounded pseudonymous identity/fleet rows** — `RATE_LIMIT_HMAC_SECRET` produces Vercel-environment-scoped HMAC digests for shared per-client/per-user and fleet windows. Limiter tables contain only those digests and integer count/expiry fields—never raw IPs, user IDs, place queries/results, birth details, names, coordinates, provider keys, or profile data. Guest fleet-first ordering bounds shared-row creation when source addresses rotate; normal denied requests do not refresh limiter rows.
+- **Bounded account-wide writes** — a read-only preflight is followed by an atomic capacity reservation before any per-user, fleet, or client row can mutate. The attempt budget is 2,000 per anchored 24-hour window in Preview and 10,000 in Production for guest routes, plus 500 in Preview and 2,500 in Production for managed-authenticated geocoding. A capacity slot remains consumed when a later route-specific guard rejects, which is deliberately conservative and makes the shared mutation envelope real. At four admission-path row mutations per capacity-admitted attempt, one complete set of windows is bounded at 60,000; allowing 31 independently anchored window periods to touch a 30-day observation gives a conservative 1.86-million planning bound before cleanup and unrelated traffic. This is designed below Turso Free's published 10-million-write allowance, but current usage, deletion accounting, and remaining headroom still require measurement before activation.
+- **Bounded guard-chain latency** — one shared, unreferenced two-second deadline covers each deployed guest or managed-authenticated limiter chain. The same abort signal reaches status, capacity, user/fleet/client, and every underlying storage operation; after expiry no later SQL statement starts and the route fails closed with retryable `503`. An already-dispatched Turso statement or focused idempotent schema batch may still settle and conservatively consume its slot, so storage-ambiguous attempts are never refunded or automatically retried.
+- **One provider-account budget** — a separate non-personal provider-family row atomically enforces the configured maximum of 1,500 requests per UTC day plus a conservative 1,100 ms database-clock admission lease. The first reservation each UTC day persists the canonical configured limit, and a same-day Preview/Production mismatch fails closed. Guest and managed-authenticated traffic share the row across Preview and Production when they use the same Turso database; LocationIQ EU/US share one LocationIQ pool. The lease orders admissions, not actual network sends across functions. Normal lease/quota exhaustion and upstream provider `429` responses map to sanitized `429` responses with bounded retry guidance; storage failures and transient provider transport, timeout, malformed-response, or server failures map to retryable `503`.
+- **Process-only place cache retained** — reusable normalized geocoder results remain solely in the bounded 256-entry server-process cache for up to 24 hours; they are never persisted as a shared cache or limiter data. A location explicitly selected for a signed-in saved profile retains the existing profile-storage contract. LocationIQ is the recommended managed-provider candidate, but this work does not create its human account, accept terms, provision a key, or activate either deployed feature.
+- **Activation remains gated** — this work does not resolve Swiss Ephemeris licensing, verify the exact shared DB, establish current Turso headroom, move limiter DDL out of the unauthenticated cold path, add a perimeter bound for post-cap reads, or make either guest or managed-authenticated geocoding publicly ready.
+
+### Added
+- Schema version 12 plus a focused limiter bootstrap that creates only the two limiter tables and expiry index on guest cold starts while remaining shared with the full idempotent schema bootstrap.
+- Bounded authenticated maintenance runs through Next.js `after()` after the landing response: indexed 5,000-row batches, 100,000-row maximum, 2.5-second per-operation timeout, 10-second wall-clock budget, and monitored backlog reporting.
+- Concurrency, database-clock, no-write-on-denial, daily admission caps, same-day provider-limit parity, cross-environment provider-pool, UTC-day rollover, cooperative abort, late storage settlement, distributed admission leases, bounded cleanup, and safe `429`/`503` tests for the Turso implementation.
+
+### Removed
+- The Redis REST client and Upstash/KV environment-variable contract.
+
+## [2026-09-03] — Authenticated sidecar compute boundary
+
+### Changed
+- **All non-health DashaFlow calls now use one credential boundary** — full-chart (`/calculate`), transit, career, compatibility, and registered-user Muhurtha callers resolve their destination through `credentialedDashaflowSidecarConfig(path)` and attach `DASHAFLOW_SIDECAR_TOKEN` only after HTTPS/exact-loopback validation. Every request explicitly omits browser credentials, rejects redirects, and avoids framework caching; missing or unsafe configuration fails closed before network access.
+- **Muhurtam data minimization** — the registered-user Muhurtha request no longer sends the profile's natal values. The currently deployed legacy sidecar still requires a `birth_data` object even though the operation uses only event location and date window, so the caller sends a fixed non-personal placeholder object until the relaxed schema is live. Required event-location date/time slots are synthetic too.
+
+### Fixed
+- **Upstream detail redaction** — legacy engine clients and routes no longer read or return sidecar error bodies or network exception messages. Users receive operation-specific, stable availability messages while existing successful response shapes and reading-cache behavior remain unchanged.
+- **Coordinated rollout contract** — deployment documentation now requires the Astro caller migration to land before the sidecar begins enforcing bearer authentication on all compute routes. `/health` remains the only public operational route.
+
+### Added
+- Focused client and route tests for validated destinations, bearer headers, omitted credentials, fail-closed configuration, upstream-body redaction, and Muhurtha wire-data minimization.
+
+## [2026-09-03] — Upstash geocoder data minimization
+
+### Changed
+- **Counter-only Redis boundary** — removed shared persistence of geocoder queries' normalized labels, provider IDs, and coordinates. All runtimes now reuse the existing bounded 256-entry, 24-hour process cache; Redis receives only deployment-scoped HMAC counter keys and integer values for per-client/per-user, fleet, and daily-provider enforcement.
+- **Fail-closed controls preserved** — Vercel Preview/Production still require available distributed client/user, fleet, and `GEOCODER_DAILY_REQUEST_LIMIT` counters before managed provider work. The conservative 1,500/day rollout setting remains supported; this change does not select a provider, accept processor terms, configure credentials, or activate traffic.
+
+### Removed
+- **`lib/shared-geocode-cache.ts`** — deleted the Redis result-cache path and its obsolete tests so a future caller cannot accidentally send birthplace-derived place results to the shared store.
+
+## [2026-09-03] — Managed-geocoder quota controls
+
+### Fixed
+- **Provider-wide daily allowance** — every deployed managed-provider attempt must reserve one atomic Redis slot from the bounded `GEOCODER_DAILY_REQUEST_LIMIT` before scheduling or transit. Guest and managed-authenticated traffic share the allowance; shared-cache hits and coalesced duplicate callers do not consume it, while an admitted failed provider attempt does. Missing, malformed, exhausted, or unavailable enforcement fails closed. This adds pre-activation controls only; it does not choose a provider, configure credentials, or activate public traffic.
+- **Deployment-scoped limiter keys** — the shared rate-limit primitive now incorporates the exact Vercel `preview` or `production` environment before HMAC pseudonymization. All deployed counters remain opaque in Redis and cannot collide when both deployments use the same Redis database and token; ambiguous runtimes continue to fail closed and local behavior is unchanged.
+
+### Added
+- Focused tests for daily-limit bounds and failure modes, cache/coalescing charge semantics, shared guest/authenticated accounting, admitted-provider failures, and cryptographic proof that identical logical limiter keys produce distinct Preview and Production Redis keys.
+
+## [2026-09-02] — Guest gateway abuse and geocoder hardening
+
+### Fixed
+- **Unambiguous deployment gates** — guest feature gates, geocoder policy, shared limiting, and credentialed loopback policy now use one tri-state runtime classifier. Explicit local and deployed markers are accepted; missing, unknown, or contradictory markers fail closed. A self-hosted `NODE_ENV=production` runtime no longer inherits local defaults.
+- **Atomic Redis credentials** — Upstash and legacy KV URL/token aliases are resolved only as complete matching pairs. A complete Upstash pair takes precedence; a complete KV pair remains a compatibility fallback. Split credentials are never sent to either endpoint.
+- **Fleet-wide abuse controls** — place search, birth-profile derivation, and election-chart derivation now share one ordered guard: process-local per-client limit, Redis per-client limit, then Redis route-wide fleet budget. The separately gated managed authenticated geocoder adds process/shared per-user limits and joins the same 60-call fleet key as guest search. Deployed protected paths fail closed when shared enforcement is missing or unavailable, and rejected identities do not consume the fleet counter.
+- **Bounded geocoder work** — provider work is limited to eight distinct outstanding requests per process, with guest search capped at six so authenticated profile geocoding retains capacity. One eight-second deadline covers queue wait and fetch; a disconnected caller releases its subscription and cancels the provider operation only when no duplicate subscriber remains, including cancellation while a shared-cache read is pending. Timed-out or cancelled queue tickets cannot fetch later or alter pacing. Redirects are rejected, provider responses are streamed through a 64 KiB cap before JSON parsing, provider exceptions are redacted, cache keys are hashed, idle entries expire on schedule, and only semantically valid bounded fields are retained. A nonempty response containing no valid coordinates is deliberately not cached, so a later request can recover.
+- **Fixed managed-provider adapters** — deployed guest search now accepts only `locationiq-eu`, `locationiq-us`, or `geoapify` through `GEOCODER_PROVIDER` plus the server-only `GEOCODER_API_KEY`. Endpoints, request parameters, response envelopes, provider-scoped result IDs, and attribution links are code-owned; arbitrary deployed geocoder URLs are no longer accepted. This supplies implementation choices but does not select a provider, approve its terms, configure a real key, or activate the public feature.
+- **Shared geocoder cache and authenticated migration candidate** — deployed managed-provider queries require a bounded Redis read/write under token-HMAC keys and retain only normalized rows for 24 hours; missing or unavailable storage fails closed. Existing authenticated create/edit keeps its current provider path until `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` is exactly `true`. The activated migration then reuses the fixed adapter independently of guest flags, requires per-user/fleet enforcement, issues one provider query per place, and cannot fall back to public Nominatim.
+- **Telemetry privacy boundary** — Sentry no longer instruments the fixed geocoder endpoints, captures no incoming server request bodies, and applies a final span scrubber to provider URLs. Place text and provider keys therefore cannot enter sampled outgoing-fetch spans. Process-local guest rate-limit keys are independently pseudonymized with an ephemeral per-process HMAC secret.
+- **Provider-specific no-result parity** — LocationIQ's documented Search `404` no-result response is normalized to an empty result and may be cached; other providers retain their own status contract.
+
+### Added
+- Truth-table and route-order tests for local/deployed/unknown runtimes, exact flags, Redis alias permutations, shared client/fleet failures, pseudonymous process keys, queue saturation, authenticated-capacity reservation, duplicate-safe caller cancellation, retry cleanup, redirect policy, semantic coordinate validation, error redaction, active cache expiry, bounded shared-cache hits/misses/failures, both LocationIQ regions and 404 behavior, Geoapify envelope normalization, safe query encoding, provider-scoped IDs, structured attribution, authenticated create/edit behavior, and Sentry filtering/scrubbing.
+
+## [2026-08-31] — Guest calculation gateway pre-release hardening
+
+### Changed
+- **Credentialed DashaFlow boundary** — added a shared `server-only` configuration resolver for the guest profile and election-chart clients. Bearer credentials must be 32–256 printable non-space ASCII characters and are attached only after the sidecar base URL is validated. Vercel Preview and Production require HTTPS; local development permits HTTP only for exact `localhost`, `127.0.0.1`, or `[::1]` loopback hosts. Userinfo, paths, query strings, fragments, whitespace-padded URLs, and ambiguous configuration fail closed without exposing token values.
+- **Profile contract parity** — profile responses now fail closed unless they identify DashaFlow with Lahiri ayanamsha, use canonical Panchangam Nakshatra/Rashi spellings, and contain the exact ordered, unique Surya-through-Ketu sequence. The caller and sidecar now share the same 32–256-character token contract.
+- **Profile deadline and local-date validation** — two profile-sidecar attempts now have a deterministic 12.5-second maximum budget, below the Panchangam browser's 15-second deadline. Future birth dates are evaluated in the supplied birthplace timezone rather than against the gateway's UTC date.
+- **Approval-gated guest calculations** — added independent, server-only `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED` controls. Local development remains enabled by default; Vercel Preview and Production return a sanitized, private/no-store `503` before body parsing, rate limiting, Redis, geocoding, or sidecar access unless the corresponding value is exactly `true`. Public activation remains blocked on Panchangam licensing issue #231 and geocoder/provider issue #233.
+- **Guest geocoder policy without an authenticated-profile regression** — guest public Nominatim is restricted to local development, serialized application-wide to one request start per second in each process, and protected by in-flight request coalescing plus a bounded 24-hour result cache. `GEOCODER_BASE_URL` and `GEOCODER_USER_AGENT` configure only that guest path. Preview and Production guest search require an explicit HTTPS provider and identity and reject the public `nominatim.openstreetmap.org` host. The pre-existing authenticated profile geocoder remains independent so a disabled guest feature cannot break profile creation or edits; its disclosed provider migration remains tracked separately.
+- **Distributed election-chart limiting** — deployment detection now uses Vercel's `VERCEL_ENV`, not Next.js `NODE_ENV`. Both Preview and Production fail closed when shared Upstash enforcement is missing or unavailable; ordinary local builds and tests retain the process-local layer.
+- **Guest CORS parity** — exact reflected-origin handling now includes IPv6 loopback (`http://[::1]`) for local Panchangam development while preserving the production origin allowlist, `private, no-store`, 4 KiB body cap, and privacy projection.
+
+### Added
+- Focused tests for HTTPS-before-credential enforcement, shared bearer-token boundaries and redaction, profile deadline arithmetic, strict profile response invariants, birthplace-date-line boundaries, Preview/Production fail-closed behavior, unsafe URL rejection, IPv4/IPv6 loopback policy, and unchanged guest route contracts.
+- Route and configuration tests proving local defaults, explicit local disablement, independent flags, exact deployed opt-in, zero side effects while disabled, unsafe production geocoder rejection, and Nominatim pacing/coalescing/cache behavior.
+
+## [2026-08-29] — Stateless guest Muhurtam election-chart gateway
+
+### Added
+- **`POST/OPTIONS /api/guest/muhurta/election-charts`** — stateless gateway for up to 24 minute-precision election-chart instants at one location. It accepts only the versioned location-and-instants contract, rejects activity/profile/birth/natal data and unknown fields, and returns the validated DashaFlow contract without persistence. In Production this route combines the existing per-instance IP limiter with a required, atomic, fail-closed Upstash Redis limit shared across Vercel instances.
+- **`lib/distributed-rate-limit.ts`** — election-route-only fixed-window enforcement over the Upstash Redis REST API. Client keys are HMAC-pseudonymized before transmission; missing, malformed, timed-out, or unavailable Production configuration fails closed.
+- **`lib/engines/dashaflow-election.ts`** — server-only, bearer-authenticated client for `POST /v1/election-chart/derive`. Runtime validation requires request-ordered charts, Lahiri provenance, an explicit `mean` lunar-node convention, whole-sign houses, and the canonical nine-planet projection before any response reaches the browser.
+- Vitest coverage for strict RFC3339 and time-window bounds, semantic instant uniqueness, exact response ordering, canonical planet order, mean-node provenance, origin/body/local-and-shared-rate controls, omitted cookies, and safe upstream failures.
+
+### Changed
+- Extended the existing guest-gateway security boundary and coordinated rollout documentation to cover election charts. The route remains independent of NextAuth, Turso, PostHog, activity selection, saved profiles, and natal charts. D7 remains open for migrating other routes; this change does not claim app-wide distributed limiting.
+
+## [2026-08-29] — Stateless guest birthplace and profile gateway
+
+### Added
+- **`POST/OPTIONS /api/guest/places/search`** — submit-only, IP-rate-limited Nominatim search for the Panchangam guest-profile journey. Requests are capped at 4 KiB and 120 query characters; one upstream request returns at most five selectable places with stable IDs, coordinates, IANA timezones, and OpenStreetMap attribution.
+- **`POST/OPTIONS /api/guest/profile/derive`** — stateless projection gateway for exact birth date/time and a previously selected place. It rejects names and unknown fields, validates civil inputs, and sends only date, time, coordinates, and timezone to the credentialed DashaFlow `/v1/profile/derive` operation.
+- **`lib/guest-api.ts`** — shared exact-origin CORS, safe preflight, bounded streaming JSON parsing, no-store response, and trusted-forwarded-IP helpers for both guest routes.
+- Vitest coverage for origin enforcement, body and query limits, IP rate limiting, single-request geocoding, exact input validation, service authentication, normalized response projection, and safe retryable errors.
+
+### Changed
+- **`lib/geocode.ts`** now exposes a single-request `searchPlaces()` path while preserving the existing relaxed-query `geocodePlace()` behavior for authenticated profile creation.
+- **`lib/engines/dashaflow.ts`** now exposes a bearer-authenticated, schema-validated profile derivation client without changing the legacy full-chart client.
+- Added `DASHAFLOW_SIDECAR_TOKEN` as a server-only main-app secret and documented the coordinated sidecar → gateway → Panchangam rollout. No database, session, analytics, or server-side profile persistence was added.
+
+---
+
+## [2026-06-24] — Admin dashboard: AI chat usage view
+
+Until now we shipped the chat feature without any admin-side visibility into who's using it. This adds a dedicated tab with the aggregated stats an admin needs to gauge adoption, see which model is doing the work, and spot specific sessions.
+
+### Added
+- **`lib/db/chat-messages.ts` → `stats()`** — Four parallel aggregate queries (overview, by-user top 20, by-model, recent 30 sessions) returning a `ChatUsageStats` object. JOINs with `users` on `user_id` so admins see emails/names, not opaque IDs. `session_id != ''` filter excludes pre-v11 rows from the recent-sessions list (they're still counted in the overview totals).
+- **`app/admin/tabs/ChatUsageTab.tsx`** — New tab component. Shows: 4 stat cards (user messages, unique users, sessions, this-month), thumbs up/down summary, per-model breakdown, top users with last-activity timestamps, and the 30 most recent sessions. Empty state when there's no chat activity yet.
+- **`app/admin/AdminTables.tsx`** — Wires the new `<TabsTrigger value="chat-usage">` (between AI Insights and LLM Settings) and renders `<ChatUsageTab>`. Tab label shows the live user-message count.
+- **`app/admin/page.tsx`** — Adds `db.chatMessages.stats()` to the `Promise.all` block so it runs in parallel with the other dashboard queries.
+- **`lib/db/index.ts`** — Re-exports `ChatUsageStats` from the barrel.
+- **`lib/db/chat-messages.test.ts`** — New test file with three cases: result shaping, current-calendar-month UTC threshold for `this_month`, and the empty-DB happy path.
+
+---
+
+## [2026-06-24] — Migrate: Llama 4 Scout (Groq) → Gemma 4 31B IT (Google)
+
+Groq announced the deprecation of `meta-llama/llama-4-scout-17b-16e-instruct` with a shutdown date of **July 17, 2026** ([source](https://console.groq.com/docs/deprecations)). Migrated chat + draft defaults to Gemma 4 31B IT, served via the existing Google generative-language API (the same endpoint shape as Gemini, so no new provider plumbing). Groq is no longer wired into the codebase — re-introduce by restoring [`lib/engines/groq.ts`](lib/engines/groq.ts) from git history and adding an `AI_MODELS` entry with `provider: "groq"`.
+
+### Changed
+- **`lib/engines/models.ts`** — Removed `groq-scout`; added `gemma-4-31b-it` (`label: "Gemma 4 31B IT"`, `provider: "gemini"`, `id: "gemma-4-31b-it"`). Updated `DEFAULT_CHAT_MODEL` and `DEFAULT_DRAFT_MODEL` to `gemma-4-31b-it`. `ChatMessage` type now lives here (was in the removed `groq.ts`).
+- **`lib/engines/gemini.ts`** — `callGemini` and `callGeminiText` now take `modelId` as the first argument and build the API URL from it. Both Gemini and Gemma models share the `https://generativelanguage.googleapis.com/v1beta/models/{id}:generateContent` endpoint.
+- **`lib/engines/ai-caller.ts`** — Simplified to a single provider branch (Google). Removed `callGroqById` import and the Groq routing branch.
+- **`lib/ai-insight.ts` / `lib/ai-insight-compat.ts`** — Stopped importing the now-removed `GEMINI_MODEL` constant; the underlying model id is read from `AI_MODELS[…].id` so the record always reflects the active registry entry.
+- **`lib/db/settings.ts`** — Default `user_model` for the chat config is now `gemma-4-31b-it`.
+- **`components/admin/LlmSettingsPanel.tsx`** — User-chat model picker fallback updated to `gemma-4-31b-it`. The picker reads from `AI_MODELS` so any future registry change shows up automatically.
+- **`app/api/readings/chat/route.ts` + `app/api/readings/chat/compatibility/route.ts`** — `ChatMessage` is now imported from `@/lib/engines/models` (was `@/lib/engines/groq`).
+
+### Removed
+- **`lib/engines/groq.ts`** — Deleted along with `callGroqById`, `GROQ_MODELS`, `GroqModelKey`. No active code path used it after the registry change.
+
+### Notes on stored user preferences
+Any user with a persisted `chat.user_model = "groq-scout"` setting will now hit `resolveModel`'s unknown-key fallback path and silently get `DEFAULT_CHAT_MODEL` (Gemma 4 31B IT). No DB migration required.
+
+---
+
 ## [2026-06-24] — Fix: four production Sentry issues (bounce-rate incident)
 
 Bundle of fixes for the four issues blocking users on the deployed site this week. Each fix is structured so the failure mode cannot recur.

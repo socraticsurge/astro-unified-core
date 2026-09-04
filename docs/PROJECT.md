@@ -4,7 +4,7 @@ A Vedic-astrology birth-chart application by Dr. Vinay Kumar Chaganti.
 Users sign in with Google, save profiles for themselves and family
 members, and see a detailed chart for each profile.
 
-- **Live site**: https://astro-unified-core-pfni.vercel.app/
+- **Live site**: https://astrochaganti.com/
 - **Main repo**: https://github.com/socraticsurge/astro-unified-core (this repo)
 - **Sidecar repo**: https://github.com/socraticsurge/dashaflow-sidecar (private)
 
@@ -25,7 +25,7 @@ GitHub: astro-unified-core      GitHub: dashaflow-sidecar (private)
 │ Next.js 16, NextAuth, │         │ (Swiss Ephemeris,     │
 │ shadcn/ui, Tailwind   │         │ Lahiri ayanamsha)     │
 │                       │         │                       │
-│ DB: Turso (libSQL)    │         │ No DB, no auth        │
+│ DB: Turso (libSQL)    │         │ No DB; compute auth   │
 └───────────────────────┘         └───────────────────────┘
 ```
 
@@ -46,7 +46,7 @@ Vercel project (with no Next.js) gives it sole ownership of `/api/*`.
 | Database              | Turso (libSQL, hosted)                                                 |
 | Astrology engine      | DashaFlow 1.1.0 (PyPI) — Swiss Ephemeris, Lahiri sidereal              |
 | Sidecar runtime       | FastAPI on Vercel Python serverless                                    |
-| Geocoding             | OpenStreetMap Nominatim                                                |
+| Geocoding             | Local development: fixed OpenStreetMap Nominatim; Preview/Production: one fixed LocationIQ/Geoapify adapter shared by guest and registered-profile journeys |
 | UI                    | Tailwind v4, shadcn/ui                                                 |
 | Fonts                 | Inter (body) + Cormorant Garamond (headings) via `next/font`           |
 | Hosting               | Vercel (both projects, Hobby plan)                                     |
@@ -75,6 +75,8 @@ app/
     ├── auth/[...nextauth]/route.ts     # NextAuth handler
     ├── profiles/route.ts               # List / create profiles
     ├── profiles/[id]/route.ts          # Get / delete one profile
+    ├── guest/profile/derive/route.ts   # Stateless birth-profile projection
+    ├── guest/muhurta/election-charts/  # Stateless election-chart projection
     ├── content/[type]/[key]/route.ts   # Lazy fetch for per-row interpretive content
     └── readings/dashaflow/route.ts     # Sidecar proxy + cache
 
@@ -106,9 +108,10 @@ lib/
 ├── auth.ts                             # Shared authOptions for getServerSession
 ├── admin.ts                            # ADMIN_EMAILS + isAdmin helper
 ├── db.ts                               # Turso client, schema, queries
-├── engines/dashaflow.ts                # HTTP client for the sidecar
+├── engines/dashaflow.ts                # Full-chart + guest profile sidecar client
+├── engines/dashaflow-election.ts       # Guest election-chart sidecar client
 ├── chart-summary.ts                    # Text summary for clipboard / LLM
-├── geocode.ts                          # Nominatim wrapper
+├── geocode.ts                          # Bounded managed adapters + local Nominatim path
 └── content/                            # Server-only loaders and renderers
     ├── loader.ts                       # readSync + frontmatter parse, cached
     ├── lookup.ts                       # planet-in-house / dasha-pair / etc. helpers
@@ -122,7 +125,9 @@ proxy.ts                                # NextAuth middleware (matcher + authori
 ### Sidecar (`socraticsurge/dashaflow-sidecar`)
 
 ```
-api/index.py             # FastAPI: GET /health, POST /calculate
+api/index.py             # FastAPI: public GET /health + authenticated compute routes
+api/profile.py           # Authenticated /v1/profile/derive projection
+api/election_chart.py    # Authenticated /v1/election-chart/derive projection
 requirements.txt         # fastapi==0.115.0, dashaflow==1.1.0
 vercel.json              # Subpath rewrite so /api/python/:path* hits the function
 ```
@@ -138,10 +143,18 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `GOOGLE_CLIENT_ID`         | Google OAuth client id                                        |
 | `GOOGLE_CLIENT_SECRET`     | Google OAuth client secret                                    |
 | `NEXTAUTH_SECRET`          | NextAuth JWT signing                                          |
-| `NEXTAUTH_URL`             | **Must equal** the canonical alias `https://astro-unified-core-pfni.vercel.app` — used in OAuth `redirect_uri` |
+| `NEXTAUTH_URL`             | Canonical authentication origin used in OAuth `redirect_uri`; verify the deployed value and matching Google OAuth configuration before changing it. |
 | `TURSO_DATABASE_URL`       | libSQL DSN                                                    |
 | `TURSO_AUTH_TOKEN`         | Turso token                                                   |
-| `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`                        |
+| `DASHAFLOW_SIDECAR_URL`    | `https://dashaflow-sidecar.vercel.app`. Vercel Preview/Production require HTTPS; local HTTP is restricted to exact loopback hosts. |
+| `DASHAFLOW_SIDECAR_TOKEN`  | Required server-only 32–256 character printable non-space ASCII bearer credential sent to every sidecar compute route (`/calculate`, `/transit`, `/career`, `/compatibility`, `/muhurtha`, and both `/v1/*/derive` projections); must equal the sidecar's `DASHAFLOW_API_TOKEN` value. Never prefix with `NEXT_PUBLIC_`. |
+| `GUEST_BIRTH_PROFILE_ENABLED` | Server-only guest place-search/profile-derive gate. Omission defaults on only for an explicitly classified local/test runtime; recognized Vercel Preview/Production runtimes require the exact value `true`, and ambiguous markers (including self-hosted production without a trusted-proxy contract) fail closed. Keep off until Panchangam #231 and #233 close. |
+| `GUEST_ELECTION_CHART_ENABLED` | Independent server-only election-chart gate with the same local default and exact deployed opt-in. Keep off until Panchangam #231 closes. |
+| `GEOCODER_PROVIDER` | Server-only place-search adapter selector. Optional locally, where fixed public Nominatim is the default. Preview/Production guest search and an enabled authenticated migration require exactly `locationiq-eu`, `locationiq-us`, or `geoapify`; endpoints are code-owned and arbitrary base URLs are not accepted. |
+| `GEOCODER_API_KEY` | Server-only key for the selected managed provider; required with `GEOCODER_PROVIDER` for deployed guest search or the enabled authenticated migration, and never returned to the browser. Never prefix with `NEXT_PUBLIC_` or `VITE_`. |
+| `GEOCODER_DAILY_REQUEST_LIMIT` | Required server-only managed-provider UTC-day allowance: a canonical integer from 1 through 1,500. The first shared provider reservation each UTC day persists the value; a same-day Preview/Production mismatch fails closed. Every deployed process-cache miss must atomically reserve one cross-environment provider-family slot immediately before provider transit. Warm-process cache hits and coalesced duplicate callers do not consume it; an admitted failed provider attempt does. Missing, malformed, exhausted, or unavailable enforcement fails closed. |
+| `RATE_LIMIT_HMAC_SECRET` | Required 32–256 character printable non-space server secret for deployed shared identity/fleet limiting. Turso stores only Vercel-environment-scoped HMAC digests with integer count/expiry fields. Hard attempt admissions per anchored 24-hour window are guest 2,000 Preview / 10,000 Production and managed-authenticated geocoding 500 Preview / 2,500 Production; capacity is reserved before route-specific rows and remains charged after a later denial. Provision the limiter objects explicitly for each deployment target before activation; runtime readiness never issues DDL. Never prefix the secret with `NEXT_PUBLIC_`, reuse it as an account identifier, or write raw IPs, user IDs, place data, birth data, profile data, coordinates, or provider keys to limiter tables. |
+| `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` | Separate server-only registered-profile migration gate. Existing signed-in create/edit keeps the legacy provider unless this equals the exact string `true` in Preview/Production. Enable only after managed provider, Turso controls, quota, privacy, and full journey approval. Guest flags do not control it. |
 | `GOOGLE_GEMINI_API_KEY`    | Default LLM provider for AI insights and today/landing readings (`lib/engines/gemini.ts`). Required for `gemini-flash` model usage. Get from Google AI Studio. |
 | `GROQ_API_KEY`             | Secondary LLM provider used by chat / draft generation (`lib/engines/groq.ts`). Get from console.groq.com. |
 | `ADMIN_EMAILS` (required)  | Comma-separated list of admin email addresses. If unset, no one has admin access. |
@@ -151,7 +164,155 @@ vercel.json              # Subpath rewrite so /api/python/:path* hits the functi
 | `RESEND_API_KEY`           | Resend API key (`re_…`). Used to send the admin notification email on new consultation requests. If unset, notifications are silently skipped (helper short-circuits). Recipient and from-address are hardcoded in `lib/constants.ts`. |
 | `CRON_SECRET` (required)   | Shared secret the landing-refresh cron sends as `Authorization: Bearer <secret>` to `/api/cron/regenerate-landing` every 8 hours. Generate a random 32+ char string. Set as both a Vercel env var (so the route can validate) AND a GitHub Actions repo secret (so the workflow can send). The workflow lives at `.github/workflows/landing-cron.yml` — we use GitHub Actions instead of Vercel Cron because the Hobby plan only allows daily cron schedules. |
 
-### Sidecar — none required.
+#### Managed geocoder adapters
+
+| `GEOCODER_PROVIDER` | Fixed endpoint | Query/key parameters | Normalized response |
+|---|---|---|---|
+| `locationiq-eu` | `https://eu1.locationiq.com/v1/search` | `q` / `key`; adapter pins OSM-only `source=nom` | JSON array with `lat`, `lon`, `display_name`, `place_id` |
+| `locationiq-us` | `https://us1.locationiq.com/v1/search` | `q` / `key`; adapter pins OSM-only `source=nom` | JSON array with `lat`, `lon`, `display_name`, `place_id` |
+| `geoapify` | `https://api.geoapify.com/v1/geocode/search` | `text` / `apiKey`; adapter forces `format=json` | `results` array with `lat`, `lon`, `formatted`, `place_id` |
+
+The endpoint and parameter mapping is not environment-configurable. Guest
+search keeps its existing `attribution` string and adds structured
+`{ label, url }` links for provider and OpenStreetMap credit. Existing deployed
+authenticated profile creation/editing keeps its legacy provider until
+`AUTH_PROFILE_MANAGED_GEOCODER_ENABLED=true`. The enabled migration uses the
+same fixed provider independently of guest flags, issues one bounded query per
+place, and applies a distributed ten-call-per-user limit plus the same 30-call
+minute fleet ceiling used by guest search. After a process-cache miss and
+duplicate coalescing, guest and managed-authenticated work also share one
+atomic `GEOCODER_DAILY_REQUEST_LIMIT` counter per provider family and UTC day.
+Preview and Production deliberately share that non-personal aggregate row when
+they use the same provider account; LocationIQ EU/US also share one LocationIQ
+pool. A 1,100 ms database-clock lease orders distributed admission but does not
+strictly order actual network sends across functions. Failed admitted provider
+attempts consume their slot; warm-process cached and coalesced work does not.
+Provider HTTP `429` responses map to a sanitized app `429` with bounded
+`Retry-After`; transport, timeout, malformed-response, and provider-server
+failures map to retryable `503`. Normalized place results remain only in a bounded,
+24-hour process cache and are never persisted as a shared result cache or
+limiter data. A location explicitly selected for a signed-in saved profile
+continues to be stored in that profile. See the official
+[LocationIQ search contract](https://docs.locationiq.com/reference/search),
+[LocationIQ attribution guide](https://web.locationiq.com/attribution), and
+[Geoapify forward-geocoding contract](https://apidocs.geoapify.com/docs/geocoding/forward-geocoding/).
+LocationIQ is the recommended release candidate, but human account creation,
+terms/billing approval, a real key, and activation remain release decisions
+tracked in Panchangam #233.
+
+The configured Vercel environment metadata confirms that both Preview and
+Production define Turso variables, but the secret values were not inspected and
+the exact physical database identity is not currently verified. The intended
+shared-provider topology requires one physical Turso database for the
+cross-environment provider-family row. Confirm that identity and measure current
+Turso usage/headroom before activation; the presence of adapter code is not a
+public-readiness signal.
+
+### Sidecar
+
+| Variable | Purpose |
+|---|---|
+| `DASHAFLOW_API_TOKEN` | Required 32–256 character bearer-token verifier for every compute route. `GET /` and `GET /health` remain public. Use the same secret value as the main app's `DASHAFLOW_SIDECAR_TOKEN`. |
+
+### Guest calculation gateway rollout (approval-gated)
+
+This is a coordinated three-service change; a code merge by itself is not a
+release. Use this order so no public browser can reach an uncredentialed or
+missing calculation operation:
+
+1. Keep `GUEST_BIRTH_PROFILE_ENABLED` and `GUEST_ELECTION_CHART_ENABLED`
+   absent or false in Vercel Preview and Production. Close Panchangam #231 with
+   the owner-recorded Swiss Ephemeris license decision. Close #233 with the
+   approved managed geocoder choice; LocationIQ is recommended but its account
+   and key remain human-owned steps. Configure `GEOCODER_PROVIDER` and
+   server-only `GEOCODER_API_KEY`, plus an owner-approved canonical
+   `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 1,500. Public Nominatim cannot
+   satisfy deployed guest configuration. Keep
+   `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` absent or false so this guest rollout
+   cannot regress existing signed-in profiles.
+2. Generate one random 32–256 character printable non-space service credential.
+   Configure the same value as `DASHAFLOW_API_TOKEN` on the sidecar and
+   `DASHAFLOW_SIDECAR_TOKEN` on Astro Chaganti Preview and Production. Confirm
+   the configured sidecar URL is HTTPS in both Astro environments.
+3. Deploy the credentialed Astro caller migration while the current sidecar
+   still accepts legacy operations. Verify authorized full-chart, transit,
+   career, compatibility, and registered-user Muhurtha fixtures; missing or
+   unsafe Astro configuration must fail closed without a network request.
+4. Deploy the sidecar enforcement change. Verify `GET /health` remains public,
+   all seven compute operations reject a missing/wrong bearer token, and the
+   same authorized fixtures still pass. Roll back the sidecar first if this
+   verification fails.
+5. Generate a separate 32–256 character printable non-space
+   `RATE_LIMIT_HMAC_SECRET` for Astro Chaganti Preview and Production. Verify
+   that both environments point to the intended physical Turso database and
+   measure current usage/quota headroom before rollout; variable-name presence
+   alone does not prove DB identity. Identity
+   and fleet rows are HMAC-pseudonymous and separated by Vercel environment;
+   the non-personal provider-family quota/pacing row intentionally spans
+   Preview and Production when one provider account is shared. Place queries,
+   results, labels, IDs, birth details, coordinates, provider keys, and profile
+   data never enter limiter tables. Preview and Production fail closed with
+   `503` when shared enforcement is absent or unavailable. Attempt caps per
+   anchored 24-hour window are guest 2,000 Preview / 10,000 Production and
+   managed-authenticated geocoding 500 Preview / 2,500 Production. Capacity is
+   reserved before route-specific rows and is not refunded after a later
+   user/fleet/client denial. The limiter objects must exist before traffic:
+   from a checkout linked to the exact `astro-unified-core-pfni` Vercel project,
+   provision and verify Preview without writing secrets to disk:
+
+   ```bash
+   vercel env run -e preview -- npm run db:provision-rate-limits -- --target preview
+   ```
+
+   After Preview evidence and a database restore point, repeat with
+   `-e production` and `--target production`. Guest cold-start readiness is a
+   read-only three-`SELECT` batch that fingerprints the canonical table and
+   index definitions. Missing or incompatible columns, keys, constraints,
+   `WITHOUT ROWID`, or index definitions fail closed; it never repairs schema
+   from a request.
+   One cooperative two-second deadline bounds the complete deployed guard chain
+   and prevents later SQL dispatch after expiry. Measure cold-path Preview
+   p95/p99 before activation; do not extend this deadline without re-budgeting
+   the browser and sidecar limits. An already-dispatched Turso operation may
+   still settle and consume a slot, so never refund or automatically retry a
+   storage-ambiguous attempt.
+6. Use the Hobby project's single WAF rate-limit slot as a coarse perimeter for
+   `POST` requests whose path starts with `/api/guest/`: fixed window, 60
+   requests per 60 seconds, keyed by IP. Vercel includes the first 1,000,000
+   allowed rate-limited requests on Hobby, but counters are regional and IPs can
+   rotate, so Turso remains authoritative. Roll this rule out in four gates:
+   publish exceedance logging only, observe real traffic, enforce and verify
+   `429` in Preview, then request explicit Production enforcement approval.
+   The capacity-first starvation tradeoff is deliberately accepted only after
+   this perimeter is enforcing: an attacker can still consume the bounded
+   daily pool, but cannot create unbounded Turso/provider usage. See the
+   [Vercel rate-limit contract](https://vercel.com/docs/vercel-firewall/vercel-waf/rate-limiting)
+   and [log-first rollout guidance](https://vercel.com/docs/vercel-firewall/vercel-waf/custom-rules).
+7. Verify the gateway's allowed/disallowed
+   OPTIONS, `private, no-store`, 4 KiB rejection, local and global rate-limit
+   retry headers, and fixture profile and election-chart derivations,
+   including chart order and whole-sign provenance. Tokens must never appear
+   in a browser bundle or response.
+8. Enable only the route being released by setting its server-only flag to the
+   exact value `true`. Verify disabled routes still return a sanitized
+   `private, no-store` `503` without consuming request bodies, local limits,
+   Turso limiter, geocoder, or sidecar capacity.
+9. Point the Panchangam UI at `https://astrochaganti.com/api/guest` and publish
+   that consumer only after the gateway fixture passes from
+   `https://panchangam.astrochaganti.com`.
+10. Treat registered-profile provider migration as a later, independent release.
+   Keep `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` off until signed-in profile
+   create/edit, provider attribution and privacy terms, Turso-counter failure,
+   process-cache behavior, per-user limiting, and the fleet ceiling pass in
+   Preview. Enable the exact
+   value `true` only with separate owner approval; guest flags do not imply it.
+
+Rollback is stateless: keep the Panchangam manual-profile and base Muhurtam
+ranking paths available, disable their optional guest API entry points, then
+roll back the gateway if needed. There are no Astro Chaganti profile rows,
+sessions, durable result caches, intent records, or analytics events to delete.
+Rotate both
+token variables together if either value may have been exposed.
 
 ### Google Cloud Console — OAuth consent
 
@@ -198,9 +359,11 @@ CREATE INDEX idx_profiles_user ON profiles(user_id);
 CREATE INDEX idx_readings_profile ON readings(profile_id);
 ```
 
-Schema is created lazily by `db.ts` on first call (`ensureSchema`) — no
-migration tool. Old rows from removed engines (`bazi`, `vedastro`, etc.) are
-harmless dead data.
+The application schema is created lazily by `db.ts` on first call
+(`ensureSchema`) — no general migration tool. The two public limiter tables and
+their expiry index are the exception: operators create them explicitly with
+`db:provision-rate-limits`, while runtime readiness is read-only. Old rows from
+removed engines (`bazi`, `vedastro`, etc.) are harmless dead data.
 
 ---
 
@@ -446,7 +609,7 @@ fetch `GET /v13/deployments/{id}` from the Vercel API, read `readyState`,
 2. User creates a profile at /profiles/new
    → POST /api/profiles
    → getServerSession(authOptions) → user.id (Google sub)
-   → geocode(place) → lat, lon, timezone via Nominatim + geo-tz
+   → geocode(place) → lat, lon, timezone via the configured provider + geo-tz
    → INSERT into profiles
    → redirect to /profiles/{id}
 
@@ -454,10 +617,25 @@ fetch `GET /v13/deployments/{id}` from the Vercel API, read `readyState`,
    → GET /api/profiles/{id} → load profile (admin can fetch any)
    → GET /api/readings/dashaflow?profile_id={id}
        → check readings cache (engine="dashaflow")
-       → if miss: POST to ${DASHAFLOW_SIDECAR_URL}/calculate
+       → if miss: authenticated POST to ${DASHAFLOW_SIDECAR_URL}/calculate
        → save reading row, return chart
    → DashboardClient renders the 10-tab unified view (Today, Chart, Planets,
      Houses, Dasha, Yogas, Jaimini, Ashtakavarga, Transits, Career, Compare)
+
+4. Panchangam guest derives a browser-local profile (no Astro Chaganti session)
+   → POST /api/guest/places/search from an approved Origin
+   → choose returned coordinates + IANA timezone
+   → POST /api/guest/profile/derive with exact date/time and selected place
+   → main app sends DASHAFLOW_SIDECAR_TOKEN to sidecar /v1/profile/derive
+   → return only normalized contract v1; Panchangam stores it locally
+
+5. Panchangam guest requests election charts for Muhurtam screening
+   → POST /api/guest/muhurta/election-charts from an approved Origin
+   → main app validates location + at most 24 bounded, ordered instants
+   → main app omits browser credentials and sends DASHAFLOW_SIDECAR_TOKEN to
+     sidecar /v1/election-chart/derive
+   → validate and return only contract v1; no activity, person, natal chart,
+     auth session, intent, or result is persisted
 ```
 
 ---
@@ -480,6 +658,23 @@ uvicorn api.index:app --reload  # http://localhost:8000
 
 For local main-app dev you don't need the local sidecar — `DASHAFLOW_SIDECAR_URL`
 in `.env.local` (or the Vercel-pulled one) can point to the production sidecar.
+Every sidecar computation requires `DASHAFLOW_SIDECAR_TOKEN` to match the
+selected sidecar's `DASHAFLOW_API_TOKEN`; only health checks omit it. Local
+browser requests are
+accepted only from exact HTTP `localhost`, `127.0.0.1`, or `[::1]` origins.
+Local sidecar HTTP follows the same exact-loopback rule; Preview and Production
+always require an HTTPS sidecar URL before bearer credentials are attached.
+Guest calculations default on locally when their server-only flags are omitted;
+set either flag to `false` to test its disabled state. Local public-Nominatim
+calls share one process-wide 1,100 ms request-start scheduler and a bounded
+24-hour cache. Preview and Production default both guest routes off; guest
+place search requires one fixed LocationIQ or Geoapify adapter, its server-only
+key, and the Turso-backed shared controls. Results remain in bounded process
+memory only.
+Signed-in profiles retain the legacy provider until the separate
+managed-migration flag is approved and enabled. Adapter support and the
+LocationIQ recommendation do not themselves approve terms, provision a human
+account or real key, or activate either feature.
 
 ---
 
@@ -487,11 +682,9 @@ in `.env.local` (or the Vercel-pulled one) can point to the production sidecar.
 
 These came up but were left out of scope. None block the live site.
 
-- **Sidecar auth**: the Python sidecar is unauthenticated. Anyone with the
-  URL can compute charts. Low risk (read-only, no PII, no DB), but a shared
-  secret header would harden it.
-- **Custom domain**: we use `astro-unified-core-pfni.vercel.app`. A real
-  domain (`astrochaganti.com` or similar) would be cleaner.
+- **Production domain**: `https://astrochaganti.com` is attached to the
+  `astro-unified-core-pfni` Vercel project. Authentication callback settings
+  remain a separate controlled configuration boundary.
 - **Lead capture**: the contact section is a `mailto:` link. No email
   capture / waitlist form yet.
 - **Payment / appointment booking**: the current flow asks users to email
@@ -559,10 +752,19 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 
 ### Schema migration
 
-1. Add DDL in `lib/db/client.ts` inside `ensureSchema()`.
-2. Bump `SCHEMA_VERSION` (currently `7`).
-3. Deploy. `ensureSchema()` will auto-run the DDL on the next DB call.
-4. Update `docs/ARCHITECTURE.md §5` and `docs/PROJECT.md` schema section.
+1. Add new idempotent application tables/indexes to `bootstrapTables()` in
+   `lib/db/client.ts`. Keep limiter DDL exclusively in
+   `provisionRateLimitSchema()`; never call it from request-time bootstrap.
+2. Add version-dependent `ALTER TABLE`, backfill, or seed work to
+   `runMigrations()` via `migrate()`.
+3. Bump `SCHEMA_VERSION` (currently `12`) with the schema change.
+4. Deploy application-schema changes. The next DB call runs the idempotent
+   application bootstrap and versioned migrations when the stored version is
+   behind.
+5. For limiter schema changes, run `db:provision-rate-limits` against Preview,
+   verify the read-only probe and rollback point, then repeat explicitly for
+   Production before enabling traffic.
+6. Update `docs/ARCHITECTURE.md §5` and this schema section.
 
 ### Clear stale compatibility history (admin)
 
@@ -574,4 +776,4 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 *See `docs/STANDARDS.md` for coding standards, `docs/ARCHITECTURE.md` for system
 design, `docs/BACKLOG.md §Session Decisions` for historical architectural choices.*
 
-*Last updated: 2026-05-14*
+*Last updated: 2026-09-04*

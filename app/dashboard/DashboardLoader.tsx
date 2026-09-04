@@ -11,15 +11,18 @@ import type { Session } from "next-auth";
 
 interface Props {
   session: Session
-  searchParams?:
-    | Promise<{ profile?: string; compare?: string; new?: string; create?: string }>
-    | { profile?: string; compare?: string; new?: string; create?: string }
+  searchParams?: Promise<{
+    profile?: string
+    compare?: string
+    new?: string
+    create?: string
+  }>
 }
 
 export async function DashboardLoader({ session, searchParams }: Props) {
   const userId = getUserId(session);
   const adminUser = isAdmin(session);
-  const params = searchParams instanceof Promise ? await searchParams : searchParams;
+  const params = await searchParams;
 
   const [ownProfiles, appSettings] = await Promise.all([
     db.profiles.list(userId),

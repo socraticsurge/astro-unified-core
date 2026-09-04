@@ -1,10 +1,12 @@
 # Astro Chaganti — Testing Log & Coverage
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-09-04 -->
 
 > This file tracks: (1) test coverage status per module, (2) how to run tests,
 > (3) a manual QA log, and (4) test plans linked to the user journey traces in
-> `PRODUCT.md`. Journey IDs (J1–J8) correspond to the numbered journeys there.
+> `PRODUCT.md`. Journey IDs (J1–J8) correspond to the numbered journeys there;
+> G1–G2 cover the cross-site guest gateways traced in `ARCHITECTURE.md`
+> Journeys 7–8.
 
 ---
 
@@ -45,7 +47,8 @@ mapping. Config is in `vitest.config.ts`. Globals are enabled — no imports nee
 
 ## 2. Test Coverage Status
 
-Last assessed: **2026-05-14**
+Last assessed: **2026-09-04** (Turso safeguards, sidecar, and guest gateway rows;
+older rows retain their prior assessment)
 
 | Module | Test file | Coverage | Notes |
 |---|---|---|---|
@@ -56,11 +59,27 @@ Last assessed: **2026-05-14**
 | `lib/engine-error.ts` | — | None | Trivial; covers error detection |
 | `lib/db/client.ts` | — | None | Integration; needs live Turso or mock |
 | `lib/db/profiles.ts` | — | None | Integration |
-| `app/api/profiles/route.ts` | — | None | Integration |
-| `app/api/readings/dashaflow/route.ts` | — | None | Integration |
-| `app/api/compatibility/route.ts` | — | None | Integration |
+| `app/api/profiles/route.ts`, `app/api/profiles/[id]/route.ts` | corresponding route tests | Route | Authentication/ownership, profile cap, birth and current-location geocoding, provider `429`/`503` retry semantics, create/update behavior, and no writes after geocoder failure |
+| `app/api/readings/dashaflow/route.ts` | `app/api/readings/dashaflow/route.test.ts` | Route | Auth, cache hit/miss, refresh, and engine failure handling |
+| `app/api/compatibility/route.ts` | `app/api/compatibility/route.test.ts` | Route | Auth/ownership/cap, duplicate cache behavior, validated bearer sidecar call, fail-closed config, and upstream-error redaction |
 | `app/api/feedback/route.ts` | — | None | Integration |
 | `app/api/consultation-requests/route.ts` | — | None | Integration |
+| `lib/geocode.ts` | `lib/geocode.test.ts` | Unit | Guest search asserts fixed LocationIQ EU/US and Geoapify endpoints, safe query/key encoding, provider envelope normalization, LocationIQ 404 no-result behavior, scoped IDs, one upstream call, limit five, selectable coordinates/timezone, semantic malformed-row filtering, redirect rejection, pre-parse 64 KiB response cap, eight-work cap with six-guest reservation, end-to-end deadline, cancellation, bounded hashed process-cache expiry in local and deployed runtimes, no place material in Turso limiter calls, post-cache/coalescing provider admission immediately before fetch, bounded pace retry, gated authenticated single-query reuse, and safe provider errors |
+| `lib/guest-api.ts` | `lib/guest-api.test.ts` | Unit | Exact production/local origins, safe preflight, JSON media type, 4 KiB stream cap, and trusted forwarded IP |
+| `lib/engines/dashaflow.ts` full chart + guest projection | `lib/engines/dashaflow.test.ts` | Unit / contract | Validated bearer destination for both operations, omitted credentials, fail-closed config, full-chart error redaction, exact projection body, strict normalized response, and transient retry guidance |
+| `lib/engines/transit.ts`, `lib/engines/career.ts` | `lib/engines/legacy-sidecar-auth.test.ts` | Unit | Validated bearer destinations, omitted credentials, fail-closed config, successful response preservation, and upstream-error redaction |
+| `app/api/readings/muhurtha/route.ts` | `app/api/readings/muhurtha/route.test.ts` | Route | Validated bearer destination, fail-closed config, upstream-error redaction, private/no-store response, and proof that the legacy-required birth object is synthetic and no profile birth value enters the wire request |
+| `app/api/guest/places/search/route.ts` | `app/api/guest/places/search/route.test.ts` | Route | CORS, deployed activation/provider gates before side effects, query/body bounds, IP rate limit, backward-compatible attribution text plus structured label/URL metadata, no-store, safe upstream failure |
+| `app/api/guest/profile/derive/route.ts` | `app/api/guest/profile/derive/route.test.ts` | Route | Deployed activation gate before side effects, exact date/time/coordinates/timezone, unknown/name rejection, direct contract, safe failures, no-store |
+| `lib/deployment-environment.ts`, `lib/guest-calculation-gates.ts` | `lib/deployment-environment.test.ts`, `lib/guest-calculation-gates.test.ts` | Unit | Tri-state local/deployed/unknown classification, contradictions, local default, malformed flags, independent controls, deployed exact-`true` opt-in, unknown-runtime fail-closed |
+| `lib/geocoder-config.ts`, `lib/geocode.ts` | `lib/geocoder-config.test.ts`, `lib/geocode.test.ts` | Unit | Local public default, deployed fixed-provider enum/key requirement, arbitrary-base non-use, exact LocationIQ/Geoapify request and response contracts, exact authenticated-migration gate, preservation of the deployed legacy authenticated path while off, independence from guest flags, no public fallback after activation, reserved capacity, 1,100 ms local-admission scheduling without a strict network-send claim, duplicate coalescing, cancellation including late provider-budget settlement, normalized-field cache, and scheduled expiry |
+| `lib/engines/dashaflow-election.ts` | `lib/engines/dashaflow-election.test.ts` | Unit / contract | Bearer credential, cookie omission, exact request, strict chart/provenance validation, order/location binding, safe failures |
+| `lib/distributed-rate-limit.ts`, `lib/guest-rate-limit.ts`, `lib/authenticated-geocoder-rate-limit.ts` | corresponding limiter tests | Unit | Atomic conditional SQLite upserts, database-clock decisions, exact Preview/Production namespace separation before HMAC, opaque stored keys, no mutation on normal denial, read-only capacity preflight plus first atomic race-safe reservation, conservative capacity charging after downstream denial, guest caps of 2,000 Preview / 10,000 Production, authenticated-geocoder caps of 500 Preview / 2,500 Production, two-client file-backed concurrency, fleet-first guest write bounds, ordered authenticated user/fleet budgets, one 30/minute fleet key shared by guest and authenticated geocoding, one shared two-second signal across each deployed chain, no SQL dispatch after abort, safe late settlement, local bypass, bounded per-operation storage timeout, and deployed/unknown fail-closed behavior |
+| `lib/geocoder-provider-budget.ts` | `lib/geocoder-provider-budget.test.ts`, `lib/geocode.test.ts` | Unit | Canonical 1–1,500 bounds persisted per UTC day, same-day Preview/Production mismatch rejection, atomic UTC-day counting, one 1,100 ms distributed admission lease without claiming strict send ordering, LocationIQ EU/US family sharing, Preview/Production sharing without identity material, daily/lease exhaustion versus storage-failure mapping, local bypass, no charge for cache hits, duplicate callers, or rejected reservations, shared guest/auth use, safe upstream `429` + `Retry-After` mapping, transient-provider `503` mapping, and fail-closed pre-fetch behavior |
+| `lib/db/rate-limit-maintenance.ts` | `lib/db/rate-limit-maintenance.test.ts`, landing cron route tests | Unit / route | Indexed 5,000-row expired-row batches, 100,000-row maximum, input bounds, schema readiness, 2.5-second per-operation and 10-second wall budgets, authenticated invocation through `after()` after the landing response, backlog reporting, and bounded best-effort failure handling |
+| `lib/sentry-privacy.ts`, `sentry.server.config.ts` | `lib/sentry-privacy.test.ts` | Unit / configuration | Exact geocoder endpoint suppression, default NodeFetch/Http replacement, server request-body capture disabled, and final URL/query span scrubbing |
+| `lib/engines/dashaflow-config.ts` | `lib/engines/dashaflow-config.test.ts` | Unit | Server-only token bounds, HTTPS-before-credential policy, exact local IPv4/IPv6 loopback allowance, and unsafe URL rejection |
+| `app/api/guest/muhurta/election-charts/route.ts` | `app/api/guest/muhurta/election-charts/route.test.ts` | Route | Exact origin and deployed activation before body/Turso-limiter work, shared unavailable/expiry mapping, strict private-field rejection, minute/time-window/uniqueness bounds, direct contract, safe failures |
 | `components/NavBar.tsx` | — | None | UI; manual only |
 | `components/unified/tabs/*` | — | `ChartTab`, `PlanetsTab`, `TimeTab`, `IdentityStrip`, `HouseGrid` have render tests | Add coverage for `DashaTab`, `YogasTab`, `JaiminiTab` |
 
@@ -70,7 +89,7 @@ Last assessed: **2026-05-14**
 2. `lib/astro-utils.ts` — pure functions, no mocking needed.
 3. `lib/engine-error.ts` — trivial to test, good CI safety net.
 4. `lib/admin.ts` — email-list parsing with edge cases.
-5. `app/api/profiles/route.ts` — validates auth gate, cap check, geocoding mock.
+5. `app/api/profiles/route.ts` and `app/api/profiles/[id]/route.ts` — validate auth gate, cap/missing-place checks, managed-geocoder success/failure, birth/current-location create/edit projection, timezone fields, and reading invalidation.
 
 ---
 
@@ -107,7 +126,7 @@ before releasing any change that touches the journey's code path.
 |---|---|---|---|
 | J2-1 | Authenticated user loads their own profile chart | 17 sections render | Manual |
 | J2-2 | User loads profile for a different user | 401 or redirect | Manual |
-| J2-3 | Sidecar is unreachable | Error banner shown, not a blank page | Manual |
+| J2-3 | Sidecar is unreachable, misconfigured, or rejects its credential | Stable availability error shown; no upstream diagnostic or blank page | Unit / manual |
 | J2-4 | User clicks "Refresh" | Spinner shown, fresh data loads | Manual |
 | J2-5 | User taps ⓘ on any section | Explainer drawer opens with correct content | Manual |
 | J2-6 | Admin loads any user's profile | Chart loads; Professional toggle visible | Manual |
@@ -124,7 +143,7 @@ before releasing any change that touches the journey's code path.
 | J3-1 | Select two profiles, run check | Score, kuta breakdown, narrative shown | Manual |
 | J3-2 | Same profile selected twice | Error or UI prevents it | Manual |
 | J3-3 | User has 6 checks, tries a 7th | API returns 403 "Limit reached" | Manual / unit |
-| J3-4 | Sidecar unavailable | Error state shown gracefully | Manual |
+| J3-4 | Sidecar unavailable, misconfigured, or rejects its credential | Stable private/no-store error; no upstream body is exposed | Unit / manual |
 | J3-5 | Admin clears compatibility history | List resets to 0 | Manual |
 
 ---
@@ -153,6 +172,7 @@ before releasing any change that touches the journey's code path.
 | J5-1 | Admin fetches transit for a date | Planet positions grid shown | Manual |
 | J5-2 | Non-admin accesses transit | Same as registered user — transit tab visible in basic view? (verify intended behaviour) | Manual |
 | J5-3 | Invalid date string supplied | API returns 400 | Unit |
+| J5-4 | Sidecar token/URL is missing or unsafe | No network request; stable availability error | Unit |
 
 ---
 
@@ -194,6 +214,74 @@ before releasing any change that touches the journey's code path.
 | J8-1 | Profile has current location; request muhurtha | Quality rating + reasoning shown | Manual |
 | J8-2 | Profile missing current location | UI shows "Complete Profile" nudge | Manual |
 | J8-3 | Invalid event type | API returns 400 | Unit |
+| J8-4 | Sidecar token/URL is missing or unsafe | No network request; stable private/no-store error | Unit |
+| J8-5 | Valid request reaches sidecar | Bearer credential attached only after URL validation; the legacy-required birth object is fixed and synthetic, and no profile birth date/time crosses this operation | Unit |
+
+---
+
+### G1 — Cross-Site Guest Birth-Profile Gateway (Story #227)
+
+**Code path:** Panchangam browser → `app/api/guest/places/search/route.ts` →
+`lib/geocode.ts` → `app/api/guest/profile/derive/route.ts` →
+`lib/engines/dashaflow.ts` → sidecar `/v1/profile/derive`
+
+| # | Test | Expected | Type |
+|---|---|---|---|
+| G1-1 | Approved production or exact HTTP localhost/127.0.0.1/[::1] preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no handler side effect | Unit / route |
+| G1-2 | Missing, malformed, or lookalike Origin | `403`; no CORS allow-origin header; no geocoder/sidecar/rate-limit call | Unit / route |
+| G1-2a | Birth-profile flag omitted in Preview/Production, explicitly false locally, or not exact `true` when deployed | Sanitized `503`, `private, no-store`, before body parsing, rate limiting, geocoding, or sidecar access; OPTIONS remains unchanged | Unit / route |
+| G1-2b | Deployed birth-profile flag is `true` but provider enum/key is absent, malformed, or unknown | Place search remains `503`; no rate or upstream call. Exactly one fixed LocationIQ/Geoapify adapter and server-only key are required | Unit / route |
+| G1-3 | Submit a 2–120 character place query | At most one provider request; locally this is the policy-bounded Nominatim path. Managed paths use exact code-owned endpoints, normalize their documented envelope, and return at most five results with provider-scoped ID, label, coordinates, IANA timezone, plus attribution text and links | Unit / route |
+| G1-3a | Duplicate/concurrent and distinct local place queries | Duplicate work coalesces and later hits cache; distinct local queue admissions are at least 1,100 ms apart process-wide, without claiming strict actual-send ordering after distributed reservation | Unit |
+| G1-4 | Body exceeds 4 KiB with or without Content-Length | `413` before geocoder or sidecar call | Unit / route |
+| G1-5 | Per-client, 30/minute route-wide fleet, daily admission cap, provider admission lease, or UTC-day provider budget is exhausted, or shared storage is unavailable | Normal exhaustion returns `429` with `Retry-After`; unavailable Turso enforcement returns retryable `503`; responses are private/no-store and blocked work does not reach the provider or sidecar | Unit / route |
+| G1-5b | Any stage of a deployed guest/auth guard chain exceeds the shared two-second deadline or the caller cancels during storage | Retryable `503`; the same signal reaches every stage; no later SQL starts; a late already-dispatched write is handled and may remain conservatively charged; no provider or sidecar call | Unit / route |
+| G1-5c | Fresh process probes a complete, missing, or drifted limiter schema | Exactly one shared read-mode batch containing only three `SELECT` statements; complete canonical `sqlite_schema` table/index definitions are memoized, while missing or incompatible columns, keys, constraints, `WITHOUT ROWID`, and index definitions fail closed before limiter SQL. No `CREATE`, `ALTER`, `DROP`, index DDL, or repair runs from guest or cleanup paths | Unit / SQL contract |
+| G1-5d | Operator provisions limiter objects for an exact Preview/Production target | Command refuses missing/mismatched target, non-remote URL, or missing token; accepted run performs one atomic write-mode DDL batch and then the read-only verification. Lazy `ensureSchema()` never provisions these objects | Unit / operator integration |
+| G1-5e | Many cold instances, rotating client identities, one-account authenticated fanout, exhausted capacity, or unavailable Turso | Readiness remains read-only; rotated guests are bounded by fleet/capacity, authenticated fanout by user/fleet/capacity, exhausted capacity starts no later write, and unavailable storage fails closed within the shared deadline | Unit / adversarial simulation |
+| G1-5f | Vercel WAF guest rule staged, then exercised in log and Preview-enforced modes | Only `POST /api/guest/*` matches; OPTIONS and non-guest paths do not. Exceeding 60 requests in one 60-second regional/IP window is first observed without blocking, then returns edge `429` in Preview without a function/Turso invocation | Preview / metrics / manual |
+| G1-5a | Managed provider returns HTTP `429`, timeout, transport error, malformed/oversized payload, or `5xx` | Provider `429` is sanitized to app `429` with a bounded `Retry-After`; all listed transient/unavailable failures return sanitized retryable `503`; no provider URL, key, query, or response body leaks | Unit / route |
+| G1-6 | Derivation includes `name` or any unknown field | `400`; field is not forwarded | Route |
+| G1-7 | Non-calendar date, future date in the supplied birthplace timezone, non-`HH:MM` time, string/out-of-range coordinate, or unknown timezone | `400`; no sidecar call | Route |
+| G1-8 | Valid exact birth input | Only after HTTPS/loopback URL and 32–256 character token validation, sidecar receives five approved fields with bearer credential; client receives direct contract v1 projection within a 12.5-second maximum retry budget | Unit / contract / route |
+| G1-9 | Sidecar auth, validation, projection, timeout, or transient failure | Sanitized error only; retryable statuses include bounded `Retry-After`; raw upstream body is never read or echoed | Unit / route |
+| G1-10 | Static dependency review | Guest route module graph contains no NextAuth, account-profile table access, PostHog, Sentry request logging, or server profile persistence; its only Turso dependency is the dedicated limiter boundary | Review |
+
+---
+
+### G2 — Cross-Site Guest Muhurtam Election-Chart Gateway
+
+**Code path:** Panchangam browser →
+`app/api/guest/muhurta/election-charts/route.ts` →
+`lib/engines/dashaflow-election.ts` → sidecar `/v1/election-chart/derive`
+
+| # | Test | Expected | Type |
+|---|---|---|---|
+| G2-1 | Approved production or exact HTTP localhost/127.0.0.1/[::1] preflight | `204`; exact reflected origin; only POST/OPTIONS and Content-Type allowed; no calculation/rate side effect | Unit / route |
+| G2-1a | Election-chart flag omitted in Preview/Production, explicitly false locally, or not exact `true` when deployed | Sanitized `503`, `private, no-store`, before body parsing, local rate limiting, Turso limiter access, or sidecar access; birth-profile flag remains independent | Unit / route |
+| G2-2 | Missing, malformed, lookalike Origin, body over 4 KiB, or sixth request per minute | Rejected before the sidecar; responses remain `private, no-store`; throttles include `Retry-After` | Route |
+| G2-3 | Activity, profile ID/name, birth details, natal chart, nested label, or any unknown field | `400`; no field is forwarded | Route |
+| G2-4 | Invalid contract/location/timezone, empty or >24 instants, non-minute/non-offset timestamp, or semantic duplicate | `400`; no sidecar call | Route |
+| G2-5 | Instant older than 366 days or beyond 1,830 days | `400`; no sidecar call | Route |
+| G2-6 | Valid request with inbound auth cookie | After HTTPS/loopback URL and token-bound validation, sidecar receives only contract version, location, and ordered instants with bearer auth and `credentials: omit` | Unit / contract / route |
+| G2-7 | Valid sidecar response | Browser receives the unchanged v1 contract only after exact location/order, Lahiri, `mean` lunar nodes, `whole_sign`, Lagna, and canonical nine-planet validation | Unit / contract / route |
+| G2-8 | Expanded, malformed, reordered, auth, timeout, or transient sidecar response | Safe `422`/`429`/`502`/`503`; bounded retry guidance; no upstream body or diagnostic leaks | Unit / route |
+| G2-9 | Deployed shared client/fleet limiter missing, unavailable, or exhausted | Fail closed before body parsing or sidecar access; `503` for unavailable and `429` with limiter-expiry retry guidance for exhausted | Unit / route |
+| G2-10 | Static dependency review | Route module graph contains no NextAuth, account-profile table access, PostHog, request logging, activity/profile/natal model, or result persistence; its only Turso dependency is the dedicated limiter boundary | Review |
+
+Before recording either guest journey as release-ready, attach evidence that
+Preview and Production point to the intended physical Turso database, record
+current Turso usage and quota headroom, complete the human-owned provider
+account/key/terms decision, and run the provider `429`/transient-error cases in
+Preview. The 1,100 ms row lease proves distributed admission order, not strict
+network-send order; measure real provider behavior under concurrency and keep
+activation flags off if that distinction violates the selected plan contract.
+Also record the deployment-controlled limiter DDL run, verify zero request-time
+DDL in Turso logs, publish and observe the WAF in log mode, and attach Preview
+evidence that the edge `429` occurs without a corresponding function/Turso hit.
+Because WAF counters are per region and IPs can rotate, retain the Turso caps and
+record explicit acceptance of bounded capacity-pool exhaustion as an
+availability risk rather than claiming a globally strict edge ceiling.
 
 ---
 

@@ -1,6 +1,6 @@
 # Astro Chaganti — Project Standards
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-09-04 -->
 
 > **Agent-neutral.** These rules apply to Claude Code, Jules, Gemini, and any
 > future agent. They are the single source of truth for all coding standards.
@@ -196,15 +196,30 @@ check auth. CDN caches do not scope by user.
 
 ### Schema migration
 
-`ensureSchema()` in `lib/db/client.ts` is the only migration mechanism.
+`lib/db/client.ts` owns the schema lifecycle. `SCHEMA_VERSION` is currently
+`12`.
 
-1. Write DDL in `ensureSchema()`.
-2. Bump `SCHEMA_VERSION` (currently `7`).
-3. Wrap `ALTER TABLE … ADD COLUMN` in `try/catch` to handle re-runs on existing DBs.
-4. Add the new module in `lib/db/your-table.ts`.
-5. Export from `lib/db/index.ts` and add to the `db` object.
+1. Add application tables/indexes to `bootstrapTables()` with idempotent
+   `CREATE ... IF NOT EXISTS`; this bootstrap runs on every cold start even when
+   the stored version already matches. The public limiter schema is the explicit
+   deployment-provisioned exception described below.
+2. Put version-dependent column changes, backfills, and seeds in
+   `runMigrations()`. Use `migrate()` for expected idempotency errors; do not
+   swallow unrelated failures.
+3. Bump `SCHEMA_VERSION` with the corresponding schema change.
+4. Guest limiter DDL belongs only in `provisionRateLimitSchema()` and runs via
+   `npm run db:provision-rate-limits -- --target preview|production` from a
+   trusted, correctly linked deployment environment. Runtime guest and cleanup
+   paths use the read-only `ensureRateLimitSchema()` probe and fail closed when
+   required objects are absent or drifted. Never call the provisioning helper
+   from `ensureSchema()`, a route, a cron handler, or other request-time code.
+5. Add the new module in `lib/db/your-table.ts`, export it from
+   `lib/db/index.ts`, and add it to the `db` object when application CRUD is
+   required.
 
-Never change `SCHEMA_VERSION` without also adding the corresponding DDL.
+Never change `SCHEMA_VERSION` without the corresponding bootstrap or migration
+work, and never rely on the version row alone to prove that idempotent tables
+exist.
 
 ### Scoping queries
 
@@ -249,9 +264,27 @@ if (!result.success) {
 | `POST /api/readings/tarabalam` | user email | 20 / min |
 | `GET/POST /api/readings/dashaflow` | user email | implicit via profile cap |
 
-**Known limitation:** rate limits are per-Lambda instance, not global (see
-`BACKLOG.md` D7). Adequate for current traffic; replace with Upstash Redis for
-global enforcement at scale.
+**Known limitation:** most rate limits are per-Lambda instance, not global (see
+`BACKLOG.md` D7). The three approval-gated Panchangam guest routes and the
+separately gated managed authenticated geocoder are scoped exceptions: they add
+required, fail-closed Turso-backed identity and fleet enforcement in deployed
+runtimes. Logical identities are HMAC-pseudonymized with
+`RATE_LIMIT_HMAC_SECRET`; raw identifiers and request data never enter limiter
+tables. Guest search and managed authenticated geocoding share one 30/minute
+fleet key. A read-only preflight plus a first atomic capacity reservation caps
+guest attempts at 2,000 per anchored 24-hour window in Preview and 10,000 in
+Production, and managed authenticated geocoding at 500 in Preview and 2,500 in
+Production. The capacity slot remains consumed after a later route-specific
+denial so no user, fleet, or client-row mutation escapes the write envelope.
+One two-second cooperative deadline must cover the entire deployed guard chain,
+with the same signal forwarded into every storage operation. Once aborted, no
+later SQL statement may start. Treat any already-dispatched Turso write as
+conservatively consumed: never refund or automatically retry an ambiguous
+reservation.
+Extend that pattern deliberately, with bounded writes and post-response cleanup,
+rather than assuming every route is globally limited. Before enabling a new
+deployed path, measure current Turso usage and headroom rather than treating the
+Free-plan allowance as unused capacity.
 
 ---
 

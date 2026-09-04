@@ -1,6 +1,6 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-05-21 -->
+<!-- last-updated: 2026-09-04 -->
 
 > **Note:** The legacy "Basic / Professional" two-mode chart view was replaced
 > with the unified 10-tab dashboard on 2026-05-19. The components below
@@ -47,13 +47,15 @@
 
 ## 0. User Types
 
-<!-- last-updated: 2026-05-13 -->
+<!-- last-updated: 2026-08-29 -->
 
 Three personas access the app. Every feature decision and user journey should
 be reasoned against all three.
 
 ### Guest (unauthenticated)
 - Can access: `/` (landing), `/privacy`, `/terms`, `/credits`
+- Can call only the stateless cross-origin profile and election-chart helpers under
+  `/api/guest/*` from the exact approved Panchangam production/local origins
 - Cannot access: anything under `/dashboard`, `/profiles`, `/compatibility`, `/admin`
 - All protected routes redirect to `/auth/signin` via [`proxy.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/proxy.ts) middleware
 
@@ -74,7 +76,7 @@ be reasoned against all three.
 
 ## 1. Server / Client Boundary Map
 
-<!-- last-updated: 2026-05-14 -->
+<!-- last-updated: 2026-09-04 -->
 
 This is the most important section for anyone touching the codebase. Understanding
 what runs where prevents the class of bugs where env vars are missing, `getServerSession`
@@ -166,6 +168,8 @@ cause is almost always `isAdmin(session)` being called in a client component.
 | `NEXTAUTH_SECRET` | Yes | Yes | No (never expose) |
 | `ADMIN_EMAILS` | Yes | Yes | No (never expose) |
 | `DASHAFLOW_SIDECAR_URL` | Yes | Yes | No |
+| `DASHAFLOW_SIDECAR_TOKEN` | Yes | Yes | No (server-to-server bearer secret) |
+| `VERCEL_ENV` | Yes | Yes | No (Vercel-provided deployment scope) |
 | `GOOGLE_CLIENT_ID` | Yes | Yes | No |
 | `NEXTAUTH_URL` | Yes | Yes | No |
 | `NEXT_PUBLIC_SENTRY_DSN` | Yes | Yes | Yes (`NEXT_PUBLIC_` is bundled) |
@@ -177,7 +181,7 @@ cause is almost always `isAdmin(session)` being called in a client component.
 ```
 astrounified/
 ├── app/                    # Next.js App Router — pages, layouts, API routes
-│   ├── api/                # Server-side API handlers
+│   ├── api/                # Server-side API handlers, including stateless guest gateway
 │   ├── admin/              # Admin-only panel
 │   ├── auth/               # Sign-in page
 │   ├── compatibility/      # Compatibility checker + detail views
@@ -296,14 +300,14 @@ the NextAuth OAuth flow.
 
 ## 5. Database Layer
 
-<!-- last-updated: 2026-05-13 -->
+<!-- last-updated: 2026-09-04 -->
 
 ### Client & Schema
 [`lib/db/`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/) — modular DB layer. `lib/db.ts` is a one-line re-export shim so all existing `import { db } from "@/lib/db"` imports continue to work.
 
 | File | Responsibility |
 |---|---|
-| [`lib/db/client.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/client.ts) | Turso client singleton, `ensureSchema()`, `SCHEMA_VERSION` |
+| [`lib/db/client.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/client.ts) | Turso client singleton, full `ensureSchema()`, controlled `provisionRateLimitSchema()`, read-only guest `ensureRateLimitSchema()`, `SCHEMA_VERSION` |
 | [`lib/db/users.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/users.ts) | `User` type, `users.upsert`, `users.list` |
 | [`lib/db/profiles.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/profiles.ts) | `Profile`, `ProfileWithUser` types, full profiles CRUD |
 | [`lib/db/readings.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/readings.ts) | `Reading` type, cache save/fetch/delete |
@@ -326,12 +330,39 @@ Built on `@libsql/client` (Turso's HTTP SQLite driver).
 | `feedback` | User-submitted feedback/ratings. |
 | `consultation_requests` | User questions (Life Problem Statements). One pending row per user at a time. |
 | `settings` | Key-value app settings (e.g. `live_consultation_enabled`). Seeded with defaults. |
+| `distributed_rate_limits` | Short-lived, Vercel-environment-scoped HMAC identity/fleet digests with integer count and expiry fields. Contains no raw identity, place, birth, profile, coordinate, or provider-key data. |
+| `geocoder_provider_budget` | One non-personal aggregate UTC-day count, canonical configured daily limit, and next-admission timestamp per managed-provider family, intentionally shared by Preview and Production using the same provider account. |
 | `schema_version` | Single-row version table for schema migration tracking. |
 
 **Schema management**: `ensureSchema()` runs lazily on the first DB call per
-Lambda instance. It checks `schema_version`; if the stored version is behind
-`SCHEMA_VERSION` (currently `7`), it runs all DDL statements. Column additions
-use `ALTER TABLE … ADD COLUMN` wrapped in `try/catch` to handle re-runs.
+Lambda instance. On every cold start it creates the version table if needed and
+runs the idempotent application-table `bootstrapTables()`
+`CREATE TABLE/INDEX IF NOT EXISTS` statements, regardless of the stored version.
+The public limiter objects are provisioned separately as described below. If
+`schema_version` is behind
+`SCHEMA_VERSION` (currently `12`), `runMigrations()` then applies the
+version-gated `ALTER TABLE`/backfill/seed steps before recording version 12.
+Migration errors propagate rather than being treated as success.
+
+Limiter DDL is the deliberate exception to the lazy full bootstrap. It has one
+canonical `provisionRateLimitSchema()` function that only the explicit
+`db:provision-rate-limits` operator command calls before a deployment is
+enabled. No runtime request or maintenance path calls that write function. The
+memoized `ensureRateLimitSchema()` readiness check uses one read-mode batch of
+three `SELECT` statements to fingerprint the canonical `sqlite_schema`
+definitions of both tables and the expiry index. Missing or incompatible
+columns, keys, constraints, `WITHOUT ROWID`, or index definitions reject, so
+guest and maintenance paths fail without attempting request-triggered repair.
+
+The read-only probe closes the cold-start DDL amplification path, but a request
+must still read Turso before learning that a daily cap is full. The Vercel Hobby
+project has therefore staged its single rate-limit slot as a coarse pre-function
+perimeter for `POST /api/guest/*`: a 60-request/60-second fixed window keyed by
+IP with threshold exceedances initially set to log. The draft is not active
+until an operator publishes it. It must then move through observed logging,
+Preview enforcement, and only then Production enforcement. Vercel counters are
+regional and IPs can rotate, so this perimeter supplements rather than replaces
+the authoritative Turso fleet and daily limits.
 
 **Key exported namespaces:**
 
@@ -346,9 +377,138 @@ db.consultationRequests — getPending, listByUser, listAllWithUser, create, mar
 ```
 
 ### Rate Limiting
-[`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts) — unified in-memory rate limiter: `rateLimit(key, limit, windowMs)` → `{ success, limit, remaining }`. Per-instance (not shared across Lambdas); adequate for abuse prevention on a small app.
+[`lib/rate-limit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/rate-limit.ts) — unified in-memory rate limiter: `rateLimit(key, limit, windowMs)` → `{ success, limit, remaining }`. It remains per-instance for most routes.
 
-> For global enforcement at scale, replace with Redis/Upstash.
+The three Panchangam guest routes add shared fixed-window limits through
+`lib/guest-rate-limit.ts`, `lib/distributed-rate-limit.ts`, and the application's
+existing Turso database. Each deployed guest request passes the process-local
+client guard, checks and atomically reserves the deployment attempt budget,
+then reserves a route-wide fleet slot before creating or updating a shared
+per-client row. Fleet-first route ordering bounds client-row creation from
+callers that rotate IP addresses; a request rejected by the later client guard
+can therefore consume one fleet slot and its earlier capacity slot. Fleet
+ceilings are 30 geocoder calls per minute (shared with the managed authenticated
+path), 30 profile derivations, and 10 election-chart requests. Managed
+authenticated geocoding applies its process-local guard, reserves its deployment
+attempt budget, then checks the shared ten-call-per-user limit before joining
+the same 30-call geocoder fleet budget. This preserves user-before-fleet
+fairness while keeping the capacity mutation first.
+
+An account-wide attempt cap bounds limiter writes before the per-route rows are
+touched: all guest routes together allow 2,000 attempts per anchored 24-hour
+window in Preview and 10,000 in Production; managed authenticated geocoding
+separately allows 500 in Preview and 2,500 in Production. A read-only preflight
+stops normal writes once the relevant cap is full, while the capacity row is the
+first atomic mutation and handles concurrent races. That capacity slot remains
+consumed when a later user, fleet, or client guard rejects the request. At the
+combined 15,000-attempt window ceiling, budgeting four admission-path row
+mutations per capacity-admitted attempt yields 60,000 mutations per complete
+set of windows. Allowing 31 independently anchored window periods to touch a
+30-day observation gives a conservative 1.86-million planning bound before
+expired-row deletes and unrelated application traffic. This is designed to fit
+under Turso Free's 10-million-write monthly allowance, but current account
+usage, deletion accounting, and remaining headroom must be measured before
+activation.
+
+The project deliberately retains capacity-first charging instead of adding a
+multi-row interactive transaction to the two-second hot path. That preserves a
+hard write envelope and treats ambiguous remote writes conservatively, but a
+syntactically cheap request that passes the perimeter can consume a daily slot
+before a later fleet/client denial or body-validation failure. This residual
+availability risk is accepted only with the edge rule enforcing, the feature
+flags independently reversible, and capacity/headroom alerts in place. A
+rotating-source attack can still exhaust the free product's daily pool; the
+designed outcome is a bounded fail-closed outage, never unbounded database or
+provider use.
+
+The distributed primitive HMACs every logical identity with
+`RATE_LIMIT_HMAC_SECRET` and the exact Vercel `preview` or `production`
+environment, so identity and fleet counters cannot collide across deployments
+even when both use one Turso database. Conditional SQLite upserts write only
+admitted requests; a normal denial does not extend a row's lifetime. Turso's
+database clock is authoritative. Expired identity/fleet rows are removed by
+bounded authenticated maintenance, independently of request admission. The
+authenticated landing cron registers that work with Next.js `after()`, after
+the response is committed. Cleanup deletes in indexed 5,000-row batches, stops
+at 100,000 rows, gives each readiness/query operation at most 2.5 seconds, and has
+a 10-second wall-clock budget; it reports a remaining backlog for monitoring.
+Missing or unavailable shared storage fails closed as retryable `503`; an
+intact but exhausted limit returns `429` with bounded retry guidance.
+
+One shared two-second deadline covers all four distributed stages in each
+deployed guest or managed-authenticated guard chain. Its `AbortSignal` bounds
+schema readiness and every status/UPSERT/read operation. After expiry, no later
+SQL statement or boundary retry starts. An operation already dispatched at
+that instant cannot be cancelled at Turso: a readiness probe may settle late,
+and a write may conservatively consume its slot after the `503`. Ambiguous
+attempts are not refunded or retried. This keeps the limiter portion of the
+15-second guest birth journey bounded before the separate 12.5-second sidecar
+budget.
+
+A separate, non-personal Turso row budgets the external geocoder account. It is
+keyed by provider family rather than deployment or API key, so Preview and
+Production deliberately share the same UTC-day allowance when they use one
+Turso database and provider account; LocationIQ EU/US share one LocationIQ
+pool. After process-cache lookup and duplicate coalescing, every managed
+provider attempt atomically reserves one of at most 1,500 configured daily
+slots plus a 1,100 ms database-clock lease immediately before transit. Warm
+process-cache hits and coalesced callers spend no slot; failed admitted attempts
+do. The first row persists the configured daily limit and later Preview or
+Production callers fail closed if their value differs, preventing one
+environment from silently enlarging the shared account pool. Normal admission-
+lease or daily exhaustion returns `429`; missing, malformed, or unavailable
+enforcement returns retryable `503`. A managed
+provider's own HTTP `429` is also returned to callers as a sanitized `429` with
+bounded `Retry-After`; provider transport, timeout, malformed-response, and
+server failures become retryable `503` responses without exposing provider
+details.
+
+The lease serializes distributed admission, not network dispatch: separate
+functions can experience different delays after reservation. The conservative
+spacing provides operating margin under the recommended provider's published
+two-request/second ceiling, but a central queue would be required for a strict
+mathematical ordering of actual sends.
+
+Only consistent Vercel Preview/Production markers classify as deployed.
+Ambiguous runtimes, including self-hosted `NODE_ENV=production` without an
+explicit trusted-proxy contract, fail closed; local/test runs retain only the
+process-local layer. D7 remains open for extending this protection beyond the
+guest gateway.
+
+Geocoder access is separately serialized through one process-global scheduler
+in `lib/geocode.ts`: each process spaces local queue admissions by at least
+1,100 ms, accepts at most eight distinct outstanding operations, and reserves
+two of those slots from guest search for authenticated profile geocoding. A
+database reservation can delay one admitted operation differently from the
+next, so neither the local queue nor the distributed lease proves strict
+network-send spacing. One eight-second deadline covers queue wait, provider-
+budget reservation, and fetch. Concurrent duplicate queries share one promise;
+a caller abort removes only that subscriber and cancels underlying work when
+none remain. A Turso HTTP reservation already dispatched cannot itself be
+cancelled; it may conservatively consume capacity after the last subscriber
+leaves, but the abandoned operation never proceeds to provider fetch.
+Semantically valid normalized rows live in a
+bounded 256-entry, 24-hour process cache under hashed keys in every runtime; an
+active timer removes idle expired rows. Place queries, labels, provider IDs,
+and coordinates are never written to Turso limiter tables. Those tables contain
+only environment-scoped HMAC identity/fleet digests and integer count/expiry
+fields plus the non-personal aggregate provider row; they never contain raw IPs,
+user IDs, birth details, profile data, or provider keys. Provider responses are
+capped at 64 KiB before JSON parsing; invalid nonempty responses are not cached.
+Provider redirects are rejected and raw provider failures are never propagated.
+The unauthenticated guest search uses the fixed public Nominatim endpoint only
+in local development. In Vercel Preview/Production, `lib/geocoder-config.ts`
+accepts only the code-owned `locationiq-eu`, `locationiq-us`, or `geoapify`
+adapter plus a server-only API key; arbitrary provider URLs are not
+configuration. Existing authenticated profile creation/editing retains its
+legacy Nominatim path until the separate
+`AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` value is exactly `true`. The enabled
+migration reuses the fixed adapter independently of guest flags, performs one
+bounded query per place, and fails closed on provider, Turso counter, per-user,
+or fleet enforcement failure. The daily provider counter accepts only canonical
+integer limits from 1 through 1,500 and is required for every deployed managed
+provider process-cache miss. Guest search and an enabled authenticated migration
+cannot fall back to public Nominatim.
 
 ---
 
@@ -361,16 +521,48 @@ The TypeScript layer is purely HTTP client + cache + TypeScript-native calculati
 ### DashaFlow (Full Chart)
 [`lib/engines/dashaflow.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/dashaflow.ts)
 
-Calls `POST ${DASHAFLOW_SIDECAR_URL}/calculate` with birth coordinates.
+Calls bearer-authenticated `POST ${DASHAFLOW_SIDECAR_URL}/calculate` with birth coordinates.
 Returns 17 chart sections (planets, dashas, yogas, ashtakavarga, etc.).
 Consumed by `DashboardClient` and rendered across `components/unified/tabs/*`
 (Chart, Planets, Houses, Dasha, Yogas, Jaimini, Ashtakavarga). Sidebar
 panchang + birth info comes from the same payload via `ProfileSidebar`.
 
+The same module also exposes `deriveDashaflowProfile()`, a separate server-only
+client for `POST /v1/profile/derive`. It sends the
+`DASHAFLOW_SIDECAR_TOKEN` bearer credential and accepts only the versioned,
+bounded guest projection: engine provenance, Nakshatra/Pada, Janma Rashi,
+Lagna, and nine D1 planets. Runtime validation requires the literal DashaFlow
+engine, Lahiri ayanamsha, canonical Panchangam Nakshatra/Rashi spellings, and
+the exact ordered, unique Surya-through-Ketu sequence. It never returns the raw
+17-section chart. Its two-attempt upstream budget is 12.5 seconds, safely below
+the Panchangam browser's 15-second request deadline.
+
+All compute clients resolve credentials through the server-only
+`lib/engines/dashaflow-config.ts` boundary. It requires a 32–256 character
+printable non-space token and validates the destination before creating an
+Authorization header: HTTPS is mandatory in Vercel Preview/Production, while
+local HTTP is restricted to exact IPv4/IPv6 loopback hosts. Full chart,
+transit, career, compatibility, registered-user Muhurtha, and both versioned
+guest projections omit browser credentials, reject redirects, and fail closed
+without reading or exposing upstream error bodies. Only sidecar health is
+intentionally unauthenticated.
+
+### DashaFlow Election Charts
+[`lib/engines/dashaflow-election.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/dashaflow-election.ts)
+
+Calls the bearer-authenticated `POST /v1/election-chart/derive` projection for
+one location and 1–24 request-ordered, minute-precision instants. Its runtime
+contract requires DashaFlow/Lahiri provenance, the explicit `mean` lunar-node
+convention, `whole_sign` houses, Lagna, and
+the canonical Surya-through-Ketu nine-planet sequence for every chart. The
+client rejects response expansion, changed location, missing/reordered instants,
+or planet drift and explicitly omits browser credentials.
+
 ### Transit
 [`lib/engines/transit.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/transit.ts)
 
-Calls `POST ${DASHAFLOW_SIDECAR_URL}/transit` with birth data + a target date.
+Calls bearer-authenticated `POST ${DASHAFLOW_SIDECAR_URL}/transit` with birth
+data + a target date.
 Returns current planetary positions (sign + degree within sign, not raw longitude).
 
 > **Key gotcha**: the sidecar returns `{ sign: "Taurus", degree: 14.3 }` per
@@ -381,7 +573,7 @@ Returns current planetary positions (sign + degree within sign, not raw longitud
 ### Career (D10 Analysis)
 [`lib/engines/career.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/engines/career.ts)
 
-Calls `POST ${DASHAFLOW_SIDECAR_URL}/career` with birth data.
+Calls bearer-authenticated `POST ${DASHAFLOW_SIDECAR_URL}/career` with birth data.
 Returns D10 chart themes and planet-domain recommendations for career guidance.
 
 ### Tarabalam (TypeScript-native, no sidecar)
@@ -428,8 +620,59 @@ surface a human-readable error instead of rendering broken data.
 
 ## 7. API Routes
 
-All routes authenticate via `getServerSession(authOptions)` and return JSON.
-Admin routes additionally check `isAdmin(session)`.
+Registered-user routes authenticate via `getServerSession(authOptions)` and
+return JSON. Admin routes additionally check `isAdmin(session)`. The three
+explicit `/api/guest/*` exceptions below are stateless and use strict origin,
+input, no-store, and IP-rate-limit guards instead of a session.
+
+`lib/guest-calculation-gates.ts` keeps these release surfaces inactive by
+default in Vercel Preview and Production. Birth-profile routes share
+`GUEST_BIRTH_PROFILE_ENABLED`; election charts use the independent
+`GUEST_ELECTION_CHART_ENABLED`. Each must equal the exact string `true` when
+deployed. Missing, unknown, or contradictory runtime markers are not local and
+fail closed even when a flag says `true`. After the unchanged exact-origin
+check, a disabled POST returns a sanitized `private, no-store` `503` before body
+parsing, local rate limiting, Turso limiter access, geocoding, or sidecar access. OPTIONS
+remains side-effect-free and keeps the existing exact CORS contract.
+
+### Guest Panchangam Gateway
+
+**[`app/api/guest/places/search/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/places/search/route.ts)**
+
+- `OPTIONS` — returns a no-body preflight only for
+  `https://panchangam.astrochaganti.com` and exact HTTP localhost/127.0.0.1/[::1]
+  origins.
+- `POST` — accepts only `{ query }` (2–120 characters), rate-limits by client
+  IP and route-wide fleet budget, and makes at most one coalesced provider
+  request with `limit=5`. Deployed limits run before the body is read. Locally,
+  public Nominatim use shares the application-wide 1,100 ms request-start
+  scheduler and bounded cache; deployed traffic requires one fixed managed
+  adapter plus its key. Returns the backward-compatible attribution string and
+  structured links:
+  `{ data: { results: [{ id, label, latitude, longitude, timezone }], attribution, attributions: [{ label, url }] } }`.
+
+**[`app/api/guest/profile/derive/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/profile/derive/route.ts)**
+
+- `OPTIONS` — same exact-origin, side-effect-free preflight contract.
+- `POST` — accepts only exact `date_of_birth`, `time_of_birth`, numeric
+  coordinates, and an IANA timezone. Unknown fields (including `name`) are
+  rejected. A future date is evaluated in the supplied birthplace timezone.
+  Calls the credentialed sidecar projection and returns its direct
+  strictly validated `contract_version` / `engine` / `data` contract.
+
+**[`app/api/guest/muhurta/election-charts/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/guest/muhurta/election-charts/route.ts)**
+
+- `OPTIONS` — same exact-origin, side-effect-free preflight contract.
+- `POST` — accepts only contract v1, numeric coordinates, an IANA timezone,
+  and 1–24 semantically unique offset-aware RFC3339 instants at minute
+  precision. Instants are limited to 366 days in the past through 1,830 days
+  in the future. It rejects activity, names, profile IDs, birth details, natal
+  charts, and all other unknown fields before calling the sidecar.
+
+All three routes cap JSON request bodies at 4 KiB, use `private, no-store` on
+every response, and provide `Retry-After` on throttled/transient failures. They
+do not touch NextAuth, account-profile tables, PostHog, or request-body logging;
+deployed shared limiting uses only the dedicated Turso limiter tables.
 
 ### Profile Management
 
@@ -473,7 +716,12 @@ Admin routes additionally check `isAdmin(session)`.
 
 **[`app/api/readings/muhurtha/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/readings/muhurtha/route.ts)**
 
-- `POST` — auspicious timing check for an event type + date/time/location
+- `POST` — bearer-authenticated auspicious timing check for an event type,
+  date window, and event location. No profile birth value is transmitted
+  because this sidecar operation does not use natal data. Until the relaxed
+  sidecar schema is deployed, its required `birth_data` object and the event
+  location's date/time slots receive fixed non-personal placeholders; only
+  event coordinates and timezone affect the calculation.
 
 **[`app/api/readings/tarabalam/route.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/app/api/readings/tarabalam/route.ts)**
 
@@ -493,7 +741,7 @@ Admin routes additionally check `isAdmin(session)`.
 - `POST` — run a new check:
   1. Load both profiles from DB (verifies ownership)
   2. Check limit (6 checks per user)
-  3. `POST ${DASHAFLOW_SIDECAR_URL}/compatibility` with both profiles' birth data
+  3. Bearer-authenticated `POST ${DASHAFLOW_SIDECAR_URL}/compatibility` with both profiles' birth data
   4. `db.compatibility.save(userId, { profile_id_1, profile_id_2, score, result_json })`
   5. Return saved check record
 
@@ -794,7 +1042,13 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 | Module | Purpose |
 |---|---|
-| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text)` → calls Nominatim, resolves IANA timezone via `geo-tz` |
+| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after separate activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a 1,100 ms local-admission queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, bounded active process-cache expiry in all runtimes, an atomic UTC-day provider-attempt budget after cache/coalescing, semantic provider validation, and `geo-tz` IANA resolution. Neither the local queue nor distributed lease claims strict network-send ordering. Place results are never stored in Turso limiter tables. |
+| `lib/geocoder-config.ts` | Server-only fixed LocationIQ/Geoapify adapters, exact authenticated-migration activation, and public attribution metadata. Guest Preview/Production and the enabled authenticated migration require a named adapter plus its key and cannot use an arbitrary URL. |
+| `lib/geocoder-provider-budget.ts` | Non-personal Turso allowance shared by guest and managed-authenticated process-cache misses, and across Preview/Production using the same provider account. Requires `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 1,500, persists one canonical value per UTC day, rejects same-day cross-environment mismatches, reserves a 1,100 ms distributed admission lease (not strict network-send ordering), and fails closed before fetch when configuration, storage, or quota is unavailable. |
+| `lib/authenticated-geocoder-rate-limit.ts` | Pseudonymous process and Turso-backed per-user controls plus the 30-call fleet key shared with guest place search and a 500 Preview / 2,500 Production daily admission cap; used only by the activated managed authenticated path. |
+| `lib/db/rate-limit-maintenance.ts` | Post-response authenticated maintenance for expired HMAC identity/fleet rows: indexed 5,000-row batches, 100,000-row maximum, 2.5-second operation timeout, and 10-second wall-clock budget. |
+| `lib/guest-calculation-gates.ts` | Independent server-only birth-profile and election-chart activation flags; local default on, deployed default off, exact `true` opt-in. |
+| [`lib/guest-api.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/guest-api.ts) | Exact-origin CORS, safe OPTIONS, 4 KiB streaming JSON cap, no-store responses, and trusted client-IP extraction for `/api/guest/*` |
 | [`lib/utils.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/utils.ts) | `cn(...classes)` — `clsx` + `tailwind-merge` |
 | [`lib/chart-summary.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/chart-summary.ts) | Generates a plain-text summary of chart data for clipboard or LLM consumption |
 | [`lib/sanitize.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/sanitize.ts) | Dual client/server HTML sanitizer to prevent XSS in `dangerouslySetInnerHTML` |
@@ -825,7 +1079,7 @@ User visits https://astro-unified-core-pfni.vercel.app/
     → submit → POST /api/profiles
       → app/api/profiles/route.ts
         → rate limit check (lib/rate-limit.ts)
-        → geocodePlace(place) → lib/geocode.ts → Nominatim + geo-tz
+        → geocodePlace(place) → lib/geocode.ts → configured provider + geo-tz
         → db.profiles.create(userId, data)
         → 201 + profile JSON
   → redirect to /profiles/{id}
@@ -974,6 +1228,72 @@ live on dedicated pages outside the dashboard.
     → "All ✦" column highlights rows where every selected profile has auspicious Tara
 ```
 
+### Journey 7: Panchangam Guest Derives a Local Birth Profile
+
+```
+Guest on https://panchangam.astrochaganti.com opens profile creation
+  → Vercel route remains unavailable unless GUEST_BIRTH_PROFILE_ENABLED=true
+  → name remains in that browser and is never included in an API request
+  → submit place text
+    → POST https://astrochaganti.com/api/guest/places/search
+      → exact Origin and activation/provider gates
+      → process-local plus shared per-client/fleet limits before the 4 KiB body
+      → searchPlaces(query, request.signal)
+        → coalesced provider request, at most five valid results
+        → caller disconnect stops queued work when no duplicate caller remains
+        → every runtime uses a bounded, hashed-key process cache
+        → Preview/Production require a fixed LocationIQ/Geoapify adapter, key,
+          and fail-closed HMAC-pseudonymized Turso counters
+      → geo-tz adds an IANA timezone to each selectable place
+      ← labels, coordinates, timezones, provider-scoped IDs, and linked attribution
+  → guest selects one result and enters exact local birth date/time
+    → POST https://astrochaganti.com/api/guest/profile/derive
+      → reject name/unknown fields; validate date, time, coordinates, timezone
+      → deriveDashaflowProfile(input)
+        → validate server-only URL + 32–256 character credential
+        → keep both attempts inside a 12.5-second total deadline
+        → Authorization: Bearer ${DASHAFLOW_SIDECAR_TOKEN}
+        → POST ${DASHAFLOW_SIDECAR_URL}/v1/profile/derive
+      ← contract v1 engine provenance + Nakshatra/Pada + Janma Rashi + Lagna
+         + nine-planet D1 projection
+  → Panchangam UI reviews and stores the profile in browser-local storage
+```
+
+The Astro Chaganti gateway creates no server profile, session, DB row, or
+analytics event. Geocoder results may create only bounded, hashed-key process
+entries that expire after 24 hours. Dedicated Turso limiter tables receive only
+environment-scoped HMAC identity/fleet digests with count/expiry fields and one
+cross-environment non-personal provider-family daily/pacing row—never raw IPs,
+user IDs, place queries/results, birth details, profile data, coordinates, or
+provider keys. No profile name is accepted or cached, and the Panchangam
+profile name never crosses this boundary.
+
+### Journey 8: Panchangam Screens Muhurtam Candidate Charts
+
+```
+Guest runs Muhurtam ranking on https://panchangam.astrochaganti.com
+  → Vercel route remains unavailable unless GUEST_ELECTION_CHART_ENABLED=true
+  → browser selects at most 24 candidate instants for one event location
+  → POST https://astrochaganti.com/api/guest/muhurta/election-charts
+    → exact Origin and activation gates
+    → process-local plus shared per-client/fleet limits before the 4 KiB body
+    → reject activity/profile/name/birth/natal fields and unknown fields
+    → validate location + unique, bounded, minute-precision RFC3339 instants
+    → deriveDashaflowElectionCharts(input)
+      → validate server-only URL + 32–256 character credential
+      → credentials: omit
+      → Authorization: Bearer ${DASHAFLOW_SIDECAR_TOKEN}
+      → POST ${DASHAFLOW_SIDECAR_URL}/v1/election-chart/derive
+    ← contract v1 with echoed location, DashaFlow/Lahiri provenance,
+       whole-sign houses, and request-ordered Lagna + nine-planet charts
+  → Panchangam evaluates its source-backed Muhurtam predicates locally
+```
+
+The gateway knows neither the activity nor any participant. It does not read
+auth cookies and stores no intent or chart data. Source rules and ranking remain
+the Panchangam application's responsibility; this service supplies only the
+validated astronomical projection.
+
 ---
 
 ## 13. Code Organisation Assessment
@@ -1012,9 +1332,16 @@ call (instead of one per day) is a clean design. The accuracy trade-off
 
 ### Still to address
 
-**In-memory rate limiting** — per Lambda instance, not global. See `BACKLOG.md` item D7 for the Upstash Redis upgrade path.
+**Mostly in-memory rate limiting** — all three Panchangam guest routes and the
+activation-gated managed authenticated geocoder add required fail-closed
+Turso-backed per-client/per-user and fleet enforcement, but other routes remain per
+Lambda instance. See `BACKLOG.md` item D7 for the remaining migration.
 
-**Sidecar unauthenticated** — low risk currently. See `BACKLOG.md` item D1.
+**Sidecar authentication rollout staged (2026-09-03)** — all non-health
+compute callers now use the shared validated bearer boundary on the release
+branch. Production remains open in `BACKLOG.md` D1 until the credentialed
+caller deploy is followed by verified sidecar enforcement without a cutover
+gap.
 
 **`scratch_test_rate_limit.ts`** at project root — dev scratch file, should be deleted. See `BACKLOG.md` T1.
 
@@ -1043,9 +1370,12 @@ single section above, so they live here.
 | `next.config.ts` | Wrapped with `withSentryConfig` for build-time source map upload |
 
 **Tuned defaults (DO NOT regress):** `tracesSampleRate: 0.1`,
-`sendDefaultPii: false`, `enableLogs: false`. Free tier ≈ 5k events/month
-— pure abuse defense. See `lib/posthog-server.ts` and the three Sentry
-configs.
+`sendDefaultPii: false`, `enableLogs: false`. Server request-body capture is
+disabled. Fixed geocoder endpoints are excluded from HTTP/native-fetch tracing
+and a final span scrubber removes provider query strings as defense in depth,
+so neither place text nor a query-string provider key is sent to Sentry. Free
+tier ≈ 5k events/month — pure abuse defense. See `lib/posthog-server.ts`,
+`lib/sentry-privacy.ts`, and the three Sentry configs.
 
 **Build-time env:** `SENTRY_AUTH_TOKEN` (Vercel-only, never in client
 bundle). Without it source maps don't upload; runtime capture still works

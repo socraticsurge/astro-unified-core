@@ -1,4 +1,15 @@
+import { createHash } from "node:crypto";
 import { find as findTimezone } from "geo-tz";
+import {
+  authenticatedProfileGeocoderConfig,
+  guestGeocoderConfig,
+  type GeocoderConfig,
+} from "./geocoder-config";
+import { deploymentEnvironment } from "./deployment-environment";
+import { enforceAuthenticatedGeocoderRateLimit } from "./authenticated-geocoder-rate-limit";
+import { enforceGeocoderDailyRequestBudget } from "./geocoder-provider-budget";
+import { GeocoderCapacityError } from "./geocoder-capacity-error";
+import { MANAGED_PROVIDER_MIN_INTERVAL_MS } from "./geocoder-limits";
 
 export type GeoResult = {
   latitude: number;
@@ -8,24 +19,776 @@ export type GeoResult = {
   display_name: string;
 };
 
-type NominatimRow = {
+export type PlaceSearchResult = {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+};
+
+type NormalizedProviderRow = {
+  provider_id?: string;
+  place_id?: number | string;
+  osm_type?: "node" | "way" | "relation";
+  osm_id?: number | string;
   lat: string;
   lon: string;
   display_name: string;
   importance?: number;
 };
 
-const UA = "AstroChaganti/1.0 (https://astrochaganti.com)";
-const NOMINATIM = "https://nominatim.openstreetmap.org/search";
+const PROVIDER_CACHE_TTL_MS = 24 * 60 * 60 * 1_000;
+const PROVIDER_CACHE_MAX_ENTRIES = 256;
+const PROVIDER_MAX_OUTSTANDING_REQUESTS = 8;
+const PROVIDER_MAX_GUEST_OUTSTANDING_REQUESTS = 6;
+const PROVIDER_REQUEST_DEADLINE_MS = 8_000;
+const PROVIDER_MAX_RESPONSE_BYTES = 64 * 1_024;
+const PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS = 60;
+const PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS = 10;
+const GEOCODER_PROCESS_STATE_VERSION = 3 as const;
+const SAFE_PROVIDER_FIELDS = new Set([
+  "provider_id",
+  "place_id",
+  "osm_type",
+  "osm_id",
+  "lat",
+  "lon",
+  "display_name",
+  "importance",
+]);
 
-async function nominatimQuery(query: string, limit = 3): Promise<NominatimRow[]> {
-  const url = `${NOMINATIM}?q=${encodeURIComponent(query)}&format=json&limit=${limit}&addressdetails=0`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": UA },
-    cache: "no-store",
+type CachedRows = {
+  expiresAt: number;
+  rows: NormalizedProviderRow[];
+};
+
+type RequestAudience = "guest" | "authenticated";
+
+type PendingProviderRequest = {
+  promise: Promise<NormalizedProviderRow[]>;
+  controller: AbortController;
+  audience: RequestAudience;
+  subscribers: number;
+  settled: boolean;
+};
+
+type GeocoderProcessState = {
+  version: typeof GEOCODER_PROCESS_STATE_VERSION;
+  cache: Map<string, CachedRows>;
+  requests: Map<string, PendingProviderRequest>;
+  queue: Promise<void>;
+  lastRequestStartedAt: number | null;
+  cacheExpiryTimer: ReturnType<typeof setTimeout> | null;
+};
+
+const processGlobal = globalThis as typeof globalThis & {
+  __astroChagantiGeocoderState?: GeocoderProcessState;
+};
+const existingProcessState = processGlobal.__astroChagantiGeocoderState;
+const processState: GeocoderProcessState =
+  existingProcessState?.version === GEOCODER_PROCESS_STATE_VERSION
+    ? existingProcessState
+    : {
+      version: GEOCODER_PROCESS_STATE_VERSION,
+      cache: new Map<string, CachedRows>(),
+      requests: new Map<string, PendingProviderRequest>(),
+      queue: Promise.resolve(),
+      lastRequestStartedAt: null,
+      cacheExpiryTimer: null,
+    };
+processGlobal.__astroChagantiGeocoderState = processState;
+
+function normalizedCacheQuery(query: string): string {
+  return query.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+
+function providerRequestKey(query: string, config: GeocoderConfig): string {
+  return createHash("sha256")
+    .update(config.searchUrl)
+    .update("\u0000")
+    .update(normalizedCacheQuery(query))
+    .digest("hex");
+}
+
+function purgeExpiredCache(now = Date.now()): void {
+  for (const [key, value] of processState.cache) {
+    if (value.expiresAt <= now) processState.cache.delete(key);
+  }
+}
+
+function scheduleCacheExpiry(): void {
+  if (processState.cacheExpiryTimer !== null) {
+    clearTimeout(processState.cacheExpiryTimer);
+    processState.cacheExpiryTimer = null;
+  }
+  const nextExpiry = Array.from(processState.cache.values())
+    .reduce<number | null>(
+      (earliest, value) => earliest === null
+        ? value.expiresAt
+        : Math.min(earliest, value.expiresAt),
+      null,
+    );
+  if (nextExpiry === null) return;
+
+  const timer = setTimeout(() => {
+    processState.cacheExpiryTimer = null;
+    purgeExpiredCache();
+    scheduleCacheExpiry();
+  }, Math.max(0, nextExpiry - Date.now()));
+  const unref = (timer as unknown as { unref?: () => void }).unref;
+  if (typeof unref === "function") unref.call(timer);
+  processState.cacheExpiryTimer = timer;
+}
+
+function cachedRows(key: string): NormalizedProviderRow[] | null {
+  purgeExpiredCache();
+  scheduleCacheExpiry();
+  const cached = processState.cache.get(key);
+  if (!cached) return null;
+
+  // Refresh insertion order so the bounded map behaves like a small LRU.
+  processState.cache.delete(key);
+  processState.cache.set(key, cached);
+  return cached.rows;
+}
+
+function cacheRows(key: string, rows: NormalizedProviderRow[]): void {
+  // Result rows can contain birthplace-derived labels and coordinates. Keep
+  // them inside this bounded process only; Turso is reserved for pseudonymous
+  // enforcement counters.
+  purgeExpiredCache();
+  if (processState.cache.size >= PROVIDER_CACHE_MAX_ENTRIES) {
+    const oldest = processState.cache.keys().next().value;
+    if (typeof oldest === "string") processState.cache.delete(oldest);
+  }
+  processState.cache.set(key, {
+    expiresAt: Date.now() + PROVIDER_CACHE_TTL_MS,
+    rows,
   });
-  if (!res.ok) throw new Error(`Geocoder HTTP ${res.status}`);
-  return (await res.json()) as NominatimRow[];
+  scheduleCacheExpiry();
+}
+
+function deadlineError(): Error {
+  return new Error("Geocoder request timed out");
+}
+
+function cancellationError(): Error {
+  return new Error("Geocoder request cancelled");
+}
+
+function providerRetryAfterSeconds(response: Response): number {
+  const raw = response.headers?.get("retry-after")?.trim() ?? "";
+  if (!/^\d+$/.test(raw)) return PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS;
+  const seconds = Number(raw);
+  return Number.isSafeInteger(seconds) && seconds > 0
+    ? Math.min(86_400, seconds)
+    : PROVIDER_RATE_LIMIT_RETRY_AFTER_SECONDS;
+}
+
+function safeAbortReason(signal: AbortSignal): Error {
+  const reason = signal.reason;
+  if (
+    reason instanceof Error
+    && (
+      reason.message === "Geocoder request timed out"
+      || reason.message === "Geocoder request cancelled"
+    )
+  ) {
+    return new Error(reason.message);
+  }
+  return deadlineError();
+}
+
+function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(safeAbortReason(signal));
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => {
+      cleanup();
+      reject(safeAbortReason(signal));
+    };
+    const cleanup = () => signal.removeEventListener("abort", abort);
+    signal.addEventListener("abort", abort, { once: true });
+    promise.then(
+      (value) => {
+        cleanup();
+        resolve(value);
+      },
+      (error) => {
+        cleanup();
+        reject(error);
+      },
+    );
+  });
+}
+
+async function reserveManagedProviderSlot(
+  deadlineAt: number,
+  signal: AbortSignal,
+): Promise<void> {
+  let budget = await withAbort(
+    enforceGeocoderDailyRequestBudget({ signal }),
+    signal,
+  );
+  if (
+    !budget.unavailable
+    && !budget.success
+    && budget.denialReason === "pace"
+  ) {
+    const retryMs = Math.max(1, budget.retryAfterSeconds) * 1_000;
+    if (Date.now() + retryMs < deadlineAt) {
+      await withAbort(
+        new Promise<void>((resolve) => setTimeout(resolve, retryMs)),
+        signal,
+      );
+      // A normal denial performs no write, so one bounded retry cannot double
+      // charge the provider allowance. Storage ambiguity is never retried.
+      budget = await withAbort(
+        enforceGeocoderDailyRequestBudget({ signal }),
+        signal,
+      );
+    }
+  }
+  if (budget.unavailable) {
+    throw new GeocoderCapacityError(
+      "unavailable",
+      budget.retryAfterSeconds,
+    );
+  }
+  if (!budget.success) {
+    throw new GeocoderCapacityError(
+      "rate-limited",
+      budget.retryAfterSeconds,
+    );
+  }
+}
+
+async function waitForProviderSlot(
+  deadlineAt: number,
+  signal: AbortSignal,
+): Promise<void> {
+  const slot = processState.queue.then(async () => {
+    if (signal.aborted) throw safeAbortReason(signal);
+    if (Date.now() >= deadlineAt) throw deadlineError();
+    if (processState.lastRequestStartedAt !== null) {
+      const waitMs = Math.max(
+        0,
+        processState.lastRequestStartedAt
+          + MANAGED_PROVIDER_MIN_INTERVAL_MS
+          - Date.now(),
+      );
+      if (waitMs > 0) {
+        await withAbort(
+          new Promise<void>((resolve) => setTimeout(resolve, waitMs)),
+          signal,
+        );
+      }
+    }
+    if (signal.aborted) throw safeAbortReason(signal);
+    if (Date.now() >= deadlineAt) throw deadlineError();
+    processState.lastRequestStartedAt = Date.now();
+  });
+  processState.queue = slot.catch(() => undefined);
+  await withAbort(slot, signal);
+}
+
+function normalizedCoordinate(
+  value: unknown,
+  min: number,
+  max: number,
+): string | null {
+  const text = typeof value === "number" && Number.isFinite(value)
+    ? String(value)
+    : typeof value === "string"
+      ? value.trim()
+      : "";
+  if (
+    !text
+    || text.length > 32
+    || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text)
+  ) return null;
+  const coordinate = Number(text);
+  return Number.isFinite(coordinate) && coordinate >= min && coordinate <= max
+    ? String(coordinate)
+    : null;
+}
+
+function normalizedDisplayName(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > 1_024) return null;
+  const normalized = value.trim();
+  return normalized ? normalized : null;
+}
+
+function boundedIdentifier(value: unknown): number | string | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.length <= 80) return value;
+  return undefined;
+}
+
+function providerPayloadRows(
+  payload: unknown,
+  config: GeocoderConfig,
+): unknown[] {
+  if (config.responseEnvelope === "array") {
+    if (!Array.isArray(payload)) throw new Error("Geocoder response was invalid");
+    return payload;
+  }
+  if (
+    !payload
+    || typeof payload !== "object"
+    || Array.isArray(payload)
+    || !Array.isArray((payload as Record<string, unknown>).results)
+  ) {
+    throw new Error("Geocoder response was invalid");
+  }
+  return (payload as { results: unknown[] }).results;
+}
+
+function normalizedProviderRows(
+  payload: unknown,
+  config: GeocoderConfig,
+): { rows: NormalizedProviderRow[]; sourceWasEmpty: boolean } {
+  const providerRows = providerPayloadRows(payload, config);
+  const normalized: NormalizedProviderRow[] = [];
+  for (const value of providerRows.slice(0, 5)) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const row = value as Record<string, unknown>;
+    const lat = normalizedCoordinate(row.lat, -90, 90);
+    const lon = normalizedCoordinate(row.lon, -180, 180);
+    const displayName = normalizedDisplayName(
+      config.responseEnvelope === "results" ? row.formatted : row.display_name,
+    );
+    if (lat === null || lon === null || displayName === null) continue;
+
+    const normalizedRow: NormalizedProviderRow = {
+      lat,
+      lon,
+      display_name: displayName,
+    };
+    const placeId = boundedIdentifier(row.place_id);
+    const osmId = boundedIdentifier(row.osm_id);
+    if (placeId !== undefined && config.provider !== "nominatim-local") {
+      normalizedRow.provider_id = String(placeId);
+    }
+    if (placeId !== undefined) normalizedRow.place_id = placeId;
+    if (osmId !== undefined) normalizedRow.osm_id = osmId;
+    if (
+      row.osm_type === "node"
+      || row.osm_type === "way"
+      || row.osm_type === "relation"
+    ) normalizedRow.osm_type = row.osm_type;
+    if (typeof row.importance === "number" && Number.isFinite(row.importance)) {
+      normalizedRow.importance = row.importance;
+    }
+    normalized.push(normalizedRow);
+  }
+  return { rows: normalized, sourceWasEmpty: providerRows.length === 0 };
+}
+
+function parseProviderJson(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    throw new Error("Geocoder response was invalid");
+  }
+}
+
+async function readBoundedProviderJson(response: Response): Promise<unknown> {
+  const declaredLength = response.headers?.get("content-length");
+  if (declaredLength?.trim().match(/^\d+$/)) {
+    const length = Number(declaredLength);
+    if (!Number.isSafeInteger(length) || length > PROVIDER_MAX_RESPONSE_BYTES) {
+      throw new Error("Geocoder response was invalid");
+    }
+  }
+
+  if (response.body) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let bytesRead = 0;
+    let text = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytesRead += value.byteLength;
+        if (bytesRead > PROVIDER_MAX_RESPONSE_BYTES) {
+          await reader.cancel().catch(() => undefined);
+          throw new Error("Geocoder response was invalid");
+        }
+        text += decoder.decode(value, { stream: true });
+      }
+      text += decoder.decode();
+    } finally {
+      reader.releaseLock();
+    }
+    return parseProviderJson(text);
+  }
+
+  // Standards-compliant fetch responses expose either a body stream or text().
+  // The json() fallback keeps existing minimal unit-test doubles bounded after
+  // serialization; production requests use the streaming path above.
+  if (typeof response.text === "function") {
+    const text = await response.text();
+    if (new TextEncoder().encode(text).byteLength > PROVIDER_MAX_RESPONSE_BYTES) {
+      throw new Error("Geocoder response was invalid");
+    }
+    return parseProviderJson(text);
+  }
+  const payload: unknown = await response.json();
+  const serialized = JSON.stringify(payload);
+  if (
+    serialized === undefined
+    || new TextEncoder().encode(serialized).byteLength > PROVIDER_MAX_RESPONSE_BYTES
+  ) {
+    throw new Error("Geocoder response was invalid");
+  }
+  return payload;
+}
+
+function providerSearchUrl(query: string, config: GeocoderConfig): URL {
+  const url = new URL(config.searchUrl);
+  url.searchParams.set(config.queryParameter, query);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("limit", "5");
+  if (config.responseEnvelope === "array") {
+    url.searchParams.set("addressdetails", "0");
+    url.searchParams.set("dedupe", "1");
+    if (
+      config.provider === "locationiq-eu"
+      || config.provider === "locationiq-us"
+    ) {
+      // Pin LocationIQ to its OSM-only dataset so the linked data credit we
+      // return matches the provider request contract.
+      url.searchParams.set("source", "nom");
+    }
+  }
+  if (config.apiKeyParameter && config.apiKey) {
+    url.searchParams.set(config.apiKeyParameter, config.apiKey);
+  }
+  return url;
+}
+
+function subscribeToProviderRequest(
+  pending: PendingProviderRequest,
+  callerSignal?: AbortSignal,
+): Promise<NormalizedProviderRow[]> {
+  if (callerSignal?.aborted) return Promise.reject(cancellationError());
+  pending.subscribers += 1;
+
+  return new Promise<NormalizedProviderRow[]>((resolve, reject) => {
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      pending.subscribers = Math.max(0, pending.subscribers - 1);
+      if (
+        pending.subscribers === 0
+        && !pending.settled
+        && !pending.controller.signal.aborted
+      ) {
+        pending.controller.abort(cancellationError());
+      }
+    };
+    const cleanup = () => callerSignal?.removeEventListener("abort", abort);
+    const abort = () => {
+      cleanup();
+      release();
+      reject(cancellationError());
+    };
+    callerSignal?.addEventListener("abort", abort, { once: true });
+
+    pending.promise.then(
+      (rows) => {
+        cleanup();
+        release();
+        resolve(rows);
+      },
+      (error) => {
+        cleanup();
+        release();
+        reject(error);
+      },
+    );
+    if (callerSignal?.aborted) abort();
+  });
+}
+
+async function fetchProviderRows(
+  query: string,
+  config: GeocoderConfig,
+  audience: RequestAudience,
+  callerSignal?: AbortSignal,
+): Promise<NormalizedProviderRow[]> {
+  if (callerSignal?.aborted) throw cancellationError();
+  const key = providerRequestKey(query, config);
+  const cached = cachedRows(key);
+  if (cached) return cached;
+
+  const pending = processState.requests.get(key);
+  if (pending && !pending.settled && !pending.controller.signal.aborted) {
+    return subscribeToProviderRequest(pending, callerSignal);
+  }
+  if (pending && processState.requests.get(key) === pending) {
+    processState.requests.delete(key);
+  }
+
+  const guestOutstanding = Array.from(processState.requests.values())
+    .filter((request) => request.audience === "guest").length;
+  if (
+    processState.requests.size >= PROVIDER_MAX_OUTSTANDING_REQUESTS
+    || (
+      audience === "guest"
+      && guestOutstanding >= PROVIDER_MAX_GUEST_OUTSTANDING_REQUESTS
+    )
+  ) {
+    throw new GeocoderCapacityError("rate-limited", 1);
+  }
+
+  const deadlineAt = Date.now() + PROVIDER_REQUEST_DEADLINE_MS;
+  const controller = new AbortController();
+  const deadline = setTimeout(
+    () => controller.abort(deadlineError()),
+    PROVIDER_REQUEST_DEADLINE_MS,
+  );
+
+  const pendingRequest: PendingProviderRequest = {
+    promise: Promise.resolve([]),
+    controller,
+    audience,
+    subscribers: 0,
+    settled: false,
+  };
+
+  const request = (async () => {
+    try {
+      await waitForProviderSlot(deadlineAt, controller.signal);
+      if (config.provider !== "nominatim-local") {
+        await reserveManagedProviderSlot(deadlineAt, controller.signal);
+      }
+
+      const url = providerSearchUrl(query, config);
+
+      const res = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": config.identity,
+        },
+        cache: "no-store",
+        redirect: "error",
+        signal: controller.signal,
+      });
+      let normalized: ReturnType<typeof normalizedProviderRows>;
+      if (
+        res.status === 404
+        && (
+          config.provider === "locationiq-eu"
+          || config.provider === "locationiq-us"
+        )
+      ) {
+        await res.body?.cancel().catch(() => undefined);
+        normalized = { rows: [], sourceWasEmpty: true };
+      } else {
+        if (!res.ok) {
+          await res.body?.cancel().catch(() => undefined);
+          if (res.status === 429) {
+            throw new GeocoderCapacityError(
+              "rate-limited",
+              providerRetryAfterSeconds(res),
+            );
+          }
+          throw new GeocoderCapacityError(
+            "unavailable",
+            PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
+          );
+        }
+        const payload = await readBoundedProviderJson(res);
+        normalized = normalizedProviderRows(payload, config);
+      }
+      if (normalized.rows.length > 0 || normalized.sourceWasEmpty) {
+        cacheRows(key, normalized.rows);
+      }
+      return normalized.rows;
+    } catch (error) {
+      if (error instanceof GeocoderCapacityError) throw error;
+      if (
+        error instanceof Error
+        && error.message === "Geocoder request cancelled"
+      ) throw error;
+      if (controller.signal.aborted) {
+        const abortReason = safeAbortReason(controller.signal);
+        if (abortReason.message === "Geocoder request cancelled") {
+          throw abortReason;
+        }
+      }
+      throw new GeocoderCapacityError(
+        "unavailable",
+        PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
+      );
+    } finally {
+      clearTimeout(deadline);
+    }
+  })();
+
+  pendingRequest.promise = request;
+  processState.requests.set(key, pendingRequest);
+  void request.then(
+    () => {
+      pendingRequest.settled = true;
+      if (processState.requests.get(key) === pendingRequest) {
+        processState.requests.delete(key);
+      }
+    },
+    () => {
+      pendingRequest.settled = true;
+      if (processState.requests.get(key) === pendingRequest) {
+        processState.requests.delete(key);
+      }
+    },
+  );
+  return subscribeToProviderRequest(pendingRequest, callerSignal);
+}
+
+async function providerQuery(
+  query: string,
+  config: GeocoderConfig,
+  limit = 3,
+  audience: RequestAudience = "authenticated",
+  callerSignal?: AbortSignal,
+): Promise<NormalizedProviderRow[]> {
+  const boundedLimit = Math.max(1, Math.min(5, Math.floor(limit)));
+  return (await fetchProviderRows(query, config, audience, callerSignal))
+    .slice(0, boundedLimit);
+}
+
+/** Clears only process-local limiter/cache state. Used by deterministic tests. */
+export function resetGeocoderProcessStateForTests(): void {
+  if (processState.cacheExpiryTimer !== null) {
+    clearTimeout(processState.cacheExpiryTimer);
+    processState.cacheExpiryTimer = null;
+  }
+  for (const request of processState.requests.values()) {
+    if (!request.controller.signal.aborted) {
+      request.controller.abort(cancellationError());
+    }
+  }
+  processState.cache.clear();
+  processState.requests.clear();
+  processState.queue = Promise.resolve();
+  processState.lastRequestStartedAt = null;
+}
+
+/** Read-only, aggregate process state for deterministic resource/privacy tests. */
+export function geocoderProcessStateForTests(): {
+  cacheEntries: number;
+  outstandingRequests: number;
+  guestOutstandingRequests: number;
+  authenticatedOutstandingRequests: number;
+  cacheKeysAreHashed: boolean;
+  cachedRowsContainUnknownFields: boolean;
+} {
+  const cachedRowsContainUnknownFields = Array.from(processState.cache.values())
+    .some(({ rows }) => rows.some((row) => (
+      Object.keys(row).some((field) => !SAFE_PROVIDER_FIELDS.has(field))
+    )));
+  const requests = Array.from(processState.requests.values());
+  return {
+    cacheEntries: processState.cache.size,
+    outstandingRequests: processState.requests.size,
+    guestOutstandingRequests: requests
+      .filter((request) => request.audience === "guest").length,
+    authenticatedOutstandingRequests: requests
+      .filter((request) => request.audience === "authenticated").length,
+    cacheKeysAreHashed: Array.from(processState.cache.keys())
+      .every((key) => /^[a-f0-9]{64}$/.test(key)),
+    cachedRowsContainUnknownFields,
+  };
+}
+
+function timezoneAt(latitude: number, longitude: number): string {
+  return findTimezone(latitude, longitude)[0] ?? "UTC";
+}
+
+function placeResultId(
+  row: NormalizedProviderRow,
+  config: GeocoderConfig,
+  latitude: number,
+  longitude: number,
+): string {
+  if (config.provider !== "nominatim-local") {
+    const providerId = row.provider_id;
+    if (providerId) {
+      let encoded: string | null = null;
+      try {
+        const candidate = encodeURIComponent(providerId);
+        if (candidate.length <= 96) encoded = candidate;
+      } catch {
+        // Ill-formed Unicode is replaced by the stable hash below.
+      }
+      const bounded = encoded ?? `sha256-${createHash("sha256")
+        .update(Buffer.from(providerId, "utf16le"))
+        .digest("hex")
+        .slice(0, 32)}`;
+      return `${config.provider}:${bounded}`;
+    }
+    return `${config.provider}:coordinates:${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+  }
+  const osmType = row.osm_type;
+  const osmId = row.osm_id === undefined ? "" : String(row.osm_id);
+  if ((osmType === "node" || osmType === "way" || osmType === "relation") && /^\d+$/.test(osmId)) {
+    return `osm:${osmType}:${osmId}`;
+  }
+  const placeId = row.place_id === undefined ? "" : String(row.place_id);
+  if (/^\d+$/.test(placeId)) return `nominatim:${placeId}`;
+  return `coordinates:${latitude.toFixed(6)},${longitude.toFixed(6)}`;
+}
+
+/**
+ * Submit-based guest search. Unlike geocodePlace(), this deliberately sends
+ * exactly one bounded provider request and never cascades into relaxed
+ * autocomplete-style queries.
+ */
+export async function searchPlaces(
+  query: string,
+  signal?: AbortSignal,
+): Promise<PlaceSearchResult[]> {
+  const normalized = query.trim();
+  if (!normalized) return [];
+
+  const config = guestGeocoderConfig();
+  if (!config) {
+    throw new GeocoderCapacityError(
+      "unavailable",
+      PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
+    );
+  }
+  const rows = await providerQuery(normalized, config, 5, "guest", signal);
+  const results: PlaceSearchResult[] = [];
+
+  for (const row of rows.slice(0, 5)) {
+    const latitude = Number(row.lat);
+    const longitude = Number(row.lon);
+    const label = typeof row.display_name === "string"
+      ? row.display_name.trim().slice(0, 240)
+      : "";
+    if (
+      !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+      !Number.isFinite(longitude) || longitude < -180 || longitude > 180 ||
+      !label
+    ) {
+      continue;
+    }
+
+    results.push({
+      id: placeResultId(row, config, latitude, longitude),
+      label,
+      latitude,
+      longitude,
+      timezone: timezoneAt(latitude, longitude),
+    });
+  }
+
+  return results;
 }
 
 // Build a cascade of progressively-relaxed query variants.
@@ -62,19 +825,52 @@ export function queryVariants(input: string): string[] {
   return Array.from(variants);
 }
 
-async function bestMatch(input: string): Promise<NominatimRow> {
-  const variants = queryVariants(input);
+async function bestMatch(
+  input: string,
+  authenticatedUserId?: string,
+): Promise<NormalizedProviderRow> {
+  const config = authenticatedProfileGeocoderConfig();
+  if (!config) {
+    throw new GeocoderCapacityError(
+      "unavailable",
+      PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
+    );
+  }
+  if (
+    deploymentEnvironment() === "deployed"
+    && config.provider !== "nominatim-local"
+  ) {
+    if (!authenticatedUserId) {
+      throw new GeocoderCapacityError(
+        "unavailable",
+        PROVIDER_UNAVAILABLE_RETRY_AFTER_SECONDS,
+      );
+    }
+    const limit = await enforceAuthenticatedGeocoderRateLimit(
+      authenticatedUserId,
+    );
+    if (limit.unavailable) {
+      throw new GeocoderCapacityError("unavailable", limit.retryAfterSeconds);
+    }
+    if (!limit.success) {
+      throw new GeocoderCapacityError("rate-limited", limit.retryAfterSeconds);
+    }
+  }
+  const variants = config.provider === "nominatim-local"
+    ? queryVariants(input)
+    : [input.trim()];
   let lastError: Error | null = null;
 
   for (const q of variants) {
     try {
-      const rows = await nominatimQuery(q, 3);
+      const rows = await providerQuery(q, config, 3, "authenticated");
       if (rows.length > 0) {
         // Pick the highest-importance result; Nominatim usually orders
         // them already, so rows[0] is fine.
         return rows[0];
       }
     } catch (e) {
+      if (e instanceof GeocoderCapacityError) throw e;
       lastError = e instanceof Error ? e : new Error(String(e));
       // Keep trying other variants even if one HTTP call fails.
     }
@@ -86,13 +882,15 @@ async function bestMatch(input: string): Promise<NominatimRow> {
   );
 }
 
-export async function geocodePlace(place: string): Promise<GeoResult> {
-  const row = await bestMatch(place);
+export async function geocodePlace(
+  place: string,
+  options: { authenticatedUserId?: string } = {},
+): Promise<GeoResult> {
+  const row = await bestMatch(place, options.authenticatedUserId);
   const latitude = parseFloat(row.lat);
   const longitude = parseFloat(row.lon);
 
-  const timezones = findTimezone(latitude, longitude);
-  const timezone = timezones[0] ?? "UTC";
+  const timezone = timezoneAt(latitude, longitude);
 
   const now = new Date();
   const formatter = new Intl.DateTimeFormat("en", {

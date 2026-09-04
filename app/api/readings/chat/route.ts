@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { callAIForText } from "@/lib/engines/ai-caller";
-import { resolveModel, DEFAULT_CHAT_MODEL, type AiModelKey } from "@/lib/engines/models";
+import { resolveModel, DEFAULT_CHAT_MODEL, type AiModelKey, type ChatMessage } from "@/lib/engines/models";
 import { summarizeDashaflow } from "@/lib/chart-summary";
 import {
   lookupAscendant,
@@ -12,7 +12,6 @@ import {
   lookupDashaPair,
   lookupPlanetInHouse,
 } from "@/lib/content/lookup";
-import type { ChatMessage } from "@/lib/engines/groq";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();

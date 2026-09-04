@@ -118,6 +118,49 @@ above to repoint the app.
 - **Before any schema bump or destructive migration:** manual snapshot
   immediately before.
 
+### Limiter capacity and cleanup
+
+The shared limiter has hard attempt ceilings before route-specific writes. All
+guest routes together allow 2,000 attempts per anchored 24-hour window in
+Preview and 10,000 in Production; managed authenticated geocoding allows 500 in
+Preview and 2,500 in Production. After a read-only preflight, the capacity row
+is always the first atomic mutation. Its slot remains consumed if a later
+user/fleet/client guard rejects, so no uncounted route-specific mutation can
+escape the envelope. Budgeting four admission-path row mutations per
+capacity-admitted attempt produces 60,000 per complete set of windows. Because
+the four windows are independently anchored, use 31 window periods for a
+conservative 30-day observation bound of 1.86 million before expired-row
+deletes and unrelated application traffic. This is below the currently
+published Turso Free allowance of 10 million writes/month, but it is not proof
+of capacity: inspect current account usage, deletion accounting, and remaining
+headroom before enabling traffic.
+
+Every deployed guest or managed-authenticated guard chain has one two-second
+cooperative deadline across status, capacity, and route-specific rows. Expiry
+returns retryable `503` and prevents any later SQL statement from starting. A
+Turso request already dispatched at expiry may still commit; do not manually
+refund or automatically retry an ambiguous capacity/fleet/client/user slot.
+Allow its anchored window to recover naturally. Measure Preview cold-path
+p95/p99 before activation and do not lengthen the two-second budget without
+reconciling the 15-second browser and 12.5-second sidecar limits.
+
+Limiter DDL now runs only through the environment-checked operator command.
+The command does not independently authenticate a physical database or Vercel
+project: exact project linkage, injected database identity, and a restore point
+remain operator gates. Cold guest and cleanup processes use the same read-only
+compatibility probe and fail closed instead of repairing schema. The coarse
+Vercel WAF rule is deliberately staged with exceeded-request logging first; it
+is not an enforcing perimeter until the log, Preview `429`, and Production
+approval stages are completed. Keep all public flags off until those stages and
+the database-headroom evidence pass.
+
+Expired HMAC identity/fleet rows are removed by the authenticated landing cron.
+Next.js `after()` starts cleanup after the landing response is committed. The
+job uses indexed 5,000-row delete batches, deletes at most 100,000 rows per run,
+limits each readiness/query operation to 2.5 seconds, and stops after a 10-second
+wall-clock budget. A remaining backlog is reported to Sentry; cleanup failure
+does not change the already-produced landing response.
+
 ---
 
 ## Weekly Sentry review (15 minutes)
@@ -215,9 +258,45 @@ recurring client-side `isAdmin(session)` bug — that pattern returns
 
 ### "Schema is out of date"
 
-Bump `SCHEMA_VERSION` in [`lib/db/client.ts`](../lib/db/client.ts), add
-the migration as `ALTER TABLE` in `ensureSchema()`, redeploy. The next
-request triggers the migration. Take a manual snapshot first.
+Take a manual snapshot first. In [`lib/db/client.ts`](../lib/db/client.ts), add
+new idempotent tables/indexes to `bootstrapTables()`; add version-dependent
+`ALTER TABLE`, backfill, or seed work to `runMigrations()` via `migrate()`; then
+bump `SCHEMA_VERSION` (currently 12). The next DB request always re-runs the
+idempotent application bootstrap and runs migrations only when the stored
+version is behind.
+
+The public limiter objects are intentionally different. Never add their DDL to
+the lazy bootstrap or a route. From a checkout whose `.vercel/project.json`
+names `astro-unified-core-pfni`, provision Preview without writing secrets to a
+file:
+
+```bash
+vercel env run -e preview -- npm run db:provision-rate-limits -- --target preview
+```
+
+The command refuses an ambiguous/mismatched `VERCEL_ENV`, accepts only a remote
+`libsql://` URL, runs one atomic idempotent DDL batch, then verifies the objects
+through the same read-only fingerprint used at runtime. Those checks do not
+prove which physical database or Vercel project supplied the variables. Record
+both identities separately. After a Preview restore point and successful
+evidence, use `-e production` with `--target production`. A missing or
+incompatible limiter schema should make guest routes return `503`; do not make
+the request path self-repair.
+
+### Guest API perimeter rollout or rollback
+
+Vercel Hobby has one rate-limit rule. Keep it scoped to `POST` plus path prefix
+`/api/guest/`, fixed at 60 requests per 60 seconds per IP. Roll it forward in
+stages: exceeded-request logging everywhere, traffic review, Preview-only
+`429`, then Production enforcement with explicit approval. A saved CLI rule is
+only a draft until it is published.
+
+For rollback, disable the three server-side activation flags first. Then stage
+the WAF rule back to exceeded-request logging (or disable it), inspect
+`vercel firewall diff --json`, and publish that rollback. Do not delete Turso
+counter rows during an incident; they expire and are pruned by bounded
+maintenance. Vercel's counters are regional and source IPs can rotate, so the
+WAF rule never replaces the Turso fleet and daily caps.
 
 ### "Today's reading is wrong / stale"
 
@@ -269,14 +348,35 @@ Variables → Production**:
 | `NEXTAUTH_URL` | **`https://astrochaganti.com`** — different from preview/dev. OAuth `redirect_uri` is matched exactly by Google. |
 | `NEXTAUTH_SECRET` | Same as preview is OK, but rotating for prod is a good idea. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Same as preview. |
-| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Same DB as preview today (single Turso DB shared). When you grow, split. |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Intended topology: Preview and Production use the same physical DB when they share one managed-geocoder account, preserving one cross-environment provider-budget pool. Vercel metadata currently confirms that both environment groups define these variable names, but their secret values and exact DB identity have not been inspected or verified. Verify identity before activation; do not split databases without replacing the shared quota control. Limiter tables contain no raw identity, place, birth, coordinate, provider-key, or profile data. |
 | `DASHAFLOW_SIDECAR_URL` | Same sidecar URL. |
+| `RATE_LIMIT_HMAC_SECRET` | Strong 32–256 character printable non-space server secret required for deployed Turso-backed identity/fleet limits. It may be the same across Preview/Production because the HMAC input includes the exact Vercel environment; never reuse a user/account identifier or expose it to the browser. |
+| `GEOCODER_PROVIDER` / `GEOCODER_API_KEY` | Required only when managed geocoding is activated. LocationIQ is recommended, but its human account/key and terms decision remain open; public Nominatim is local-development-only. |
+| `GEOCODER_DAILY_REQUEST_LIMIT` | Canonical integer from 1 through 1,500. Use 1,500 for the conservative initial LocationIQ candidate; this is a shared UTC-day cap across guest/auth and Preview/Production on the same provider-family pool. The first reservation persists the value for that UTC day and a same-day mismatch fails closed. |
 | `ADMIN_EMAILS` | Same list. |
 | `GOOGLE_GEMINI_API_KEY`, `GROQ_API_KEY` | Same keys. |
 | `SENTRY_AUTH_TOKEN` | Same. |
 | `NEXT_PUBLIC_POSTHOG_KEY` / `NEXT_PUBLIC_POSTHOG_HOST` | Same. |
 | `RESEND_API_KEY` | Same. |
-| `CRON_SECRET` | Same value lives in **two** places: Vercel env vars (validates the incoming request) AND GitHub Actions repo secrets (workflow sends it). The cron itself is `.github/workflows/landing-cron.yml`, not Vercel Cron — Hobby blocks sub-daily schedules. Also set `LANDING_CRON_URL` as a GitHub Actions repo secret (e.g. `https://astrochaganti.com/api/cron/regenerate-landing`). |
+| `CRON_SECRET` | Same value lives in **two** places: Vercel env vars (validates the incoming request) AND GitHub Actions repo secrets (workflow sends it). The cron itself is `.github/workflows/landing-cron.yml`, not Vercel Cron — Hobby blocks sub-daily schedules. Also set `LANDING_CRON_URL` as a GitHub Actions repo secret (e.g. `https://astrochaganti.com/api/cron/regenerate-landing`). The authenticated route schedules limiter cleanup with `after()` after its response: 5,000-row batches, 100,000-row maximum, 2.5-second operation timeout, and 10-second wall budget. |
+
+Managed geocoding is not ready merely because these variables exist. Before any
+activation flag changes, the owner must complete the provider account/key and
+terms decision, verify Preview and Production's exact Turso DB identity, measure
+current Turso usage/headroom, and pass the complete guest journey in Preview.
+Verify that an upstream provider `429` becomes a sanitized app `429` with a
+bounded `Retry-After`, while provider timeouts, transport failures, malformed
+responses, and server errors become retryable `503` responses. The 1,100 ms
+Turso lease orders admissions; it does not strictly order actual network sends
+across functions. Capacity-first accounting intentionally charges attempts that
+later fail a user/fleet/client guard; before activation, either accept that
+pool-exhaustion availability risk or add a fleet-wide WAF/edge limit or atomic
+composite guard. Measure the complete cold-path guard chain against the browser
+deadline as well: one cooperative two-second ceiling now prevents later SQL
+dispatch, but an operation already in flight may settle conservatively after
+the caller receives `503`. Do not refund or auto-retry that ambiguous slot.
+Keep the guest and authenticated managed-geocoder flags off until those gates
+and the linked licensing/provider issues are closed.
 
 ### Google Cloud Console — OAuth consent
 
