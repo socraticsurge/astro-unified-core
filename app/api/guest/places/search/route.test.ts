@@ -75,6 +75,7 @@ describe("POST /api/guest/places/search", () => {
     expect(searchPlaces).toHaveBeenCalledWith(
       "Hyderabad",
       expect.any(AbortSignal),
+      "198.51.100.10",
     );
     expect(enforceGuestRateLimit).toHaveBeenCalledWith(
       "places",

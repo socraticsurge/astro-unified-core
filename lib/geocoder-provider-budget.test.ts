@@ -2,11 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("./distributed-rate-limit", () => ({
+  completeDistributedProviderRequest: vi.fn(),
   reserveDistributedProviderRequest: vi.fn(),
 }));
 
-import { reserveDistributedProviderRequest } from "./distributed-rate-limit";
-import { enforceGeocoderDailyRequestBudget } from "./geocoder-provider-budget";
+import {
+  completeDistributedProviderRequest,
+  reserveDistributedProviderRequest,
+} from "./distributed-rate-limit";
+import {
+  completeGeocoderProviderRequest,
+  enforceGeocoderDailyRequestBudget,
+} from "./geocoder-provider-budget";
 
 const ALLOWED = {
   success: true,
@@ -20,6 +27,7 @@ describe("enforceGeocoderDailyRequestBudget", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(reserveDistributedProviderRequest).mockResolvedValue(ALLOWED);
+    vi.mocked(completeDistributedProviderRequest).mockResolvedValue(true);
   });
 
   it.each(["preview", "production"] as const)(
@@ -43,6 +51,100 @@ describe("enforceGeocoderDailyRequestBudget", () => {
         1_500,
         { env },
       );
+    },
+  );
+
+  it("uses one shared public-Nominatim allowance for all deployed callers", async () => {
+    const env = {
+      NODE_ENV: "production",
+      VERCEL_ENV: "production",
+      GEOCODER_PROVIDER: "nominatim-public",
+      GEOCODER_DAILY_REQUEST_LIMIT: "1000",
+    };
+
+    await expect(enforceGeocoderDailyRequestBudget({ env })).resolves.toMatchObject({
+      success: true,
+      unavailable: false,
+    });
+    expect(reserveDistributedProviderRequest).toHaveBeenCalledWith(
+      "nominatim-public",
+      1_000,
+      { env },
+    );
+  });
+
+  it.each(["1001", "1500"])(
+    "rejects public Nominatim above its 1000-attempt daily ceiling (%s)",
+    async (dailyLimit) => {
+      await expect(enforceGeocoderDailyRequestBudget({
+        env: {
+          NODE_ENV: "production",
+          VERCEL_ENV: "production",
+          GEOCODER_PROVIDER: "nominatim-public",
+          GEOCODER_DAILY_REQUEST_LIMIT: dailyLimit,
+        },
+      })).resolves.toEqual({
+        success: false,
+        unavailable: true,
+        retryAfterSeconds: 10,
+      });
+      expect(reserveDistributedProviderRequest).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects public Nominatim outside Production before distributed storage", async () => {
+    await expect(enforceGeocoderDailyRequestBudget({
+      env: {
+        NODE_ENV: "production",
+        VERCEL_ENV: "preview",
+        GEOCODER_PROVIDER: "nominatim-public",
+        GEOCODER_DAILY_REQUEST_LIMIT: "1000",
+      },
+    })).resolves.toEqual({
+      success: false,
+      unavailable: true,
+      retryAfterSeconds: 10,
+    });
+    expect(reserveDistributedProviderRequest).not.toHaveBeenCalled();
+  });
+
+  it("conditionally completes only a deployed public-Nominatim lease", async () => {
+    const env = {
+      NODE_ENV: "production",
+      VERCEL_ENV: "production",
+      GEOCODER_PROVIDER: "nominatim-public",
+    };
+
+    await expect(completeGeocoderProviderRequest(12_500, {
+      env,
+      cooldownMs: 60_000,
+    })).resolves.toBe(true);
+    expect(completeDistributedProviderRequest).toHaveBeenCalledWith(
+      "nominatim-public",
+      12_500,
+      { env, cooldownMs: 60_000 },
+    );
+    await expect(completeGeocoderProviderRequest(12_500, {
+      env: { ...env, VERCEL_ENV: "preview" },
+    })).resolves.toBe(false);
+    await expect(completeGeocoderProviderRequest(12_500, {
+      env: { ...env, GEOCODER_PROVIDER: "geoapify" },
+    })).resolves.toBe(false);
+    expect(completeDistributedProviderRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([1_099, 86_400_001, 1.5, Number.NaN])(
+    "rejects an invalid public-Nominatim completion cooldown %s",
+    async (cooldownMs) => {
+      await expect(completeGeocoderProviderRequest(12_500, {
+        env: {
+          NODE_ENV: "production",
+          VERCEL_ENV: "production",
+          GEOCODER_PROVIDER: "nominatim-public",
+        },
+        cooldownMs,
+      })).resolves.toBe(false);
+      expect(completeDistributedProviderRequest).not.toHaveBeenCalled();
     },
   );
 

@@ -276,9 +276,15 @@ guest attempts at 2,000 per anchored 24-hour window in Preview and 10,000 in
 Production, and managed authenticated geocoding at 500 in Preview and 2,500 in
 Production. The capacity slot remains consumed after a later route-specific
 denial so no user, fleet, or client-row mutation escapes the write envelope.
-One two-second cooperative deadline must cover the entire deployed guard chain,
-with the same signal forwarded into every storage operation. Once aborted, no
-later SQL statement may start. Treat any already-dispatched Turso write as
+For a valid guest place-search cache miss, a separate provider-bound guard adds
+a durable 50-request allowance per client and anchored 24-hour window after
+validation, process-cache lookup, and duplicate coalescing. Invalid requests,
+warm cache hits, and coalesced callers do not spend it. Raw client identifiers
+remain absent from Turso because the shared primitive HMACs this row too.
+One two-second cooperative deadline must cover each route-level deployed guard
+chain; the provider-bound daily-client reservation has its own two-second
+deadline. Each signal must reach every storage operation in its guard. Once
+aborted, no later SQL statement may start. Treat any already-dispatched Turso write as
 conservatively consumed: never refund or automatically retry an ambiguous
 reservation.
 Extend that pattern deliberately, with bounded writes and post-response cleanup,
