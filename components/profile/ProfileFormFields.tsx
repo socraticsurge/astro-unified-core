@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { PlaceLookupNotice } from "@/components/profile/PlaceLookupNotice";
 
 // Shared field set used by both the inline-sidebar create form and the
 // inline-sidebar edit form. The full-screen ProfileForm at /profiles/new also
@@ -112,6 +113,7 @@ export function ProfileFormFields({ form, onChange }: Props) {
           placeholder="City, Country"
         />
       </div>
+      <PlaceLookupNotice />
     </>
   );
 }

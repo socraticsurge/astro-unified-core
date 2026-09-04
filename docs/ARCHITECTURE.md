@@ -450,10 +450,15 @@ budget.
 A separate, non-personal Turso row budgets the external geocoder account. It is
 keyed by provider family rather than deployment or API key, so Preview and
 Production deliberately share the same UTC-day allowance when they use one
-Turso database and provider account; LocationIQ EU/US share one LocationIQ
-pool. After process-cache lookup and duplicate coalescing, every managed
-provider attempt atomically reserves one of at most 1,500 configured daily
-slots plus a 1,100 ms database-clock lease immediately before transit. Warm
+Turso database and provider-policy pool; LocationIQ EU/US share one LocationIQ
+pool, while `nominatim-public` uses its own Production-only pool. After
+process-cache lookup and duplicate coalescing, every managed provider attempt
+atomically reserves one configured daily slot. Public Nominatim is code-capped
+at 1,000 attempts per UTC day; commercial adapters allow at most 1,500. Commercial
+fallbacks also use a 2,000 ms database-clock admission interval. Public
+Nominatim instead acquires an exclusive 12,500 ms crash-recovery lease, holds it
+through the bounded provider operation, and conditionally releases it into a
+1,100 ms cooldown using the exact lease-expiry value as a fencing token. Warm
 process-cache hits and coalesced callers spend no slot; failed admitted attempts
 do. The first row persists the configured daily limit and later Preview or
 Production callers fail closed if their value differs, preventing one
@@ -465,26 +470,33 @@ bounded `Retry-After`; provider transport, timeout, malformed-response, and
 server failures become retryable `503` responses without exposing provider
 details.
 
-The lease serializes distributed admission, not network dispatch: separate
-functions can experience different delays after reservation. The conservative
-spacing provides operating margin under the recommended provider's published
-two-request/second ceiling, but a central queue would be required for a strict
-mathematical ordering of actual sends.
+Public Nominatim is Production-only. Its exclusive lease prevents a second
+deployed caller from dispatching until the current provider operation completes
+plus the cooldown. A synchronous deadline check immediately before `fetch`
+discards a lease returned after the eight-second request deadline. If an
+invocation crashes or completion is ambiguous, the longer lease expires safely;
+a stale completion cannot shorten a newer lease because its fencing value no
+longer matches. Preview and local development use provider fixtures rather than
+the public endpoint.
 
 Only consistent Vercel Preview/Production markers classify as deployed.
 Ambiguous runtimes, including self-hosted `NODE_ENV=production` without an
-explicit trusted-proxy contract, fail closed; local/test runs retain only the
-process-local layer. D7 remains open for extending this protection beyond the
-guest gateway.
+explicit trusted-proxy contract, fail closed. Unit tests retain the process
+contract through mocked provider responses; real local development and Preview
+cannot select public Nominatim. D7 remains open for extending distributed
+protection beyond the guest gateway.
 
 Geocoder access is separately serialized through one process-global scheduler
 in `lib/geocode.ts`: each process spaces local queue admissions by at least
 1,100 ms, accepts at most eight distinct outstanding operations, and reserves
 two of those slots from guest search for authenticated profile geocoding. A
 database reservation can delay one admitted operation differently from the
-next, so neither the local queue nor the distributed lease proves strict
-network-send spacing. One eight-second deadline covers queue wait, provider-
-budget reservation, and fetch. Concurrent duplicate queries share one promise;
+next. The process queue alone, and the commercial adapters' ordinary admission
+interval, therefore do not prove strict network-send spacing. Public Nominatim
+uses the exclusive completion-held lease described above; its final deadline
+check and `fetch` occur synchronously without an intervening `await`. One
+eight-second deadline covers queue wait, provider-budget reservation, and
+fetch. Concurrent duplicate queries share one promise;
 a caller abort removes only that subscriber and cancels underlying work when
 none remain. A Turso HTTP reservation already dispatched cannot itself be
 cancelled; it may conservatively consume capacity after the last subscriber
@@ -498,19 +510,24 @@ fields plus the non-personal aggregate provider row; they never contain raw IPs,
 user IDs, birth details, profile data, or provider keys. Provider responses are
 capped at 64 KiB before JSON parsing; invalid nonempty responses are not cached.
 Provider redirects are rejected and raw provider failures are never propagated.
-The unauthenticated guest search uses the fixed public Nominatim endpoint only
-in local development. In Vercel Preview/Production, `lib/geocoder-config.ts`
-accepts only the code-owned `locationiq-eu`, `locationiq-us`, or `geoapify`
-adapter plus a server-only API key; arbitrary provider URLs are not
-configuration. Existing authenticated profile creation/editing retains its
-legacy Nominatim path until the separate
-`AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` value is exactly `true`. The enabled
+The unauthenticated guest search uses mocked provider responses in unit/browser
+tests. Real local development and Vercel Preview reject public Nominatim. In
+Vercel Production, `lib/geocoder-config.ts` accepts the code-owned
+`nominatim-public`, `locationiq-eu`, `locationiq-us`, or `geoapify` adapter.
+Public Nominatim is keyless; commercial adapters require a server-only API key,
+and arbitrary provider URLs are not configuration. Existing Production
+authenticated profile creation/editing retains its legacy Nominatim path until
+the separate `AUTH_PROFILE_MANAGED_GEOCODER_ENABLED` value is exactly `true`. The enabled
 migration reuses the fixed adapter independently of guest flags, performs one
 bounded query per place, and fails closed on provider, Turso counter, per-user,
 or fleet enforcement failure. The daily provider counter accepts only canonical
-integer limits from 1 through 1,500 and is required for every deployed managed
-provider process-cache miss. Guest search and an enabled authenticated migration
-cannot fall back to public Nominatim.
+integer limits from 1 through 1,000 for public Nominatim or 1 through 1,500 for
+a commercial adapter, and is required for every deployed managed provider
+process-cache miss. Guest search and an enabled authenticated migration
+cannot fall back to the unbudgeted local adapter. Deployed `nominatim-public`
+guest configuration itself fails closed until the authenticated migration is
+also enabled, so the same public service cannot be reached through split
+budgeted and unbudgeted deployed paths.
 
 ---
 
@@ -646,10 +663,11 @@ remains side-effect-free and keeps the existing exact CORS contract.
   origins.
 - `POST` — accepts only `{ query }` (2–120 characters), rate-limits by client
   IP and route-wide fleet budget, and makes at most one coalesced provider
-  request with `limit=5`. Deployed limits run before the body is read. Locally,
-  public Nominatim use shares the application-wide 1,100 ms request-start
-  scheduler and bounded cache; deployed traffic requires one fixed managed
-  adapter plus its key. Returns the backward-compatible attribution string and
+  request with `limit=5`. Deployed limits run before the body is read. Tests use
+  fixtures and real local/Preview runtimes reject public Nominatim. Production
+  public-Nominatim misses require the exclusive distributed send lease; keyed
+  commercial fallbacks retain the ordinary managed-provider boundary. Returns
+  the backward-compatible attribution string and
   structured links:
   `{ data: { results: [{ id, label, latitude, longitude, timezone }], attribution, attributions: [{ label, url }] } }`.
 
@@ -1045,9 +1063,9 @@ interpretation (uses chart-specific facts) and a generic educational section.
 
 | Module | Purpose |
 |---|---|
-| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after separate activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a 1,100 ms local-admission queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, bounded active process-cache expiry in all runtimes, an atomic UTC-day provider-attempt budget after cache/coalescing, semantic provider validation, and `geo-tz` IANA resolution. Neither the local queue nor distributed lease claims strict network-send ordering. Place results are never stored in Turso limiter tables. |
-| `lib/geocoder-config.ts` | Server-only fixed LocationIQ/Geoapify adapters, exact authenticated-migration activation, and public attribution metadata. Guest Preview/Production and the enabled authenticated migration require a named adapter plus its key and cannot use an arbitrary URL. |
-| `lib/geocoder-provider-budget.ts` | Non-personal Turso allowance shared by guest and managed-authenticated process-cache misses, and across Preview/Production using the same provider account. Requires `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 1,500, persists one canonical value per UTC day, rejects same-day cross-environment mismatches, reserves a 1,100 ms distributed admission lease (not strict network-send ordering), and fails closed before fetch when configuration, storage, or quota is unavailable. |
+| [`lib/geocode.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/geocode.ts) | `geocodePlace(text, authenticatedUser)` performs a legacy authenticated lookup or, after activation, one managed-provider query; `searchPlaces(text, signal?)` performs one bounded, caller-cancellable guest search. Both share a 1,100 ms process queue, duplicate coalescing, eight-second deadline, authenticated-capacity reservation, bounded process-cache expiry, an atomic UTC-day provider-attempt budget, semantic provider validation, and `geo-tz` IANA resolution. Production public Nominatim additionally holds an exclusive distributed lease through provider completion. Place results are never stored in Turso limiter tables. |
+| `lib/geocoder-config.ts` | Server-only fixed public-Nominatim, LocationIQ, and Geoapify adapters, exact authenticated-migration activation, and public attribution metadata. Public Nominatim is keyless and Production-only; real local/Preview runtimes reject it; commercial adapters require a key; no path accepts an arbitrary URL. |
+| `lib/geocoder-provider-budget.ts` | Non-personal Turso allowance shared by guest and managed-authenticated process-cache misses. Requires `GEOCODER_DAILY_REQUEST_LIMIT` from 1 through 1,000 for public Nominatim or 1 through 1,500 for a commercial fallback and persists one canonical value per UTC day. Public Nominatim uses a 12,500 ms exclusive crash lease plus a fenced 1,100 ms post-completion cooldown; commercial fallbacks use a 2,000 ms admission interval. Missing configuration, storage, or quota fails closed before fetch. |
 | `lib/authenticated-geocoder-rate-limit.ts` | Pseudonymous process and Turso-backed per-user controls plus the 30-call fleet key shared with guest place search and a 500 Preview / 2,500 Production daily admission cap; used only by the activated managed authenticated path. |
 | `lib/db/rate-limit-maintenance.ts` | Post-response authenticated maintenance for expired HMAC identity/fleet rows: indexed 5,000-row batches, 100,000-row maximum, 2.5-second operation timeout, and 10-second wall-clock budget. |
 | `lib/guest-calculation-gates.ts` | Independent server-only birth-profile and election-chart activation flags; local default on, deployed default off, exact `true` opt-in. |
@@ -1245,9 +1263,10 @@ Guest on https://panchangam.astrochaganti.com opens profile creation
       → searchPlaces(query, request.signal)
         → coalesced provider request, at most five valid results
         → caller disconnect stops queued work when no duplicate caller remains
-        → every runtime uses a bounded, hashed-key process cache
-        → Preview/Production require a fixed LocationIQ/Geoapify adapter, key,
-          and fail-closed HMAC-pseudonymized Turso counters
+        → every enabled runtime uses a bounded, hashed-key process cache
+        → Production public Nominatim requires the exclusive send lease and
+          authenticated-path coupling; local/Preview use fixtures instead
+        → keyed commercial fallbacks retain fail-closed Turso counters
       → geo-tz adds an IANA timezone to each selectable place
       ← labels, coordinates, timezones, provider-scoped IDs, and linked attribution
   → guest selects one result and enters exact local birth date/time

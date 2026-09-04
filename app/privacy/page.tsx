@@ -11,7 +11,8 @@ export default function PrivacyPage() {
         When you sign in with Google, we receive your name, email address, and
         profile picture. When you create a birth profile, we store the name,
         date, time, and place of birth you provide, along with the resolved
-        latitude, longitude, and timezone.
+        latitude, longitude, and timezone. If you add a current city, we also
+        store that place and its resolved latitude, longitude, and timezone.
       </p>
       <p>
         The guest profile tools used from Panchangam do not require an account.
@@ -36,17 +37,22 @@ export default function PrivacyPage() {
       <ul>
         <li>Google — for sign-in.</li>
         <li>
-          LocationIQ or Geoapify — when a managed geocoder is activated, it
-          receives the place text needed to return selectable locations. The
-          active provider is credited beside guest search results. LocationIQ
-          is the recommended release candidate, but no account, terms, or live
-          key have been approved yet.
-        </li>
-        <li>
-          OpenStreetMap Nominatim — receives place text from signed-in profile
-          creation and place-changing edits while the separately reviewed
-          managed-provider migration remains disabled. Local development may
-          also use Nominatim.
+          OpenStreetMap Nominatim — receives only the city or town text that a
+          guest or signed-in user deliberately submits to find a birthplace or
+          current city.
+          The initial deployed geocoder uses this fixed public service with an
+          identifying application User-Agent, bounded caching, shared pacing,
+          and linked attribution. Search runs only after submission, not as
+          autocomplete, and the form instructs users to enter a city or town
+          rather than a street address. See the{" "}
+          <a
+            href="https://operations.osmfoundation.org/policies/nominatim/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Nominatim usage policy
+          </a>
+          .
         </li>
         <li>
           OpenStreetMap contributors — the configured geocoder may use
