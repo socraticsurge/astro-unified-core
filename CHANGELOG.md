@@ -8,6 +8,16 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-09-04] — AGPL source-release alignment
+
+### Changed
+- **Public-source licensing posture** — the application package now declares AGPL-3.0-or-later, ships the full license and third-party notices, and presents a visible source-and-license link on signed-out, signed-in, terms, and footer surfaces.
+- **Network source offer** — guest API responses expose `rel="source"` and `rel="license"` links, while `/api/health` reports the repository, licence, and exact deployed revision when Vercel supplies a valid commit SHA.
+- **Activation remains coordinated** — public calculation activation still requires the Astro and DashaFlow repositories to be public and the health responses to resolve to the exact deployed revisions.
+
+### Added
+- Focused tests for exact-revision source links, safe fallback behavior, and guest preflight source headers.
+
 ## [2026-09-04] — Guest limiter provisioning leaves the request path
 
 ### Changed
