@@ -22,9 +22,9 @@ export type GuestRateLimitResult = {
 };
 
 const FLEET_LIMITS: Record<GuestRateLimitNamespace, number> = {
-  // A conservative shared admission ceiling below LocationIQ Free's
-  // 60/minute provider limit. The provider budget adds a cross-instance
-  // admission lease and preserves upstream 429 guidance.
+  // A conservative shared admission ceiling. Public Nominatim is additionally
+  // protected by its own exclusive cross-instance send lease; commercial
+  // fallbacks retain their provider-family budget and 429 guidance.
   places: 30,
   "profile-derive": 30,
   "election-charts": 10,

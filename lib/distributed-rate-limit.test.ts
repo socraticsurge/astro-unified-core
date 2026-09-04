@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import {
+  completeDistributedProviderRequest,
   distributedRateLimit,
   distributedRateLimitStatus,
   reserveDistributedProviderRequest,
@@ -511,6 +512,70 @@ describe("Turso-backed distributed rate limits", () => {
     expect(Number(rows.rows[0][0])).toBe(1);
     expect(Number(rows.rows[0][1])).toBe(1_500);
     expect(Number(rows.rows[0][2])).toBeGreaterThan(0);
+  });
+
+  it("holds one public-Nominatim send lease through fetch and releases it with fencing", async () => {
+    const first = await reserveDistributedProviderRequest(
+      "nominatim-public",
+      1_000,
+      { env: ENV, client: firstClient },
+    );
+    expect(first).toMatchObject({
+      success: true,
+      remaining: 999,
+      unavailable: false,
+    });
+    expect(first.reservationExpiresAtMs).toEqual(expect.any(Number));
+
+    await expect(reserveDistributedProviderRequest(
+      "nominatim-public",
+      1_000,
+      { env: ENV, client: secondClient },
+    )).resolves.toMatchObject({
+      success: false,
+      unavailable: false,
+      denialReason: "pace",
+    });
+
+    await expect(completeDistributedProviderRequest(
+      "nominatim-public",
+      first.reservationExpiresAtMs!,
+      { env: ENV, client: firstClient },
+    )).resolves.toBe(true);
+
+    const cooling = await reserveDistributedProviderRequest(
+      "nominatim-public",
+      1_000,
+      { env: ENV, client: secondClient },
+    );
+    expect(cooling).toMatchObject({
+      success: false,
+      unavailable: false,
+      denialReason: "pace",
+    });
+    expect(cooling.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+
+    await firstClient.execute(
+      "UPDATE geocoder_provider_budget SET next_allowed_at_ms = 1",
+    );
+    const second = await reserveDistributedProviderRequest(
+      "nominatim-public",
+      1_000,
+      { env: ENV, client: secondClient },
+    );
+    expect(second).toMatchObject({ success: true, remaining: 998 });
+    expect(second.reservationExpiresAtMs).not.toBe(first.reservationExpiresAtMs);
+
+    await expect(completeDistributedProviderRequest(
+      "nominatim-public",
+      first.reservationExpiresAtMs!,
+      { env: ENV, client: firstClient },
+    )).resolves.toBe(false);
+    const row = await firstClient.execute(
+      "SELECT day_count, next_allowed_at_ms FROM geocoder_provider_budget",
+    );
+    expect(Number(row.rows[0][0])).toBe(2);
+    expect(Number(row.rows[0][1])).toBe(second.reservationExpiresAtMs);
   });
 
   it("fails closed when Preview and Production configure different same-day limits", async () => {

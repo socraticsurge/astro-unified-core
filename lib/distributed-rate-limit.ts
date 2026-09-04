@@ -4,7 +4,11 @@ import { createHash, createHmac } from "node:crypto";
 import type { Client } from "@libsql/client";
 import { ensureRateLimitSchema, getClient } from "./db/client";
 import { deploymentEnvironment } from "./deployment-environment";
-import { MANAGED_PROVIDER_MIN_INTERVAL_MS } from "./geocoder-limits";
+import {
+  MANAGED_PROVIDER_DISTRIBUTED_INTERVAL_MS,
+  MANAGED_PROVIDER_MIN_INTERVAL_MS,
+  PUBLIC_NOMINATIM_LEASE_MS,
+} from "./geocoder-limits";
 
 export interface DistributedRateLimitResult {
   success: boolean;
@@ -13,6 +17,11 @@ export interface DistributedRateLimitResult {
   configured: boolean;
   unavailable: boolean;
   denialReason?: "window" | "pace" | "daily";
+  /**
+   * Fencing value for an exclusive public-Nominatim send lease. It is absent
+   * for ordinary fixed-window and commercial-provider admissions.
+   */
+  reservationExpiresAtMs?: number;
 }
 
 type RateLimitClient = Pick<Client, "execute">;
@@ -456,10 +465,12 @@ export async function distributedRateLimit(
  * split one account's quota. The first reservation each UTC day persists the
  * canonical daily limit; a same-day caller configured differently fails
  * closed. The single conditional UPSERT enforces that allowance plus a
- * conservative 1.1-second cross-instance admission lease without charging
- * rejected attempts. The lease spaces reservations, but cannot prove exact
- * network-send ordering after a function is delayed; upstream 429 responses
- * therefore remain a required activation signal. It stores no client,
+ * shared cross-instance boundary without charging rejected attempts.
+ * Commercial providers use an admission interval. Public Nominatim instead
+ * returns a longer exclusive lease that the caller holds through fetch and
+ * conditionally completes into a cooldown, preventing delayed responses from
+ * compressing dispatch starts. Upstream 429 responses remain an operational
+ * activation signal. The row stores no client,
  * account, query, place, profile, coordinate, or provider-credential material.
  */
 export async function reserveDistributedProviderRequest(
@@ -490,6 +501,9 @@ export async function reserveDistributedProviderRequest(
   ) return unavailable(false);
 
   const budgetKey = opaqueProviderPoolKey(providerFamily);
+  const reservationIntervalMs = providerFamily === "nominatim-public"
+    ? PUBLIC_NOMINATIM_LEASE_MS
+    : MANAGED_PROVIDER_DISTRIBUTED_INTERVAL_MS;
 
   try {
     const runStorageOperation = createStorageOperation(options.signal);
@@ -538,7 +552,7 @@ export async function reserveDistributedProviderRequest(
       args: [
         budgetKey,
         dailyLimit,
-        MANAGED_PROVIDER_MIN_INTERVAL_MS,
+        reservationIntervalMs,
       ],
     }));
 
@@ -563,6 +577,9 @@ export async function reserveDistributedProviderRequest(
         retryAfterSeconds: 0,
         configured: true,
         unavailable: false,
+        ...(providerFamily === "nominatim-public"
+          ? { reservationExpiresAtMs: nextAllowedAtMs }
+          : {}),
       };
     }
 
@@ -634,5 +651,60 @@ export async function reserveDistributedProviderRequest(
     };
   } catch {
     return unavailable(true);
+  }
+}
+
+/**
+ * Release one exclusive public-Nominatim send lease into the normal cooldown.
+ *
+ * `reservationExpiresAtMs` is a fencing value returned by the atomic acquire.
+ * A late or duplicate completion cannot shorten a newer lease because the
+ * conditional update must still match that exact value. Failure is
+ * conservative: the original lease simply remains until its bounded expiry.
+ * Provider attempts are never refunded from the daily count.
+ */
+export async function completeDistributedProviderRequest(
+  providerFamily: string,
+  reservationExpiresAtMs: number,
+  options: DistributedRateLimitOptions = {},
+): Promise<boolean> {
+  const env = options.env ?? process.env;
+  if (
+    deploymentEnvironment(env) !== "deployed"
+    || deployedNamespace(env) !== "production"
+    || !tursoConfigured(env)
+    || providerFamily !== "nominatim-public"
+    || !Number.isSafeInteger(reservationExpiresAtMs)
+    || reservationExpiresAtMs < 1
+  ) return false;
+
+  try {
+    const runStorageOperation = createStorageOperation(options.signal);
+    const client = await runStorageOperation(() => storage(options));
+    const released = await runStorageOperation(() => client.execute({
+      sql: `
+        UPDATE ${PROVIDER_BUDGET_TABLE}
+        SET next_allowed_at_ms =
+          CAST(unixepoch('subsec') * 1000 AS INTEGER) + ?
+        WHERE budget_key = ?
+          AND next_allowed_at_ms = ?
+        RETURNING
+          next_allowed_at_ms,
+          CAST(unixepoch('subsec') * 1000 AS INTEGER) AS now_ms
+      `,
+      args: [
+        MANAGED_PROVIDER_MIN_INTERVAL_MS,
+        opaqueProviderPoolKey(providerFamily),
+        reservationExpiresAtMs,
+      ],
+    }));
+    const row = released.rows[0];
+    const nextAllowedAtMs = Number(row?.[0]);
+    const nowMs = Number(row?.[1]);
+    return Number.isSafeInteger(nextAllowedAtMs)
+      && Number.isSafeInteger(nowMs)
+      && nextAllowedAtMs > nowMs;
+  } catch {
+    return false;
   }
 }
