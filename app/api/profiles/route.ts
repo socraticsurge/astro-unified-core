@@ -9,6 +9,10 @@ import { rateLimit } from "@/lib/rate-limit";
 import { MAX_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 import { getPostHogClient } from "@/lib/posthog-server";
 
+async function isProfileLimitReached(userId: string, admin: boolean): Promise<boolean> {
+  return !admin && (await db.profiles.count(userId)) >= MAX_PROFILES;
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,11 +37,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Only regular users have a profile-count cap; admins still obey rate limits.
-    if (!isAdmin(session)) {
-      const profileCount = await db.profiles.count(userId);
-      if (profileCount >= MAX_PROFILES) {
-        return NextResponse.json({ error: `You have reached the maximum limit of ${MAX_PROFILES} profiles.` }, { status: 403 });
-      }
+    if (await isProfileLimitReached(userId, isAdmin(session))) {
+      return NextResponse.json({ error: `You have reached the maximum limit of ${MAX_PROFILES} profiles.` }, { status: 403 });
     }
 
     const body = await req.json();
