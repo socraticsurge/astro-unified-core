@@ -1,6 +1,6 @@
 # Astro Chaganti — Testing Log & Coverage
 
-<!-- last-updated: 2026-09-04 -->
+<!-- last-updated: 2026-09-19 -->
 
 > This file tracks: (1) test coverage status per module, (2) how to run tests,
 > (3) a manual QA log, and (4) test plans linked to the user journey traces in
@@ -59,7 +59,7 @@ older rows retain their prior assessment)
 | `lib/engine-error.ts` | — | None | Trivial; covers error detection |
 | `lib/db/client.ts` | — | None | Integration; needs live Turso or mock |
 | `lib/db/profiles.ts` | — | None | Integration |
-| `app/api/profiles/route.ts`, `app/api/profiles/[id]/route.ts` | corresponding route tests | Route | Authentication/ownership, profile cap, birth and current-location geocoding, provider `429`/`503` retry semantics, create/update behavior, and no writes after geocoder failure |
+| `app/api/profiles/route.ts`, `app/api/profiles/[id]/route.ts` | corresponding route tests | Route | Authentication/ownership, regular-user 10-profile cap (9 allowed; 10+ denied), admin cap exemption (10/11/100 allowed) with rate limits retained, birth and current-location geocoding, provider `429`/`503` retry semantics, create/update behavior, and no writes after geocoder failure |
 | `app/api/readings/dashaflow/route.ts` | `app/api/readings/dashaflow/route.test.ts` | Route | Auth, cache hit/miss, refresh, and engine failure handling |
 | `app/api/compatibility/route.ts` | `app/api/compatibility/route.test.ts` | Route | Auth/ownership/cap, duplicate cache behavior, validated bearer sidecar call, fail-closed config, and upstream-error redaction |
 | `app/api/feedback/route.ts` | — | None | Integration |
@@ -113,7 +113,8 @@ before releasing any change that touches the journey's code path.
 | J1-5 | User completes Google OAuth | Redirected to `/dashboard` | Manual |
 | J1-6 | New user has no profiles | Dashboard shows "Create your first profile" nudge | Manual |
 | J1-7 | User creates profile with valid data | Profile appears in dashboard | Manual |
-| J1-8 | User attempts to create 11th profile | API returns 400 with "Profile limit reached" | Unit / manual |
+| J1-8 | Regular user attempts to create 11th profile | API returns 403 with the maximum-limit message | Unit / manual |
+| J1-8a | Admin creates an 11th or later profile | API returns 201; normal validation and rate limits still apply | Unit / manual |
 | J1-9 | User creates profile with unrecognised place | Geocoding fails gracefully with error message | Manual |
 
 ---
