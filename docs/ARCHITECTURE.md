@@ -1,6 +1,6 @@
 # Astro Chaganti — Architecture & Module Reference
 
-<!-- last-updated: 2026-09-04 -->
+<!-- last-updated: 2026-09-19 -->
 
 > **Note:** The legacy "Basic / Professional" two-mode chart view was replaced
 > with the unified 10-tab dashboard on 2026-05-19. The components below
@@ -68,6 +68,7 @@ be reasoned against all three.
 ### Admin
 - Defined by `ADMIN_EMAILS` env var (see [`lib/admin.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/admin.ts))
 - Can access: everything a Registered User can + admin panel at `/admin`
+- No profile-count cap; profile creation still enforces authentication, validation, and rate limits.
 - Elevated data access: `db.profiles.getAny(id)`, `db.compatibility.getAny(id)`, `db.profiles.listAllWithUser()`
 - Professional view toggle on all profile and compatibility detail pages
 - Can trigger sidecar backfill (`/api/admin/backfill`) and clear compatibility history (`/api/admin/clear-compatibility`)

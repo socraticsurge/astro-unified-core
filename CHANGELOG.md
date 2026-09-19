@@ -8,6 +8,12 @@ All notable changes to Astro Chaganti are recorded here.
 
 ---
 
+## [2026-09-19] — Admin profile-cap exemption
+
+### Fixed
+- Admin accounts can create more than 10 profiles using the existing server-side admin check. Regular users retain the 10-profile cap; authentication, validation, rate limits, and screens are unchanged.
+- Added regression coverage for admin creation at and above the cap, regular-user boundaries, and admin rate limiting.
+
 ## [2026-09-04] — Bounded public Nominatim production adapter
 
 ### Changed

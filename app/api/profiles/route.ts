@@ -4,9 +4,14 @@ import { geocodePlace } from "@/lib/geocode";
 import { isGeocoderCapacityError } from "@/lib/geocoder-capacity-error";
 import { getServerSession } from "next-auth/next";
 import { authOptions, getUserId } from "@/lib/auth";
+import { isAdmin } from "@/lib/admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { MAX_PROFILES, RATE_LIMIT_DEFAULT_COUNT, RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
 import { getPostHogClient } from "@/lib/posthog-server";
+
+async function isProfileLimitReached(userId: string, admin: boolean): Promise<boolean> {
+  return !admin && (await db.profiles.count(userId)) >= MAX_PROFILES;
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -31,9 +36,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Too many requests. Please wait a minute before creating another profile." }, { status: 429 });
     }
 
-    // Max Profiles Check — use COUNT() rather than loading the full list (TOCTOU + memory).
-    const profileCount = await db.profiles.count(userId);
-    if (profileCount >= MAX_PROFILES) {
+    // Only regular users have a profile-count cap; admins still obey rate limits.
+    if (await isProfileLimitReached(userId, isAdmin(session))) {
       return NextResponse.json({ error: `You have reached the maximum limit of ${MAX_PROFILES} profiles.` }, { status: 403 });
     }
 
