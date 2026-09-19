@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 vi.mock("next-auth/next", () => ({ getServerSession: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ authOptions: {}, getUserId: (s) => s?.user?.id ?? "" }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
+vi.mock("@/lib/admin", () => ({ isAdmin: vi.fn() }));
 vi.mock("@/lib/geocode", () => ({ geocodePlace: vi.fn() }));
 vi.mock("@/lib/db", () => ({
   db: {
@@ -21,8 +22,11 @@ import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { geocodePlace } from "@/lib/geocode";
 import { GeocoderCapacityError } from "@/lib/geocoder-capacity-error";
+import { isAdmin } from "@/lib/admin";
+import type { Session } from "next-auth";
+import type { Profile } from "@/lib/db/profiles";
 
-const mockProfile = {
+const mockProfile: Profile = {
   id: "prof-1",
   user_id: "user-1",
   name: "Test User",
@@ -74,7 +78,10 @@ describe("GET /api/profiles", () => {
 });
 
 describe("POST /api/profiles", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(isAdmin).mockReturnValue(false);
+  });
 
   const makeReq = (body: object) =>
     new NextRequest("http://localhost/api/profiles", {
@@ -95,14 +102,52 @@ describe("POST /api/profiles", () => {
     expect(res.status).toBe(429);
   });
 
-  it("returns 403 when at 10-profile cap", async () => {
+  it.each([10, 11])("returns 403 for a regular user with %i profiles", async (count) => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: "user-1" } } as never);
     vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
-    vi.mocked(db.profiles.count).mockResolvedValue(10 as never);
+    vi.mocked(db.profiles.count).mockResolvedValue(count);
     const res = await POST(makeReq({ name: "A", date_of_birth: "1990-01-01", time_of_birth: "12:00", place_of_birth: "Mumbai" }));
     expect(res.status).toBe(403);
     const data = await res.json();
     expect(data.error).toMatch(/maximum limit/i);
+    expect(db.profiles.create).not.toHaveBeenCalled();
+  });
+
+  it.each([10, 11, 100])("allows an admin with %i profiles to create another", async (count) => {
+    const session: Session & { user: { id: string } } = {
+      user: { id: "user-1", email: "admin@example.com" },
+      expires: "2099-01-01T00:00:00.000Z",
+    };
+    vi.mocked(getServerSession).mockResolvedValue(session);
+    vi.mocked(isAdmin).mockReturnValue(true);
+    vi.mocked(rateLimit).mockReturnValue({ success: true, limit: 5, remaining: 4 });
+    vi.mocked(db.profiles.count).mockResolvedValue(count);
+    vi.mocked(geocodePlace).mockResolvedValue(mockGeo);
+    vi.mocked(db.profiles.create).mockResolvedValue(mockProfile);
+
+    const res = await POST(makeReq({
+      name: "Test User", date_of_birth: "1990-01-01",
+      time_of_birth: "12:00", place_of_birth: "Mumbai",
+    }));
+
+    expect(res.status).toBe(201);
+    expect(isAdmin).toHaveBeenCalledWith(session);
+    expect(db.profiles.create).toHaveBeenCalledWith("user-1", expect.objectContaining({ name: "Test User" }));
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+  });
+
+  it("still rate limits admins", async () => {
+    vi.mocked(getServerSession).mockResolvedValue({
+      user: { id: "user-1", email: "admin@example.com" },
+      expires: "2099-01-01T00:00:00.000Z",
+    } satisfies Session & { user: { id: string } });
+    vi.mocked(isAdmin).mockReturnValue(true);
+    vi.mocked(rateLimit).mockReturnValue({ success: false, limit: 5, remaining: 0 });
+
+    const res = await POST(makeReq({ name: "A", date_of_birth: "1990-01-01", time_of_birth: "12:00", place_of_birth: "Mumbai" }));
+
+    expect(res.status).toBe(429);
+    expect(db.profiles.create).not.toHaveBeenCalled();
   });
 
   it("returns 400 when required fields are missing", async () => {
@@ -130,7 +175,7 @@ describe("POST /api/profiles", () => {
   it("returns 201 with created profile on success", async () => {
     vi.mocked(getServerSession).mockResolvedValue({ user: { id: "user-1" } } as never);
     vi.mocked(rateLimit).mockReturnValue({ success: true } as never);
-    vi.mocked(db.profiles.count).mockResolvedValue(2 as never);
+    vi.mocked(db.profiles.count).mockResolvedValue(9);
     vi.mocked(geocodePlace).mockResolvedValue(mockGeo as never);
     vi.mocked(db.profiles.create).mockResolvedValue(mockProfile as never);
 
