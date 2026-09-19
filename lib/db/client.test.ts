@@ -135,7 +135,7 @@ describe("database schema initialization", () => {
     expect(batch).toHaveBeenCalledTimes(1);
   });
 
-  it("shares one full initialization across concurrent callers", async () => {
+  it("shares one explicit provisioning attempt across concurrent operators", async () => {
     const firstDdl = deferred<TestResult>();
     const execute = vi.fn()
       .mockImplementationOnce(() => firstDdl.promise)
@@ -144,10 +144,10 @@ describe("database schema initialization", () => {
           ? result([[12]])
           : result(),
       ));
-    const { ensureSchema } = await loadClientModule(execute);
+    const { provisionApplicationSchema } = await loadClientModule(execute);
 
-    const first = ensureSchema();
-    const second = ensureSchema();
+    const first = provisionApplicationSchema();
+    const second = provisionApplicationSchema();
 
     expect(execute).toHaveBeenCalledTimes(1);
     firstDdl.resolve(result());
@@ -159,7 +159,7 @@ describe("database schema initialization", () => {
         sqlText(statement).includes("CREATE TABLE IF NOT EXISTS schema_version")
       )),
     ).toHaveLength(1);
-    await ensureSchema();
+    await provisionApplicationSchema();
     expect(execute).toHaveBeenCalledTimes(completedCallCount);
   });
 
@@ -273,14 +273,14 @@ describe("database schema initialization", () => {
           ? result([[12]])
           : result(),
       ));
-    const { ensureSchema } = await loadClientModule(execute);
+    const { provisionApplicationSchema } = await loadClientModule(execute);
 
-    await expect(ensureSchema()).rejects.toThrow("schema bootstrap failed");
-    await ensureSchema();
+    await expect(provisionApplicationSchema()).rejects.toThrow("schema bootstrap failed");
+    await provisionApplicationSchema();
     const completedCallCount = execute.mock.calls.length;
 
     expect(completedCallCount).toBeGreaterThan(1);
-    await ensureSchema();
+    await provisionApplicationSchema();
     expect(execute).toHaveBeenCalledTimes(completedCallCount);
   });
 
@@ -321,10 +321,10 @@ describe("database schema initialization", () => {
           ? result([[12]])
           : result(),
       ));
-    const { ensureSchema } = await loadClientModule(execute);
+    const { provisionApplicationSchema } = await loadClientModule(execute);
 
     let failure: unknown;
-    const observed = ensureSchema().catch((error: unknown) => {
+    const observed = provisionApplicationSchema().catch((error: unknown) => {
       failure = error;
     });
 
@@ -334,10 +334,10 @@ describe("database schema initialization", () => {
     await observed;
     expect(failure).toEqual(new Error("Database schema initialization timed out"));
 
-    await ensureSchema();
+    await provisionApplicationSchema();
     const completedCallCount = execute.mock.calls.length;
     expect(completedCallCount).toBeGreaterThan(1);
-    await ensureSchema();
+    await provisionApplicationSchema();
     expect(execute).toHaveBeenCalledTimes(completedCallCount);
   });
 
@@ -402,7 +402,7 @@ describe("database schema initialization", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
-  it("keeps limiter DDL out of lazy full bootstrap and probes it read-only", async () => {
+  it("keeps limiter DDL out of explicit application provisioning and probes it read-only", async () => {
     const execute = vi.fn().mockImplementation((statement: unknown) => {
       const sql = sqlText(statement);
       if (sql.includes("SELECT version FROM schema_version")) {
@@ -411,12 +411,12 @@ describe("database schema initialization", () => {
       return Promise.resolve(result());
     });
     const batch = vi.fn().mockResolvedValue(readyRateLimitSchema());
-    const { ensureRateLimitSchema, ensureSchema } = await loadClientModule(
+    const { ensureRateLimitSchema, provisionApplicationSchema } = await loadClientModule(
       execute,
       batch,
     );
 
-    await ensureSchema();
+    await provisionApplicationSchema();
 
     expect(batch).not.toHaveBeenCalled();
 
@@ -428,7 +428,7 @@ describe("database schema initialization", () => {
     expect((batch.mock.calls[0][0] as unknown[]).every(
       (statement) => /^\s*SELECT\b/i.test(sqlText(statement)),
     )).toBe(true);
-    await Promise.all([ensureRateLimitSchema(), ensureSchema()]);
+    await Promise.all([ensureRateLimitSchema(), provisionApplicationSchema()]);
     expect(execute).toHaveBeenCalledTimes(completedCallCount);
     expect(batch).toHaveBeenCalledTimes(1);
   });

@@ -310,7 +310,7 @@ the NextAuth OAuth flow.
 
 | File | Responsibility |
 |---|---|
-| [`lib/db/client.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/client.ts) | Turso client singleton, full `ensureSchema()`, controlled `provisionRateLimitSchema()`, read-only guest `ensureRateLimitSchema()`, `SCHEMA_VERSION` |
+| [`lib/db/client.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/client.ts) | Turso client singleton, read-only `ensureSchema()`, operator `provisionApplicationSchema()`, controlled `provisionRateLimitSchema()`, read-only guest `ensureRateLimitSchema()`, `SCHEMA_VERSION` |
 | [`lib/db/users.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/users.ts) | `User` type, `users.upsert`, `users.list` |
 | [`lib/db/profiles.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/profiles.ts) | `Profile`, `ProfileWithUser` types, full profiles CRUD |
 | [`lib/db/readings.ts`](https://github.com/socraticsurge/astro-unified-core/blob/main/lib/db/readings.ts) | `Reading` type, cache save/fetch/delete |
@@ -337,17 +337,27 @@ Built on `@libsql/client` (Turso's HTTP SQLite driver).
 | `geocoder_provider_budget` | One non-personal aggregate UTC-day count, canonical configured daily limit, and next-admission timestamp per managed-provider family, intentionally shared by Preview and Production using the same provider account. |
 | `schema_version` | Single-row version table for schema migration tracking. |
 
-**Schema management**: `ensureSchema()` runs lazily on the first DB call per
-Lambda instance. On every cold start it creates the version table if needed and
-runs the idempotent application-table `bootstrapTables()`
-`CREATE TABLE/INDEX IF NOT EXISTS` statements, regardless of the stored version.
-The public limiter objects are provisioned separately as described below. If
-`schema_version` is behind
-`SCHEMA_VERSION` (currently `12`), `runMigrations()` then applies the
-version-gated `ALTER TABLE`/backfill/seed steps before recording version 12.
-Migration errors propagate rather than being treated as success.
+**Schema management**: runtime `ensureSchema()` shares one read-only batch of
+four SELECTs per cold process and memoizes successful version-12 structural
+readiness. It checks required columns, keys, indexes and the absence of added
+CHECK/foreign-key constraints. Harmless additive nullable/non-null-literal-defaulted columns and
+non-unique indexes are allowed; extra required columns without proven non-null defaults and
+new uniqueness constraints fail closed. Missing, behind or incompatible storage
+raises a sanitized error without issuing DDL. Callers wait at most two seconds;
+a failed attempt has a one-second retry cooldown. There is at most one underlying
+probe per process: an uncancellable timed-out transport must settle before retry.
+A permanently hung transport needs a new process; late completion never marks
+readiness successful. Public landing returns no-store 503 without generating AI
+content; feedback and profile-list schema failures return private/no-store 503.
+Other callers retain their existing route failure handling with the sanitized error.
 
-Limiter DDL is the deliberate exception to the lazy full bootstrap. It has one
+Only the environment/identity/restore-gated `db:provision-application` operator
+command runs existing bootstrap, version-gated migrations and idempotent seeds.
+No schema version or data format changed. Drift at version 12 that cannot be fixed
+by idempotent table/index creation must be diagnosed explicitly; runtime never
+silently repairs it. See the Project runbook for Preview acceptance and rollback.
+
+Limiter provisioning/readiness is unchanged. It has one
 canonical `provisionRateLimitSchema()` function that only the explicit
 `db:provision-rate-limits` operator command calls before a deployment is
 enabled. No runtime request or maintenance path calls that write function. The
@@ -1354,9 +1364,9 @@ per-key API fetching means the content library can grow without impacting
 initial page load. Only the section explainers are pre-loaded at the server
 component level (good trade-off for LCP).
 
-**DB schema simplicity.** Using `schema_version` + `ensureSchema()` with
-`ALTER TABLE … ADD COLUMN` in `try/catch` is lightweight and reliable for a
-small team — no migration runner required.
+**DB schema simplicity.** Version-gated migrations remain small and explicit;
+operator provisioning owns writes and runtime readiness owns compatibility.
+Expected duplicate-column errors are tolerated; other migration errors fail.
 
 **Tarabalam extrapolation.** Computing a two-week calendar with one sidecar
 call (instead of one per day) is a clean design. The accuracy trade-off

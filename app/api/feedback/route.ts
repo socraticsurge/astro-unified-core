@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
+import { ApplicationSchemaUnavailableError } from "@/lib/db/application-schema-readiness";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { RATE_LIMIT_WINDOW_MS } from "@/lib/constants";
@@ -46,12 +47,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `page_url must be a string up to ${MAX_PAGE_URL_LENGTH} characters` }, { status: 400 });
   }
 
-  await db.feedback.save({
-    user_email: session?.user?.email ?? null,
-    rating,
-    message: (message as string | null) || null,
-    page_url: (page_url as string | null) || null,
-  });
+  try {
+    await db.feedback.save({
+      user_email: session?.user?.email ?? null,
+      rating,
+      message: (message as string | null) || null,
+      page_url: (page_url as string | null) || null,
+    });
+  } catch (error) {
+    if (!(error instanceof ApplicationSchemaUnavailableError)) throw error;
+    return NextResponse.json({ error: "storage_unavailable" }, { status: 503, headers: { "Cache-Control": "private, no-store" } });
+  }
 
   const distinctId = session?.user?.email ?? `ip:${clientIp(request)}`;
   getPostHogClient().capture({

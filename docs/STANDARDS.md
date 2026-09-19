@@ -200,13 +200,16 @@ check auth. CDN caches do not scope by user.
 `12`.
 
 1. Add application tables/indexes to `bootstrapTables()` with idempotent
-   `CREATE ... IF NOT EXISTS`; this bootstrap runs on every cold start even when
-   the stored version already matches. The public limiter schema is the explicit
-   deployment-provisioned exception described below.
+   `CREATE ... IF NOT EXISTS`; only the explicit `db:provision-application`
+   command may run application bootstrap/migrations. Request-time `ensureSchema()`
+   performs bounded read-only readiness and never repairs storage.
 2. Put version-dependent column changes, backfills, and seeds in
    `runMigrations()`. Use `migrate()` for expected idempotency errors; do not
    swallow unrelated failures.
-3. Bump `SCHEMA_VERSION` with the corresponding schema change.
+3. Bump `SCHEMA_VERSION` with the corresponding schema change and update the
+   structural contract/readiness version and migration tests. Verify the exact
+   target, tested database restore record and Preview evidence before Production.
+   See `docs/PROJECT.md` for the operator command and rollback sequence.
 4. Guest limiter DDL belongs only in `provisionRateLimitSchema()` and runs via
    `npm run db:provision-rate-limits -- --target preview|production` from a
    trusted, correctly linked deployment environment. Runtime guest and cleanup

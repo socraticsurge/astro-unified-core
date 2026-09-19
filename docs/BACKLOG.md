@@ -106,3 +106,13 @@ Near-term and medium-term feature intentions. For full context see `PRODUCT.md Â
 ---
 
 *Last updated: 2026-09-04*
+
+
+## TCU #455 â€” explicit application schema lifecycle
+
+Read-only runtime readiness and guarded operator provisioning are implemented in
+this branch; local tests cover missing/drifted/behind storage, migration/data/seed
+preservation, request paths and bounded concurrency. Preview remote credentials,
+actual Turso/Vercel accounting evidence, tested exact-target database restore and
+owner-approved Production rollout remain release gates. Do not mark the parent
+TCU story complete from local tests or a source merge alone. Limiter schema unchanged.

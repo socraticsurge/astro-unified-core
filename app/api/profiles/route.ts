@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ApplicationSchemaUnavailableError } from "@/lib/db/application-schema-readiness";
 import { db } from "@/lib/db";
 import { geocodePlace } from "@/lib/geocode";
 import { isGeocoderCapacityError } from "@/lib/geocoder-capacity-error";
@@ -18,8 +19,13 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   
   const userId = getUserId(session);
-  const profiles = await db.profiles.list(userId);
-  return NextResponse.json(profiles, { headers: { "Cache-Control": "private, no-store" } });
+  try {
+    const profiles = await db.profiles.list(userId);
+    return NextResponse.json(profiles, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    if (!(error instanceof ApplicationSchemaUnavailableError)) throw error;
+    return NextResponse.json({ error: "storage_unavailable" }, { status: 503, headers: { "Cache-Control": "private, no-store" } });
+  }
 }
 
 export async function POST(req: NextRequest) {
