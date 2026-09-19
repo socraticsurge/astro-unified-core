@@ -383,10 +383,10 @@ CREATE INDEX idx_profiles_user ON profiles(user_id);
 CREATE INDEX idx_readings_profile ON readings(profile_id);
 ```
 
-The application schema is created lazily by `db.ts` on first call
-(`ensureSchema`) — no general migration tool. The two public limiter tables and
-their expiry index are the exception: operators create them explicitly with
-`db:provision-rate-limits`, while runtime readiness is read-only. Old rows from
+Application schema writes run only through `db:provision-application` with explicit
+environment, project, database and tested restore gates. Runtime `ensureSchema()`
+is bounded and read-only. The limiter tables/index retain their independent
+`db:provision-rate-limits` command and existing readiness contract. Old rows from
 removed engines (`bazi`, `vedastro`, etc.) are harmless dead data.
 
 ---
@@ -775,19 +775,53 @@ curl -X POST "https://api.vercel.com/v10/projects/PROJECT_ID/env" \
 
 ### Schema migration
 
-1. Add new idempotent application tables/indexes to `bootstrapTables()` in
-   `lib/db/client.ts`. Keep limiter DDL exclusively in
-   `provisionRateLimitSchema()`; never call it from request-time bootstrap.
-2. Add version-dependent `ALTER TABLE`, backfill, or seed work to
-   `runMigrations()` via `migrate()`.
-3. Bump `SCHEMA_VERSION` (currently `12`) with the schema change.
-4. Deploy application-schema changes. The next DB call runs the idempotent
-   application bootstrap and versioned migrations when the stored version is
-   behind.
-5. For limiter schema changes, run `db:provision-rate-limits` against Preview,
-   verify the read-only probe and rollback point, then repeat explicitly for
-   Production before enabling traffic.
-6. Update `docs/ARCHITECTURE.md §5` and this schema section.
+1. Add application DDL to `bootstrapTables()` and versioned changes to
+   `runMigrations()`; preserve existing data and seeds. Update the version and
+   structural contract in `application-schema-contract.ts` plus readiness/tests.
+2. Create named pre-change and post-merge source restore refs. Independently
+   back up the exact target database and prove restore to an isolated database;
+   a Git branch is not a database backup. Keep confidential restore details outside Git.
+3. Link the intended Vercel project and use its exact Preview database. Confirm
+   Preview does not share Production storage. Default command mode only reads:
+
+   ```sh
+   vercel env run -e preview -- npm run db:provision-application -- --target preview --project <prj_id> --database-host <exact-libsql-host>
+   ```
+
+4. An operator-approved write additionally requires `--apply --restore-record
+   /private/path/restore.json`. The private record must contain `target`,
+   `projectId`, `databaseHost`, `backupRef`, `sourceRef`, `restoredSuccessfully: true`,
+   and an ISO `restoreVerifiedAt` within 24 hours. These are attestations to actual
+   backup/restore evidence, not substitutes for performing the restore test.
+5. Provision Preview, rerun read-only verification, then smoke fresh/missing/drifted
+   storage, concurrent public landing, anonymous feedback and signed-in CRUD.
+   Inspect DDL logs and Turso/Vercel metrics before/after cold starts. Repeated
+   requests must never execute CREATE/ALTER or application schema seed writes.
+6. Only after Preview acceptance and separate applicable Production approval,
+   repeat against exact Production with its own tested restore record. Production
+   records additionally require `previewEvidence` and `approvalRef`. Missing
+   credentials, ambiguous identity, future schema versions, stale restore proof,
+   or schema incompatibility fail closed. Never infer Production permission from
+   a successful Preview run. The limiter command remains separate and unchanged.
+7. On failure, halt rollout. Do not downgrade the version row or drop tables to
+   make readiness pass. Restore the prior deployment first when schema-compatible;
+   restore the database only from the tested exact-target backup with owner approval
+   and a plan to retain/reconcile writes since that backup. Schema DDL is additive
+   but may be partially applied if an operation fails; inspect before retrying.
+
+Runtime success is memoized per process. Readiness has a two-second caller deadline
+and one-second failure cooldown; an unresolved transport occupies the only probe
+slot until it settles. Recycle a process with a permanently hung transport rather
+than creating unlimited concurrent retries. Runtime failures never initiate repair.
+
+Baseline measured locally on 2026-09-19 at development `eeda4128` (production merge `4106f097`): a current-v12
+cold bootstrap dispatched 23 sequential statements (20 CREATE, two INSERT and
+one SELECT), plus two redundant DDL statements in daily landing. Fresh storage
+used 40 statements including 16 ALTER attempts. These counts and local timings
+are not Turso billed row-write counts or public-network latency. Remote account
+metrics and an isolated Preview database are required before production acceptance.
+At preparation, the authenticated Vercel CLI provided no usable Preview Turso
+URL/token and the Turso CLI was logged out; no remote schema operation was run.
 
 ### Clear stale compatibility history (admin)
 

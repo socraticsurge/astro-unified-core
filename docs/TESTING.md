@@ -239,7 +239,7 @@ before releasing any change that touches the journey's code path.
 | G1-5 | Per-client minute limit, 50-search anchored-24-hour guest allowance, 30/minute route-wide fleet, daily admission cap, provider admission lease, or UTC-day provider budget is exhausted, or shared storage is unavailable | Normal exhaustion returns `429` with `Retry-After`; unavailable Turso enforcement returns retryable `503`; responses are private/no-store and blocked work does not reach the provider or sidecar | Unit / route |
 | G1-5b | Any stage of a deployed guest/auth guard chain exceeds the shared two-second deadline or the caller cancels during storage | Retryable `503`; the same signal reaches every stage; no later SQL starts; a late already-dispatched write is handled and may remain conservatively charged; no provider or sidecar call | Unit / route |
 | G1-5c | Fresh process probes a complete, missing, or drifted limiter schema | Exactly one shared read-mode batch containing only three `SELECT` statements; complete canonical `sqlite_schema` table/index definitions are memoized, while missing or incompatible columns, keys, constraints, `WITHOUT ROWID`, and index definitions fail closed before limiter SQL. No `CREATE`, `ALTER`, `DROP`, index DDL, or repair runs from guest or cleanup paths | Unit / SQL contract |
-| G1-5d | Operator provisions limiter objects for an exact Preview/Production target | Command refuses missing/mismatched target, non-remote URL, or missing token; accepted run performs one atomic write-mode DDL batch and then the read-only verification. Lazy `ensureSchema()` never provisions these objects | Unit / operator integration |
+| G1-5d | Operator provisions limiter objects for an exact Preview/Production target | Command refuses missing/mismatched target, non-remote URL, or missing token; accepted run performs one atomic write-mode DDL batch and then the read-only verification. Read-only application `ensureSchema()` never provisions these objects | Unit / operator integration |
 | G1-5e | Many cold instances, rotating client identities, one-account authenticated fanout, exhausted capacity, or unavailable Turso | Readiness remains read-only; rotated guests are bounded by fleet/capacity, authenticated fanout by user/fleet/capacity, exhausted capacity starts no later write, and unavailable storage fails closed within the shared deadline | Unit / adversarial simulation |
 | G1-5f | Vercel WAF guest rule staged, then exercised in log and Preview-enforced modes | Only `POST /api/guest/*` matches; OPTIONS and non-guest paths do not. Exceeding 60 requests in one 60-second regional/IP window is first observed without blocking, then returns edge `429` in Preview without a function/Turso invocation | Preview / metrics / manual |
 | G1-5a | Managed provider returns HTTP `429`, timeout, transport error, malformed/oversized payload, or `5xx` | Provider `429` is sanitized to app `429` with a bounded `Retry-After`; all listed transient/unavailable failures return sanitized retryable `503`; no provider URL, key, query, or response body leaks | Unit / route |
@@ -319,3 +319,22 @@ pass on a staging or production deployment.
 
 *Add new QA run entries above this line. Oldest entries may be archived to
 `docs/archive/` after 6 months.*
+
+
+### Application schema readiness (#455)
+
+| Case | Required result |
+|---|---|
+| Fresh database | Runtime fails without creating anything; explicit operator provisioning creates v12 and seeds. |
+| Current / migrated v11 | Operator preserves existing user rows and modified setting values; readiness succeeds. |
+| Missing table/index or behind/future version | Read-only readiness rejects; no request-time repair. |
+| Additive nullable column/non-unique index | Compatible; required columns and index definitions still checked. |
+| Added required column, UNIQUE, CHECK or foreign key | Incompatible; fail closed. |
+| Concurrent cold requests | One read transaction, zero DDL/seed writes. |
+| Timeout, late completion, retry | Caller released at2s; one underlying probe; late completion cannot mark ready; retry after settlement/cooldown. |
+| Public landing / valid feedback / signed-in profile list | Missing schema produces sanitized no-store503, zero schema writes and no AI generation. |
+| Operator target/restore gates | Missing/mismatched environment, project/database, stale restore or missing Production approval/Preview evidence prevents writes. |
+| Preview release acceptance | Actual isolated Turso logs/account metrics and route smoke before Production, separate from local test claims. |
+
+Automated proof: `lib/db/application-schema-*.test.ts`, existing limiter/operator
+coverage in `lib/db/client.test.ts`, and `scripts/application-schema-options.test.ts`.

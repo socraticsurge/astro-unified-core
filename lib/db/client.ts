@@ -1,3 +1,5 @@
+import { APPLICATION_SCHEMA_VERSION } from "./application-schema-contract";
+export { ensureApplicationSchema as ensureSchema, ApplicationSchemaUnavailableError } from "./application-schema-readiness";
 import { createClient, type Client } from "@libsql/client";
 
 let clientInstance: Client | null = null;
@@ -88,28 +90,10 @@ let schemaInitialization: SchemaInitializationAttempt | null = null;
 let rateLimitSchemaInitialized = false;
 let rateLimitSchemaInitialization: SchemaInitializationAttempt | null = null;
 
-// Bump when the schema changes. ensureSchema() checks a schema_version table
-// (not PRAGMA user_version — Turso's HTTP API rejects PRAGMA writes).
-//
-// Schema lifecycle, designed to be resilient to drift between the version
-// flag and reality (Sentry: ASTROCHAGANTI-9 — "no such table: chat_messages"
-// despite the version row being at SCHEMA_VERSION):
-//
-//   1. bootstrapTables() runs on EVERY cold start. Its application-table
-//      CREATE statements use IF NOT EXISTS, so drifted version metadata does
-//      not hide a missing core table. The public limiter objects are the one
-//      exception: their DDL runs only through the explicit deployment command,
-//      and request-time readiness is read-only.
-//   2. runMigrations() runs only when the DB is behind SCHEMA_VERSION. These
-//      are the destructive/incremental steps (ALTER TABLE ADD COLUMN, data
-//      seeds) that genuinely need version gating.
-//   3. Errors from either step propagate to the caller — we no longer
-//      swallow them and pretend the schema is ready. A failed migration
-//      surfaces as a clear 500 at the route, gets captured by Sentry, and
-//      gets fixed once instead of silently corrupting requests forever.
-const SCHEMA_VERSION = 12;
+// Application writes are explicit operator work; runtime readiness is read-only.
+const SCHEMA_VERSION = APPLICATION_SCHEMA_VERSION;
 
-export async function ensureSchema() {
+export async function provisionApplicationSchema() {
   if (schemaInitialized) return;
   let attempt = schemaInitialization;
   if (!attempt) {
@@ -287,9 +271,8 @@ async function initializeSchema() {
   }
 }
 
-// Always-on idempotent application DDL. Add normal tables/indexes here so a
-// fresh deploy or drifted version flag is self-healing. Public limiter objects
-// are the explicit-provisioning exception above.
+// Operator-only idempotent application DDL. Runtime routes never call this.
+// Limiter objects retain their separate explicit provisioning contract.
 async function bootstrapTables(client: Client) {
   await client.execute(`
     CREATE TABLE IF NOT EXISTS users (

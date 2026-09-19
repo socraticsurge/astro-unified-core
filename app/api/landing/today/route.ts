@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
+import { ApplicationSchemaUnavailableError } from "@/lib/db/application-schema-readiness";
 import { db } from "@/lib/db";
 import {
   fetchTodayCelestialFacts,
@@ -42,6 +43,9 @@ export async function GET() {
   try {
     today = await db.dailyLanding.getByDate(istDate);
   } catch (err) {
+    if (err instanceof ApplicationSchemaUnavailableError) {
+      return NextResponse.json({ error: "no_content_available" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
     Sentry.captureException(err, {
       tags: { feature: "daily-landing", phase: "getByDate", ist_date: istDate },
     });

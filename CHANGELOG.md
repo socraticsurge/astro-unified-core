@@ -14,6 +14,16 @@ All notable changes to Astro Chaganti are recorded here.
 - Admin accounts can create more than 10 profiles using the existing server-side admin check. Regular users retain the 10-profile cap; authentication, validation, rate limits, and screens are unchanged.
 - Added regression coverage for admin creation at and above the cap, regular-user boundaries, and admin rate limiting.
 
+## [2026-09-19] — Explicit application schema provisioning
+
+### Changed
+- Runtime application schema checks are read-only and bounded; public landing,
+  feedback and signed-in profile-list failures return sanitized no-store503.
+- Existing bootstrap/migrations/seeds move to an exact-target operator command
+  with tested restore gates; limiter provisioning and computation contracts remain unchanged.
+- Added real-database migration/retention and route tests, compatibility/concurrency
+  cases, and a Preview/Production rollout and rollback runbook (TCU #455).
+
 ## [2026-09-04] — Bounded public Nominatim production adapter
 
 ### Changed
