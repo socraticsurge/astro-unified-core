@@ -137,40 +137,55 @@ let transportPending = false;
 const TIMEOUT_MS = 2_000;
 const RETRY_DELAY_MS = 1_000;
 
+function startReadinessProbe(): Promise<void> {
+  if (transportPending) throw new ApplicationSchemaUnavailableError();
+  transportPending = true;
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new ApplicationSchemaUnavailableError()),
+      TIMEOUT_MS,
+    );
+    timer.unref?.();
+    Promise.resolve()
+      .then(() => verifyApplicationSchema(getClient()))
+      .then(resolve, () => reject(new ApplicationSchemaUnavailableError()))
+      .finally(() => {
+        transportPending = false;
+        clearTimeout(timer);
+      });
+  });
+}
+
+function currentAttempt(): Promise<void> {
+  if (!attempt) attempt = startReadinessProbe();
+  return attempt;
+}
+
+function recordReady(current: Promise<void>): void {
+  if (attempt !== current) return;
+  ready = true;
+  attempt = null;
+}
+
+function recordFailure(current: Promise<void>): void {
+  if (attempt !== current) return;
+  attempt = null;
+  retryAfter = Date.now() + RETRY_DELAY_MS;
+}
+
+async function settleAttempt(current: Promise<void>): Promise<void> {
+  try {
+    await current;
+    recordReady(current);
+  } catch {
+    recordFailure(current);
+    throw new ApplicationSchemaUnavailableError();
+  }
+}
+
 /** Memoize successful readiness per process; share concurrent probes and bound retries. */
 export async function ensureApplicationSchema(): Promise<void> {
   if (ready) return;
   if (Date.now() < retryAfter) throw new ApplicationSchemaUnavailableError();
-  if (!attempt) {
-    if (transportPending) throw new ApplicationSchemaUnavailableError();
-    transportPending = true;
-    attempt = new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(
-        () => reject(new ApplicationSchemaUnavailableError()),
-        TIMEOUT_MS,
-      );
-      timer.unref?.();
-      Promise.resolve()
-        .then(() => verifyApplicationSchema(getClient()))
-        .then(resolve, () => reject(new ApplicationSchemaUnavailableError()))
-        .finally(() => {
-          transportPending = false;
-          clearTimeout(timer);
-        });
-    });
-  }
-  const current = attempt;
-  try {
-    await current;
-    if (attempt === current) {
-      ready = true;
-      attempt = null;
-    }
-  } catch {
-    if (attempt === current) {
-      attempt = null;
-      retryAfter = Date.now() + RETRY_DELAY_MS;
-    }
-    throw new ApplicationSchemaUnavailableError();
-  }
+  await settleAttempt(currentAttempt());
 }
