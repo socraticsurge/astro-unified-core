@@ -28,7 +28,12 @@ async function main(): Promise<void> {
         readFileSync(values["restore-record"], "utf8"),
       ) as SchemaRestoreRecord)
     : undefined;
-  validateSchemaTarget(values, process.env, linked.projectId, restore);
+  validateSchemaTarget({
+    options: values,
+    environment: process.env,
+    linkedProjectId: linked.projectId,
+    restore,
+  });
   const client = getClient();
   try {
     if (!values.apply) {

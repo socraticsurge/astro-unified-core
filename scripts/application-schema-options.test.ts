@@ -22,10 +22,23 @@ const restore: SchemaRestoreRecord = {
   restoredSuccessfully: true,
   restoreVerifiedAt: new Date(now).toISOString(),
 };
+function validate(
+  selectedOptions = options,
+  environment = env,
+  linkedProjectId = "prj_fixture",
+  selectedRestore: SchemaRestoreRecord | undefined = undefined,
+  selectedNow = now,
+) {
+  return validateSchemaTarget({
+    options: selectedOptions,
+    environment,
+    linkedProjectId,
+    restore: selectedRestore,
+    now: selectedNow,
+  });
+}
 it("permits read-only verification only for matching explicit identity", () => {
-  expect(() =>
-    validateSchemaTarget(options, env, "prj_fixture", undefined, now),
-  ).not.toThrow();
+  expect(() => validate()).not.toThrow();
 });
 it.each([
   [{ ...options, target: "production" }, env, "prj_fixture"],
@@ -39,41 +52,26 @@ it.each([
   [options, { ...env, TURSO_AUTH_TOKEN: "" }, "prj_fixture"],
   [options, { ...env, VERCEL_PROJECT_ID: "prj_wrong" }, "prj_fixture"],
 ])("rejects ambiguous or mismatched target %#", (o, e, p) => {
-  expect(() => validateSchemaTarget(o, e, p, undefined, now)).toThrow();
+  expect(() => validate(o, e, p)).toThrow();
 });
 it("requires recent proven matching restores for apply", () => {
   const apply = { ...options, apply: true };
-  expect(() =>
-    validateSchemaTarget(apply, env, "prj_fixture", undefined, now),
-  ).toThrow();
-  expect(() =>
-    validateSchemaTarget(
-      apply,
-      env,
-      "prj_fixture",
-      { ...restore, restoredSuccessfully: false },
-      now,
-    ),
-  ).toThrow();
-  expect(() =>
-    validateSchemaTarget(apply, env, "prj_fixture", restore, now + 86_400_001),
-  ).toThrow();
-  expect(() =>
-    validateSchemaTarget(apply, env, "prj_fixture", restore, now),
-  ).not.toThrow();
+  expect(() => validate(apply)).toThrow();
+  expect(() => validate(apply, env, "prj_fixture", { ...restore, restoredSuccessfully: false })).toThrow();
+  expect(() => validate(apply, env, "prj_fixture", restore, now + 86_400_001)).toThrow();
+  expect(() => validate(apply, env, "prj_fixture", restore)).not.toThrow();
 });
 it("requires separate Production approval and Preview evidence", () => {
   const o = { ...options, target: "production", apply: true };
   const e = { ...env, VERCEL_ENV: "production" };
   const r = { ...restore, target: "production" };
-  expect(() => validateSchemaTarget(o, e, "prj_fixture", r, now)).toThrow();
+  expect(() => validate(o, e, "prj_fixture", r)).toThrow();
   expect(() =>
-    validateSchemaTarget(
+    validate(
       o,
       e,
       "prj_fixture",
       { ...r, approvalRef: "owner-record", previewEvidence: "preview-record" },
-      now,
     ),
   ).not.toThrow();
 });

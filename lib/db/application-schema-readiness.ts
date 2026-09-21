@@ -47,62 +47,87 @@ function isNonNullDefault(value: unknown): boolean {
   );
 }
 
-/** One read transaction: no schema repairs, writes, or migrations on a request. */
-export async function verifyApplicationSchema(client: Client): Promise<void> {
-  const results = await client.batch(
-    [...APPLICATION_READINESS_QUERIES],
-    "read",
-  );
-  const columns = results[1]?.rows.map((row) => Array.from(row)) ?? [];
-  const indexes = results[2]?.rows.map((row) => Array.from(row)) ?? [];
-  const requiredColumns = new Set(
-    APPLICATION_COLUMNS.map((row) => `${row[0]}.${row[1]}`),
-  );
-  const requiredIndexes = new Set(
+type ReadinessResults = Awaited<ReturnType<Client["batch"]>>;
+type MetadataRow = unknown[];
+
+function normalizedRows(results: ReadinessResults, index: number): MetadataRow[] {
+  return results[index]?.rows.map((row) => Array.from(row)) ?? [];
+}
+
+function containsRows(
+  rows: MetadataRow[],
+  expected: readonly (readonly unknown[])[],
+): boolean {
+  const serialized = new Set(rows.map((row) => JSON.stringify(row)));
+  return expected.every((row) => serialized.has(JSON.stringify(row)));
+}
+
+function indexesMatch(indexes: MetadataRow[]): boolean {
+  const keys = new Set(
     APPLICATION_INDEXES.map((row) => `${row[0]}.${row[1]}`),
   );
-  const contains = (
-    rows: unknown[][],
-    expected: readonly (readonly unknown[])[],
-  ) =>
-    expected.every((row) =>
-      rows.some((actual) => JSON.stringify(actual) === JSON.stringify(row)),
-    );
-  const requiredIndexesMatch = [...requiredIndexes].every((key) => {
+  return [...keys].every((key) => {
     const expected = APPLICATION_INDEXES.filter(
       (row) => `${row[0]}.${row[1]}` === key,
     );
     const actual = indexes.filter((row) => `${row[0]}.${row[1]}` === key);
     return JSON.stringify(actual) === JSON.stringify(expected);
   });
-  const incompatibleExtraColumn = columns.some(
-    (row) =>
-      !requiredColumns.has(`${row[0]}.${row[1]}`) &&
-      ((row[3] === 1 && !isNonNullDefault(row[4])) || row[5] !== 0),
+}
+
+function hasIncompatibleExtraColumn(columns: MetadataRow[]): boolean {
+  const required = new Set(
+    APPLICATION_COLUMNS.map((row) => `${row[0]}.${row[1]}`),
   );
-  const incompatibleExtraIndex = indexes.some(
-    (row) => !requiredIndexes.has(`${row[0]}.${row[1]}`) && row[2] !== 0,
+  return columns.some((row) => {
+    if (required.has(`${row[0]}.${row[1]}`)) return false;
+    const requiredWithoutSafeDefault = row[3] === 1 && !isNonNullDefault(row[4]);
+    return requiredWithoutSafeDefault || row[5] !== 0;
+  });
+}
+
+function hasIncompatibleExtraIndex(indexes: MetadataRow[]): boolean {
+  const required = new Set(
+    APPLICATION_INDEXES.map((row) => `${row[0]}.${row[1]}`),
   );
+  return indexes.some(
+    (row) => !required.has(`${row[0]}.${row[1]}`) && row[2] !== 0,
+  );
+}
+
+function hasIncompatibleConstraint(results: ReadinessResults): boolean {
   const definitions = results[3]?.rows ?? [];
-  const incompatibleConstraint =
-    definitions.length !== APPLICATION_TABLES.length ||
-    definitions.some(
-      (row) =>
-        typeof row[1] !== "string" ||
-        Number(row[2]) !== 0 ||
-        /\bCHECK\s*\(/i.test(row[1].replace(/'(?:''|[^'])*'/g, "''")),
-    );
-  if (
-    results[0]?.rows.length !== 1 ||
-    results[0].rows[0][0] !== APPLICATION_SCHEMA_VERSION ||
-    !contains(columns, APPLICATION_COLUMNS) ||
-    !requiredIndexesMatch ||
-    incompatibleExtraColumn ||
-    incompatibleExtraIndex ||
-    incompatibleConstraint
-  ) {
-    throw new ApplicationSchemaUnavailableError();
-  }
+  if (definitions.length !== APPLICATION_TABLES.length) return true;
+  return definitions.some((row) => {
+    if (typeof row[1] !== "string" || Number(row[2]) !== 0) return true;
+    const sqlWithoutLiterals = row[1].replace(/'(?:''|[^'])*'/g, "''");
+    return /\bCHECK\s*\(/i.test(sqlWithoutLiterals);
+  });
+}
+
+function schemaMetadataMatches(results: ReadinessResults): boolean {
+  const columns = normalizedRows(results, 1);
+  const indexes = normalizedRows(results, 2);
+  const versionMatches =
+    results[0]?.rows.length === 1 &&
+    results[0].rows[0][0] === APPLICATION_SCHEMA_VERSION;
+  return (
+    versionMatches &&
+    containsRows(columns, APPLICATION_COLUMNS) &&
+    indexesMatch(indexes) &&
+    !hasIncompatibleExtraColumn(columns) &&
+    !hasIncompatibleExtraIndex(indexes) &&
+    !hasIncompatibleConstraint(results)
+  );
+}
+
+/** One read transaction: no schema repairs, writes, or migrations on a request. */
+export async function verifyApplicationSchema(client: Client): Promise<void> {
+  const results = await client.batch(
+    [...APPLICATION_READINESS_QUERIES],
+    "read",
+  );
+  if (!schemaMetadataMatches(results)) throw new ApplicationSchemaUnavailableError();
 }
 
 let ready = false;

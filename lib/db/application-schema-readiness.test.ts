@@ -21,6 +21,8 @@ function ready(): Array<{ rows: unknown[][] }> {
     },
   ];
 }
+type ReadyResults = ReturnType<typeof ready>;
+
 async function setup(batch = vi.fn().mockResolvedValue(ready())) {
   vi.resetModules();
   const execute = vi.fn();
@@ -30,6 +32,18 @@ async function setup(batch = vi.fn().mockResolvedValue(ready())) {
     batch,
     execute,
   };
+}
+
+async function expectRejected(
+  mutate: (results: ReadyResults) => void,
+): Promise<void> {
+  const results = ready();
+  mutate(results);
+  const m = await setup(vi.fn().mockResolvedValue(results));
+  await expect(m.ensureApplicationSchema()).rejects.toThrow(
+    m.ApplicationSchemaUnavailableError,
+  );
+  expect(m.execute).not.toHaveBeenCalled();
 }
 afterEach(() => {
   vi.useRealTimers();
@@ -53,25 +67,17 @@ describe("read-only application schema readiness", () => {
   it.each([0, 11, 13])(
     "rejects missing/behind/future version %s",
     async (version) => {
-      const r = ready();
-      r[0].rows = [[version]];
-      const m = await setup(vi.fn().mockResolvedValue(r));
-      await expect(m.ensureApplicationSchema()).rejects.toThrow(
-        "Application storage is temporarily unavailable",
-      );
-      expect(m.execute).not.toHaveBeenCalled();
+      await expectRejected((results) => {
+        results[0].rows = [[version]];
+      });
     },
   );
   it.each([1, 2])(
     "rejects missing or drifted structural metadata result %s",
     async (index) => {
-      const r = ready();
-      r[index].rows = [];
-      const m = await setup(vi.fn().mockResolvedValue(r));
-      await expect(m.ensureApplicationSchema()).rejects.toThrow(
-        m.ApplicationSchemaUnavailableError,
-      );
-      expect(m.execute).not.toHaveBeenCalled();
+      await expectRejected((results) => {
+        results[index].rows = [];
+      });
     },
   );
   it("sanitizes SQL failures and bounds retry frequency", async () => {
@@ -131,18 +137,15 @@ describe("read-only application schema readiness", () => {
   it.each(["unique", "required-column", "foreign-key", "check"])(
     "rejects incompatible added %s",
     async (kind) => {
-      const r = ready();
-      if (kind === "unique")
-        r[2].rows.push(["profiles", "idx_extra", 1, "c", 0, 0, "name"]);
-      if (kind === "required-column")
-        r[1].rows.push(["profiles", "required_note", "TEXT", 1, null, 0]);
-      if (kind === "foreign-key") r[3].rows[0][2] = 1;
-      if (kind === "check")
-        r[3].rows[0][1] = "CREATE TABLE example(id TEXT CHECK(length(id)>10))";
-      const m = await setup(vi.fn().mockResolvedValue(r));
-      await expect(m.ensureApplicationSchema()).rejects.toThrow(
-        m.ApplicationSchemaUnavailableError,
-      );
+      await expectRejected((results) => {
+        if (kind === "unique")
+          results[2].rows.push(["profiles", "idx_extra", 1, "c", 0, 0, "name"]);
+        if (kind === "required-column")
+          results[1].rows.push(["profiles", "required_note", "TEXT", 1, null, 0]);
+        if (kind === "foreign-key") results[3].rows[0][2] = 1;
+        if (kind === "check")
+          results[3].rows[0][1] = "CREATE TABLE example(id TEXT CHECK(length(id)>10))";
+      });
     },
   );
   it("rejects additional columns in a required unique index", async () => {
@@ -163,12 +166,16 @@ describe("read-only application schema readiness", () => {
   it.each(["NULL", "(NULL)", " null ", "(random())"])(
     "rejects unsafe required-column default %s",
     async (defaultValue) => {
-      const r = ready();
-      r[1].rows.push(["profiles", "required_note", "TEXT", 1, defaultValue, 0]);
-      const m = await setup(vi.fn().mockResolvedValue(r));
-      await expect(m.ensureApplicationSchema()).rejects.toThrow(
-        m.ApplicationSchemaUnavailableError,
-      );
+      await expectRejected((results) => {
+        results[1].rows.push([
+          "profiles",
+          "required_note",
+          "TEXT",
+          1,
+          defaultValue,
+          0,
+        ]);
+      });
     },
   );
   it("allows an added required column with a non-null literal default", async () => {
