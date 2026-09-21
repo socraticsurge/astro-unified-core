@@ -33,23 +33,39 @@ type ResponseShape = {
   is_stale: boolean;
 };
 
+type DailyLandingRow = Awaited<ReturnType<typeof db.dailyLanding.getByDate>>;
+type TodayRead =
+  | { row: DailyLandingRow; response?: never }
+  | { row?: never; response: NextResponse };
+
+async function readToday(istDate: string): Promise<TodayRead> {
+  try {
+    return { row: await db.dailyLanding.getByDate(istDate) };
+  } catch (error) {
+    if (error instanceof ApplicationSchemaUnavailableError) {
+      return {
+        response: NextResponse.json(
+          { error: "no_content_available" },
+          { status: 503, headers: { "Cache-Control": "no-store" } },
+        ),
+      };
+    }
+    Sentry.captureException(error, {
+      tags: { feature: "daily-landing", phase: "getByDate", ist_date: istDate },
+    });
+    return { row: null };
+  }
+}
+
 export async function GET() {
   const istDate = istDateString();
 
   // 1. Try today's row. Wrap in try/catch so a DB hiccup (table missing,
   // connection blip, etc.) doesn't 500 the whole handler — we'd rather try
   // to regenerate from scratch.
-  let today: Awaited<ReturnType<typeof db.dailyLanding.getByDate>> = null;
-  try {
-    today = await db.dailyLanding.getByDate(istDate);
-  } catch (err) {
-    if (err instanceof ApplicationSchemaUnavailableError) {
-      return NextResponse.json({ error: "no_content_available" }, { status: 503, headers: { "Cache-Control": "no-store" } });
-    }
-    Sentry.captureException(err, {
-      tags: { feature: "daily-landing", phase: "getByDate", ist_date: istDate },
-    });
-  }
+  const current = await readToday(istDate);
+  if (current.response) return current.response;
+  const today = current.row;
   if (today?.payload) {
     const parsed = parsePayload(today.payload);
     if (parsed) {
